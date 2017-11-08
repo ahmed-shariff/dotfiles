@@ -9,8 +9,6 @@
 
 ;(unless package-archive-contents    ;; Refresh the packages descriptions
 ;  (package-refresh-contents))
-
-
 (setq package-list '(;anaconda-mode
  			  company
  			  company-anaconda
@@ -31,13 +29,21 @@
  			  slim-mode
  			  slime
  			  slime-company
- 			  org))     ;; List of packages to load
+ 			  org
+			  vlf
+			  sr-speedbar
+			  micgoline
+			  yasnippet
+			  elpy
+			  ))     ;; List of packages to load
 
 
 
 ;;mepla setup****************************************************
 (add-to-list 'package-archives
-             '("melpa" . "https://melpa.org/packages/") '("org" . "http://orgmode.org/elpa/"))
+	     '("melpa" . "https://melpa.org/packages/") '("org" . "http://orgmode.org/elpa/"));'("elpy" . "http://jorgenschaefer.github.io/packages/"))
+;	     '("melpa" . "http://melpa.org/packages/")
+;	     '("org" . "http://orgmode.org/elpa/"))
 (add-to-list 'load-path "~/.emacs.d/customFiles")
 ;;(add-to-list 'package-archives
 ;;             '("melpa-stable" . "https://stable.melpa.org/packages/"))
@@ -63,7 +69,7 @@
   (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
 	    		 '(2 "_NET_WM_STATE_MAXIMIZED_HORZ" 0)))
 
-(fullscreen)
+(add-hook 'after-make-frame-functions 'fullscreen)
 (setq ns-auto-hide-menu-bar t)
 (tool-bar-mode 0)
 
@@ -94,6 +100,9 @@
  '(custom-safe-themes
    (quote
     ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default)))
+ '(ede-project-directories
+   (quote
+    ("/media/Files/Research/FoodClassification/deployment")))
  '(package-selected-packages
    (quote
     (magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
@@ -137,7 +146,8 @@
 ;;pdf
 ;(pdf-tools-install)
 
-
+;;delete-selection-mode
+(delete-selection-mode t)
 (require 'vlf-setup)
 
 ;;speedbar settings

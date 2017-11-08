@@ -68,6 +68,22 @@ function proxy_off(){
     echo -e "Proxy environment variable removed."
 }
 
+function activate_bb(){
+    rc6_enable=$(cat /sys/class/drm/card0/power/rc6_enable)
+    if [ $rc6_enable -ne 0 ]; then
+	echo -n "i915 rc6 is not 0, do you want to continue? [Y/n]  "
+	read -n 1 input
+	echo -e "\n"
+	if [ $input = Y ]; then
+	    echo "k, whatever!!"
+	    sudo systemctl start bumblebeed
+	    systemctl status bumblebeed
+	fi
+    else
+	sudo systemctl start bumblebeed
+	systemctl status bumblebeed
+    fi
+}
 
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/cuda/lib64:"
 export CUDA_HOME=/opt/cuda
@@ -80,7 +96,7 @@ alias et="emacs -nw"
 #alias ls="tyls"
 alias uniwork="source virtualenv/tf12-built/bin/activate;cd /media/Files/Research/FoodClassification/models"
 alias activate_nm="sudo systemctl start NetworkManager;systemctl status NetworkManager"
-alias activate_bb="sudo systemctl start bumblebeed;systemctl status bumblebeed"
+#alias activate_bb="sudo systemctl start bumblebeed;systemctl status bumblebeed"
 
 
 unset SBCL_HOME
