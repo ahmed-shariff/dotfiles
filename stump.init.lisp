@@ -9,8 +9,10 @@
 
 (run-shell-command "feh --randomize --bg-fill /media/Files/Pictures/Background/*")
 (run-shell-command "xcompmgr -c &")
+(run-shell-command "conky -c .conky/custom/conky.conf &")
 
-(define-key *root-map* (kbd "c") "exec tilix")
+
+(define-key *root-map* (kbd "c") "exec xfce4-terminal")
 (define-key *root-map* (kbd "e") "exec (unset SBCL_HOME;emacs &)")
 (define-key *root-map* (kbd "w") "frame-windowlist")
 (define-key *root-map* (kbd ".") "mymenu")
@@ -48,6 +50,7 @@
       (if (consp choice)
 	  (run-shell-command (caar choice) (cdar choice));(run-shell-command (car a))
 	  (run-shell-command choice)))))
+
 (defparameter *app-menu* '(("Opera" "opera")
 			   ("Media"
 					;sub-menu
@@ -56,7 +59,8 @@
 			    ("VLC player" "vlc"))
 			   ("File Manager" "thunar")
 			   ("Check power status" t (*power-status* t)) ;; "upower -i $(upower -e | grep BAT) |grep -E \"state|to\ empty|to\ full|percentage\""
-			   ("Change background" "feh --randomize --bg-fill /media/Files/Pictures/Background/*")))
+			   ("Change background" "feh --randomize --bg-fill /media/Files/Pictures/Background/*")
+			   ("Blank screen" "xset dpms force off;i3lock -f -r 4 -s 2")))
 							
 (defun shell-command-fn (command) "Run a shell command and display output to screen.
     This must be used in a functional side-effects-free style! If a program does not
@@ -160,4 +164,5 @@
 
 (setf *screen-mode-line-format*
       (list "%d     [ %n ]     Net: %I | Power: "
+      ;(list "%d     [^[^(:bg \"#555511\") %n ^]]     Net: %I | Power: "
 	    `(:eval (battery-status))))
