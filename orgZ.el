@@ -35,6 +35,12 @@
 ;;(set-register ("~/Documents/org/uniwork.org"
 ;;			     "~/Documents/org/uni_research.org")
 
+(setq org-agenda-custom-commands
+      '(("c" . "My custom queries")
+	("ce" tags "+exp"
+	 ((org-agenda-files `("~/Documents/org/experimnet_log.org"))
+	  (org-agenda-filter-by-top-headline)))))
+
 (setq org-tag-persistent-alist '(("@work" . ?w) ("@home" . ?h) ("@mobile" . ?m)))
 
 (setq org-default-notes-file "~/Documents/org/notes.org")
@@ -51,7 +57,10 @@
 	 "* TODO %^{Description} %^g\n\tAdded: %U\n\t%?")
 	("j" "Journal entry"
 	 entry (file+datetree "~/Documents/org/journal.org")
-	 "* %?")))
+	 "* %?")
+	("e" "Add experiment"
+	 entry (file "~/Documents/org/experimnet_log.org")
+	 "\n* TODO %^{Experiment} [%] :@work:exp:%^g\n%^{ID}p- %^{Description}\n\n** Notes\n\n** TODO Experiments [/]\n%?\n** TODO Conclusions")))
 
 (add-hook 'org-mode-hook
 	  (lambda ()
