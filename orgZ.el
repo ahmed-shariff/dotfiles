@@ -69,7 +69,9 @@
 	 "* %?")
 	("e" "Add experiment"
 	 entry (file "~/Documents/org/experimnet_log.org")
-	 "\n* TODO %^{Experiment} [%] :@work:exp:%^g\n%^{ID}p- %^{Description}\n\n** Notes\n\n** TODO Experiments [/]\n%?\n** TODO Conclusions")))
+	 "\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp:%^g\n:PROPERTIES:
+  :ID:       %\\1
+  :END:\n- %^{Description}\n\n** Notes\n\n** TODO Experiments [/]\n%?\n** TODO Conclusions")))
 
 (add-hook 'org-mode-hook
 	  (lambda ()
