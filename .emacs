@@ -9,42 +9,47 @@
 
 ;(unless package-archive-contents    ;; Refresh the packages descriptions
 ;  (package-refresh-contents))
-(setq package-list '(;anaconda-mode
- 			  company
- 			  company-anaconda
- 			  company-c-headers
- 			  company-quickhelp
- 			  dash
- 			  epl
- 			  f 			  
- 			  let-alist
- 			  macrostep
- 			  pos-tip
- 			  python-mode
- 			  pythonic
- 			  rich-minority
- 			  s
- 			  seq
-			  flycheck
- 			  slim-mode
- 			  slime
- 			  slime-company
- 			  org
-			  vlf
-			  sr-speedbar
-			  micgoline
-			  yasnippet
-			  elpy
-			  ))     ;; List of packages to load
+(setq package-list
+      '(;anaconda-mode
+	circe              
+	company-anaconda   
+	company-auctex     
+	company-c-headers  
+	company-lua        
+	company-php        
+	company-quickhelp  
+	elpy               
+	flycheck           
+	js2-mode           
+	ledger-mode        
+	magit              
+	markdown-mode      
+	markdown-mode+     
+        markdown-preview-mode 
+	pdf-tools          
+	php+-mode          
+	projectile         
+	python-mode        
+	slack              
+	slim-mode          
+	slime-company      
+	sr-speedbar        
+	use-package        
+	vlf                
+	web-mode           
+	web-narrow-mode    
+	yasnippet          
+ 	))     ;; List of packages to load
 
 
 
 ;;mepla setup****************************************************
 (add-to-list 'package-archives
-	     '("melpa" . "https://melpa.org/packages/") '("org" . "http://orgmode.org/elpa/"));'("elpy" . "http://jorgenschaefer.github.io/packages/"))
+	     '("melpa" . "http://melpa.org/packages/") '("org" . "http://orgmode.org/elpa/"));'("elpy" . "http://jorgenschaefer.github.io/packages/"))
 ;	     '("melpa" . "http://melpa.org/packages/")
 ;	     '("org" . "http://orgmode.org/elpa/"))
 (add-to-list 'load-path "~/.emacs.d/customFiles")
+;(add-to-list 'load-path "~/.emacs.d/customFiles/emacs-slack")
 ;;(add-to-list 'package-archives
 ;;             '("melpa-stable" . "https://stable.melpa.org/packages/"))
 
@@ -103,9 +108,20 @@
  '(ede-project-directories
    (quote
     ("/media/Files/Research/FoodClassification/deployment")))
+ '(ledger-post-amount-alignment-at :decimal)
+ '(ledger-reconcile-default-commodity nil)
+ '(ledger-reports
+   (quote
+    (("asd" "ledger")
+     ("a" "ledger ")
+     ("bal" "%(binary) -f %(ledger-file) bal")
+     ("reg" "%(binary) -f %(ledger-file) reg")
+     ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
+     ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
+ '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (markdown-mode+ markdown-preview-mode markdown-mode projectile ledger-mode js2-mode web-narrow-mode web-mode slack use-package circe php+-mode company-php magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -142,6 +158,10 @@
 (require 'ido)
 (ido-mode t)
 
+(require 'ledger-mode)
+(set-register ?l '(file . "~/Documents/account.ledger"))
+
+(require 'sudo-save)
 
 ;;pdf
 ;(pdf-tools-install)
@@ -184,7 +204,7 @@
 (add-hook 'after-init-hook 'global-company-mode)
 ;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
 (setq company-minimum-prefix-length 1)
-(setq company-idle-delay 1)
+(setq company-idle-delay 0.5)
 ;; ;; ;;company quickhelp gives docstring info
 (company-quickhelp-mode 1)
 (setq company-quickhelp-delay nil)
@@ -322,6 +342,73 @@
 
 (add-hs-hook (list 'python-mode-hook 'lisp-mode-hook))
 
+(use-package slack
+  :commands (slack-start)
+  :init
+  (setq slack-buffer-emojify t) ;; if you want to enable emoji, default nil
+  (setq slack-prefer-current-team t)
+  :config
+  (slack-register-team
+   :name "team-name" ; add team name here
+   :default t
+   :client-id "123231423499.234123421342"
+   :client-secret "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   :token "xoxp-111111111111-222222222222-333333333333-44444444444444444444444444444444"
+   :subscribed-channels '() ;add chanel list here
+   :full-and-display-names t))
+
+
+;;alert mode************************************************************
+(use-package alert
+  :commands (alert)
+  :init
+  (setq alert-default-style 'notifier))
+
+;; (require 'web-mode)
+;; (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.php\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
+
+(defun switch-web-js2 ()
+  "Swicth between web mode and js2 mode."
+  (interactive)
+  (cond
+   ((equal major-mode 'web-mode)
+    (js2-mode))
+   ((equal major-mode 'js2-mode)
+    (web-mode))
+   (t (error "Only when in web-mode or js2-mode"))))
+
+(use-package web-mode
+  :mode "\\.phtml\\'"
+  :mode	"\\.tpl\\.php\\'"
+  :mode	"\\.php\\'"
+  :mode	"\\.[agj]sp\\'"
+  :mode	"\\.as[cp]x\\'"
+  :mode	"\\.erb\\'"
+  :mode "\\.html?\\'"
+  :bind ("C-c s" . switch-web-js2))
+
+(use-package web-narrow-mode
+  :hook 'web-mode)
+
+(use-package js2-mode
+  :mode "\\.js\\'"
+  :bind ("C-c s" . switch-web-js2))
+    
+(use-package markdown-mode
+  :ensure t
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :init (setq markdown-command "multimarkdown"))    
+
 
 ;;code to run at the end!************************************************
 
@@ -337,3 +424,5 @@
 ;;yasnippets company conflict resolution
 ;(provide .emacs)
 ;;; .emacs ends here
+(put 'narrow-to-region 'disabled nil)
+(put 'downcase-region 'disabled nil)
