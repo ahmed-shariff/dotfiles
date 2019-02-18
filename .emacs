@@ -139,6 +139,7 @@
  '(ede-project-directories
    (quote
     ("/media/Files/Research/FoodClassification/deployment")))
+ '(explicit-shell-file-name "/bin/zsh")
  '(ledger-post-amount-alignment-at :decimal)
  '(ledger-reconcile-default-commodity nil)
  '(ledger-reports
@@ -149,11 +150,10 @@
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
      ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
- '(explicit-shell-file-name "/bin/zsh")
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired+ dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired+ dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -310,7 +310,7 @@
 (semantic-mode 1)
 
 (add-to-list 'company-backends 'company-c-headers)
-(semantic-add-system-include "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/" 'c++-mode)
+(semantic-add-system-include "/usr/lib/gcc/x86_64-pc-linux-gnu/6.4.1/" 'c++-mode)
 ;(add-to-list 'company-c-headers-path-system "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1")
 
 
@@ -431,6 +431,11 @@
   :commands (alert)
   :init
   (setq alert-default-style 'notifier))
+
+(use-package dashboard
+  :ensure t
+  :config
+  (dashboard-setup-startup-hook))
 
 ;; (require 'web-mode)
 ;; (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
