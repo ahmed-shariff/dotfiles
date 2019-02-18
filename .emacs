@@ -16,7 +16,7 @@
 ;;  			  company-quickhelp
 ;;  			  dash
 ;;  			  epl
-;;  			  f 			  
+;;  			  f
 ;;  			  let-alist
 ;;  			  macrostep
 ;;  			  pos-tip
@@ -37,9 +37,11 @@
 ;; 			  elpy
 ;; 			  ))     ;; List of packages to load
 
+
+
 (setq package-list
       '(;anaconda-mode
-	circe              
+	circe
 	company-anaconda   
 	company-auctex     
 	company-c-headers  
@@ -55,7 +57,7 @@
 	markdown-mode+     
         markdown-preview-mode 
 	pdf-tools          
-	php+-mode          
+	php-mode          
 	projectile         
 	python-mode
 	pythonic
@@ -77,8 +79,8 @@
 ;	     '("melpa" . "http://melpa.org/packages/")
 ;	     '("org" . "http://orgmode.org/elpa/"))
 (add-to-list 'load-path "~/.emacs.d/customFiles")
-;;(add-to-list 'package-archives
-;;             '("melpa-stable" . "https://stable.melpa.org/packages/"))
+(add-to-list 'package-archives
+            '("melpa-stable" . "https://stable.melpa.org/packages/"))
 
 
 (when (< emacs-major-version 24)
@@ -87,7 +89,9 @@
 
 (dolist (package package-list)
   (unless (package-installed-p package)  ;; Make sure the Org package is
-    (package-install package)))           ;; installed, install it if not
+    (progn
+      (print package)
+      (package-install package))))           ;; installed, install it if not
 
 (package-initialize)      ;; Initialize & Install Package
 

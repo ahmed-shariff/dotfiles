@@ -215,18 +215,19 @@ alias config-git='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
 unset SBCL_HOME
 
-#torch-----------------------------------------------------------------------
+# torch-----------------------------------------------------------------------
 #. /home/amsha/torch/install/bin/torch-activate
 
-#Tilix-----------------------------------------------------------------------
+# Tilix-----------------------------------------------------------------------
 if [ $TILIX_ID ] || [ $VTE_VERSION ]; then
         source /etc/profile.d/vte.sh
 fi
-#powerline-------------------------------------------------------------------
+
+# powerline-------------------------------------------------------------------
 #. /usr/lib/python3.6/site-packages/powerline/bindings/bash/powerline.sh
 
 
-#gcloud----------------------------------------------------------------------
+# gcloud----------------------------------------------------------------------
 # The next line updates PATH for the Google Cloud SDK.
 # if [ -f '/home/amsha/packages_external/google-cloud-sdk/path.bash.inc' ]; then source '/home/amsha/packages_external/google-cloud-sdk/path.bash.inc'; fi
 
@@ -235,3 +236,6 @@ fi
 
 # added by Anaconda3 installer
 # export PATH="/home/amsha/anaconda3/bin:$PATH"
+
+# neofetch--------------------------------------------------------------------
+neofetch
