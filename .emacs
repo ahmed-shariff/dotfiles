@@ -153,7 +153,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired+ dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired+ dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -187,9 +187,44 @@
 (global-visual-line-mode t)
 
 ;;enable ido mode
-(require 'ido)
-(ido-mode t)
+;; (require 'ido)
+;; (ido-mode t)
 
+;;ivy-mode *********************************************************
+(use-package amx :ensure t
+  :init (amx-mode 1))
+
+(use-package ivy :ensure t
+  :diminish (ivy-mode . "")             ; does not display ivy in the modeline
+  :init
+  (ivy-mode 1)                          ; enable ivy globally at startup
+  :bind (("C-c g" . counsel-git)
+	 ("C-c j" . counsel-git-grep) 
+	 ("C-c k" . counsel-ag)       
+	 ("C-x l" . counsel-locate)   
+	 ("C-S-o" . counsel-rhythmbox))
+	 
+	 ;; :map ivy-minibuffer-map        ; bind in the ivy buffer
+	 ;;      ("RET" . ivy-alt-done)
+	 ;;      ("s-<"   . ivy-avy)
+	 ;;      ("s->"   . ivy-dispatching-done)
+	 ;;      ("s-+"   . ivy-call)
+	 ;;      ("s-!"   . ivy-immediate-done)
+	 ;;      ("s-["   . ivy-previous-history-element)
+	 ;;      ("s-]"   . ivy-next-history-element))
+  :config
+  (setq ivy-use-virtual-buffers t)       ; extend searching to bookmarks and
+  (setq ivy-height 10)                   ; set height of the ivy window
+  (setq ivy-count-format "(%d) ")     ; count format, from the ivy help page
+  (setq ivy-display-style 'fancy)
+  (setq ivy-format-function 'ivy-format-function-line) ; Make highlight extend all the way to the right
+  ;; TODO testing out the fuzzy search
+  (setq ivy-re-builders-alist
+      '((read-file-name-internal . ivy--regex-fuzzy)
+	(internal-complete-buffer . ivy--regex-fuzzy)
+	(execute-extended-command . ivy--regex-fuzzy)
+	(amx . ivy--regex-fuzzy)
+	(t . ivy--regex-plus))))
 
 ;;pdf
 (pdf-tools-install)
