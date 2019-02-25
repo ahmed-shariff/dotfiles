@@ -12,7 +12,7 @@
 (run-shell-command "conky -c .conky/custom/conky.conf &")
 (run-shell-command "xbingkeys")
 
-(define-key *root-map* (kbd "c") "exec xfce4-terminal --hide-menubar")
+(define-key *root-map* (kbd "c") "exec tilix --window-style=disable-csd-hide-toolbar");xfce4-terminal --hide-menubar")
 (define-key *root-map* (kbd "e") "exec (unset SBCL_HOME;emacs &)")
 (define-key *root-map* (kbd "w") "frame-windowlist")
 (define-key *root-map* (kbd ".") "mymenu")
