@@ -96,8 +96,6 @@
 (package-initialize)      ;; Initialize & Install Package
 
 
-
-
 (defun fullscreen (&optional f)
   (interactive)
   (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
@@ -153,11 +151,12 @@
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired+ dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired+ dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
- '(sml/theme (quote dark)))
+ '(sml/theme (quote dark))
+ '(use-package-always-ensure t))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -202,10 +201,10 @@
 	 ("C-c j" . counsel-git-grep) 
 	 ("C-c k" . counsel-ag)       
 	 ("C-x l" . counsel-locate)   
-	 ("C-S-o" . counsel-rhythmbox))
+	 ("C-S-o" . counsel-rhythmbox)
 	 
-	 ;; :map ivy-minibuffer-map        ; bind in the ivy buffer
-	 ;;      ("RET" . ivy-alt-done)
+	 :map ivy-minibuffer-map        ; bind in the ivy buffer
+	 ("RET" . ivy-alt-done))
 	 ;;      ("s-<"   . ivy-avy)
 	 ;;      ("s->"   . ivy-dispatching-done)
 	 ;;      ("s-+"   . ivy-call)
@@ -225,6 +224,24 @@
 	(execute-extended-command . ivy--regex-fuzzy)
 	(amx . ivy--regex-fuzzy)
 	(t . ivy--regex-plus))))
+
+;;expand-region **********************************************************************
+(use-package expand-region
+  :bind ("C-=" . er/expand-region))
+
+;;lsp-mode ***************************************************************************
+(use-package lsp-ui)
+(use-package company-lsp)
+(use-package lsp-mode
+  ;;:hook ((python-mode-hook) . lsp))
+  :init
+  (add-hook 'prog-mode-hook #'lsp)
+  :config
+  (lsp-register-client
+ (make-lsp-client :new-connection (lsp-tramp-connection "pyls")
+                  :major-modes '(python-mode)
+                  :remote? t
+                  :server-id 'pyls))
 
 ;;pdf
 (pdf-tools-install)
@@ -492,7 +509,7 @@
     (web-mode))
    (t (error "Only when in web-mode or js2-mode"))))
 
-(use-package web-mode
+(use-package web-mode 
   :mode "\\.phtml\\'"
   :mode	"\\.tpl\\.php\\'"
   :mode	"\\.php\\'"
