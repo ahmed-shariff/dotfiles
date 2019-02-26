@@ -23,6 +23,8 @@
 ;;my custom org setup
 ;;; Code:
 (require 'org)
+(require 'org-capture)
+(require 'org-capture-pop-frame)
 ;(ido-mode)
 
 (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)""|" "DONE(d!)" "CANCELED(c@)")

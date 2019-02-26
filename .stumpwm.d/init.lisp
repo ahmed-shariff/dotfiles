@@ -16,6 +16,7 @@
 (define-key *root-map* (kbd "e") "exec (unset SBCL_HOME;emacs &)")
 (define-key *root-map* (kbd "w") "frame-windowlist")
 (define-key *root-map* (kbd ".") "mymenu")
+(define-key *root-map* (kbd "C-s") "exec emacsclient -a '' -e '(org-capture)'")
 (define-key *root-map* (kbd "C-o") "gother")
 (define-key *root-map* (kbd "C-TAB") "call-function-and-frame-windowlist (next)")
 (define-key *root-map* (kbd "C-M-TAB") "call-function-and-frame-windowlist (prev)")
