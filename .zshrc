@@ -198,6 +198,30 @@ function activate_bb(){
     fi
 }
 
+function lock_cmd(){
+    alias cd="printf 'Nice try darling!'"
+    alias opera="printf 'Nice try darling!'"
+    alias sudo="printf 'Nice try darling!'"
+    alias ls="printf 'Nice try darling!'"
+    alias tilix="printf 'Nice try darling!'"
+    alias xfce4-terminal="printf 'Nice try darling!' "
+    alias unset="printf 'Nice try darling!'"
+    alias source="printf 'Nice try darling!'"
+    alias emacs="printf 'Nice try darling!'"
+    alias emacsclient="printf 'Nice try darling!'"
+    alias et="printf 'Nice try darling!'"
+    alias vi="printf 'Nice try darling!'"
+    alias nano="printf 'Nice try darling!'"
+    alias sed="printf 'Nice try darling!'"
+    alias bash="printf 'Nice try darling!'"
+    alias zsh="printf 'Nice try darling!'"
+    alias sh="printf 'Nice try darling!'"
+    alias rm="printf 'Nice try darling!'"
+    
+    alias alias="printf 'Nice try darling!'"
+    # echo "hahahahahah"
+}
+
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/cuda/lib64:/opt/intel/lib/intel64:"
 export CUDA_HOME=/opt/cuda
 export LIB=lib
