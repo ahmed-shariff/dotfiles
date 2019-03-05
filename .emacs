@@ -151,7 +151,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (2048-game avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ibuffer-vc micgoline dired-hide-dotfiles dired-sidebar company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf company-auctex company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slim-mode company-quickhelp company-c-headers)))
  '(prolog-system (quote swi))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -417,14 +417,15 @@
 (add-hook 'LaTeX-mode-hook 'flyspell-mode)
 (defun turn-on-outline-minor-mode ()
   ""
-  (utline-minor-mode 1))
+  (outline-minor-mode 1))
 
-(defun activate-preview-mode ()
-  (load "preview-latex.el" nil t t))
+;; (defun activate-preview-mode ()
+;;   (load "preview-latex.el" nil t t))
 
 (add-hook 'LaTeX-mode-hook 'turn-on-outline-minor-mode)
 (add-hook 'latex-mode-hook 'turn-on-outline-minor-mode)
-(add-hook 'LaTeX-mode-hook 'activate-preview-mode)
+;; (add-hook 'LaTeX-mode-hook 'activate-preview-mode)
+;; (add-hook 'laTeX-mode-hook 'activate-preview-mode)
 (add-hook 'LaTeX-mode-hook 'flyspell-mode)
 (add-hook 'latex-mode-hook 'flyspell-mode)
 (setq outline-minor-mode-prefix "\C-c \C-o")
