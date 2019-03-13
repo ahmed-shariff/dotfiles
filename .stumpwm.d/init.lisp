@@ -7,7 +7,7 @@
 
 (set-module-dir "~/.stumpwm.d/modules")
 
-(run-shell-command "feh --randomize --bg-fill /media/Files/Pictures/Background/*")
+(run-shell-command "feh --randomize --bg-fill $HOME/Documents/Pictures/Background*")
 (run-shell-command "compton &")
 (run-shell-command "conky -c .conky/custom/conky.conf &")
 (run-shell-command "xbingkeys")
@@ -53,13 +53,13 @@
 (defparameter *app-menu* `(("Opera" "opera")
 			   ("Media"
 					;sub-menu
-			    ("Music" "vlc /media/Files/Music")
-			    ("Open media folder" "thunar /media/Files/Media")
+			    ("Music" "vlc ~/Documents/Music")
+			    ("Open media folder" "thunar ~/Documents/Media")
 			    ("VLC player" "vlc"))
 			   ("File Manager" "thunar")
 			   ("Check power status" t (*power-status* t)) ;; "upower -i $(upower -e | grep BAT) |grep -E \"state|to\ empty|to\ full|percentage\""
 			   ("Screen settings"
-			    ("Change background" "feh --randomize --bg-fill /media/Files/Pictures/Background/*")
+			    ("Change background" "feh --randomize --bg-fill ~/Documents/Pictures/Background/*")
 			    ("Blank screen" "xset dpms force off;i3lock -f -r 4 -s 2")
 			    ("Brightness -" ,(lambda ()
 					       (concatenate 'string

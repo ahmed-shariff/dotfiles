@@ -151,7 +151,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (2048-game avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ibuffer-vc micgoline dired-hide-dotfiles dired-sidebar company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf company-auctex company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slim-mode company-quickhelp company-c-headers)))
+    (yasnippet-snippets 2048-game avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ibuffer-vc micgoline dired-hide-dotfiles dired-sidebar company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf company-auctex company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slim-mode company-quickhelp company-c-headers)))
  '(prolog-system (quote swi))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
