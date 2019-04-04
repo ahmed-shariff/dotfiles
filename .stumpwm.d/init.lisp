@@ -1,4 +1,5 @@
 (in-package :stumpwm)
+(defparameter *system-name* "Thinkpad"); "thinkpad" "msi"
 (set-prefix-key (kbd "C-z"))
 
 (ql:quickload '(:cl-utilities))
@@ -201,10 +202,18 @@
 
 (defcommand gnew-train () ()
   (add-group (current-screen) "train")
-  (restore-from-file "~/.stumpwm.d/settings/train-layout")
-  (restore-window-placement-rules "~/.stumpwm.d/settings/train-window-rules")
-  (run-shell-command "xfce4-terminal --hide-menubar --initial-title 1 -x htop")
-  (run-shell-command "xfce4-terminal --hide-menubar --initial-title 2 -x watch -n 0.3 nvidia-smi")
-  (run-shell-command "xfce4-terminal --hide-menubar --initial-title 4 -x journalctl -f ")
-  (run-shell-command "xfce4-terminal --hide-menubar --initial-title 3 -x watch -n 0.3 sensors")
-  (run-shell-command "xfce4-terminal --hide-menubar --initial-title 0"))
+  (if (equalp *system-name* "Thinkpad")
+      (progn
+	(restore-from-file "~/.stumpwm.d/settings/train-layout-thinkpad")
+	(restore-window-placement-rules "~/.stumpwm.d/settings/train-window-rules-thinkpad")
+	;(run-shell-command "tilix --title=0 --window-style=disable-csd-hide-toolbar")
+	;(run-shell-command "xfce4-terminal --hide-menubar --initial-title 0 -x htop")
+	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 1 -x htop"))
+      (progn 
+	(restore-from-file "~/.stumpwm.d/settings/train-layout-msi")
+	(restore-window-placement-rules "~/.stumpwm.d/settings/train-window-rules-msi")
+	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 1 -x htop")
+	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 2 -x watch -n 0.3 nvidia-smi")
+	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 4 -x journalctl -f ")
+	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 3 -x watch -n 0.3 sensors")
+	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 0"))))

@@ -1,0 +1,3 @@
+(("train" 1 T T :CLASS "Xfce4-terminal" :INSTANCE "xfce4-terminal" :TITLE "1")
+ ("train" 0 T T :CLASS "Tilix" :INSTANCE "tilix" :TITLE "2")
+ ("train" 0 T T :CLASS "Xfce4-terminal" :INSTANCE "xfce4-terminal" :TITLE "0"))
