@@ -2,7 +2,7 @@
 (defparameter *system-name* "Thinkpad"); "thinkpad" "msi"
 (set-prefix-key (kbd "C-z"))
 
-(ql:quickload '(:cl-utilities))
+(ql:quickload '(:cl-utilities :clx-truetype))
 ;		:cl-emoji))
 ;; change the prefix key to something else
 
@@ -36,6 +36,13 @@
 
 
 (run-commands "mode-line")
+(load-module "stumptray")
+;;(load-module "wifi")
+(load-module "mem")
+(load-module "net")
+(load-module "cpu")
+(load-module "battery-portable")
+(load-module "ttf-fonts")
 (setf *message-window-padding* 150)
 (setf *message-window-gravity* :top)
 (setf *input-window-gravity* :top)
@@ -43,11 +50,15 @@
 
 (set-fg-color "#ffad29")
 (set-bg-color "#253142")
-(set-font "-misc-dejavu sans-medium-r-normal--0-0-0-0-p-0-iso8859-15")
+;;(set-font "-misc-dejavu sans-medium-r-normal--0-0-0-0-p-0-iso8859-11")
+(xft:cache-fonts)
+(set-font (list (make-instance 'xft:font
+                               :family "DejaVu Sans"
+			       :subfamily "Book"
+                               :size 10)))
+
 (set-border-color "#1f3459")
 (set-msg-border-width 3)
-
-(load-module "wifi")
 
 (defvar *power-status* "upower -i $(upower -e | grep BAT) |grep -E \"state|to\ empty|to\ full|percentage\"")
 
@@ -194,11 +205,11 @@
 (defcommand make-current-window-transparent () ()
   (make-window-transparent (current-window)))
 
-
 (setf *screen-mode-line-format*
-      (list "%d     [ %n ]     Net: %I | Power: "
-      ;(list "%d     [^[^(:bg \"#555511\") %n ^]]     Net: %I | Power: "
-	    `(:eval (battery-status))))
+      (list (format nil "^(:fg \"white\")^[^(:bg \"#DD0000\") %d    [%n]    ^]^[^(:bg \"#3333AA\") Net: %l ^]^[^(:fg \"#339900\") Power: %B ^]|^[^(:fg \"#770077\") %C ^]|^[^(:fg \"#009999\") %M ^]")))
+;;`(:eval (battery-status)))))
+					;(list "%d     [^[^(:bg \"#555511\") %n ^]]     Net: %I | Power: "	    
+					;	    ))
 
 (defcommand gnew-train () ()
   (add-group (current-screen) "train")

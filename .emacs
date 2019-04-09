@@ -6,7 +6,8 @@
 
 ;; -*- emacs-lisp -*-
 (require 'package)
-
+(set-language-environment "UTF-8")
+(set-default-coding-systems 'utf-8)
 ;(unless package-archive-contents    ;; Refresh the packages descriptions
 ;  (package-refresh-contents))
 ;; (setq package-list '(;anaconda-mode
@@ -151,7 +152,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (org-ref plantuml-mode yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -566,6 +567,13 @@
         org-capture-templates)
   (setq org-brain-visualize-default-choices 'all)
   (setq org-brain-title-max-length 12))
+
+(use-package plantuml-mode
+  :init
+  (add-to-list 'auto-mode-alist '("\\.plantuml\\'" . plantuml-mode))
+  :config
+  (setq plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
+  (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar"))
 
 ;;code to run at the end!************************************************
 
