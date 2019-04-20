@@ -52,7 +52,21 @@
 	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
 	  (org-agenda-filter-by-top-headline)))))
 	
-	
+(use-package org-ref
+  :config
+  (setq reftex-default-bibliography '("~/Research/personal-stuff/citations.bib")))
+
+(add-to-list
+ 'org-src-lang-modes '("plantuml" . plantuml))
+(org-babel-do-load-languages 'org-babel-load-languages '((ruby . t)
+							 (plantuml . t)))
+(defun my-org-confirm-babel-evaluate (lang bdy)
+  "Function to eval plantuml blocks.
+LANG
+BDY"
+  (not (string= lang "plantuml")))
+(setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+(setq org-latex-image-default-width "")
 
 (setq org-tag-persistent-alist '(("@work" . ?w) ("@home" . ?h) ("@mobile" . ?m)))
 
