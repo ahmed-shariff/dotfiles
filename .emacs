@@ -554,10 +554,10 @@
          ("\\.markdown\\'" . markdown-mode))
   :init (setq markdown-command "multimarkdown"))    
 
-(use-package org-brain :ensure t
+(use-package org-brain
   :init
   (setq org-brain-path "~/Documents/org/brain")
-  ;; For Evil users
+  :bind ("C-c v" . org-brain-visualize)
   :config
   (setq org-id-track-globally t)
   (setq org-id-locations-file "~/.emacs.d/.org-id-locations")
@@ -565,7 +565,7 @@
           "* %i%?" :empty-lines 1)
         org-capture-templates)
   (setq org-brain-visualize-default-choices 'all)
-  (setq org-brain-title-max-length 12))
+  (setq org-brain-title-max-length 50))
 
 ;;code to run at the end!************************************************
 

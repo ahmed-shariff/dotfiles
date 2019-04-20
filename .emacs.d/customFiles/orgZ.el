@@ -73,13 +73,18 @@
 	 "* %?")
 	("e" "Experiment setup information")
 	("ej" "Add Journal entry"
-	 item (file+olp+datetree "~/Research/FoodClassification/experiment_log_notes.org")
-	 "- [[file:experiment_log.org::#%^{EXP_ID}][%\\1]] %?")
+	 entry (file+olp+datetree "~/Research/FoodClassification/experiment_log_notes.org")
+	 "* [[file:experiment_log.org::#%^{EXP_ID}][%\\1]] %?")
 	("el" "Add experiment"
 	 entry (file "~/Research/FoodClassification/experiment_log.org")
 	 "\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp:%^g\n:PROPERTIES:
   :ID:       %\\1
-  :END:\n- %^{Description}\n\n** Notes\n\n** TODO Experiments [/]\n%?\n** TODO Conclusions")))
+  :END:\n- %^{Description}\n\n** Notes\n\n** TODO Experiments [/]\n%?\n** TODO Conclusions")
+	("b" "Org brain")
+	("bp" "Add research paper"
+	 entry (file "~/Documents/org/brain/research_papers.org")
+	 "* (%^{YEAR}) [[%^{LINK}][%^{TITLE}]]\n  :PROPERTIES:\n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
+  \n  - %?")))
 
 (defun org-summary-todo (n-done n-not-done)
   "Switch entry to DONE when all subentries are done, to TODO otherwise."
