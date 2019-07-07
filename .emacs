@@ -175,7 +175,7 @@
 
 ;(exec-path-from-shell-initialize)
 
-
+(require 'configurations)
 
 ;;allout
 (allout-mode)
@@ -509,9 +509,10 @@
   (slack-register-team
    :name "team-name" ; add team name here
    :default t
-   :client-id "123231423499.234123421342"
-   :client-secret "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-   :token "xoxp-111111111111-222222222222-333333333333-44444444444444444444444444444444"
+   :client-id (gethash 'slack-client-id configurations "123231423499.234123421342")
+   :client-secret (gethash 'slack-client-secret configurations "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+   :token (gethash 'slack-token configurations
+		   "xoxp-111111111111-222222222222-333333333333-44444444444444444444444444444444")
    :subscribed-channels '() ;add chanel list here
    :full-and-display-names t))
 
