@@ -58,15 +58,25 @@
 
 (add-to-list
  'org-src-lang-modes '("plantuml" . plantuml))
+(setq org-src-tab-acts-natively t)
 (org-babel-do-load-languages 'org-babel-load-languages '((ruby . t)
-							 (plantuml . t)))
-(defun my-org-confirm-babel-evaluate (lang bdy)
-  "Function to eval plantuml blocks.
-LANG
-BDY"
-  (not (string= lang "plantuml")))
-(setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+							 (plantuml . t)
+							 (emacs-lisp . t)
+							 (python . t)
+							 (jupyter . t)))
+
+(setq org-babel-default-header-args:jupyter-python '((:async . "yes")
+						     (:session . "py")
+						     (:kernel . "python3")
+						     (:tangle . "yes")))
+;; (defun my-org-confirm-babel-evaluate (lang bdy)
+;;   "Function to eval plantuml blocks.
+;; LANG
+;; BDY"
+;;   (not (string= lang "plantuml")))
+(setq org-confirm-babel-evaluate nil);;'my-org-confirm-babel-evaluate)
 (setq org-latex-image-default-width "")
+(setq org-startup-with-inline-images t)
 
 (setq org-tag-persistent-alist '(("@work" . ?w) ("@home" . ?h) ("@mobile" . ?m)))
 
@@ -87,8 +97,8 @@ BDY"
 	 "* %?")
 	("e" "Experiment setup information")
 	("ej" "Add Journal entry"
-	 item (file+olp+datetree "~/Research/FoodClassification/experiment_log_notes.org")
-	 "- [[file:experiment_log.org::#%^{EXP_ID}][%\\1]] %?")
+	 entry (file+olp+datetree "~/Research/FoodClassification/experiment_log_notes.org")
+	 "* [[file:experiment_log.org::#%^{EXP_ID}][%\\1]] %? :%\\1:")
 	("el" "Add experiment"
 	 entry (file "~/Research/FoodClassification/experiment_log.org")
 	 "\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp:%^g\n:PROPERTIES:

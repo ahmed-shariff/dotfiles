@@ -34,6 +34,15 @@
 (defcommand shutdown () ()
   (run-shell-command "shutdown -h now"))
 
+(defvar *quake-window* nil)
+(defun toggle-quake-window ()
+  (if (equalp *quake-window* nil)
+      (progn
+	)
+      (pull-window *quake-window*)))
+
+(defcommand toggle () ()
+  (toggle-quake-window));;;restart-hard
 
 (run-commands "mode-line")
 (load-module "stumptray")

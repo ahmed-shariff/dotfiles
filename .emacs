@@ -152,7 +152,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (org-ref plantuml-mode yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (jupyter docker dockerfile-mode ascii-art-to-unicode org-ref plantuml-mode yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -220,30 +220,44 @@
   (setq ivy-format-function 'ivy-format-function-line) ; Make highlight extend all the way to the right
   ;; TODO testing out the fuzzy search
   (setq ivy-re-builders-alist
-      '((read-file-name-internal . ivy--regex-fuzzy)
-	(internal-complete-buffer . ivy--regex-fuzzy)
-	(execute-extended-command . ivy--regex-fuzzy)
-	(amx . ivy--regex-fuzzy)
-	(t . ivy--regex-plus))))
+      '(;; (read-file-name-internal . ivy--regex-fuzzy)
+	;; (internal-complete-buffer . ivy--regex-fuzzy)
+	;; (execute-extended-command . ivy--regex-fuzzy)
+	;; (amx . ivy--regex-fuzzy)
+	(t . ivy--regex-fuzzy))))
 
 ;;expand-region **********************************************************************
 (use-package expand-region
   :bind ("C-=" . er/expand-region))
 
 ;;lsp-mode ***************************************************************************
-(use-package lsp-ui)
+(use-package lsp-ui
+  :init
+  (add-hook 'python-mode-hook #'lsp-ui-mode))
 (use-package company-lsp)
 (use-package lsp-mode
   ;;:hook ((python-mode-hook) . lsp))
   :init
-  (add-hook 'prog-mode-hook #'lsp)
+  ;(add-hook 'prog-mode-hook #'lsp)
   (setq lsp-auto-guess-root t)
+  (setq lsp-print-io t)
   :config
-  (lsp-register-client
-   (make-lsp-client :new-connection (lsp-tramp-connection "pyls")
-                    :major-modes '(python-mode)
-                    :remote? t
-                    :server-id 'pyls)))
+  ;; (lsp-register-client
+  
+  ;;  (make-lsp-client :new-connection (lsp-tramp-connection "pyls")
+  ;;                   :major-modes '(python-mode)
+  ;;                   :remote? t
+  ;;                   :server-id 'pyls))
+  (setq 
+   lsp-pyls-configuration-sources ["flake8"]
+   lsp-pyls-plugins-jedi-completion-enabled nil
+   lsp-pyls-plugins-pydocstyle-enabled t
+   lsp-pyls-plugins-pyflakes-enabled nil
+   lsp-pyls-plugins-pycodestyle-max-line-length 110
+   lsp-pyls-plugins-rope-completion-enabled nil
+   lsp-pyls-plugins-pycodestyle-enabled nil
+   lsp-pyls-plugins-yapf-enabled nil
+   lsp--delay-timer 1))
 
 ;;avy *******************************************************************************
 (use-package avy
@@ -289,7 +303,7 @@
 (setq powerline-default-separator 'chamfer)
 
 
-(require 'all-the-icons)
+(use-package all-the-icons)
 (require 'dired+)
 (diredp-toggle-find-file-reuse-dir 1)
 (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
@@ -352,12 +366,15 @@
  ;(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
 ;(add-hook 'python-mode-hook '(company-anaconda 'interactive))
 ;;(add-to-list 'company-backends 'company-jedi)
+(use-package elpy
+  :ensure t
+  :init
+  (elpy-enable))
 
-(elpy-enable)
 (add-hook 'python-mode-hook 'linum-mode)
 					;(setenv "IPY_TEST_SIMPLE_PROMPT" "1")
 (setq python-shell-interpreter "python" python-shell-interpreter-args "-i")
-(pyvenv-activate "~/virtualenv/torch-1.0-20181213")
+(pyvenv-activate "~/virtualenv/pytorch")
 ;; (highlight-indentation-mode t)
 ;; (highlight-indentation-current-column t)
 ;; (use-package diminish)
@@ -566,7 +583,39 @@
           "* %i%?" :empty-lines 1)
         org-capture-templates)
   (setq org-brain-visualize-default-choices 'all)
-  (setq org-brain-title-max-length 12))
+  (setq org-brain-title-max-length 12)
+  (defun org-brain-insert-resource-icon (link)
+    "Insert an icon, based on content of org-mode LINK."
+    (insert (format "%s "
+                    (cond ((string-prefix-p "http" link)
+                           (cond ((string-match "wikipedia\\.org" link)
+                                  (all-the-icons-faicon "wikipedia-w"))
+				 ((string-match "github\\.com" link)
+                                  (all-the-icons-octicon "mark-github"))
+				 ((string-match "vimeo\\.com" link)
+                                  (all-the-icons-faicon "vimeo"))
+				 ((string-match "youtube\\.com" link)
+                                  (all-the-icons-faicon "youtube"))
+				 (t
+                                  (all-the-icons-faicon "globe"))))
+                          ((string-prefix-p "brain:" link)
+                           (all-the-icons-fileicon "brain"))
+                          (t
+                           (all-the-icons-icon-for-file link))))))
+  (add-hook 'org-brain-after-resource-button-functions #'org-brain-insert-resource-icon)
+
+  (defface aa2u-face '((t . nil))
+    "Face for aa2u box drawing characters")
+  (advice-add #'aa2u-1c :filter-return
+              (lambda (str) (propertize str 'face 'aa2u-face)))
+  (defun aa2u-org-brain-buffer ()
+    (let ((inhibit-read-only t))
+      (make-local-variable 'face-remapping-alist)
+      (add-to-list 'face-remapping-alist
+                   '(aa2u-face . org-brain-wires))
+      (ignore-errors (aa2u (point-min) (point-max)))))
+  (with-eval-after-load 'org-brain
+    (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer)))
 
 (use-package plantuml-mode
   :init
@@ -574,6 +623,11 @@
   :config
   (setq plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
   (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar"))
+
+;;Docker
+(use-package docker
+  :ensure t
+  :bind ("C-c d" . docker))
 
 ;;code to run at the end!************************************************
 

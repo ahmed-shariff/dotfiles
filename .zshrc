@@ -225,7 +225,7 @@ function lock_cmd(){
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/cuda/lib64:/opt/intel/lib/intel64:"
 export CUDA_HOME=/opt/cuda
 export LIB=lib
-export PATH=$PATH:$CUDA_HOME/lib64:/home/amsha/.gem/ruby/2.5.0/bin
+export PATH=$PATH:$CUDA_HOME/lib64:/home/amsha/.gem/ruby/2.6.0/bin
 
 alias uniproxy="proxy_onf cachex.pdn.ac.lk:3128"
 alias unisetup="uniproxy;(opera & exit); exit"
