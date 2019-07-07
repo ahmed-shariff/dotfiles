@@ -572,10 +572,10 @@
          ("\\.markdown\\'" . markdown-mode))
   :init (setq markdown-command "multimarkdown"))    
 
-(use-package org-brain :ensure t
+(use-package org-brain
   :init
   (setq org-brain-path "~/Documents/org/brain")
-  ;; For Evil users
+  :bind ("C-c v" . org-brain-visualize)
   :config
   (setq org-id-track-globally t)
   (setq org-id-locations-file "~/.emacs.d/.org-id-locations")
@@ -583,7 +583,7 @@
           "* %i%?" :empty-lines 1)
         org-capture-templates)
   (setq org-brain-visualize-default-choices 'all)
-  (setq org-brain-title-max-length 12)
+  (setq org-brain-title-max-length 50)
   (defun org-brain-insert-resource-icon (link)
     "Insert an icon, based on content of org-mode LINK."
     (insert (format "%s "
@@ -616,6 +616,7 @@
       (ignore-errors (aa2u (point-min) (point-max)))))
   (with-eval-after-load 'org-brain
     (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer)))
+
 
 (use-package plantuml-mode
   :init
