@@ -1,5 +1,5 @@
 (in-package :stumpwm)
-(defparameter *system-name* "Thinkpad"); "thinkpad" "msi"
+(defparameter *system-name* "msi"); "thinkpad" "msi"
 (set-prefix-key (kbd "C-z"))
 
 (ql:quickload '(:cl-utilities :clx-truetype))
@@ -46,7 +46,7 @@
 
 (run-commands "mode-line")
 (load-module "stumptray")
-;;(load-module "wifi")
+(load-module "wifi")
 (load-module "mem")
 (load-module "net")
 (load-module "cpu")
@@ -215,7 +215,7 @@
   (make-window-transparent (current-window)))
 
 (setf *screen-mode-line-format*
-      (list (format nil "^(:fg \"white\")^[^(:bg \"#DD0000\") %d    [%n]    ^]^[^(:bg \"#3333AA\") Net: %l ^]^[^(:fg \"#339900\") Power: %B ^]|^[^(:fg \"#770077\") %C ^]|^[^(:fg \"#009999\") %M ^]")))
+      (list (format nil "^(:fg \"white\")^[^(:bg \"#DD0000\") %d    [%n]    ^]^[^(:bg \"#3333AA\") Net: %I %l ^]^[^(:fg \"#339900\") Power: %B ^]|^[^(:fg \"#770077\") %C ^]|^[^(:fg \"#009999\") %M ^]")))
 ;;`(:eval (battery-status)))))
 					;(list "%d     [^[^(:bg \"#555511\") %n ^]]     Net: %I | Power: "	    
 					;	    ))
