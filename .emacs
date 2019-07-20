@@ -408,8 +408,8 @@
 ;;set transparency********************************************
 ;;(set-frame-parameter (selected-frame) 'alpha '(<active> . <inactive>))
  ;;(set-frame-parameter (selected-frame) 'alpha <both>)
-(set-frame-parameter (selected-frame) 'alpha '(95 . 70))
-(add-to-list 'default-frame-alist '(alpha . (95 . 70)))
+(set-frame-parameter (selected-frame) 'alpha '(95 . 85))
+(add-to-list 'default-frame-alist '(alpha . (95 . 85)))
 
 
 ;; (custom-set-faces
@@ -626,6 +626,8 @@
   :config
   (setq plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
   (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar"))
+  ;; (setq plantuml-exec-mode "jar")
+  ;; (plantuml-set-exec-mode "jar"))
 
 ;;Docker
 (use-package docker

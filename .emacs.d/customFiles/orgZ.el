@@ -68,7 +68,8 @@
 (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
 						     (:session . "py")
 						     (:kernel . "python3")
-						     (:tangle . "yes")))
+						     (:tangle . "yes")
+						     (:exports . "both")))
 ;; (defun my-org-confirm-babel-evaluate (lang bdy)
 ;;   "Function to eval plantuml blocks.
 ;; LANG
