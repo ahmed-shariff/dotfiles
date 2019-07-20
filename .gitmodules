@@ -1,0 +1,3 @@
+[submodule ".emacs.d/customFiles/arxiv-mode"]
+	path = .emacs.d/customFiles/arxiv-mode
+	url = https://github.com/fizban007/arxiv-mode.git
