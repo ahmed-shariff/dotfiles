@@ -231,7 +231,7 @@ alias uniproxy="proxy_onf cachex.pdn.ac.lk:3128"
 alias unisetup="uniproxy;(opera & exit); exit"
 alias et="emacs -nw"
 #alias ls="tyls"
-alias uniwork="source virtualenv/torch-1.0-20181213/bin/activate;cd /media/Files/Research/FoodClassification"
+alias uniwork="source virtualenv/pytorch/bin/activate;cd /media/Files/Research/FoodClassification"
 alias activate_nm="sudo systemctl start NetworkManager;systemctl status NetworkManager"
 alias config-git='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 #alias activate_bb="sudo systemctl start bumblebeed;systemctl status bumblebeed"
