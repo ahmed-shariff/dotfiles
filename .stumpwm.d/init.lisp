@@ -232,8 +232,8 @@
       (progn 
 	(restore-from-file "~/.stumpwm.d/settings/train-layout-msi")
 	(restore-window-placement-rules "~/.stumpwm.d/settings/train-window-rules-msi")
-	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 1 -x htop")
-	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 2 -x watch -n 0.3 nvidia-smi")
-	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 4 -x journalctl -f ")
-	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 3 -x watch -n 0.3 sensors")
-	(run-shell-command "xfce4-terminal --hide-menubar --initial-title 0"))))
+	(run-shell-command "xfce4-terminal --hide-menubar --zoom -1 --initial-title 1 -x htop")
+	(run-shell-command "xfce4-terminal --hide-menubar --zoom -1 --initial-title 2 -x watch -n 0.3 nvidia-smi")
+	(run-shell-command "xfce4-terminal --hide-menubar --zoom -1 --initial-title 4 -x journalctl -f ")
+	(run-shell-command "xfce4-terminal --hide-menubar --zoom -1 --initial-title 3 -x watch -n 0.3 sensors")
+	(run-shell-command "xfce4-terminal --hide-menubar --zoom -1 --initial-title 0"))))
