@@ -187,6 +187,11 @@
 ;;add proper word wrapping
 (global-visual-line-mode t)
 
+
+(setq backup-directory-alist `(("." . "~/.backups_emacs"))
+      backup-by-copying t
+      delete-old-versions t)
+
 ;;enable ido mode
 ;; (require 'ido)
 ;; (ido-mode t)
