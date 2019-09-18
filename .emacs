@@ -95,7 +95,7 @@
       (print package)
       (package-install package))))           ;; installed, install it if not
 
-(package-initialize)      ;; Initialize & Install Package
+;(package-initialize)      ;; Initialize & Install Package
 
 
 (defun fullscreen (&optional f)
@@ -118,46 +118,39 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(TeX-view-program-selection
-   (quote
-    (((output-dvi has-no-display-manager)
+   '(((output-dvi has-no-display-manager)
       "dvi2tty")
      ((output-dvi style-pstricks)
       "dvips and gv")
      (output-dvi "xdvi")
      (output-pdf "PDF Tools")
-     (output-html "xdg-open"))))
+     (output-html "xdg-open")))
  '(ansi-color-faces-vector
    [default default default italic underline success warning error])
  '(bookmark-save-flag 1)
  '(company-c-headers-path-system
-   (quote
-    ("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/")))
- '(custom-enabled-themes (quote (misterioso)))
+   '("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/"))
+ '(custom-enabled-themes '(misterioso))
  '(custom-safe-themes
-   (quote
-    ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default)))
- '(ede-project-directories
-   (quote
-    ("/media/Files/Research/FoodClassification/deployment")))
+   '("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default))
+ '(ede-project-directories '("/media/Files/Research/FoodClassification/deployment"))
  '(explicit-shell-file-name "/bin/zsh")
  '(ledger-post-amount-alignment-at :decimal)
  '(ledger-reconcile-default-commodity nil)
  '(ledger-reports
-   (quote
-    (("asd" "ledger")
+   '(("asd" "ledger")
      ("a" "ledger ")
      ("bal" "%(binary) -f %(ledger-file) bal")
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
-     ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
- '(org-export-backends (quote (ascii html icalendar latex md)))
+     ("account" "%(binary) -f %(ledger-file) reg %(account)")))
+ '(org-export-backends '(ascii html icalendar latex md))
  '(package-selected-packages
-   (quote
-    (plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
- '(prolog-system (quote swi))
+   '(plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
+ '(prolog-system 'swi)
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
- '(sml/theme (quote dark))
+ '(sml/theme 'dark)
  '(use-package-always-ensure t))
 
 (custom-set-faces
