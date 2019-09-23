@@ -93,9 +93,20 @@
 	("t" "A thing i have to do(a wonderfull epiphany? 3:))->TO THE NOTES"
 	 entry (file+datetree "~/Documents/org/notes.org")
 	 "* TODO %^{Description} %^g\n\tAdded: %U\n\t%?")
-	("j" "Journal entry"
+	("j" "Journal entry")
+	("jg" "Journal entry general"
 	 entry (file+datetree "~/Documents/org/journal.org")
 	 "* %?")
+	("jw" "Journal entry work"
+	 entry (file+datetree "~/Documents/org/work/hci.org")
+	 "* %?")
+	("js" "Journal entry work-scrum"
+	 entry (file+datetree "~/Documents/org/work/hci-scrum.org")
+	 "* Y:\n1. %?\n* T:\n1. "
+	 :jump-to-captured t)
+	("jt" "Journal sub entry"
+	 entry (file+datetree "~/Documents/org/work/hci.org")
+	 "1. %?")
 	("e" "Experiment setup information")
 	("ej" "Add Journal entry"
 	 entry (file+olp+datetree "~/Research/FoodClassification/experiment_log_notes.org")
