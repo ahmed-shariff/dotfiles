@@ -151,7 +151,8 @@
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
  '(sml/theme 'dark)
- '(use-package-always-ensure t))
+ '(use-package-always-ensure t)
+ '(use-package-hook-name-suffix nil))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -421,31 +422,36 @@
 
 
 ;;latex setup***********************************************************************************
-(setq TeX-auto-save t)
-(setq TeX-parse-self t)
-(setq TeX-save-query nil)
-(setq TeX-PDF-mode t)
-(require 'tex)
-(require 'preview)
-(TeX-global-PDF-mode t)
-(require 'company-auctex)
-(company-auctex-init)
-
-(add-hook 'LaTeX-mode-hook 'flyspell-mode)
 (defun turn-on-outline-minor-mode ()
-  ""
+  "."
   (outline-minor-mode 1))
+
+(use-package auctex
+  :requires (preview company-auctex)
+  :init
+  (setq TeX-auto-save t
+	TeX-parse-self t
+	TeX-save-query nil
+	TeX-PDF-mode t)
+  (TeX-global-PDF-mode t)
+  :config
+  (company-auctex-init)
+  (setq outline-minor-mode-prefix "\C-c \C-o")
+  :hook ((LaTeX-mode-hook . turn-on-outline-minor-mode)
+	 (latex-mode-hook . turn-on-outline-minor-mode)
+	 (LaTeX-mode-hook . flyspell-mode)
+	 (latex-mode-hook . flyspell-mode)))
 
 ;; (defun activate-preview-mode ()
 ;;   (load "preview-latex.el" nil t t))
 
-(add-hook 'LaTeX-mode-hook 'turn-on-outline-minor-mode)
-(add-hook 'latex-mode-hook 'turn-on-outline-minor-mode)
-;; (add-hook 'LaTeX-mode-hook 'activate-preview-mode)
-;; (add-hook 'laTeX-mode-hook 'activate-preview-mode)
-(add-hook 'LaTeX-mode-hook 'flyspell-mode)
-(add-hook 'latex-mode-hook 'flyspell-mode)
-(setq outline-minor-mode-prefix "\C-c \C-o")
+;; (add-hook 'LaTeX-mode-hook 'turn-on-outline-minor-mode)
+;; (add-hook 'latex-mode-hook 'turn-on-outline-minor-mode)
+;; ;; (add-hook 'LaTeX-mode-hook 'activate-preview-mode)
+;; ;; (add-hook 'laTeX-mode-hook 'activate-preview-mode)
+;; (add-hook 'LaTeX-mode-hook 'flyspell-mode)
+;; (add-hook 'latex-mode-hook 'flyspell-mode)
+;; (setq outline-minor-mode-prefix "\C-c \C-o")
 
 
 ;;lua setup************************************************************************
@@ -634,6 +640,19 @@
 
 ;;arxiv mode
 (require 'arxiv-mode)
+
+(use-package org-ref
+  ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
+  :config
+  (setq reftex-default-bibliography '("~/Documents/org/bibliography/references.bib")
+	org-ref-bibliography-notes "~/Documents/org/bibliography/notes.org"
+	org-ref-default-bibliography '("~/Documents/org/bibliography/references.bib")
+	org-ref-pdf-directory "~/Documents/org/bibliography/pdfs/"
+	bibtex-completion-bibliography "~/Documents/org/bibliography/references.bib"
+	bibtex-completion-library-path "~/Documents/org/bibliography/pdfs/"
+	bibtex-completion-notes-path "~/Documents/org/bibliography/notes_completion.org"
+	org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
+	org-ref-completion-library "org-ref-ivy"))
 
 ;;code to run at the end!************************************************
 

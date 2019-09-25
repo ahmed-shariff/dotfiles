@@ -120,7 +120,8 @@
 	("bp" "Add research paper"
 	 entry (function (lambda () (org-brain-goto "research_papers")));(file "~/Documents/org/brain/research_papers.org")
 	 "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
-  \n  - [[%^{LINK}]]")))
+  \n  - [[%^{LINK}]]"
+	 :jump-to-captured t)))
 
 (defun org-summary-todo (n-done n-not-done)
   "Switch entry to DONE when all subentries are done, to TODO otherwise."
