@@ -146,7 +146,7 @@
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
  '(org-export-backends '(ascii html icalendar latex md))
  '(package-selected-packages
-   '(plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
+   '(all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
  '(prolog-system 'swi)
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -202,8 +202,7 @@
 	 ("C-c j" . counsel-git-grep) 
 	 ("C-c k" . counsel-ag)       
 	 ("C-x l" . counsel-locate)   
-	 ("C-S-o" . counsel-rhythmbox)
-	 
+	 ("C-S-o" . counsel-rhythmbox)	 
 	 :map ivy-minibuffer-map        ; bind in the ivy buffer
 	 ("RET" . ivy-alt-done))
 	 ;;      ("s-<"   . ivy-avy)
@@ -225,6 +224,11 @@
 	;; (execute-extended-command . ivy--regex-fuzzy)
 	;; (amx . ivy--regex-fuzzy)
 	(t . ivy--regex-fuzzy))))
+
+(use-package all-the-icons-ivy
+  :ensure t
+  :config
+  (all-the-icons-ivy-setup))
 
 ;;expand-region **********************************************************************
 (use-package expand-region
@@ -432,7 +436,8 @@
   (setq TeX-auto-save t
 	TeX-parse-self t
 	TeX-save-query nil
-	TeX-PDF-mode t)
+	TeX-PDF-mode t
+	reftex-plug-into-AUCTeX t)
   (TeX-global-PDF-mode t)
   :config
   (company-auctex-init)
@@ -440,7 +445,8 @@
   :hook ((LaTeX-mode-hook . turn-on-outline-minor-mode)
 	 (latex-mode-hook . turn-on-outline-minor-mode)
 	 (LaTeX-mode-hook . flyspell-mode)
-	 (latex-mode-hook . flyspell-mode)))
+	 (latex-mode-hook . flyspell-mode)
+	 (LaTeX-mode-hook . turn-on-reftex)))
 
 ;; (defun activate-preview-mode ()
 ;;   (load "preview-latex.el" nil t t))
@@ -609,7 +615,6 @@
                           (t
                            (all-the-icons-icon-for-file link))))))
   (add-hook 'org-brain-after-resource-button-functions #'org-brain-insert-resource-icon)
-
   (defface aa2u-face '((t . nil))
     "Face for aa2u box drawing characters")
   (advice-add #'aa2u-1c :filter-return
@@ -645,14 +650,24 @@
   ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
   :config
   (setq reftex-default-bibliography '("~/Documents/org/bibliography/references.bib")
-	org-ref-bibliography-notes "~/Documents/org/bibliography/notes.org"
+	org-ref-bibliography-notes "~/Documents/org/brain/research_papers.org"
 	org-ref-default-bibliography '("~/Documents/org/bibliography/references.bib")
 	org-ref-pdf-directory "~/Documents/org/bibliography/pdfs/"
 	bibtex-completion-bibliography "~/Documents/org/bibliography/references.bib"
 	bibtex-completion-library-path "~/Documents/org/bibliography/pdfs/"
-	bibtex-completion-notes-path "~/Documents/org/bibliography/notes_completion.org"
+	bibtex-completion-notes-path "~/Documents/org/brain/research_papers.org"
 	org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
-	org-ref-completion-library "org-ref-ivy"))
+	org-ref-completion-library "org-ref-ivy"
+	bibtex-completion-notes-template-one-file
+	(format
+	 "\n* (${year}) ${title}\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :YEAR: ${year}\n  :ID: %s \n  :END:\n\n  - cite:${=key=}" (org-id-new))
+	doi-utils-open-pdf-after-download nil)
+  (defun my/org-ref-notes-function (candidates)
+    (let ((key (helm-marked-candidates)))
+      (funcall org-ref-notes-function (car key))))
+
+  (helm-delete-action-from-source "Edit notes" helm-source-bibtex)
+  (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
 
 ;;code to run at the end!************************************************
 
