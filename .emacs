@@ -146,7 +146,7 @@
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
  '(org-export-backends '(ascii html icalendar latex md))
  '(package-selected-packages
-   '(all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
+   '(latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
  '(prolog-system 'swi)
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -432,13 +432,15 @@
 
 (use-package auctex
   :requires (preview company-auctex)
-  :init
+  :init 
   (setq TeX-auto-save t
 	TeX-parse-self t
 	TeX-save-query nil
 	TeX-PDF-mode t
-	reftex-plug-into-AUCTeX t)
+	reftex-plug-into-AUCTeX t
+	TeX-PDF-from-DVI "Dvips")
   (TeX-global-PDF-mode t)
+  (setq-default TeX-master nil)
   :config
   (company-auctex-init)
   (setq outline-minor-mode-prefix "\C-c \C-o")
