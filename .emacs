@@ -662,7 +662,7 @@
 	org-ref-completion-library "org-ref-ivy"
 	bibtex-completion-notes-template-one-file
 	(format
-	 "\n* (${year}) ${title}\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :YEAR: ${year}\n  :ID: %s \n  :END:\n\n  - cite:${=key=}" (org-id-new))
+	 "\n* (${year}) ${title}\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :YEAR: ${year}  \n:END:\n\n  - cite:${=key=}")
 	doi-utils-open-pdf-after-download nil)
   (defun my/org-ref-notes-function (candidates)
     (let ((key (helm-marked-candidates)))

@@ -109,13 +109,16 @@
 	 "1. %?")
 	("e" "Experiment setup information")
 	("ej" "Add Journal entry"
-	 entry (file+olp+datetree "~/Research/FoodClassification/experiment_log_notes.org")
-	 "* [[file:experiment_log.org::#%^{EXP_ID}][%\\1]] %? :%\\1:")
+	 entry (file+olp+datetree "~/Documents/org/work/hci.org")
+	 "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :%\\1:")
 	("el" "Add experiment"
-	 entry (file "~/Research/FoodClassification/experiment_log.org")
-	 "\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp:%^g\n:PROPERTIES:
-  :ID:       %\\1
-  :END:\n- %^{Description}\n\n** Notes\n\n** TODO Experiments [/]\n%?\n** TODO Conclusions")
+	 entry (file "~/Documents/org/work/experiments_log.org")
+	 "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp:%^{Project id}:\n  :PROPERTIES:
+  :CUSTOM_ID:       %\\1
+  :PROJECT: [[file:projects.org::#%\\3][%\\3]]
+  :PROJECT_ID: %\\3
+  :END:\n- %^{Description}\n\n** Notes\n\n** TODO %?\n** TODO Conclusions"
+	 :jump-to-captured t)
 	("b" "Org brain")
 	("bp" "Add research paper"
 	 entry (function (lambda () (org-brain-goto "research_papers")));(file "~/Documents/org/brain/research_papers.org")

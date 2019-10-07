@@ -234,6 +234,7 @@ alias et="emacs -nw"
 alias uniwork="source virtualenv/pytorch/bin/activate;cd /media/Files/Research/FoodClassification"
 alias activate_nm="sudo systemctl start NetworkManager;systemctl status NetworkManager"
 alias config-git='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+alias print_diamond="lpr -U $LRP_USERNAME -P $LRP_PRINTER"
 #alias activate_bb="sudo systemctl start bumblebeed;systemctl status bumblebeed"
 
 
