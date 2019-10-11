@@ -131,6 +131,31 @@
   (let (org-log-done org-log-states)   ; turn off logging
     (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
 
+;; ;; from https://stackoverflow.com/questions/13967876/how-to-restrict-a-function-to-a-subtree-in-emacs-org-mode
+;; (defun my-ido-find-org-attach ()
+;;   "Find files in org-attachment directory"
+;;   (interactive)
+;;   (let* ((enable-recursive-minibuffers t)
+;;          (files (find-lisp-find-files org-attach-directory "."))
+;;          (file-assoc-list
+;;           (mapcar (lambda (x)
+;;                     (cons (file-name-nondirectory x)
+;;                           x))
+;;                   files))
+;;          (filename-list
+;;           (remove-duplicates (mapcar #'car file-assoc-list)
+;;                              :test #'string=))
+;;          (filename (ido-completing-read "Org attachments: " filename-list nil t))
+;;          (longname (cdr (assoc filename file-assoc-list))))
+;;     (ido-set-current-directory
+;;      (if (file-directory-p longname)
+;;          longname
+;;        (file-name-directory longname)))
+;;     (setq ido-exit 'refresh
+;;           ido-text-init ido-text
+;;           ido-rotate-temp t)
+;;     (exit-minibuffer)))
+
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
 
 (add-hook 'org-mode-hook
@@ -148,6 +173,6 @@
 (setq org-return-follows-link t)
 (setq org-refile-use-outline-path "file")
 (setq org-outline-path-complete-in-steps t)(setq org-completion-use-ido t)
-
+(setq org-attach-directory "~/Documents/org/documents/")
 (provide 'orgZ)
 ;;; orgZ.el ends here
