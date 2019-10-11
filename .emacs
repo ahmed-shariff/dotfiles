@@ -640,6 +640,33 @@
   ;; (setq plantuml-exec-mode "jar")
   ;; (plantuml-set-exec-mode "jar"))
 
+;; csharp #####################################################################
+(defun my-csharp-mode-hook ()
+  ;; enable the stuff you want for C# here
+  (omnisharp-mode)
+  (company-mode)
+  (flycheck-mode)
+  (electric-pair-local-mode 1)
+
+  (setq indent-tabs-mode nil)
+  (setq c-syntactic-indentation t)
+  (c-set-style "ellemtel")
+  (setq c-basic-offset 4)
+  (setq truncate-lines t)
+  (setq tab-width 4)
+  (setq evil-shift-width 4)
+
+  (local-set-key (kbd "C-c r r") 'omnisharp-run-code-action-refactoring)
+  (local-set-key (kbd "C-c C-c") 'recompile))
+
+(use-package csharp-mode
+  ;:requires omnisharp
+  :ensure t)
+
+(add-hook 'csharp-mode-hook 'my-csharp-mode-hook t)
+(add-to-list 'company-backends #'company-omnisharp)
+(add-hook 'csharp-mode-hook #'flycheck-mode)
+
 ;;Docker
 (use-package docker
   :ensure t
