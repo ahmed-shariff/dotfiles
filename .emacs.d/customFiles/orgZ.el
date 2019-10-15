@@ -156,6 +156,16 @@
 ;;           ido-rotate-temp t)
 ;;     (exit-minibuffer)))
 
+; taken from https://emacs.stackexchange.com/questions/48533/calling-a-fuction-after-org-capturing
+;; (defun amsha/org-capture-finalize ()
+;;   (let ((key  (plist-get org-capture-plist :key))
+;;         (desc (plist-get org-capture-plist :description)))
+;;     (unless org-note-abort
+;;       (message "Template with key %s and description “%s” run successfully" org-capture-plist desc))))
+
+;; (add-hook 'org-capture-mode-hook 'amsha/org-capture-finalize)
+
+
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
 
 (add-hook 'org-mode-hook
