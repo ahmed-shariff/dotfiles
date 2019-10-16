@@ -81,7 +81,8 @@
 			   ("Check power status" t (*power-status* t)) ;; "upower -i $(upower -e | grep BAT) |grep -E \"state|to\ empty|to\ full|percentage\""
 			   ("Screen settings"
 			    ("Change background" "feh --randomize --bg-fill ~/Documents/Pictures/Background/*")
-			    ("Blank screen" "xset dpms force off;i3lock -f -r 4 -s 2")
+			    ;; ("Lock screen" "xset dpms force off;~/./.stumpwm.d/betterlockscreen/betterlockscreen -l dim")
+			    ("Lock screen" "~/./.stumpwm.d/betterlockscreen/betterlockscreen --off 3600 -t 'wink\! wink\!' -l dim && ~/./.stumpwm.d/betterlockscreen/betterlockscreen -u ~/Documents/Pictures/Background/")
 			    ("Brightness -" ,(lambda ()
 					       (concatenate 'string
 							    "light "

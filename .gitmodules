@@ -1,3 +1,6 @@
 [submodule ".emacs.d/customFiles/arxiv-mode"]
 	path = .emacs.d/customFiles/arxiv-mode
 	url = https://github.com/fizban007/arxiv-mode.git
+[submodule ".stumpwm.d/betterlockscreen"]
+	path = .stumpwm.d/betterlockscreen
+	url = https://github.com/pavanjadhaw/betterlockscreen.git
