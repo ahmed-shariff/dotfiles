@@ -12,6 +12,7 @@
 (run-shell-command "compton &")
 (run-shell-command "conky -c .conky/custom/conky.conf &")
 (run-shell-command "xbingkeys")
+(run-shell-command "xset dpms 3600 3600 3600")
 
 (define-key *root-map* (kbd "c") "exec tilix --window-style=disable-csd-hide-toolbar");xfce4-terminal --hide-menubar")
 (define-key *root-map* (kbd "e") "exec (unset SBCL_HOME;emacs &)")
