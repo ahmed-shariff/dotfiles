@@ -146,7 +146,7 @@
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
  '(org-export-backends '(ascii html icalendar latex md))
  '(package-selected-packages
-   '(latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
+   '(interleave latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
  '(prolog-system 'swi)
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -697,6 +697,37 @@
 
   (helm-delete-action-from-source "Edit notes" helm-source-bibtex)
   (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
+
+;; Experiments **********************************************************
+(defun amsha/downlad-raname-move-file (url newname dir)
+  (url-copy-file url (expand-file-name newname dir)))
+
+
+(defun research-papers-configure ()
+  "."
+  (interactive)
+  (org-map-entries (lambda ()
+		     (let ((link (org-entry-get (point) "LINK"))
+			   (cite-key (org-entry-get (point) "Custom_ID"))
+			   (dir org-ref-pdf-directory)
+			   (tags (org-get-tags)))
+		       (org-entry-put (point) "ATTACH_DIR" dir)
+		       (org-id-get-create)
+		       (if (and link cite-key)
+			 (let ((out-file-name (concatenate 'string cite-key ".pdf")))
+			   (when (condition-case nil
+				     (amsha/downlad-raname-move-file link out-file-name dir)
+				   (file-already-exists t))
+			     (org-entry-put (point) "Attachment" out-file-name)
+			     (append tags "ATTACH")
+			     (org-entry-put (point) "INTERLEAVE_PDF" (expand-file-name out-file-name dir))))
+			 (progn
+			   (unless link (append tags "NO_LINK"))
+			   (unless cite-key (append tags "NO_CITE_KEY"))))
+		       (unless (org-entry-get (point) "BRAIN_PARENTS")
+			 (append tags "NO_PARENTS"))
+		       (org-set-tags tags))))
+  (org-brain-update-id-locations))
 
 ;;code to run at the end!************************************************
 
