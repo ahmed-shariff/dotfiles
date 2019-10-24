@@ -146,7 +146,7 @@
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
  '(org-export-backends '(ascii html icalendar latex md))
  '(package-selected-packages
-   '(interleave latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
+   '(web-narrow-mode web-mode use-package slack rich-minority markdown-preview-mode markdown-mode+ ledger-mode js2-mode company-php circe org-noter interleave latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
  '(prolog-system 'swi)
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -689,7 +689,7 @@
 	org-ref-completion-library "org-ref-ivy"
 	bibtex-completion-notes-template-one-file
 	(format
-	 "\n* (${year}) ${title}\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :YEAR: ${year}  \n:END:\n\n  - cite:${=key=}")
+	 "\n* (${year}) ${title} [$author]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
 	doi-utils-open-pdf-after-download nil)
   (defun my/org-ref-notes-function (candidates)
     (let ((key (helm-marked-candidates)))
@@ -698,7 +698,9 @@
   (helm-delete-action-from-source "Edit notes" helm-source-bibtex)
   (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
 
-;; Experiments **********************************************************
+(setq org-noter-property-doc-file "INTERLEAVE_PDF"
+      org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
+
 (defun amsha/downlad-raname-move-file (url newname dir)
   (url-copy-file url (expand-file-name newname dir)))
 
@@ -714,19 +716,21 @@
 		       (org-entry-put (point) "ATTACH_DIR" dir)
 		       (org-id-get-create)
 		       (if (and link cite-key)
-			 (let ((out-file-name (concatenate 'string cite-key ".pdf")))
-			   (when (condition-case nil
-				     (amsha/downlad-raname-move-file link out-file-name dir)
-				   (file-already-exists t))
-			     (org-entry-put (point) "Attachment" out-file-name)
-			     (append tags "ATTACH")
-			     (org-entry-put (point) "INTERLEAVE_PDF" (expand-file-name out-file-name dir))))
+			   (let ((out-file-name (concatenate 'string cite-key ".pdf")))
+			     (when (condition-case nil
+				       (amsha/downlad-raname-move-file link out-file-name dir)
+				     (file-already-exists t))
+			       (org-entry-put (point) "Attachment" out-file-name)
+			       (setq tags (append tags '("ATTACH")))
+			       (org-entry-put (point) "INTERLEAVE_PDF" (expand-file-name out-file-name dir))))
 			 (progn
-			   (unless link (append tags "NO_LINK"))
-			   (unless cite-key (append tags "NO_CITE_KEY"))))
-		       (unless (org-entry-get (point) "BRAIN_PARENTS")
-			 (append tags "NO_PARENTS"))
-		       (org-set-tags tags))))
+			   (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
+			   (setq tags (if link (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))))
+		       (setq tags
+			     (if (org-entry-get (point) "BRAIN_PARENTS")
+			         (delete "NO_PARENTS" tags)
+				 (append tags '("NO_PARENTS"))))
+		       (org-set-tags (delete-dups tags)))))
   (org-brain-update-id-locations))
 
 ;;code to run at the end!************************************************
