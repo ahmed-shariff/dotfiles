@@ -689,8 +689,9 @@
 	org-ref-completion-library "org-ref-ivy"
 	bibtex-completion-notes-template-one-file
 	(format
-	 "\n* (${year}) ${title} [$author]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
-	doi-utils-open-pdf-after-download nil)
+	 "\n* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
+	doi-utils-open-pdf-after-download nil
+	org-ref-note-title-format "* (%y) %t\n  :PROPERTIES:\n  :Custom_ID: %k\n  :AUTHOR: %9a\n  :JOURNAL: %j\n  :YEAR: %y\n  :VOLUME: %v\n  :PAGES: %p\n  :DOI: %D\n  :URL: %U\n  :END:")
   (defun my/org-ref-notes-function (candidates)
     (let ((key (helm-marked-candidates)))
       (funcall org-ref-notes-function (car key))))
@@ -732,6 +733,27 @@
 				 (append tags '("NO_PARENTS"))))
 		       (org-set-tags (delete-dups tags)))))
   (org-brain-update-id-locations))
+
+(defun copy-related-research-papers (parent-id)
+  "PARENT-ID."
+  (interactive "sParent-id: ")
+  (let ((out-dir (expand-file-name parent-id "~/Downloads")))
+    (condition-case nil 
+	(make-directory out-dir)
+      (file-already-exists
+       (progn
+	 (message "Deleting directory and creating anew: %s" out-dir) 
+	 (delete-directory out-dir t)
+	 (make-directory out-dir))))
+    (message "Copying files to %s" out-dir)
+    (org-map-entries (lambda ()
+		       (let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
+			 (when (and file-path
+				    (equalp parent-id (org-entry-get (point) "BRAIN_PARENTS")))
+			   (copy-file file-path
+				      (expand-file-name (file-name-nondirectory file-path)
+							out-dir))))))
+    (dired out-dir)))
 
 ;;code to run at the end!************************************************
 
