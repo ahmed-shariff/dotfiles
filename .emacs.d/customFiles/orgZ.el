@@ -122,7 +122,7 @@
 	("b" "Org brain")
 	("bp" "Add research paper"
 	 entry (function (lambda () (org-brain-goto "research_papers")));(file "~/Documents/org/brain/research_papers.org")
-	 "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :LINK: %^{LINK}\n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
+	 "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :LINK: %^{LINK\}n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
   \n  - %^{LINK}"
 	 :jump-to-captured t)))
 
@@ -165,12 +165,14 @@
 
 ;; (add-hook 'org-capture-mode-hook 'amsha/org-capture-finalize)
 
+(require 'org-bullets)
 
+(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
-
 (add-hook 'org-mode-hook
 	  (lambda ()
 	    (define-key org-mode-map "\C-c!" 'org-time-stamp-inactive)
+	    (define-key org-mode-map "\C-co" 'org-noter)
 	    (flyspell-mode t)))
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
