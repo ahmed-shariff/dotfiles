@@ -62,7 +62,7 @@
 	projectile         
 	python-mode
 	pythonic
-	rich-minority
+	;rich-minority
 	slack              
 	slim-mode          
 	slime-company      
@@ -110,7 +110,18 @@
 (tool-bar-mode 0)
 
 (server-start)
-
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
 ;; custom variables*******************************************
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -146,7 +157,7 @@
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
  '(org-export-backends '(ascii html icalendar latex md))
  '(package-selected-packages
-   '(web-narrow-mode web-mode use-package slack rich-minority markdown-preview-mode markdown-mode+ ledger-mode js2-mode company-php circe org-noter interleave latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
+   '(spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
  '(prolog-system 'swi)
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -160,6 +171,10 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(micgoline-pl-active-green ((t (:inherit mode-line :background "light sky blue" :foreground "#FFFFFF"))))
+ '(mode-line ((t (:inherit mode-line :background "midnight blue" :foreground "#FFFFFF"))))
+ '(powerline-active0 ((t (:inherit mode-line :background "medium blue" :foreground "#FFFFFF"))))
+ '(powerline-active1 ((t (:inherit mode-line :background "tomato1" :foreground "#FFFFFF"))))
+ '(powerline-active2 ((t (:inherit mode-line :background "light sky blue" :foreground "white"))))
  '(micgoline-pl-active-red ((t (:inherit mode-line :background "deep sky blue" :foreground "#FFFFFF"))))
  '(micgoline-pl-active-yellow ((t (:inherit mode-line :background "tomato1" :foreground "white"))))
  '(micgoline-pl-inactive-green ((t (:inherit mode-line-inactive :background "slate gray" :foreground "#000000"))))
@@ -171,7 +186,7 @@
 ;(exec-path-from-shell-initialize)
 
 (require 'configurations)
-
+(require 'diminish)
 ;;allout
 (allout-mode)
 
@@ -282,7 +297,6 @@
 ;;speedbar settings
 (require 'sr-speedbar)
 (global-set-key (kbd "M-s M-s") 'dired-sidebar-toggle-sidebar)
-(rich-minority-mode 1)
 
 ;; Flycheck: On the fly syntax checking
 (require 'flycheck)
@@ -303,9 +317,35 @@
 (require 'ispell)
 (require 'flyspell)
 
-(require 'micgoline)
-(setq powerline-default-separator 'chamfer)
+;; (require 'micgoline)
+;; (setq powerline-default-separator 'arrow-fade)
+;; (use-package spaceline-all-the-icons 
+;;   :after spaceline
+;;   :config (spaceline-all-the-icons-theme))
+;;(rich-minority-mode 1)
 
+(diminish 'visual-line-mode)
+(diminish 'ivy-mode)
+(diminish 'projectile-mode "P")
+
+(use-package eyeliner :ensure nil
+  :straight (eyeliner :type git
+                      :host github
+                      :repo "dustinlacewell/eyeliner")
+  :config
+  (require 'eyeliner)
+  (setq eyeliner/left-hand-segments
+        '(("%l:%c ")
+	  (eyeliner/buffer-name :skip-alternate t)
+          (eyeliner/mode-icon)
+	  (eyeliner/buffer-modified)
+          (eyeliner/branch-icon :skip-alternate t :tight-right t)
+          (eyeliner/branch-name)
+          (eyeliner/project-name :skip-alternate t))
+	eyeliner/right-hand-segments
+	'((" %q "))
+	eyeliner/cool-color "medium blue")
+  (eyeliner/install))
 
 (use-package all-the-icons)
 (require 'dired+)
