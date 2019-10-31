@@ -289,6 +289,8 @@
 
 ;;pdf
 (pdf-tools-install)
+(add-hook 'pdf-view-mode-hook '(lambda ()
+				 (pdf-misc-size-indication-minor-mode)))
 
 ;;delete-selection-mode
 (delete-selection-mode t)
@@ -771,7 +773,8 @@
 			     (if (org-entry-get (point) "BRAIN_PARENTS")
 			         (delete "NO_PARENTS" tags)
 				 (append tags '("NO_PARENTS"))))
-		       (org-set-tags (delete-dups tags)))))
+		       (org-set-tags (delete "nosiblings" (delete-dups tags)))))
+		   "LEVEL=1")
   (org-brain-update-id-locations))
 
 (defun copy-related-research-papers (parent-id)
