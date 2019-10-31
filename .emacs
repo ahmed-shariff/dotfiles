@@ -171,7 +171,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(micgoline-pl-active-green ((t (:inherit mode-line :background "light sky blue" :foreground "#FFFFFF"))))
- '(mode-line ((t (:inherit mode-line :background "midnight blue" :foreground "#FFFFFF"))))
+ '(mode-line ((t (:inherit mode-line :background "DodgerBlue4" :foreground "#FFFFFF"))))
  '(powerline-active0 ((t (:inherit mode-line :background "medium blue" :foreground "#FFFFFF"))))
  '(powerline-active1 ((t (:inherit mode-line :background "tomato1" :foreground "#FFFFFF"))))
  '(powerline-active2 ((t (:inherit mode-line :background "light sky blue" :foreground "white"))))
@@ -310,7 +310,7 @@
   :group "flycheck")
 (setq flycheck-check-syntax-automatically '(mode-enabled new-line))
 
-
+(use-package all-the-icons)
 ;;flycheck
 ;;(require 'flyspell)
 
@@ -330,26 +330,32 @@
 (diminish 'ivy-mode)
 (diminish 'projectile-mode "P")
 
-(use-package eyeliner :ensure nil
-  :straight (eyeliner :type git
-                      :host github
-                      :repo "dustinlacewell/eyeliner")
-  :config
-  (require 'eyeliner)
-  (setq eyeliner/left-hand-segments
-        '(("%l:%c ")
-	  (eyeliner/buffer-name :skip-alternate t)
-          (eyeliner/mode-icon)
-	  (eyeliner/buffer-modified)
-          (eyeliner/branch-icon :skip-alternate t :tight-right t)
-          (eyeliner/branch-name)
-          (eyeliner/project-name :skip-alternate t))
-	eyeliner/right-hand-segments
-	'((" %q "))
-	eyeliner/cool-color "medium blue")
-  (eyeliner/install))
+;; (use-package eyeliner :ensure nil
+;;   :straight (eyeliner :type git
+;;                       :host github
+;;                       :repo "dustinlacewell/eyeliner")
+;;   :config
+;;   (require 'eyeliner)
+;;   (setq eyeliner/left-hand-segments
+;;         '(("%l:%c ")
+;; 	  (eyeliner/buffer-name :skip-alternate t)
+;;           (eyeliner/mode-icon)
+;; 	  (eyeliner/buffer-modified)
+;;           (eyeliner/branch-icon :skip-alternate t :tight-right t)
+;;           (eyeliner/branch-name)
+;;           (eyeliner/project-name :skip-alternate t))
+;; 	eyeliner/right-hand-segments
+;; 	'((" %q "))
+;; 	eyeliner/cool-color "medium blue")
+;;   (eyeliner/install))
 
-(use-package all-the-icons)
+(use-package doom-modeline
+  :ensure t
+  :hook (after-init . doom-modeline-mode)
+  :config
+  (setq doom-modeline-icon (display-graphic-p)
+	doom-modeline-minor-modes (featurep 'minions)))
+
 (require 'dired+)
 (diredp-toggle-find-file-reuse-dir 1)
 (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
