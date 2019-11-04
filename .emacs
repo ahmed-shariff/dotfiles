@@ -634,52 +634,7 @@
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
-  :init (setq markdown-command "multimarkdown"))    
-
-(use-package org-brain
-  :init
-  (setq org-brain-path "~/Documents/org/brain")
-  :bind ("C-c v" . org-brain-visualize)
-  :config
-  (setq org-id-track-globally t)
-  (setq org-id-locations-file "~/.emacs.d/.org-id-locations")
-  (push '("b" "Brain" plain (function org-brain-goto-end)
-          "* %i%?" :empty-lines 1)
-        org-capture-templates)
-  (setq org-brain-visualize-default-choices 'all)
-  (setq org-brain-title-max-length 50)
-  (defun org-brain-insert-resource-icon (link)
-    "Insert an icon, based on content of org-mode LINK."
-    (insert (format "%s "
-                    (cond ((string-prefix-p "http" link)
-                           (cond ((string-match "wikipedia\\.org" link)
-                                  (all-the-icons-faicon "wikipedia-w"))
-				 ((string-match "github\\.com" link)
-                                  (all-the-icons-octicon "mark-github"))
-				 ((string-match "vimeo\\.com" link)
-                                  (all-the-icons-faicon "vimeo"))
-				 ((string-match "youtube\\.com" link)
-                                  (all-the-icons-faicon "youtube"))
-				 (t
-                                  (all-the-icons-faicon "globe"))))
-                          ((string-prefix-p "brain:" link)
-                           (all-the-icons-fileicon "brain"))
-                          (t
-                           (all-the-icons-icon-for-file link))))))
-  (add-hook 'org-brain-after-resource-button-functions #'org-brain-insert-resource-icon)
-  (defface aa2u-face '((t . nil))
-    "Face for aa2u box drawing characters")
-  (advice-add #'aa2u-1c :filter-return
-              (lambda (str) (propertize str 'face 'aa2u-face)))
-  (defun aa2u-org-brain-buffer ()
-    (let ((inhibit-read-only t))
-      (make-local-variable 'face-remapping-alist)
-      (add-to-list 'face-remapping-alist
-                   '(aa2u-face . org-brain-wires))
-      (ignore-errors (aa2u (point-min) (point-max)))))
-  (with-eval-after-load 'org-brain
-    (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer)))
-
+  :init (setq markdown-command "multimarkdown"))
 
 (use-package plantuml-mode
   :init
@@ -725,86 +680,10 @@
 ;;arxiv mode
 (require 'arxiv-mode)
 
-(use-package org-ref
-  ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
-  :config
-  (setq reftex-default-bibliography '("~/Documents/org/bibliography/references.bib")
-	org-ref-bibliography-notes "~/Documents/org/brain/research_papers.org"
-	org-ref-default-bibliography '("~/Documents/org/bibliography/references.bib")
-	org-ref-pdf-directory "~/Documents/org/bibliography/pdfs/"
-	bibtex-completion-bibliography "~/Documents/org/bibliography/references.bib"
-	bibtex-completion-library-path "~/Documents/org/bibliography/pdfs/"
-	bibtex-completion-notes-path "~/Documents/org/brain/research_papers.org"
-	org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
-	org-ref-completion-library "org-ref-ivy"
-	bibtex-completion-notes-template-one-file
-	(format
-	 "\n* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
-	doi-utils-open-pdf-after-download nil
-	org-ref-note-title-format "* (%y) %t\n  :PROPERTIES:\n  :Custom_ID: %k\n  :AUTHOR: %9a\n  :JOURNAL: %j\n  :YEAR: %y\n  :VOLUME: %v\n  :PAGES: %p\n  :DOI: %D\n  :URL: %U\n  :END:")
-  (defun my/org-ref-notes-function (candidates)
-    (let ((key (helm-marked-candidates)))
-      (funcall org-ref-notes-function (car key))))
-
-  (helm-delete-action-from-source "Edit notes" helm-source-bibtex)
-  (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
-
-(setq org-noter-property-doc-file "INTERLEAVE_PDF"
-      org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
 
 (defun amsha/downlad-raname-move-file (url newname dir)
   (url-copy-file url (expand-file-name newname dir)))
 
-
-(defun research-papers-configure ()
-  "."
-  (interactive)
-  (org-map-entries (lambda ()
-		     (let ((link (org-entry-get (point) "LINK"))
-			   (cite-key (org-entry-get (point) "Custom_ID"))
-			   (dir org-ref-pdf-directory)
-			   (tags (org-get-tags)))
-		       (org-entry-put (point) "ATTACH_DIR" dir)
-		       (org-id-get-create)
-		       (if (and link cite-key)
-			   (let ((out-file-name (concatenate 'string cite-key ".pdf")))
-			     (when (condition-case nil
-				       (amsha/downlad-raname-move-file link out-file-name dir)
-				     (file-already-exists t))
-			       (org-entry-put (point) "Attachment" out-file-name)
-			       (setq tags (append tags '("ATTACH")))
-			       (org-entry-put (point) "INTERLEAVE_PDF" (expand-file-name out-file-name dir))))
-			 (progn
-			   (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
-			   (setq tags (if link (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))))
-		       (setq tags
-			     (if (org-entry-get (point) "BRAIN_PARENTS")
-			         (delete "NO_PARENTS" tags)
-				 (append tags '("NO_PARENTS"))))
-		       (org-set-tags (delete "nosiblings" (delete-dups tags)))))
-		   "LEVEL=1")
-  (org-brain-update-id-locations))
-
-(defun copy-related-research-papers (parent-id)
-  "PARENT-ID."
-  (interactive "sParent-id: ")
-  (let ((out-dir (expand-file-name parent-id "~/Downloads")))
-    (condition-case nil 
-	(make-directory out-dir)
-      (file-already-exists
-       (progn
-	 (message "Deleting directory and creating anew: %s" out-dir) 
-	 (delete-directory out-dir t)
-	 (make-directory out-dir))))
-    (message "Copying files to %s" out-dir)
-    (org-map-entries (lambda ()
-		       (let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
-			 (when (and file-path
-				    (equalp parent-id (org-entry-get (point) "BRAIN_PARENTS")))
-			   (copy-file file-path
-				      (expand-file-name (file-name-nondirectory file-path)
-							out-dir))))))
-    (dired out-dir)))
 
 ;;code to run at the end!************************************************
 
