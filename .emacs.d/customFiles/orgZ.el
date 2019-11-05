@@ -239,41 +239,70 @@
 ;; (advice-add 'org-brain-insert-visualize-button :around #'org-brain-insert-visualize-button-tags)
 
 ;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-tags)
-(defun org-brain--vis-children-with-tags (entry)
-  "Insert children of ENTRY.
-Helper function for `org-brain-visualize'.
-Appends the first letter of the todo state of the entry"
-  (let ((tags (org-brain-get-tags entry t)))
-    (when-let ((children (org-brain-children entry))
-               (fill-col (if (member org-brain-each-child-on-own-line-tag
-                                     (org-brain-get-tags entry))
-                             0
-                           (eval org-brain-child-linebreak-sexp))))
-      (insert "\n\n")
-      (dolist (child (if (member org-brain-no-sort-children-tag tags)
-                         children
-                       (sort children org-brain-visualize-sort-function)))
-        (let ((child-title (org-brain-title child))
-              (face (if (member entry (org-brain-local-parent child))
-                        'org-brain-local-child
-                      'org-brain-child)))
-          (when (> (+ (current-column) (length child-title)) fill-col)
-            (insert "\n"))
-	  (let ((kwd-setting
-		 (unless (org-brain-filep child)
-		   (org-with-point-at
-		       (org-brain-entry-marker child)
-		     (let ((kwd (org-entry-get (point) "TODO")))
-		       (if kwd
-			   (list kwd (org-get-todo-face kwd))
-			 nil))))))
-	    (when kwd-setting
-	      (insert (propertize (substring (first kwd-setting) 0 1) 'face (second kwd-setting)) " ")))
-          (org-brain-insert-visualize-button child face)
-          (insert "  "))))))
-(advice-add 'org-brain--vis-children :override #'org-brain--vis-children-with-tags)
+;; (defun org-brain--vis-children-with-tags (entry)
+;;   "Insert children of ENTRY.
+;; Helper function for `org-brain-visualize'.
+;; Appends the first letter of the todo state of the entry"
+;;   (let ((tags (org-brain-get-tags entry t)))
+;;     (when-let ((children (org-brain-children entry))
+;;                (fill-col (if (member org-brain-each-child-on-own-line-tag
+;;                                      (org-brain-get-tags entry))
+;;                              0
+;;                            (eval org-brain-child-linebreak-sexp))))
+;;       (insert "\n\n")
+;;       (dolist (child (if (member org-brain-no-sort-children-tag tags)
+;;                          children
+;;                        (sort children org-brain-visualize-sort-function)))
+;;         (let ((child-title (org-brain-title child))
+;;               (face (if (member entry (org-brain-local-parent child))
+;;                         'org-brain-local-child
+;;                       'org-brain-child)))
+;;           (when (> (+ (current-column) (length child-title)) fill-col)
+;;             (insert "\n"))
+;; 	  (let ((kwd-setting
+;; 		 (unless (org-brain-filep child)
+;; 		   (org-with-point-at
+;; 		       (org-brain-entry-marker child)
+;; 		     (let ((kwd (org-entry-get (point) "TODO")))
+;; 		       (if kwd
+;; 			   (list kwd (org-get-todo-face kwd))
+;; 			 nil))))))
+;; 	    (when kwd-setting
+;; 	      (insert (propertize (substring (first kwd-setting) 0 1) 'face (second kwd-setting)) " ")))
+;;           (org-brain-insert-visualize-button child face)
+;;           (insert "  "))))))
+;; (advice-add 'org-brain--vis-children :override #'org-brain--vis-children-with-tags)
 
 ;;(advice-remove 'org-brain--vis-children #'org-brain--vis-children-with-tags)
+
+(defun org-brain-insert-visualize-button-with-tags (entry &optional face)
+  "Insert a button, running `org-brain-visualize' on ENTRY when clicked.
+FACE is sent to `org-brain-display-face' and sets the face of the button.
+Appends the todo state of the entry being visualized."
+  (let ((annotation (org-brain-get-edge-annotation org-brain--vis-entry
+                                                   entry
+                                                   org-brain--vis-entry-keywords)))
+    (let ((kwd-setting
+	   (unless (org-brain-filep entry)
+	     (org-with-point-at
+		 (org-brain-entry-marker entry)
+	       (let ((kwd (org-entry-get (point) "TODO")))
+		 (if kwd
+		     (list kwd (org-get-todo-face kwd))
+		   nil))))))
+      (when kwd-setting
+	(insert (propertize (substring (first kwd-setting) 0 1) 'face (second kwd-setting)) " ")))
+    (insert-text-button
+     (org-brain-title-as-button entry)
+     'action (lambda (_x) (org-brain-visualize entry))
+     'id (org-brain-entry-identifier entry)
+     'follow-link t
+     'help-echo annotation
+     'aa2u-text t
+     'face (org-brain-display-face entry face annotation))))
+(advice-add 'org-brain-insert-visualize-button :override #'org-brain-insert-visualize-button-with-tags)
+
+;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-with-tags)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 (setq org-noter-property-doc-file "INTERLEAVE_PDF"
