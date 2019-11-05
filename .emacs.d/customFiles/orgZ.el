@@ -230,8 +230,52 @@
       (ignore-errors (aa2u (point-min) (point-max)))))
   (with-eval-after-load 'org-brain
     (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet begin
+;; (defun org-brain-insert-visualize-button-tags (old-func &rest args)
+;;   "."
+;;   (unless (org-brain-filep (car args))
+;;     (message "-- %s" (org-brain-keywords (car args)))) ;(cadar args)))
+;;   (apply old-func args))
+;; (advice-add 'org-brain-insert-visualize-button :around #'org-brain-insert-visualize-button-tags)
 
+;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-tags)
+(defun org-brain--vis-children-with-tags (entry)
+  "Insert children of ENTRY.
+Helper function for `org-brain-visualize'.
+Appends the first letter of the todo state of the entry"
+  (let ((tags (org-brain-get-tags entry t)))
+    (when-let ((children (org-brain-children entry))
+               (fill-col (if (member org-brain-each-child-on-own-line-tag
+                                     (org-brain-get-tags entry))
+                             0
+                           (eval org-brain-child-linebreak-sexp))))
+      (insert "\n\n")
+      (dolist (child (if (member org-brain-no-sort-children-tag tags)
+                         children
+                       (sort children org-brain-visualize-sort-function)))
+        (let ((child-title (org-brain-title child))
+              (face (if (member entry (org-brain-local-parent child))
+                        'org-brain-local-child
+                      'org-brain-child)))
+          (when (> (+ (current-column) (length child-title)) fill-col)
+            (insert "\n"))
+	  (let ((kwd-setting
+		 (unless (org-brain-filep child)
+		   (org-with-point-at
+		       (org-brain-entry-marker child)
+		     (let ((kwd (org-entry-get (point) "TODO")))
+		       (if kwd
+			   (list kwd (org-get-todo-face kwd))
+			 nil))))))
+	    (when kwd-setting
+	      (insert (propertize (substring (first kwd-setting) 0 1) 'face (second kwd-setting)) " ")))
+          (org-brain-insert-visualize-button child face)
+          (insert "  "))))))
+(advice-add 'org-brain--vis-children :override #'org-brain--vis-children-with-tags)
 
+;;(advice-remove 'org-brain--vis-children #'org-brain--vis-children-with-tags)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 (setq org-noter-property-doc-file "INTERLEAVE_PDF"
       org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
 
