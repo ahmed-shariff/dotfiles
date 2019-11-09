@@ -305,9 +305,38 @@ Appends the todo state of the entry being visualized."
 ;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-with-tags)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
+
+(require 'ox-extra)
+(ox-extras-activate '(ignore-headlines))
+
 (setq org-noter-property-doc-file "INTERLEAVE_PDF"
       org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
 
+(require 'org-download)
+(setq org-download-screenshot-method "scrot")
+(defun pdf-crop-image (event &optional switch-back)
+  "EVENT SWITCH-BACK."
+  (interactive "@e")
+  (setq current-b (buffer-name))
+  (progn (pdf-view-mouse-set-region-rectangle event)
+	 (message "%s" pdf-view-active-region)
+	 (pdf-view-extract-region-image pdf-view-active-region
+					(pdf-view-current-page)
+					(pdf-view-image-size)
+					(get-buffer-create "teste")
+					nil)))
+	 ;; (set-buffer "teste")
+	 ;; (switch-to-buffer "taste")))
+	 ;; (write-file "/tmp/screenshot.png" nil)))
+	 ;; (kill-buffer "screenshot.png")
+	 ;; (set-buffer current-b)
+	 ;; (org-noter-insert-note)
+	 ;; (org-download-screenshot)
+	 ;; (if switch-back
+	 ;;     (switch-to-buffer-other-frame current-b))))
+(define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
+(setq org-export-allow-bind-keywords t
+      org-latex-image-default-option "scale=0.6")
 (defun research-papers-configure ()
   "."
   (interactive)
