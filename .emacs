@@ -76,13 +76,15 @@
 
 ;;mepla setup****************************************************
 (add-to-list 'package-archives
-	     '("melpa" . "https://melpa.org/packages/") '("org" . "http://orgmode.org/elpa/"));'("elpy" . "http://jorgenschaefer.github.io/packages/"))
+	     '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives
+	     '("org" . "http://orgmode.org/elpa/")t);'("elpy" . "http://jorgenschaefer.github.io/packages/"))
 ;	     '("melpa" . "http://melpa.org/packages/")
 ;	     '("org" . "http://orgmode.org/elpa/"))
 (add-to-list 'load-path "~/.emacs.d/customFiles")
 (add-to-list 'load-path "~/.emacs.d/customFiles/arxiv-mode")
 (add-to-list 'package-archives
-            '("melpa-stable" . "https://stable.melpa.org/packages/"))
+            '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
 
 (when (< emacs-major-version 24)
@@ -562,6 +564,11 @@
   "Copy the current buffers filename to the kill ring."
   (interactive)
   (kill-new (file-name-nondirectory (buffer-file-name (window-buffer (minibuffer-selected-window))))))
+
+(defun copy-current-file-full-path ()
+  "Copy the current buffers filename to the kill ring."
+  (interactive)
+  (kill-new (buffer-file-name (window-buffer (minibuffer-selected-window)))))
 
 (use-package slack
   :commands (slack-start)
