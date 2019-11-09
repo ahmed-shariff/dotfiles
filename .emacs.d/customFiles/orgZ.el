@@ -27,13 +27,13 @@
 (require 'org-capture-pop-frame)
 ;(ido-mode)
 
-(setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)""|" "DONE(d!)" "CANCELED(c@)")
+(setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)""|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
 			  (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" )))
 
 (setq org-agenda-files '("~/Documents/org/Home.org"
 			 "~/Documents/org/journal.org"
 			 "~/Documents/org/notes.org"
-			 "~/Documents/org/work"))
+			 "~/Documents/org/brain/work"))
 ;;(set-register ("~/Documents/org/uniwork.org"
 ;;			     "~/Documents/org/uni_research.org")
 
@@ -94,22 +94,22 @@
 	 entry (file+datetree "~/Documents/org/journal.org")
 	 "* %?")
 	("jw" "Journal entry work"
-	 entry (file+datetree "~/Documents/org/work/hci.org")
+	 entry (file+datetree "~/Documents/org/brain/work/hci.org")
 	 "* %?")
 	("js" "Journal entry work-scrum"
-	 entry (file+datetree "~/Documents/org/work/hci-scrum.org")
+	 entry (file+datetree "~/Documents/org/brain/work/hci-scrum.org")
 	 "* Y:\n1. %?\n* T:\n1. "
 	 :jump-to-captured t)
 	("jt" "Journal sub entry"
-	 entry (file+datetree "~/Documents/org/work/hci.org")
+	 entry (file+datetree "~/Documents/org/brain/work/hci.org")
 	 "1. %?")
 	("e" "Experiment setup information")
 	("ej" "Add Journal entry"
-	 entry (file+olp+datetree "~/Documents/org/work/hci.org")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/hci.org")
 	 "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :%\\1:")
 	("el" "Add experiment"
-	 entry (file "~/Documents/org/work/experiments_log.org")
-	 "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp:%^{Project id}:\n  :PROPERTIES:
+	 entry (file "~/Documents/org/brain/work/experiments_log.org")
+	 "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp_%^{Project id}:\n  :PROPERTIES:
   :CUSTOM_ID:       %\\1
   :PROJECT: [[file:projects.org::#%\\3][%\\3]]
   :PROJECT_ID: %\\3
