@@ -337,6 +337,19 @@ Appends the todo state of the entry being visualized."
 (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
 (setq org-export-allow-bind-keywords t
       org-latex-image-default-option "scale=0.6")
+
+(defun set-property-for-level-in-region (level property value)
+  "."
+  (interactive "nLevel: \nsPropertyb: \nsValue: ")
+  (message "%s %s %s %s %s" level property value (region-beginning) (region-end))
+  (org-map-entries
+   (lambda ()
+     (org-entry-put (point) (upcase property) value))
+     ;;(message "%s" (org-entry-properties)))
+   (format "LEVEL=%s" level)
+   'region))
+     
+
 (defun research-papers-configure ()
   "."
   (interactive)
