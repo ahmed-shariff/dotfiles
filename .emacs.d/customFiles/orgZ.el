@@ -59,7 +59,8 @@
 							 (plantuml . t)
 							 (emacs-lisp . t)
 							 (python . t)
-							 (jupyter . t)))
+							 (jupyter . t)
+							 (shell .t)))
 
 (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
 						     (:session . "py")
@@ -293,7 +294,7 @@ Appends the todo state of the entry being visualized."
       (when kwd-setting
 	(insert (propertize (substring (first kwd-setting) 0 1) 'face (second kwd-setting)) " ")))
     (insert-text-button
-     (org-brain-title-as-button entry)
+     (org-brain-title entry)
      'action (lambda (_x) (org-brain-visualize entry))
      'id (org-brain-entry-identifier entry)
      'follow-link t

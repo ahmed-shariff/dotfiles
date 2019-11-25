@@ -157,6 +157,8 @@
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
+ '(org-agenda-files
+   '("~/Research/course_work/research_methodologies/assignment2/citation_networks.org" "~/Documents/org/Home.org" "~/Documents/org/journal.org" "~/Documents/org/notes.org" "/home/amsha/Documents/org/brain/work/codegen.org" "/home/amsha/Documents/org/brain/work/experiments_log.org" "/home/amsha/Documents/org/brain/work/hci-scrum.org" "/home/amsha/Documents/org/brain/work/hci.org" "/home/amsha/Documents/org/brain/work/projects.org"))
  '(org-export-backends '(ascii html icalendar latex md))
  '(package-selected-packages
    '(spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
