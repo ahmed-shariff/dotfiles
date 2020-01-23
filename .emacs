@@ -574,6 +574,18 @@
   (interactive)
   (kill-new (buffer-file-name (window-buffer (minibuffer-selected-window)))))
 
+(defun single-linify (beg end)
+  "Make a paragraph single-lined by replacing line break with space.
+  BEG The begining of a region
+  END The end of a region"
+  (interactive (if (use-region-p)
+                   (list (region-beginning) (region-end))
+                 (list nil nil)))
+  (let ((insertion (replace-regexp-in-string "\n" " " (buffer-substring beg end))))
+    (when (and beg end)
+      (delete-region beg end)
+      (insert insertion))))
+
 (use-package slack
   :commands (slack-start)
   :init

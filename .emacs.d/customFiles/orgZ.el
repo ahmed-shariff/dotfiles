@@ -88,7 +88,7 @@
 	 entry (file+datetree "~/Documents/org/notes.org")
 	 "* NOTE %^g\n\tAdded: %U\n\t%?")
 	("t" "A thing i have to do(a wonderfull epiphany? 3:))->TO THE NOTES"
-	 entry (file+datetree "~/Documents/org/notes.org")
+	 entry (file "~/Documents/org/notes.org")
 	 "* TODO %^{Description} %^g\n\tAdded: %U\n\t%?")
 	("j" "Journal entry")
 	("jg" "Journal entry general"
