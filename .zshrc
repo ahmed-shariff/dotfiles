@@ -120,6 +120,11 @@ bindkey -e
 #compinit
 # End of lines added by compinstall
 
+# Load platform spcific setup
+if [ -f "$HOME/.rc_platform_setup" ]; then
+    source "$HOME/.rc_platform_setup"
+fi
+
 alias ls='ls --color=auto'
 
 function proxy_on() {
