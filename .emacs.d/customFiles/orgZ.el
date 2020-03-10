@@ -80,8 +80,19 @@
 
 (setq org-default-notes-file "~/Documents/org/notes.org")
 
-(setq org-refile-targets '((org-agenda-files . (:maxlevel . 6))
-			   (org-c-refile-targets . (:maxlevel . 6))))
+(setq org-refile-targets '((org-agenda-files :maxlevel . 6)))
+			   ;(org-c-refile-targets :maxlevel . 6)))
+
+(defun org-ask-project-location ()
+  "From  https://stackoverflow.com/questions/9005843/interactively-enter-headline-under-which-to-place-an-entry-using-capture."
+  (let* ((org-refile-targets '((nil :maxlevel . 1)))
+         (hd (condition-case nil
+                 (car (org-refile-get-location "Project "))
+               (error (car org-refile-history)))))
+    hd))
+
+;; (defun org-ask-location ()
+;;   org-project-sprint-target-heading) 
 
 (setq org-capture-templates
       '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
@@ -115,6 +126,37 @@
   :PROJECT: [[file:projects.org::#%\\3][%\\3]]
   :PROJECT_ID: %\\3
   :END:\n- %^{Description}\n\n** Notes\n\n** TODO %?\n** TODO Conclusions"
+	 :jump-to-captured t)
+	("es" "Add sprint"
+	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-location)
+	 "** TODO Sprint %^{ID}: %^{TITLE}
+   :PROPERTIES:
+   :EXPORT_TOC: nil
+   :EXPORT_TITLE: %\\2
+   :EXPORT_OPTIONS: H:2
+   :EXPORT_AUTHOR:
+   :START_DATE: %u
+   :END_DATE:
+   :END:
+*** From previous:
+    - %?
+*** Sprint goal:
+*** Related experiments:
+*** Remarks:
+" :jump-to-captured t)
+	("ep" "Add project"
+	 entry (file "~/Documents/org/brain/work/projects.org")
+	 "* TODO <<%^{ID}>> %^{TITLE}
+  :PROPERTIES:
+  :CUSTOM_ID: %\\1
+  :ID:       %(org-id-new)
+  :END:
+** %\\2 literature
+   :PROPERTIES:
+   :ID:       %(org-id-new)
+   :END:
+%?
+"
 	 :jump-to-captured t)
 	("b" "Org brain")
 	("bp" "Add research paper"
