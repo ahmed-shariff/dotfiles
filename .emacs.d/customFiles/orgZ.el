@@ -423,5 +423,7 @@ Appends the todo state of the entry being visualized."
 (setq org-refile-use-outline-path "file")
 (setq org-outline-path-complete-in-steps t)(setq org-completion-use-ido t)
 (setq org-attach-directory "~/Documents/org/documents/")
+(setq org-clock-continuously t
+      org-clock-idle-time 10)
 (provide 'orgZ)
 ;;; orgZ.el ends here
