@@ -87,9 +87,15 @@
   "From  https://stackoverflow.com/questions/9005843/interactively-enter-headline-under-which-to-place-an-entry-using-capture."
   (let* ((org-refile-targets '((nil :maxlevel . 1)))
          (hd (condition-case nil
-                 (car (org-refile-get-location "Project "))
+                 (car (let ((in (org-refile-get-location "Project " nil t)))
+			(message "%s" in)
+			in))
                (error (car org-refile-history)))))
-    hd))
+    (goto-char (point-min))
+    (re-search-forward
+         (format org-complex-heading-regexp-format (regexp-quote hd))
+         nil t)
+        (goto-char (point-at-bol))))
 
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading) 
@@ -128,7 +134,7 @@
   :END:\n- %^{Description}\n\n** Notes\n\n** TODO %?\n** TODO Conclusions"
 	 :jump-to-captured t)
 	("es" "Add sprint"
-	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-location)
+	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-project-location)
 	 "** TODO Sprint %^{ID}: %^{TITLE}
    :PROPERTIES:
    :EXPORT_TOC: nil
