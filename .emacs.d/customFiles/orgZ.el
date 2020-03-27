@@ -419,7 +419,7 @@ Appends the todo state of the entry being visualized."
 			       (org-entry-put (point) "INTERLEAVE_PDF" (expand-file-name out-file-name dir))))
 			 (progn
 			   (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
-			   (setq tags (if link (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))))
+			   (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))))
 		       (setq tags
 			     (if (org-entry-get (point) "BRAIN_PARENTS")
 			         (delete "NO_PARENTS" tags)
@@ -449,6 +449,39 @@ Appends the todo state of the entry being visualized."
 							out-dir))))))
     (dired out-dir)))
 
+(defun arxiv-add-bibtex-entry-with-note (arxiv-link bibfile)
+  "Add bibtex entry for ARXIV-LINK to BIBFILE."
+  (interactive
+   (list (read-string "arxiv: ")
+         ;;  now get the bibfile to add it to
+         (completing-read
+          "Bibfile: "
+          (append (f-entries "." (lambda (f) (f-ext? f "bib")))
+                  org-ref-default-bibliography))))
+  (save-window-excursion
+    (find-file bibfile)
+    (goto-char (point-max))
+    (when (not (looking-at "^")) (insert "\n"))
+    (insert (arxiv-get-bibtex-entry-via-arxiv-api (s-chop-suffix ".pdf" (car (last (s-split "/" arxiv-link))))))
+    (org-ref-clean-bibtex-entry)
+    (message "%s" (buffer-file-name))
+    (save-excursion
+      (when (f-file? org-ref-bibliography-notes)
+	(find-file-noselect org-ref-bibliography-notes)
+	(save-buffer))
+      (let ((bibtex-completion-bibliography (list (buffer-file-name)))
+	    (keys (progn		  
+		    (bibtex-beginning-of-entry)
+		    (list (cdr (assoc "=key=" (bibtex-parse-entry)))))))
+	(bibtex-completion-edit-notes keys)))
+    (goto-char (point-max))
+    (when (not (looking-at "^")) (insert "\n"))
+    (save-buffer))
+  (save-excursion
+    (find-file-other-window bibtex-completion-notes-path)
+    (goto-char (point-max))
+    (org-set-property "LINK" arxiv-link)
+    (research-papers-configure)))
 
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
