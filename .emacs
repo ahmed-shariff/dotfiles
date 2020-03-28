@@ -737,6 +737,17 @@
 (defun amsha/downlad-raname-move-file (url newname dir)
   (url-copy-file url (expand-file-name newname dir)))
 
+(defun amsha/get-uml-link (link)
+  (interactive "slink: ")
+  (let ((split-link (s-split "/" link))
+	(formated-link '()))
+    (dolist (el split-link)
+      (if (or (s-matches-p ".*\.com" el)
+		(s-matches-p ".*\.org" el))
+	  (push (s-concat (s-replace "." "-" el) ".uml.idm.oclc.org") formated-link)
+	(push el formated-link)))
+    (kill-new (s-join "/" (reverse formated-link)))))
+
 
 ;;code to run at the end!************************************************
 
