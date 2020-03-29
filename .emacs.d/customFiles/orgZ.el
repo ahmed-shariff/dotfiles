@@ -483,15 +483,21 @@ Appends the todo state of the entry being visualized."
     (org-set-property "LINK" arxiv-link)
     (research-papers-configure)))
 
+(defun org-brain-add-parent-topic ()
+  "."
+  (interactive)
+  (org-brain-add-parent (org-brain-entry-at-pt) (org-brain-choose-entries "Add parent topic: " 'all (lambda (entry) (s-starts-with-p "research topics::" (car entry))))))
+
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
 (add-hook 'org-mode-hook
 	  (lambda ()
 	    (define-key org-mode-map "\C-c!" 'org-time-stamp-inactive)
 	    (define-key org-mode-map "\C-coo" 'org-noter)
-	    (define-key org-mode-map "\C-cop" 'org-brain-add-parent)
+	    (define-key org-mode-map "\C-cop" 'org-brain-add-parent-topic)
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
 	    (flyspell-mode t)))
+
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
