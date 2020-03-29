@@ -486,7 +486,9 @@ Appends the todo state of the entry being visualized."
 (defun org-brain-add-parent-topic ()
   "."
   (interactive)
-  (org-brain-add-parent (org-brain-entry-at-pt) (org-brain-choose-entries "Add parent topic: " 'all (lambda (entry) (s-starts-with-p "research topics::" (car entry))))))
+  (org-brain-add-parent (org-brain-entry-at-pt) (org-brain-choose-entries "Add parent topic: " 'all (lambda (entry)
+												      (or (s-starts-with-p "research topics::" (car entry))
+													  (s-matches-p "work/projects::.*literature" (car entry)))))))
 
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
