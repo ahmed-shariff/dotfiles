@@ -2,8 +2,9 @@
 (defparameter *system-name* "msi"); "thinkpad" "msi"
 (set-prefix-key (kbd "C-z"))
 
-(ql:quickload '(:cl-utilities :clx-truetype))
+(ql:quickload '(:cl-utilities :clx-truetype :xembed))
 ;		:cl-emoji))
+
 ;; change the prefix key to something else
 
 (set-module-dir "~/.stumpwm.d/modules")
@@ -53,6 +54,7 @@
 (load-module "cpu")
 (load-module "battery-portable")
 (load-module "ttf-fonts")
+(stumptray::stumptray)
 (setf *message-window-padding* 150)
 (setf *message-window-gravity* :top)
 (setf *input-window-gravity* :top)
