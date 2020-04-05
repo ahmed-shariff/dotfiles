@@ -4,3 +4,6 @@
 [submodule ".stumpwm.d/betterlockscreen"]
 	path = .stumpwm.d/betterlockscreen
 	url = https://github.com/pavanjadhaw/betterlockscreen.git
+[submodule ".emacs.d/customFiles/ox-ipynb"]
+	path = .emacs.d/customFiles/ox-ipynb
+	url = https://github.com/jkitchin/ox-ipynb.git

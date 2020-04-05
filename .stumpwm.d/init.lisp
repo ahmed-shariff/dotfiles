@@ -54,7 +54,7 @@
 (load-module "cpu")
 (load-module "battery-portable")
 (load-module "ttf-fonts")
-(stumptray::stumptray)
+;(stumptray::stumptray)
 (setf *message-window-padding* 150)
 (setf *message-window-gravity* :top)
 (setf *input-window-gravity* :top)
