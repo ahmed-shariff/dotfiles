@@ -67,6 +67,7 @@
 						     (:kernel . "python3")
 						     (:tangle . "yes")
 						     (:exports . "both")))
+(require 'ox-ipynb)
 ;; (defun my-org-confirm-babel-evaluate (lang bdy)
 ;;   "Function to eval plantuml blocks.
 ;; LANG
@@ -460,28 +461,35 @@ Appends the todo state of the entry being visualized."
                   org-ref-default-bibliography))))
   (save-window-excursion
     (find-file bibfile)
-    (goto-char (point-max))
-    (when (not (looking-at "^")) (insert "\n"))
-    (insert (arxiv-get-bibtex-entry-via-arxiv-api (s-chop-suffix ".pdf" (car (last (s-split "/" arxiv-link))))))
-    (org-ref-clean-bibtex-entry)
-    (message "%s" (buffer-file-name))
-    (save-excursion
-      (when (f-file? org-ref-bibliography-notes)
-	(find-file-noselect org-ref-bibliography-notes)
-	(save-buffer))
-      (let ((bibtex-completion-bibliography (list (buffer-file-name)))
-	    (keys (progn		  
-		    (bibtex-beginning-of-entry)
-		    (list (cdr (assoc "=key=" (bibtex-parse-entry)))))))
-	(bibtex-completion-edit-notes keys)))
-    (goto-char (point-max))
-    (when (not (looking-at "^")) (insert "\n"))
-    (save-buffer))
-  (save-excursion
-    (find-file-other-window bibtex-completion-notes-path)
-    (goto-char (point-max))
-    (org-set-property "LINK" arxiv-link)
-    (research-papers-configure)))
+    (let* ((arxiv-number (s-chop-suffix ".pdf" (car (last (s-split "/" arxiv-link)))))
+	   (search-point (word-search-forward arxiv-number nil t)))
+      (if search-point
+	  (progn
+	    (goto-char search-point)
+	    (message "%s already exists in the database" arxiv-number))
+	(progn
+	  (goto-char (point-max))
+	  (when (not (looking-at "^")) (insert "\n"))
+	  (insert (arxiv-get-bibtex-entry-via-arxiv-api arxiv-number))
+	  (org-ref-clean-bibtex-entry)
+	  (message "%s" (buffer-file-name))
+	  (save-excursion
+	    (when (f-file? org-ref-bibliography-notes)
+	      (find-file-noselect org-ref-bibliography-notes)
+	      (save-buffer))
+	    (let ((bibtex-completion-bibliography (list (buffer-file-name)))
+		  (keys (progn		  
+			  (bibtex-beginning-of-entry)
+			  (list (cdr (assoc "=key=" (bibtex-parse-entry)))))))
+	      (bibtex-completion-edit-notes keys))
+	    (goto-char (point-max))
+	    (when (not (looking-at "^")) (insert "\n"))
+	    (save-buffer))
+	  (save-excursion
+	    (find-file-other-window bibtex-completion-notes-path)
+	    (goto-char (point-max))
+	    (org-set-property "LINK" arxiv-link)
+	    (research-papers-configure)))))))
 
 (defun org-brain-add-parent-topic ()
   "."
