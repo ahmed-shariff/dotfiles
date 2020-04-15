@@ -7,3 +7,6 @@
 [submodule ".emacs.d/customFiles/ox-ipynb"]
 	path = .emacs.d/customFiles/ox-ipynb
 	url = https://github.com/jkitchin/ox-ipynb.git
+[submodule "packages_external/stumpwm"]
+	path = packages_external/stumpwm
+	url = https://github.com/stumpwm/stumpwm.git
