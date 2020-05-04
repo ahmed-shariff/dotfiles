@@ -42,6 +42,10 @@
 
 (setq package-list
       '(;anaconda-mode
+	diminish
+	jupyter
+	org-bullets
+	org-download
 	circe
 	company-anaconda   
 	company-auctex     
@@ -70,7 +74,8 @@
 	use-package        
 	vlf                
 	web-mode           
-	web-narrow-mode    
+	web-narrow-mode
+	org-plus-contrib
 	yasnippet          
  	))     ;; List of packages to load
 
