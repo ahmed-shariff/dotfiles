@@ -84,11 +84,12 @@
 (setq org-refile-targets '((org-agenda-files :maxlevel . 6)))
 			   ;(org-c-refile-targets :maxlevel . 6)))
 
-(defun org-ask-project-location ()
+(defun org-ask-title-location (&optional prompt)
   "From  https://stackoverflow.com/questions/9005843/interactively-enter-headline-under-which-to-place-an-entry-using-capture."
-  (let* ((org-refile-targets '((nil :maxlevel . 1)))
+  (let* ((prompt (or prompt "Project "))
+	 (org-refile-targets '((nil :maxlevel . 1)))
          (hd (condition-case nil
-                 (car (let ((in (org-refile-get-location "Project " nil t)))
+                 (car (let ((in (org-refile-get-location prompt nil t)))
 			(message "%s" in)
 			in))
                (error (car org-refile-history)))))
@@ -97,6 +98,27 @@
          (format org-complex-heading-regexp-format (regexp-quote hd))
          nil t)
         (goto-char (point-at-bol))))
+
+(defun org-ask-id (file prompt property)
+  "."
+  (save-window-excursion
+    (find-file file)
+    (org-ask-title-location prompt)
+    (org-entry-get (point) property)))
+
+(defun org-ask-experiment-id ()
+  "."
+  (save-window-excursion
+    (find-file "~/Documents/org/brain/work/experiments_log.org")
+    (org-ask-title-location  "Experiment ")
+    (org-entry-get (point) "CUSTOM_ID"))
+  ;;(org-ask-id "~/Documents/org/brain/work/experiments_log.org"  "Experiment " "CUSTOM_ID"))
+)
+
+(defun org-ask-project-id ()
+  "."
+  (org-ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
+
 
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading) 
@@ -128,14 +150,15 @@
 	 "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :%\\1:")
 	("el" "Add experiment"
 	 entry (file "~/Documents/org/brain/work/experiments_log.org")
-	 "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp_%^{Project id}:\n  :PROPERTIES:
+	 "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp_%^{Project_id}:\n  :PROPERTIES:
   :CUSTOM_ID:       %\\1
   :PROJECT: [[file:projects.org::#%\\3][%\\3]]
   :PROJECT_ID: %\\3
+  :SPRINT: %^{Sprint ID}
   :END:\n- %^{Description}\n\n** Notes\n\n** TODO %?\n** TODO Conclusions"
 	 :jump-to-captured t)
 	("es" "Add sprint"
-	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-project-location)
+	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
 	 "** TODO Sprint %^{ID}: %^{TITLE}
    :PROPERTIES:
    :EXPORT_TOC: nil
