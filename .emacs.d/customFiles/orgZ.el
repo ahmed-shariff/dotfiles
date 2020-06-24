@@ -250,13 +250,12 @@
 	org-ref-completion-library "org-ref-ivy"
 	bibtex-completion-notes-template-one-file
 	(format
-	 "\n* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
+	 "\n* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
 	doi-utils-open-pdf-after-download nil
-	org-ref-note-title-format "* (%y) %t\n  :PROPERTIES:\n  :Custom_ID: %k\n  :AUTHOR: %9a\n  :JOURNAL: %j\n  :YEAR: %y\n  :VOLUME: %v\n  :PAGES: %p\n  :DOI: %D\n  :URL: %U\n  :END:")
+	org-ref-note-title-format "* (%y) %t [%9a] \n  :PROPERTIES:\n  :Custom_ID: %k\n  :AUTHOR: %9a\n  :JOURNAL: %j\n  :YEAR: %y\n  :VOLUME: %v\n  :PAGES: %p\n  :DOI: %D\n  :URL: %U\n  :END:\n\n  - ")
   (defun my/org-ref-notes-function (candidates)
     (let ((key (helm-marked-candidates)))
       (funcall org-ref-notes-function (car key))))
-
   (helm-delete-action-from-source "Edit notes" helm-source-bibtex)
   (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
 
@@ -461,27 +460,33 @@ Appends the todo state of the entry being visualized."
   "."
   (interactive)
   (org-map-entries (lambda ()
-		     (let ((link (org-entry-get (point) "LINK"))
-			   (cite-key (org-entry-get (point) "Custom_ID"))
-			   (dir org-ref-pdf-directory)
-			   (tags (org-get-tags)))
+		     (let* ((link (org-entry-get (point) "LINK"))
+			    (cite-key (org-entry-get (point) "Custom_ID"))
+			    (dir org-ref-pdf-directory)
+			    (tags (org-get-tags))
+			    (out-file-name (concatenate 'string cite-key ".pdf"))
+			    (full-path (expand-file-name out-file-name dir)))
 		       (org-entry-put (point) "ATTACH_DIR" dir)
 		       (org-id-get-create)
+		       (when (and (or (not link)
+				      (string= "" link))
+				  (file-exists-p full-path))
+			 (org-entry-put (point) "LINK" full-path)
+			 (setq link full-path))
 		       (if (and link cite-key)
-			   (let ((out-file-name (concatenate 'string cite-key ".pdf")))
-			     (when (condition-case nil
-				       (amsha/downlad-raname-move-file link out-file-name dir)
-				     (file-already-exists t))
-			       (org-entry-put (point) "Attachment" out-file-name)
-			       (setq tags (append tags '("ATTACH")))
-			       (org-entry-put (point) "INTERLEAVE_PDF" (expand-file-name out-file-name dir))))
+			   (when (condition-case nil
+				     (amsha/downlad-raname-move-file link out-file-name dir)
+				   (file-already-exists t))
+			     (org-entry-put (point) "Attachment" out-file-name)
+			     (setq tags (append tags '("ATTACH")))
+			     (org-entry-put (point) "INTERLEAVE_PDF" full-path))
 			 (progn
 			   (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
 			   (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))))
 		       (setq tags
 			     (if (org-entry-get (point) "BRAIN_PARENTS")
 			         (delete "NO_PARENTS" tags)
-				 (append tags '("NO_PARENTS"))))
+			       (append tags '("NO_PARENTS"))))
 		       (org-set-tags (delete "nosiblings" (delete-dups tags)))))
 		   "LEVEL=1")
   (org-brain-update-id-locations))
