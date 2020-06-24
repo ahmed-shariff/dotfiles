@@ -272,6 +272,7 @@
         org-capture-templates)
   (setq org-brain-visualize-default-choices 'all)
   (setq org-brain-title-max-length 50)
+  (setq org-brain-vis-title-prepend-functions '(org-brain-entry-todo-state-colored))
   (defun org-brain-insert-resource-icon (link)
     "Insert an icon, based on content of org-mode LINK."
     (insert (format "%s "
@@ -300,7 +301,7 @@
       (make-local-variable 'face-remapping-alist)
       (add-to-list 'face-remapping-alist
                    '(aa2u-face . org-brain-wires))
-      (ignore-errors (aa2u (point-min) (point-max)))))
+      (ignore-errors (aa2u (point-min) (point-max)))))  
   (with-eval-after-load 'org-brain
     (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet begin
@@ -348,7 +349,7 @@
 
 ;;(advice-remove 'org-brain--vis-children #'org-brain--vis-children-with-tags)
 
-(defun org-brain-insert-visualize-button-with-tags (entry &optional face)
+(defun org-brain-insert-visualize-button-with-tags (entry &optional face edge)
   "Insert a button, running `org-brain-visualize' on ENTRY when clicked.
 FACE is sent to `org-brain-display-face' and sets the face of the button.
 Appends the todo state of the entry being visualized."
@@ -373,7 +374,19 @@ Appends the todo state of the entry being visualized."
      'help-echo annotation
      'aa2u-text t
      'face (org-brain-display-face entry face annotation))))
-(advice-add 'org-brain-insert-visualize-button :override #'org-brain-insert-visualize-button-with-tags)
+
+(defun org-brain-entry-todo-state-colored (entry)
+  "Get todo state of ENTRY with colors."
+  (if (org-brain-filep entry)
+      ""
+    (org-with-point-at (org-brain-entry-marker entry)
+      (or (let ((kwd (org-entry-get (point) "TODO")))
+	    (if kwd
+		(propertize (substring kwd 0 1) 'face (org-get-todo-face kwd))
+	      nil))
+	  ""))))
+
+;; (advice-add 'org-brain-insert-visualize-button :override #'org-brain-insert-visualize-button-with-tags)
 
 ;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-with-tags)
 
