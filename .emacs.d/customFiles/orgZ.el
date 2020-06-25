@@ -262,7 +262,9 @@
 (use-package org-brain
   :init
   (setq org-brain-path "~/Documents/org/brain")
-  :bind ("C-c v" . org-brain-visualize)
+  :bind (("C-c v" . org-brain-visualize)
+	 :map org-brain-visualize-mode-map
+	 ("C-c o" . org-brain-open-org-noter))
   :config
   (setq org-id-track-globally t)
   (setq org-id-locations-file "~/.emacs.d/.org-id-locations")
@@ -303,6 +305,19 @@
       (ignore-errors (aa2u (point-min) (point-max)))))  
   (with-eval-after-load 'org-brain
     (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer)))
+
+(defun org-brain-open-org-noter ()
+  (interactive)
+  (let ((entry (condition-case nil
+		   (car (org-brain-button-at-point))
+		 (user-error (org-brain-entry-at-pt)))))
+    (if (org-brain-filep entry)
+	(user-error "Noter cannot be opened for file entry")
+      (org-with-point-at (org-brain-entry-marker entry)
+	(if (string= "research_papers" (file-name-base (org-entry-get (point) "FILE")))
+	    (org-noter)
+	  (user-error "Noter only for the entries in research_paper"))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet begin
 ;; (defun org-brain-insert-visualize-button-tags (old-func &rest args)
 ;;   "."
@@ -465,7 +480,7 @@ Appends the todo state of the entry being visualized."
 			    (dir org-ref-pdf-directory)
 			    (tags (org-get-tags))
 			    (out-file-name (concatenate 'string cite-key ".pdf"))
-			    (full-path (expand-file-name out-file-name dir)))
+			    (full-path (replace-regexp-in-string "^\\([a-z]:\\)?\\(/.*\\)/Documents" "~/Documents" (expand-file-name out-file-name dir))))
 		       (org-entry-put (point) "ATTACH_DIR" dir)
 		       (org-id-get-create)
 		       (when (and (or (not link)
@@ -474,9 +489,11 @@ Appends the todo state of the entry being visualized."
 			 (org-entry-put (point) "LINK" full-path)
 			 (setq link full-path))
 		       (if (and link cite-key)
-			   (when (condition-case nil
-				     (amsha/downlad-raname-move-file link out-file-name dir)
-				   (file-already-exists t))
+			   (when (and
+				  (not (member "ATTACH" tags))
+				  (condition-case nil
+				      (amsha/downlad-raname-move-file link out-file-name dir)
+				    (file-already-exists t)))
 			     (org-entry-put (point) "Attachment" out-file-name)
 			     (setq tags (append tags '("ATTACH")))
 			     (org-entry-put (point) "INTERLEAVE_PDF" full-path))
