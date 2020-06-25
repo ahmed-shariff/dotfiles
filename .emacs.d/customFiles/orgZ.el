@@ -523,7 +523,9 @@ Appends the todo state of the entry being visualized."
     (org-map-entries (lambda ()
 		       (let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
 			 (when (and file-path
-				    (equalp parent-id (org-entry-get (point) "BRAIN_PARENTS")))
+				    (member parent-id
+					    (org-entry-get-multivalued-property (point) "BRAIN_PARENTS")))
+			   (message "Copied %s" (file-name-nondirectory file-path)) 
 			   (copy-file file-path
 				      (expand-file-name (file-name-nondirectory file-path)
 							out-dir))))))
