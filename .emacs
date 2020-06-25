@@ -107,14 +107,17 @@
 ;(package-initialize)      ;; Initialize & Install Package
 
 
-(defun fullscreen (&optional f)
+(defun maximize (&optional f)
   (interactive)
-  (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
-	    		 '(2 "_NET_WM_STATE_MAXIMIZED_VERT" 0))
-  (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
-	    		 '(2 "_NET_WM_STATE_MAXIMIZED_HORZ" 0)))
+  ;; (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
+  ;; 	    		 '(2 "_NET_WM_STATE_MAXIMIZED_VERT" 0))
+  ;; (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
+  ;; 	    		 '(2 "_NET_WM_STATE_MAXIMIZED_HORZ" 0)))
+  ;; (toggle-frame-maximized))
+  (set-frame-parameter nil 'fullscreen 'maximized))
 
-(add-hook 'after-make-frame-functions 'fullscreen)
+(maximize)
+(add-hook 'after-make-frame-functions 'maximize)
 (setq ns-auto-hide-menu-bar t)
 (tool-bar-mode 0)
 
