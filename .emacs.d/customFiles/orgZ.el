@@ -264,8 +264,10 @@
   (setq org-brain-path "~/Documents/org/brain")
   :bind (("C-c v" . org-brain-visualize)
 	 :map org-brain-visualize-mode-map
-	 ("C-c o" . org-brain-open-org-noter))
+	 ("\C-coo" . org-brain-open-org-noter)
+	 ("\C-cop" . org-brain-add-parent-topic))
   :config
+  ;(define-key org-brain-visualize-mode-map "")
   (setq org-id-track-globally t)
   (setq org-id-locations-file "~/.emacs.d/.org-id-locations")
   (push '("b" "Brain" plain (function org-brain-goto-end)
@@ -577,7 +579,8 @@ Appends the todo state of the entry being visualized."
   (interactive)
   (org-brain-add-parent (org-brain-entry-at-pt) (org-brain-choose-entries "Add parent topic: " 'all (lambda (entry)
 												      (or (s-starts-with-p "research topics::" (car entry))
-													  (s-matches-p "work/projects::.*literature" (car entry)))))))
+													  (s-matches-p "work/projects::.*literature" (car entry))
+													  (s-starts-with-p "publication::" (car entry)))))))
 
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
@@ -603,5 +606,6 @@ Appends the todo state of the entry being visualized."
 (setq org-attach-directory "~/Documents/org/documents/")
 (setq org-clock-continuously t
       org-clock-idle-time 10)
+
 (provide 'orgZ)
 ;;; orgZ.el ends here

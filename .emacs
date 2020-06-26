@@ -219,6 +219,13 @@
       backup-by-copying t
       delete-old-versions t)
 
+;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
+;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
+(setq symlink-overload-expand-file-name-p t)
+(require 'symlink-fix)
+(setq expand-file-name-resolve-symlinks-p t)
+
+
 ;;enable ido mode
 ;; (require 'ido)
 ;; (ido-mode t)
