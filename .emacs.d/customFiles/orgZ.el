@@ -512,7 +512,11 @@ Appends the todo state of the entry being visualized."
 
 (defun copy-related-research-papers (parent-id)
   "PARENT-ID."
-  (interactive "sParent-id: ")
+  (interactive (list
+		(save-excursion
+		  (org-brain-goto (org-brain-choose-entry "Select research topic: " 'all (lambda (entry)
+								     (s-starts-with-p "research topics::" (car entry)))))
+		  (org-entry-get (point) "ID"))))
   (let ((out-dir (expand-file-name parent-id "~/Downloads")))
     (condition-case nil 
 	(make-directory out-dir)
@@ -532,6 +536,30 @@ Appends the todo state of the entry being visualized."
 				      (expand-file-name (file-name-nondirectory file-path)
 							out-dir))))))
     (dired out-dir)))
+
+(defun copy-related-research-paper-notes (parent-id)
+  "PARENT-ID."
+    (interactive (list
+		  (caddr (org-brain-choose-entry "Select research topic: " 'all (lambda (entry)
+										  (or (s-starts-with-p "research topics::" (car entry))
+										      (s-starts-with-p "publication::" (car entry))))))))
+    (let ((buffer  (generate-new-buffer (format "*org-paper-notes-%s*" parent-id))))
+      (save-excursion
+	(set-buffer buffer)
+	(org-mode)
+	(insert "#+OPTIONS: H:0\n\n"))
+      (save-excursion
+	(org-brain-goto "research_papers")
+	(org-map-entries (lambda ()
+			   (when (member parent-id
+					 (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))
+			     (org-copy-subtree)
+			     (save-excursion
+			       (set-buffer buffer)
+			       (goto-char (point-max))
+			       (when (not (looking-at "^")) (insert "\n"))
+			       (org-paste-subtree 1)))))
+	(switch-to-buffer buffer))))
 
 (defun arxiv-add-bibtex-entry-with-note (arxiv-link bibfile)
   "Add bibtex entry for ARXIV-LINK to BIBFILE."
