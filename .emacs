@@ -243,7 +243,8 @@
 	 ("C-c j" . counsel-git-grep) 
 	 ("C-c k" . counsel-ag)       
 	 ("C-x l" . counsel-locate)   
-	 ("C-S-o" . counsel-rhythmbox)	 
+	 ("C-S-o" . counsel-rhythmbox)
+	 ("C-x C-f" . counsel-find-file)
 	 :map ivy-minibuffer-map        ; bind in the ivy buffer
 	 ("RET" . ivy-alt-done))
 	 ;;      ("s-<"   . ivy-avy)
@@ -254,7 +255,7 @@
 	 ;;      ("s-]"   . ivy-next-history-element))
   :config
   (setq ivy-use-virtual-buffers t)       ; extend searching to bookmarks and
-  (setq ivy-height 10)                   ; set height of the ivy window
+  (setq ivy-height 15)                   ; set height of the ivy window
   (setq ivy-count-format "(%d) ")     ; count format, from the ivy help page
   (setq ivy-display-style 'fancy)
   (setq ivy-format-function 'ivy-format-function-line) ; Make highlight extend all the way to the right
@@ -266,10 +267,24 @@
 	;; (amx . ivy--regex-fuzzy)
 	(t . ivy--regex-fuzzy))))
 
-(use-package all-the-icons-ivy
+;; (use-package all-the-icons-ivy
+;;   :ensure t
+;;   :config
+;;   (all-the-icons-ivy-setup))
+
+(use-package all-the-icons-ivy-rich
   :ensure t
-  :config
-  (all-the-icons-ivy-setup))
+  :init (all-the-icons-ivy-rich-mode 1))
+
+(use-package ivy-rich
+  :ensure t
+  :init (ivy-rich-mode 1))
+
+;; helm setup ************************************************************************
+(use-package helm :ensure t
+  ;; :init (helm-mode 1)
+  :bind (("M-y" . helm-show-kill-ring))
+  )
 
 ;;expand-region **********************************************************************
 (use-package expand-region
@@ -278,18 +293,25 @@
 ;;lsp-mode ***************************************************************************
 (use-package lsp-ui
   :init
-  (add-hook 'python-mode-hook #'lsp-ui-mode))
-(use-package company-lsp
-  :ensure t
-  :commands company-lsp
-  :config (push 'company-lsp company-backends)) ;; add company-lsp as a backend
+  (add-hook 'python-mode-hook #'lsp-ui-mode)
+  :config
+  (setq lsp-ui-sideline-show-hover t
+	lsp-ui-sideline-delay 1))
+;; (use-package company-lsp
+;;   :ensure t
+;;   :commands company-lsp
+;;   :config (push 'company-lsp company-backends)) ;; add company-lsp as a backend
+
+(use-package company-box
+  :hook (company-mode . company-box-mode))
+
 (use-package lsp-mode
-  :hook (((python-mode-hook) . lsp)
+  :hook ((python-mode . lsp)
 	 (csharp-mode . lsp))
   :init
-  (add-hook 'prog-mode-hook #'lsp)
-  (setq lsp-auto-guess-root t)
-  (setq lsp-print-io t)
+  ;; (add-hook 'prog-mode-hook #'lsp)
+  ;; (setq lsp-auto-guess-root t)
+  ;; (setq lsp-print-io t)
   :config
   ;; (lsp-register-client
   
@@ -298,15 +320,23 @@
   ;;                   :remote? t
   ;;                   :server-id 'pyls))
   (setq 
-   lsp-pyls-configuration-sources ["flake8"]
-   lsp-pyls-plugins-jedi-completion-enabled nil
-   lsp-pyls-plugins-pydocstyle-enabled t
-   lsp-pyls-plugins-pyflakes-enabled nil
-   lsp-pyls-plugins-pycodestyle-max-line-length 110
-   lsp-pyls-plugins-rope-completion-enabled nil
-   lsp-pyls-plugins-pycodestyle-enabled nil
-   lsp-pyls-plugins-yapf-enabled nil
-   lsp--delay-timer 1))
+   ;; lsp-pyls-configuration-sources ["flake8"]
+   ;; lsp-pyls-plugins-jedi-completion-enabled nil
+   ;; lsp-pyls-plugins-pydocstyle-enabled t
+   ;; lsp-pyls-plugins-pyflakes-enabled nil
+   ;; lsp-pyls-plugins-pycodestyle-max-line-length 110
+   ;; lsp-pyls-plugins-rope-completion-enabled nil
+   ;; lsp-pyls-plugins-pycodestyle-enabled nil
+   ;; lsp-pyls-plugins-yapf-enabled nil
+   ;;lsp--delay-timer 1
+   ))
+
+(use-package lsp-python-ms
+  :ensure t
+  :init (setq lsp-python-ms-auto-install-server t)
+  :hook (python-mode . (lambda ()
+                          (require 'lsp-python-ms)
+                          (lsp))))  ; or lsp-deferred
 
 ;;avy *******************************************************************************
 (use-package avy
