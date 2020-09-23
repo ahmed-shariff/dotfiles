@@ -309,9 +309,9 @@
   :hook ((python-mode . lsp)
 	 (csharp-mode . lsp))
   :init
-  ;; (add-hook 'prog-mode-hook #'lsp)
-  ;; (setq lsp-auto-guess-root t)
-  ;; (setq lsp-print-io t)
+  (add-hook 'prog-mode-hook #'lsp)
+  (setq lsp-auto-guess-root t)
+  (setq lsp-print-io t)
   :config
   ;; (lsp-register-client
   
@@ -331,12 +331,19 @@
    ;;lsp--delay-timer 1
    ))
 
-(use-package lsp-python-ms
+(use-package lsp-jedi
   :ensure t
-  :init (setq lsp-python-ms-auto-install-server t)
-  :hook (python-mode . (lambda ()
-                          (require 'lsp-python-ms)
-                          (lsp))))  ; or lsp-deferred
+  :config
+  (with-eval-after-load "lsp-mode"
+    (add-to-list 'lsp-disabled-clients 'pyls)
+    (add-to-list 'lsp-enabled-clients 'jedi)))
+
+;; (use-package lsp-python-ms
+;;   :ensure t
+;;   :init (setq lsp-python-ms-auto-install-server t)
+;;   :hook (python-mode . (lambda ()
+;;                           (require 'lsp-python-ms)
+;;                           (lsp))))  ; or lsp-deferred
 
 ;;avy *******************************************************************************
 (use-package avy
@@ -447,7 +454,7 @@
 (add-hook 'after-init-hook 'global-company-mode)
 ;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
 (setq company-minimum-prefix-length 1)
-(setq company-idle-delay 1)
+(setq company-idle-delay 0.0)
 ;; ;; ;;company quickhelp gives docstring info
 (company-quickhelp-mode 1)
 (setq company-quickhelp-delay nil)
