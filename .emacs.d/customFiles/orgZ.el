@@ -610,6 +610,18 @@ Appends the todo state of the entry being visualized."
 													  (s-matches-p "work/projects::.*literature" (car entry))
 													  (s-starts-with-p "publication::" (car entry)))))))
 
+(defun org-brain-delete-interleve-entry ()
+  "Deletes the pdf entry of an org brain bib at point at point."
+  (interactive)
+  (if (y-or-n-p "Sure you want to delete the pdf file and the interleve entry here?")
+      (progn
+	(save-excursion
+	  (goto-char (org-entry-beginning-position))
+	  (delete-file (org-entry-get (point) "INTERLEAVE_PDF") nil)
+	  (org-entry-delete (point) "Attachment")
+	  (org-entry-delete (point) "INTERLEAVE_PDF")
+	  (org-set-tags (delete "nosiblings" (delete "ATTACH" (org-get-tags))))))))
+
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
 (add-hook 'org-mode-hook
