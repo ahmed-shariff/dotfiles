@@ -141,45 +141,54 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(TeX-view-program-selection
-   '(((output-dvi has-no-display-manager)
+   (quote
+    (((output-dvi has-no-display-manager)
       "dvi2tty")
      ((output-dvi style-pstricks)
       "dvips and gv")
      (output-dvi "xdvi")
      (output-pdf "PDF Tools")
-     (output-html "xdg-open")))
+     (output-html "xdg-open"))))
  '(ansi-color-faces-vector
    [default default default italic underline success warning error])
  '(bookmark-save-flag 1)
  '(company-c-headers-path-system
-   '("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/"))
- '(custom-enabled-themes '(misterioso))
+   (quote
+    ("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/")))
+ '(custom-enabled-themes (quote (misterioso)))
  '(custom-safe-themes
-   '("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default))
- '(ede-project-directories '("/media/Files/Research/FoodClassification/deployment"))
+   (quote
+    ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default)))
+ '(ede-project-directories
+   (quote
+    ("/media/Files/Research/FoodClassification/deployment")))
  '(elpy-rpc-python-command "python3")
  '(explicit-shell-file-name "/bin/zsh")
  '(ledger-post-amount-alignment-at :decimal)
  '(ledger-reconcile-default-commodity nil)
  '(ledger-reports
-   '(("asd" "ledger")
+   (quote
+    (("asd" "ledger")
      ("a" "ledger ")
      ("bal" "%(binary) -f %(ledger-file) bal")
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
-     ("account" "%(binary) -f %(ledger-file) reg %(account)")))
+     ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
  '(org-agenda-files
-   '("~/Documents/org/Home.org" "~/Documents/org/journal.org" "~/Documents/org/notes.org" "/home/amsha/Documents/org/brain/work/hci-scrum.org" "/home/amsha/Documents/org/brain/work/hci.org" "/home/amsha/Documents/org/brain/work/projects.org"))
- '(org-export-backends '(ascii html icalendar latex md))
+   (quote
+    ("~/Documents/org/Home.org" "~/Documents/org/journal.org" "~/Documents/org/notes.org" "/home/amsha/Documents/org/brain/work/hci-scrum.org" "/home/amsha/Documents/org/brain/work/hci.org" "/home/amsha/Documents/org/brain/work/projects.org")))
+ '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
-   '(spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
- '(prolog-system 'swi)
+   (quote
+    (spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+ '(prolog-system (quote swi))
  '(python-shell-interpreter "python3")
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
- '(sml/theme 'dark)
+ '(sml/theme (quote dark))
  '(use-package-always-ensure t)
- '(use-package-hook-name-suffix nil))
+ '(use-package-hook-name-suffix nil)
+ '(visible-bell t))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
