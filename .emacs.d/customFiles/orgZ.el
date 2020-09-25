@@ -632,6 +632,44 @@ Appends the todo state of the entry being visualized."
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
 	    (flyspell-mode t)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet starts
+;; (defvar org-brain-insert-visualize-button-predicate nil)
+
+;; (defun org-brain-insert-visualize-button-predicate-drop-research-papers (entry)
+;;   (not (member (file-name-sans-extension (file-truename org-ref-bibliography-notes)) (org-brain-parents entry))))
+
+;; (defun org-brain-insert-visualize-button-with-predicate (entry &optional face category)
+;;   "Insert a button, running `org-brain-visualize' on ENTRY when clicked.
+;; FACE is sent to `org-brain-display-face' and sets the face of the button.
+;; CATEGORY is used to set the `brain-category` text property."
+;;   (when (and org-brain-insert-visualize-button-predicate
+;; 	     (funcall org-brain-insert-visualize-button-predicate entry))
+;;     (let ((annotation (org-brain-get-edge-annotation org-brain--vis-entry
+;; 						     entry
+;; 						     org-brain--vis-entry-keywords)))
+;;       (insert-text-button
+;;        (org-brain-vis-title entry)
+;;        'action (lambda (_x) (org-brain-visualize entry))
+;;        'id (org-brain-entry-identifier entry)
+;;        'follow-link t
+;;        'brain-category (or category 'default)
+;;        'help-echo annotation
+;;        'aa2u-text t
+;;        'face (org-brain-display-face entry face annotation)))))
+
+;; (defun orb-brain-visualize-show-research-papers ()
+;;   "."
+;;   (interactive)
+;;   (setq org-brain-insert-visualize-button-predicate
+;; 	(if org-brain-insert-visualize-button-predicate
+;; 	    nil
+;; 	  (function org-brain-insert-visualize-button-predicate-drop-research-papers))))
+
+;; (advice-add 'org-brain-insert-visualize-button :override #'org-brain-insert-visualize-button-with-predicate)
+
+;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-with-predicate)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
+
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
