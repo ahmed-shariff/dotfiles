@@ -440,21 +440,23 @@ Appends the todo state of the entry being visualized."
 (defun amsha/org-noter-copy-text-as-note ()
   "While in org noter, copy a highlighted text in as a heading with some minor additional formatting."
   (interactive)
-  (pdf-view-kill-ring-save)
-  (let ((org-noter-default-heading-title (replace-regexp-in-string "- " "" (car kill-ring))))
-    (org-noter-insert-note-toggle-no-questions)
-    ;; sometime the replace doesn't seem to work, so redoing it?
-    (org-map-entries (lambda ()
-		       (let (beg end)
-			 (org-back-to-heading)
-			 (setq beg (point))
-			 (outline-end-of-heading)
-			 (setq end (point))
-			 (save-excursion
-			   (kill-region beg end)
-			   (insert (replace-regexp-in-string "- " "" (car kill-ring))))))
-			 "LEVEL=2")
-    (message "%s" (current-buffer))))
+  (let ((precise-info (org-noter--get-precise-info)))
+    (pdf-view-kill-ring-save)
+    (let ((org-noter-default-heading-title (format "\"%s\"" (replace-regexp-in-string "- " "" (car kill-ring)))))
+      (let ((org-noter-insert-note-no-questions t))
+	(org-noter-insert-note precise-info))
+      ;; sometime the replace doesn't seem to work, so redoing it?
+      (org-map-entries (lambda ()
+			 (let (beg end)
+			   (org-back-to-heading)
+			   (setq beg (point))
+			   (outline-end-of-heading)
+			   (setq end (point))
+			   (save-excursion
+			     (kill-region beg end)
+			     (insert (replace-regexp-in-string "- " "" (car kill-ring))))))
+		       "LEVEL=2")
+      (message "%s" (current-buffer)))))
 
 (define-key pdf-view-mode-map (kbd "C-c i") 'amsha/org-noter-copy-text-as-note)
 (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
