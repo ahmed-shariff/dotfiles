@@ -240,6 +240,18 @@
 ;; (require 'ido)
 ;; (ido-mode t)
 
+;; quelpa **********************************************************
+(unless (package-installed-p 'quelpa)
+  (with-temp-buffer
+    (url-insert-file-contents "https://github.com/quelpa/quelpa/raw/master/quelpa.el")
+    (eval-buffer)
+    (quelpa-self-upgrade)))
+(quelpa
+ '(quelpa-use-package
+   :fetcher git
+   :url "https://github.com/quelpa/quelpa-use-package.git"))
+(require 'quelpa-use-package)
+
 ;;ivy-mode *********************************************************
 (use-package amx :ensure t
   :init (amx-mode 1))

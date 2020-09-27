@@ -259,7 +259,8 @@
   (helm-delete-action-from-source "Edit notes" helm-source-bibtex)
   (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
 
-(use-package org-brain
+(quelpa-use-package-activate-advice)
+(use-package org-brain :quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
   :init
   (setq org-brain-path "~/Documents/org/brain")
   :bind (("C-c v" . org-brain-visualize)
@@ -307,6 +308,7 @@
       (ignore-errors (aa2u (point-min) (point-max)))))  
   (with-eval-after-load 'org-brain
     (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer)))
+(quelpa-use-package-deactivate-advice)
 
 (defun org-brain-open-org-noter ()
   (interactive)
