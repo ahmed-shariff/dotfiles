@@ -223,6 +223,7 @@
 ;;add proper word wrapping
 (global-visual-line-mode t)
 
+(electric-pair-mode 1)
 
 (setq backup-directory-alist `(("." . "~/.backups_emacs"))
       backup-by-copying t
@@ -318,10 +319,10 @@
   :config
   (setq lsp-ui-sideline-show-hover t
 	lsp-ui-sideline-delay 1))
-;; (use-package company-lsp
-;;   :ensure t
-;;   :commands company-lsp
-;;   :config (push 'company-lsp company-backends)) ;; add company-lsp as a backend
+(use-package company-lsp
+  :ensure t
+  :commands company-lsp
+  :config (push 'company-lsp company-backends)) ;; add company-lsp as a backend
 
 (use-package company-box
   :hook (company-mode . company-box-mode))
@@ -357,7 +358,8 @@
   :config
   (with-eval-after-load "lsp-mode"
     (add-to-list 'lsp-disabled-clients 'pyls)
-    (add-to-list 'lsp-enabled-clients 'jedi)))
+    ;; (add-to-list 'lsp-enabled-clients 'jedi)
+    ))
 
 ;; (use-package lsp-python-ms
 ;;   :ensure t
@@ -896,11 +898,9 @@
 ;; csharp #####################################################################
 (defun my-csharp-mode-hook ()
   ;; enable the stuff you want for C# here
-  (omnisharp-mode)
   (company-mode)
   (flycheck-mode)
-  (electric-pair-local-mode 1)
-
+  
   (setq indent-tabs-mode nil)
   (setq c-syntactic-indentation t)
   (c-set-style "ellemtel")
@@ -914,11 +914,11 @@
 
 (use-package csharp-mode
   ;:requires omnisharp
-  :ensure t)
+  :ensure t
+  :hook (csharp-mode . my-csharp-mode-hook))
 
-(add-hook 'csharp-mode-hook 'my-csharp-mode-hook t)
-(add-to-list 'company-backends #'company-omnisharp)
-(add-hook 'csharp-mode-hook #'flycheck-mode)
+;; (add-hook 'csharp-mode-hook 'my-csharp-mode-hook t)
+;; (add-hook 'csharp-mode-hook #'flycheck-mode)
 
 ;;Docker
 (use-package docker
