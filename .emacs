@@ -8,76 +8,6 @@
 (require 'package)
 (set-language-environment "UTF-8")
 (set-default-coding-systems 'utf-8)
-;(unless package-archive-contents    ;; Refresh the packages descriptions
-;  (package-refresh-contents))
-;; (setq package-list '(;anaconda-mode
-;;  			  company
-;;  			  company-anaconda
-;;  			  company-c-headers
-;;  			  company-quickhelp
-;;  			  dash
-;;  			  epl
-;;  			  f
-;;  			  let-alist
-;;  			  macrostep
-;;  			  pos-tip
-;;  			  python-mode
-;;  			  pythonic
-;;  			  rich-minority
-;;  			  s
-;;  			  seq
-;; 			  flycheck
-;;  			  slim-mode
-;;  			  slime
-;;  			  slime-company
-;;  			  org
-;; 			  vlf
-;; 			  sr-speedbar
-;; 			  micgoline
-;; 			  yasnippet
-;; 			  elpy
-;; 			  ))     ;; List of packages to load
-
-
-
-(setq package-list
-      '(;anaconda-mode
-	diminish
-	jupyter
-	org-bullets
-	org-download
-	circe
-	company-anaconda   
-	company-auctex     
-	company-c-headers  
-	company-lua        
-	company-php        
-	company-quickhelp  
-	elpy               
-	flycheck           
-	js2-mode           
-	ledger-mode        
-	magit              
-	markdown-mode      
-	markdown-mode+     
-        markdown-preview-mode 
-	pdf-tools          
-	php-mode          
-	projectile         
-	python-mode
-	pythonic
-	;rich-minority
-	slack              
-	slim-mode          
-	slime-company      
-	sr-speedbar        
-	use-package        
-	vlf                
-	web-mode           
-	web-narrow-mode
-	org-plus-contrib
-	yasnippet          
- 	))     ;; List of packages to load
 
 ;;mepla setup****************************************************
 (add-to-list 'package-archives
@@ -93,16 +23,9 @@
 (add-to-list 'package-archives
             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
-
 (when (< emacs-major-version 24)
   (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
 (package-initialize)
-
-(dolist (package package-list)
-  (unless (package-installed-p package)  ;; Make sure the Org package is
-    (progn
-      (print package)
-      (package-install package))))           ;; installed, install it if not
 
 ;(package-initialize)      ;; Initialize & Install Package
 
@@ -180,7 +103,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit company-lua stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(python-shell-interpreter "python3")
  '(sml/mode-width 15)
@@ -742,11 +665,6 @@
 ;; (add-hook 'LaTeX-mode-hook 'flyspell-mode)
 ;; (add-hook 'latex-mode-hook 'flyspell-mode)
 ;; (setq outline-minor-mode-prefix "\C-c \C-o")
-
-
-;;lua setup************************************************************************
-(require 'company-lua)
-(add-to-list 'company-backends 'company-lua)
 
 
 ;;magit******************************************************************
