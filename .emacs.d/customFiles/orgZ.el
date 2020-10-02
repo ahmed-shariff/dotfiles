@@ -565,6 +565,7 @@ Appends the todo state of the entry being visualized."
 			       (org-paste-subtree 1)))))
 	(switch-to-buffer buffer))))
 
+(require 'org-ref-arxiv)
 (defun arxiv-add-bibtex-entry-with-note (arxiv-link bibfile)
   "Add bibtex entry for ARXIV-LINK to BIBFILE."
   (interactive
