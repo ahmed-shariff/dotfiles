@@ -132,6 +132,7 @@
  '(powerline-active2 ((t (:inherit mode-line :background "light sky blue" :foreground "white")))))
 
 
+(setq-default indent-tabs-mode nil)
 
 ;(exec-path-from-shell-initialize)
 
@@ -609,7 +610,7 @@ T - tag prefix
  (setq c-indent-level 4)                  ;; Default is 2
 
  (setq tab-stop-list '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60))
- (setq tab-width 4)
+ ; (setq tab-width 4)
  (setq indent-tabs-mode t)  ; use spaces only if nil
  )
 
@@ -928,7 +929,7 @@ T - tag prefix
   (c-set-style "ellemtel")
   (setq c-basic-offset 4)
   (setq truncate-lines t)
-  (setq tab-width 4)
+  ; (setq tab-width 4)
   (setq evil-shift-width 4)
 
   (local-set-key (kbd "C-c r r") 'omnisharp-run-code-action-refactoring)
