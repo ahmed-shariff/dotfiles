@@ -244,7 +244,31 @@
 
 ;;expand-region **********************************************************************
 (use-package expand-region
-  :bind ("C-=" . er/expand-region))
+  :bind (("C-=" . hydra-expand-region/body))
+  :hydra (hydra-expand-region ()
+  "
+  [_r_] Expand region    [_w_] Word                [_o_] Inside-quotes    [_c_] Comment
+  [_R_] Contract region  [_s_] Symbol              [_O_] Outside-quotes   [_u_] Url    
+                       [_S_] Symbol-with-prefix  [_p_] Inside-pairs     [_e_] Email  
+                       [_n_] Next-accessor       [_P_] Outside-pairs    [_f_] Defun  
+  [_q_] quit             [_m_] Method-call
+"
+  ("r" er/expand-region)
+  ("R" er/contract-region)
+  ("w" er/mark-word)
+  ("s" er/mark-symbol)
+  ("S" er/mark-symbol-with-prefix)
+  ("n" er/mark-next-accessor)
+  ("m" er/mark-method-call)
+  ("o" er/mark-inside-quotes)
+  ("O" er/mark-outside-quotes)
+  ("p" er/mark-inside-pairs)
+  ("P" er/mark-outside-pairs)
+  ("c" er/mark-comment)
+  ("u" er/mark-url)
+  ("e" er/mark-email)
+  ("f" er/mark-defun)
+  ("q" nil)))
 
 ;;mulitple cursor ********************************************************************
 (use-package multiple-cursors
