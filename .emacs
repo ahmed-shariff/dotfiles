@@ -808,34 +808,51 @@ T - tag prefix
 ;;ibuffer****************************************************************
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
+;;origami*****************************************************************************
+(use-package origami
+  :bind ("C-+" . hydra-origami/body)
+  :hook ((prog-mode . origami-mode))
+  :hydra (hydra-origami (:color red)
+   "
+  [_o_] Open node    [_n_] Next fold       [_f_] toggle forward  [_s_] Show current only
+  [_c_] Close node   [_p_] Previous fold   [_a_] toggle all      [_q_] quit
+  "
+   ("o" origami-open-node)
+   ("c" origami-close-node)
+   ("n" origami-next-fold)
+   ("p" origami-previous-fold)
+   ("f" origami-forward-toggle-node)
+   ("a" origami-toggle-all-nodes)
+   ("s" origami-show-only-node)
+   ("q" nil)))
 
-;;hide/show
-(defun toggle-selective-display (column)
-  (interactive "P")
-  (set-selective-display
-   (or column
-       (unless selective-display
-	 (1+ (current-column))))))
+;; ;;hide/show
+;; (defun toggle-selective-display (column)
+;;   (interactive "P")
+;;   (set-selective-display
+;;    (or column
+;;        (unless selective-display
+;; 	 (1+ (current-column))))))
 
-(defun toggle-hiding (column)
-  (interactive "P")
-  (if hs-minor-mode
-      (if (condition-case nil
-	      (hs-toggle-hiding)
-	    (error t))
-	  (hs-show-all))
-    (toggle-selective-display column)))
+;; (defun toggle-hiding (column)
+;;   (interactive "P")
+;;   (if hs-minor-mode
+;;       (if (condition-case nil
+;; 	      (hs-toggle-hiding)
+;; 	    (error t))
+;; 	  (hs-show-all))
+;;     (toggle-selective-display column)))
 
-(load-library "hideshow")
-(global-set-key (kbd "C-+") 'toggle-hiding)
-(global-set-key (kbd "C-\\") 'toggle-selective-display)
+;; (load-library "hideshow")
+;; (global-set-key (kbd "C-+") 'toggle-hiding)
+;; (global-set-key (kbd "C-\\") 'toggle-selective-display)
 
-(defun add-hs-hook (mode-list)
-  "MODE-LIST:  list of modes that needs 'hs-minor-mode' hook."
-  (dolist (mode mode-list)
-    (add-hook mode 'hs-minor-mode)))
+;; (defun add-hs-hook (mode-list)
+;;   "MODE-LIST:  list of modes that needs 'hs-minor-mode' hook."
+;;   (dolist (mode mode-list)
+;;     (add-hook mode 'hs-minor-mode)))
 
-(add-hs-hook (list 'python-mode-hook 'lisp-mode-hook))
+;; (add-hs-hook (list 'python-mode-hook 'lisp-mode-hook))
 
 ;;other stuff************************************************************
 (defun copy-current-file-name ()
