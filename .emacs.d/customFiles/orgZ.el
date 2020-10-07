@@ -260,6 +260,9 @@
   (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
 
 (quelpa-use-package-activate-advice)
+
+(use-package org-noter :quelpa (org-noter :fetcher file :path "~/Research/forks/org-noter/org-noter.el"))
+
 (use-package org-brain :quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
   :init
   (setq org-brain-path "~/Documents/org/brain")
