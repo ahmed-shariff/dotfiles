@@ -300,6 +300,16 @@
   ("<drag-mouse-1>" ignore)
   ("q" nil)))
 
+
+;;rainbow delimeters******************************************************************
+(use-package rainbow-delimiters
+  :commands rainbow-delimiters-mode
+  :config
+  (add-hook 'emacs-lisp-mode-hook #'rainbow-delimeters-mode)
+  (add-hook 'csharp-mode-hook #'rainbow-delimeters-mode)
+  (add-hook 'java-mode-hook #'rainbow-delimeters-mode)
+  (add-hook 'python-mode-hook #'rainbow-delimeters-mode))
+
 ;;lsp-mode ***************************************************************************
 (use-package lsp-ui
   :init
