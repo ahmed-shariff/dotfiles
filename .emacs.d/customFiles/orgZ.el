@@ -27,7 +27,7 @@
 (require 'org-capture-pop-frame)
 ;(ido-mode)
 
-(setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)""|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
+(setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)" "IDEA(i)" "|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
 			  (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" )))
 
 (setq org-agenda-files '("~/Documents/org/Home.org"
@@ -120,6 +120,33 @@
   (org-ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
 
 
+(defun org-ask-task-board ()
+  "."
+  (let* ((project-boards (mapcar (lambda (file) (cons (file-name-base file) file))(directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org")))
+         (board-file (cdr (assoc (ivy-read "Select poject board" project-boards) project-boards))))
+    (find-file board-file)
+    (goto-char (point-max))))
+
+(defun board-task-location ()
+  (let* ((project-boards (directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org"))
+         (targets
+          (with-temp-buffer
+            (org-mode)
+            (apply #'append (mapcar (lambda (file)
+                                      (insert-file-contents file nil nil nil 'replace)
+                                      (org-map-entries (lambda ()
+                                                         (let ((title (org-entry-get (point) "ITEM")))
+                                                           (list (format "%s::%s"
+                                                                         (file-name-base file)
+                                                                         title)
+                                                                 file
+                                                                 (file-name-base file)
+                                                                 title)))
+                                                       "LEVEL=1&TODO=\"INPROGRESS\""))
+                                    project-boards))))
+         (target (assoc (ivy-read "Select task: " targets) targets)))
+    (format "* [[file:project_boards/%s.org::*%s][%s]]  %%?  :%%^{sprint-id}:" (nth 2 target) (nth 3 target) (nth 2 target))))
+
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading) 
 
@@ -145,10 +172,14 @@
 	 entry (file+datetree "~/Documents/org/brain/work/hci.org")
 	 "1. %?")
 	("e" "Experiment setup information")
-	("ej" "Add Journal entry"
+	("ej" "Add Journal entry")
+        ("ejt" "for task"
 	 entry (file+olp+datetree "~/Documents/org/brain/work/hci.org")
-	 "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :%\\1:")
-	("el" "Add experiment"
+	 "%(board-task-location)")
+	("eje" "for experiment"
+	 entry (file+olp+datetree "~/Documents/org/brain/work/hci.org")
+         "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :%\\1:")
+        ("el" "Add experiment"
 	 entry (file "~/Documents/org/brain/work/experiments_log.org")
 	 "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp_%^{Project_id}:\n  :PROPERTIES:
   :CUSTOM_ID:       %\\1
@@ -185,6 +216,12 @@
    :PROPERTIES:
    :ID:       %(org-id-new)
    :END:
+%?
+"
+	 :jump-to-captured t)
+        ("et" "Add task"
+	 entry (function org-ask-task-board)
+	 "* TODO %^{TITLE}
 %?
 "
 	 :jump-to-captured t)
