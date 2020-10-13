@@ -110,7 +110,6 @@
  '(sml/shorten-modes t)
  '(sml/theme (quote dark))
  '(use-package-always-ensure t)
- '(use-package-hook-name-suffix nil)
  '(visible-bell t))
 
 (custom-set-faces
@@ -164,6 +163,8 @@
 ;;enable ido mode
 ;; (require 'ido)
 ;; (ido-mode t)
+
+(require 'use-package)
 
 ;; quelpa **********************************************************
 (unless (package-installed-p 'quelpa)
@@ -314,15 +315,19 @@
 (use-package company-box
   :hook (company-mode . company-box-mode))
 
+
+;; about using lsp-csharp for unity, just make sure you have installed latest omnisharp-roslyn and have mono >= 6 installed on your machine
+;; the omnisharp-roslyn that lsp-mode install does not work for unity projects because it needs a recent mono version installed and the mono built-in on omnisharp-roslyn doesn't have msbuild, some libs that unity require
+
 (use-package lsp-mode
   :hook ((python-mode . lsp)
-	 (csharp-mode . lsp)
+         (csharp-mode . lsp)
 	 (java-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
   
   :init
-  (add-hook 'prog-mode-hook #'lsp)
-  (setq lsp-auto-guess-root t)
+  ;; (add-hook 'prog-mode-hook #'lsp)
+  ;; (setq lsp-auto-guess-root t)
   (setq lsp-print-io t)
   :config
   ;; (lsp-register-client
@@ -341,7 +346,11 @@
    ;; lsp-pyls-plugins-pycodestyle-enabled nil
    ;; lsp-pyls-plugins-yapf-enabled nil
    ;;lsp--delay-timer 1
-   ))
+   lsp-csharp-server-path (if (eq system-type 'windows-nt)
+			      (file-truename "~/packages_external/omnisharp-win-x64/OmniSharp.exe")
+			    nil)
+   )
+  (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
 (use-package lsp-jedi
   :ensure t
@@ -448,7 +457,7 @@
 
 (require 'dired+)
 (diredp-toggle-find-file-reuse-dir 1)
-(add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
 (add-hook 'dired-mode-hook (lambda () (dired-omit-mode)))
 (require 'dired-sort)
 
