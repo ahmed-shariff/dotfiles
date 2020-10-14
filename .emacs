@@ -154,11 +154,13 @@
 
 ;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
 ;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
-(when (not (eq system-type 'windows-nt))
-  (setq symlink-overload-expand-file-name-p t)
-  (require 'symlink-fix)
-  (setq expand-file-name-resolve-symlinks-p t))
-
+(if (not (eq system-type 'windows-nt))
+    (progn
+      (setq symlink-overload-expand-file-name-p t)
+      (require 'symlink-fix)
+      (setq expand-file-name-resolve-symlinks-p t))
+  (set-face-attribute 'default nil
+                      :family "Consolas" :height 105))
 
 ;;enable ido mode
 ;; (require 'ido)
