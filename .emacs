@@ -332,7 +332,7 @@
 ;; the omnisharp-roslyn that lsp-mode install does not work for unity projects because it needs a recent mono version installed and the mono built-in on omnisharp-roslyn doesn't have msbuild, some libs that unity require
 
 (use-package lsp-mode
-  :hook ((python-mode . lsp)
+  :hook (;;(python-mode . lsp)
          (csharp-mode . lsp)
 	 (java-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
@@ -364,14 +364,22 @@
    )
   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
-(use-package lsp-jedi
+;; (use-package lsp-jedi
+;;   :ensure t
+;;   :config
+;;   (with-eval-after-load "lsp-mode"
+;;     (add-to-list 'lsp-disabled-clients 'pyls)
+;;     ;; (add-to-list 'lsp-enabled-clients 'jedi)
+;;     ))
+
+(use-package lsp-pyright
   :ensure t
+  :hook (python-mode . (lambda ()
+                          (require 'lsp-pyright)
+                          (lsp)))
   :config
   (with-eval-after-load "lsp-mode"
-    (add-to-list 'lsp-disabled-clients 'pyls)
-    ;; (add-to-list 'lsp-enabled-clients 'jedi)
-    ))
-
+    (add-to-list 'lsp-disabled-clients 'pyls)))
 
 (use-package lsp-java)
 
@@ -582,10 +590,10 @@ T - tag prefix
  ;(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
 ;(add-hook 'python-mode-hook '(company-anaconda 'interactive))
 ;;(add-to-list 'company-backends 'company-jedi)
-(use-package elpy
-  :ensure t
-  :init
-  (elpy-enable))
+;; (use-package elpy
+;;   :ensure t
+;;   :init
+;;   (elpy-enable))
 					;(setenv "IPY_TEST_SIMPLE_PROMPT" "1")
 (setq python-shell-interpreter "python" python-shell-interpreter-args "-i")
 (pyvenv-activate "~/virtualenv/pytorch")
