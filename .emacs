@@ -128,7 +128,13 @@
  '(org-special-keyword ((t (:inherit outline-1 :foreground "sienna"))))
  '(powerline-active0 ((t (:inherit mode-line :background "medium blue" :foreground "#FFFFFF"))))
  '(powerline-active1 ((t (:inherit mode-line :background "tomato1" :foreground "#FFFFFF"))))
- '(powerline-active2 ((t (:inherit mode-line :background "light sky blue" :foreground "white")))))
+ '(powerline-active2 ((t (:inherit mode-line :background "light sky blue" :foreground "white"))))
+ '(company-scrollbar-bg       ((t (:background "#000000"))))
+ '(company-scrollbar-fg       ((t (:background "#555555"))))
+ '(company-tooltip            ((t (:inherit default :background "#000000"))))
+ '(company-tooltip-common     ((t (:inherit font-lock-constant-face))))
+ '(company-tooltip-annotation ((t (:inherit font-lock-builtin-face))))
+ '(company-tooltip-selection  ((t (:inherit highlight)))))
 
 
 (setq-default indent-tabs-mode nil)
