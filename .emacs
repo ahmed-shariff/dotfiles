@@ -1042,6 +1042,11 @@ T - tag prefix
 	(push el formated-link)))
     (kill-new (s-join "/" (reverse formated-link)))))
 
+;; company-tabnin********************************************************
+
+(use-package company-tabnine
+  :config
+  (push 'company-tabnine company-backends))
 
 ;;code to run at the end!************************************************
 
