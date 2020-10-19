@@ -4,7 +4,7 @@
 
 :: Commands
 
-set _git_home="C:/Users/Ahmed Shariff/Documents/config/.dotfiles\"
+set _git_home="%HOME%\.dotfiles\"
 DOSKEY ls=dir /B
 DOSKEY alias=notepad %HOME%\alias.cmd
-DOSKEY config-git=git --git-dir="C:/Users/Ahmed Shariff/Documents/config/.dotfiles" --work-tree="C:/Users/Ahmed Shariff/Documents/config/" $*
+DOSKEY config-git=git --git-dir="%HOME%\.dotfiles" --work-tree="%HOME%" $*
