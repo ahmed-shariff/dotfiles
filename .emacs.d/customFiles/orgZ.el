@@ -518,7 +518,10 @@ Appends the todo state of the entry being visualized."
   "."
   (interactive)
   (org-map-entries (lambda ()
-		     (let* ((link (org-entry-get (point) "LINK"))
+		     (let* ((link-string (org-entry-get (point) "LINK"))
+                            (link (if (string-empty-p link-string)
+                                      nil
+                                    link-string))
 			    (cite-key (org-entry-get (point) "Custom_ID"))
 			    (dir org-ref-pdf-directory)
 			    (tags (org-get-tags))
@@ -526,23 +529,20 @@ Appends the todo state of the entry being visualized."
 			    (full-path (replace-regexp-in-string "^\\([a-z]:\\)?\\(/.*\\)/Documents" "~/Documents" (expand-file-name out-file-name dir))))
 		       (org-entry-put (point) "ATTACH_DIR" dir)
 		       (org-id-get-create)
-		       (when (and (or (not link)
-				      (string= "" link))
-				  (file-exists-p full-path))
-			 (org-entry-put (point) "LINK" full-path)
-			 (setq link full-path))
-		       (if (and link cite-key)
-			   (when (and
-				  (not (member "ATTACH" tags))
-				  (condition-case nil
-				      (amsha/downlad-raname-move-file link out-file-name dir)
-				    (file-already-exists t)))
-			     (org-entry-put (point) "Attachment" out-file-name)
-			     (setq tags (append tags '("ATTACH")))
-			     (org-entry-put (point) "INTERLEAVE_PDF" full-path))
-			 (progn
-			   (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
-			   (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))))
+		       (when (not (member "ATTACH" tags))
+                         (if (or (file-exists-p full-path)
+                                 (and link
+                                      cite-key
+                                      (condition-case nil
+                                          (amsha/downlad-raname-move-file link out-file-name dir)
+                                        (file-already-exists t))))
+                             (progn
+                               (org-entry-put (point) "Attachment" out-file-name)
+                               (setq tags (append tags '("ATTACH")))
+                               (org-entry-put (point) "INTERLEAVE_PDF" full-path))
+                           (progn
+                             (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
+                             (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY")))))))
 		       (setq tags
 			     (if (org-entry-get (point) "BRAIN_PARENTS")
 			         (delete "NO_PARENTS" tags)
