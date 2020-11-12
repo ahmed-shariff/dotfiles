@@ -551,6 +551,15 @@ Appends the todo state of the entry being visualized."
 		   "LEVEL=1")
   (org-brain-update-id-locations))
 
+(defun amsha/doi-utils-get-pdf-url-uml (old-function &rest rest)
+  "Making sure the urls that are being recived by org-ref is made to use uml links."
+  (let ((url (apply old-function rest)))
+    (message "%s" url)
+    (when url
+      (amsha/get-uml-link url))))
+
+(advice-add #'doi-utils-get-pdf-url :around #'amsha/doi-utils-get-pdf-url-uml)
+
 (defun copy-related-research-papers (parent-id)
   "PARENT-ID."
   (interactive (list
