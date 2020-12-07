@@ -145,7 +145,7 @@
                                                        "LEVEL=1&TODO=\"INPROGRESS\""))
                                     project-boards))))
          (target (assoc (ivy-read "Select task: " targets) targets)))
-    (format "* [[file:project_boards/%s.org::*%s][%s]]  %%?  :%%^{sprint-id}:" (nth 2 target) (nth 3 target) (nth 2 target))))
+    (format "* [[file:project_boards/%s.org::*%s][%s]]  %%?  :s%%^{sprint-id}:%s:" (nth 2 target) (nth 3 target) (nth 2 target) (nth 2 target))))
 
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading) 
@@ -178,7 +178,7 @@
 	 "%(board-task-location)")
 	("eje" "for experiment"
 	 entry (file+olp+datetree "~/Documents/org/brain/work/hci.org")
-         "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :%\\1:")
+         "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
         ("el" "Add experiment"
 	 entry (file "~/Documents/org/brain/work/experiments_log.org")
 	 "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp_%^{Project_id}:\n  :PROPERTIES:
