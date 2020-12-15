@@ -297,13 +297,21 @@
   (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
 
 (quelpa-use-package-activate-advice)
-(use-package org-brain :quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
+(use-package org-noter :ensure t :quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-noter")
+  :config
+  (setq org-noter-property-doc-file "INTERLEAVE_PDF"
+        org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"))
+(quelpa-use-package-deactivate-advice)
+
+(use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
   :init
   (setq org-brain-path "~/Documents/org/brain")
   :bind (("C-c v" . org-brain-visualize)
 	 :map org-brain-visualize-mode-map
 	 ("\C-coo" . org-brain-open-org-noter)
-	 ("\C-cop" . org-brain-add-parent-topic))
+	 ("\C-cop" . org-brain-add-parent-topic)
+         ("\C-cob" . org-brain-goto-button-at-pt)
+         ("\C-cos". org-brain-print-topics))
   :config
   ;(define-key org-brain-visualize-mode-map "")
   (setq org-id-track-globally t)
@@ -345,7 +353,6 @@
       (ignore-errors (aa2u (point-min) (point-max)))))  
   (with-eval-after-load 'org-brain
     (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer)))
-(quelpa-use-package-deactivate-advice)
 
 (defun org-brain-open-org-noter ()
   (interactive)
@@ -449,9 +456,6 @@ Appends the todo state of the entry being visualized."
 
 (require 'ox-extra)
 (ox-extras-activate '(ignore-headlines))
-
-(setq org-noter-property-doc-file "INTERLEAVE_PDF"
-      org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
 
 (require 'org-download)
 (setq org-download-screenshot-method "scrot")
@@ -656,10 +660,37 @@ Appends the todo state of the entry being visualized."
 (defun org-brain-add-parent-topic ()
   "."
   (interactive)
-  (org-brain-add-parent (org-brain-entry-at-pt) (org-brain-choose-entries "Add parent topic: " 'all (lambda (entry)
-												      (or (s-starts-with-p "research topics::" (car entry))
-													  (s-matches-p "work/projects::.*literature" (car entry))
-													  (s-starts-with-p "publication::" (car entry)))))))
+  (let ((entry (org-brain-entry-at-pt)))
+    (org-brain-add-parent entry (org-brain-choose-entries "Add parent topic: " 'all (lambda (entry)
+										      (or (s-starts-with-p "research topics::" (car entry))
+											  (s-matches-p "work/projects::.*literature" (car entry))
+											  (s-starts-with-p "publication::" (car entry))))))
+    (org-brain-print-topics entry)))
+
+(defun org-brain-goto-button-at-pt ()
+  "."
+  (interactive)
+  (org-brain-goto (car (org-brain-button-at-point))))
+
+(defun org-brain-print-topics (&optional entry)
+  "."
+  (interactive)
+  (when (null entry)
+    (setq entry (condition-case nil
+		    (car (org-brain-button-at-point))
+		  (user-error (org-brain-entry-at-pt)))))
+  (let ((parents (org-brain-parents entry))
+        (topics '())
+        (other-parents '()))
+    (mapcar (lambda (entry)
+              (message "%s " entry)
+              (when (and (listp entry))
+                (if (equalp (car entry) "research topics")
+                  (push (cadr entry) topics)            
+                  (push (cadr entry) other-parents))))
+            parents)
+    (message "%s \n********************************\n\t\t%s" (mapconcat 'identity topics "\n") (mapconcat 'identity other-parents "\n\t\t"))
+    (cons topics other-parents)))
 
 (defun org-brain-delete-interleve-entry ()
   "Deletes the pdf entry of an org brain bib at point at point."
@@ -681,6 +712,7 @@ Appends the todo state of the entry being visualized."
 	    (define-key org-mode-map "\C-coo" 'org-noter)
 	    (define-key org-mode-map "\C-cop" 'org-brain-add-parent-topic)
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
+            (define-key org-mode-map "\C-cos" 'org-brain-print-topics)
 	    (flyspell-mode t)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet starts

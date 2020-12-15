@@ -603,6 +603,7 @@ T - tag prefix
 					;(setenv "IPY_TEST_SIMPLE_PROMPT" "1")
 (setq python-shell-interpreter "python" python-shell-interpreter-args "-i")
 (pyvenv-activate "~/virtualenv/pytorch")
+(pyvenv-mode)
 
 ;; from https://emacs.stackexchange.com/questions/32140/python-mode-indentation
 (defun how-many-region (begin end regexp &optional interactive)
