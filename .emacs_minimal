@@ -1,0 +1,118 @@
+;;; package -- Summary
+
+;;; Commentary:
+
+;;; Code:
+
+;; -*- emacs-lisp -*-
+(require 'package)
+(set-language-environment "UTF-8")
+(set-default-coding-systems 'utf-8)
+
+;;mepla setup****************************************************
+(add-to-list 'package-archives
+	     '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives
+	     '("org" . "http://orgmode.org/elpa/") t);'("elpy" . "http://jorgenschaefer.github.io/packages/"))
+;	     '("melpa" . "http://melpa.org/packages/")
+;	     '("org" . "http://orgmode.org/elpa/"))
+; (add-to-list 'load-path "~/.emacs.d/customFiles")
+(add-to-list 'package-archives
+            '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+
+(when (< emacs-major-version 24)
+  (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
+(package-initialize)
+
+
+(defun maximize (&optional f)
+  (interactive)
+  ;; (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
+  ;; 	    		 '(2 "_NET_WM_STATE_MAXIMIZED_VERT" 0))
+  ;; (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
+  ;; 	    		 '(2 "_NET_WM_STATE_MAXIMIZED_HORZ" 0)))
+  ;; (toggle-frame-maximized))
+  (set-frame-parameter nil 'fullscreen 'maximized))
+
+(maximize)
+(add-hook 'after-make-frame-functions 'maximize)
+(setq ns-auto-hide-menu-bar t)
+(tool-bar-mode 0)
+
+(electric-pair-mode 1)
+(require 'use-package)
+
+;;ivy-mode *********************************************************
+(use-package amx :ensure t
+  :init (amx-mode 1))
+
+(use-package ivy :ensure t
+  :diminish (ivy-mode . "")             ; does not display ivy in the modeline
+  :init
+  (ivy-mode 1)                          ; enable ivy globally at startup
+  :bind (("C-c g" . counsel-git)
+	 ("C-c j" . counsel-git-grep) 
+	 ("C-c k" . counsel-ag)       
+	 ("C-x l" . counsel-locate)   
+	 ("C-S-o" . counsel-rhythmbox)
+	 ("C-x C-f" . counsel-find-file)
+	 :map ivy-minibuffer-map        ; bind in the ivy buffer
+	 ("RET" . ivy-alt-done))
+	 ;;      ("s-<"   . ivy-avy)
+	 ;;      ("s->"   . ivy-dispatching-done)
+	 ;;      ("s-+"   . ivy-call)
+	 ;;      ("s-!"   . ivy-immediate-done)
+	 ;;      ("s-["   . ivy-previous-history-element)
+	 ;;      ("s-]"   . ivy-next-history-element))
+  :config
+  (setq ivy-use-virtual-buffers t)       ; extend searching to bookmarks and
+  (setq ivy-height 15)                   ; set height of the ivy window
+  (setq ivy-count-format "(%d) ")     ; count format, from the ivy help page
+  (setq ivy-display-style 'fancy)
+  (setq ivy-format-function 'ivy-format-function-line) ; Make highlight extend all the way to the right
+  ;; TODO testing out the fuzzy search
+  (setq ivy-re-builders-alist
+      '(;; (read-file-name-internal . ivy--regex-fuzzy)
+	;; (internal-complete-buffer . ivy--regex-fuzzy)
+	;; (execute-extended-command . ivy--regex-fuzzy)
+	;; (amx . ivy--regex-fuzzy)
+	(t . ivy--regex-fuzzy))))
+
+;; (use-package all-the-icons-ivy
+;;   :ensure t
+;;   :config
+;;   (all-the-icons-ivy-setup))
+
+(use-package all-the-icons-ivy-rich
+  :ensure t
+  :init (all-the-icons-ivy-rich-mode 1))
+
+(use-package ivy-rich
+  :ensure t
+  :init (ivy-rich-mode 1))
+
+
+;; company mode ************************************************************************************
+(use-package company-box  :ensure t
+  :hook (company-mode . company-box-mode))
+(add-hook 'after-init-hook 'global-company-mode)
+;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
+(setq company-minimum-prefix-length 1)
+(setq company-idle-delay 0.0)
+
+
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(company-box company-mode "use-package" "use-package" magit use-package counsel amx all-the-icons-ivy-rich)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+
+(set-register ?r '(file . "~/"))
