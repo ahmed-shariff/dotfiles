@@ -454,6 +454,37 @@ Appends the todo state of the entry being visualized."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 
+(use-package org-ql)
+
+(org-ql-defpred research-topics (&rest topic-ids)
+  ""
+  :body
+  (let ((parents (org-entry-get-multivalued-property (point) "BRAIN_PARENTS")))
+    (when parents
+      (-all-p (lambda (topic) (member topic parents)) topic-ids))))
+
+(defun org-brain-query-papers ()
+  "."
+  (interactive)
+  (let* ((topics '())
+         (done nil)
+         (selection-list (append '(("-- DONE" . nil)) (org-brain--all-targets))))
+    (while (not done)
+      (ivy-read "Query topic: " selection-list
+                :predicate (lambda (entry)
+			     (or (s-starts-with-p "--" (car entry))
+                                 (s-starts-with-p "research topics::" (car entry))
+			         (s-matches-p "work/projects::.*literature" (car entry))
+			         (s-starts-with-p "publication::" (car entry))))
+                :action (lambda (selection)
+                          (if (cdr selection)
+                              (push selection topics)
+                            (setq done t)))))
+    (let* ((topic-ids (mapcar (lambda (el) `(research-topics ,(cdr el)))
+                              topics))
+           (query (append '(and (level <= 1)) topic-ids)))
+      (org-ql-search '("~/Documents/org/brain/research_papers.org")  query))))
+
 (require 'ox-extra)
 (ox-extras-activate '(ignore-headlines))
 
