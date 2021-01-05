@@ -1074,3 +1074,18 @@ ARG : the arg"
   (interactive "p")
   (yank-pop (- arg)))
 (global-set-key "\M-Y" 'yank-pop-forwards) ; M-Y (Meta-Shift-Y)
+
+(setq font-latex-user-keyword-classes '(("positive-comment"
+                                         (("p" "{"))
+                                         (:foreground "aquamarine")
+                                         command)
+                                        ("negative-comment"
+                                         (("n" "{"))
+                                         (:foreground "IndianRed")
+                                         command)
+                                        ("mg-comment" (("mg" "{")) (:background "blue") command)
+                                        ("shf-comment" (("shf" "{")) (:background "DarkGreen") command) 
+                                        ("kf-comment" (("kf" "{")) (:background "Sienna") command)  
+                                        ("dh-comment" (("dh" "{")) (:background "Firebrick") command)
+                                        ("pp-comment" (("pp" "{")) (:background "DarkSlateBlue") command)))
+
