@@ -501,9 +501,26 @@ Appends the todo state of the entry being visualized."
 					(pdf-view-image-size)
 					(get-buffer-create "teste")
 					nil)))
-	 ;; (set-buffer "teste")
-	 ;; (switch-to-buffer "taste")))
-	 ;; (write-file "/tmp/screenshot.png" nil)))
+
+(defun pdf-crop-image-and-save (event &optional switch-back)
+  "EVENT SWITCH-BACK."
+  (interactive "@e")
+  (setq current-b (buffer-name))
+  (progn (pdf-view-mouse-set-region-rectangle event)
+	 (message "%s" pdf-view-active-region)
+	 (pdf-view-extract-region-image pdf-view-active-region
+					(pdf-view-current-page)
+					(pdf-view-image-size)
+					(get-buffer-create "teste.jpg")
+					nil)
+         (set-buffer "teste.jpg")
+	 (switch-to-buffer "taste.jpg")
+         (with-current-buffer "taste.jpg"
+           (message "-----  %s" (buffer-name))
+           (mark-whole-buffer)
+           (kill-ring-save (point-min) (point-max))
+           (write-file "~/" t)
+           (yank))))
 	 ;; (kill-buffer "screenshot.png")
 	 ;; (set-buffer current-b)
 	 ;; (org-noter-insert-note)
@@ -511,12 +528,22 @@ Appends the todo state of the entry being visualized."
 	 ;; (if switch-back
 ;;     (switch-to-buffer-other-frame current-b))))
 
+(defun amsha/format-multiline-from-kill-ring ()
+  "Format a mulitline kill in the kill-ring into a single line."
+  (format "\"%s\"" (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" (car kill-ring)))))
+
+(defun amsha/paste-formatted-multiline-from-kill-ring ()
+  "Paste a multiline segment (generally copied from pdf) as a single line."
+  (interactive)
+  (insert (amsha/format-multiline-from-kill-ring)))
+  
+
 (defun amsha/org-noter-copy-text-as-note ()
   "While in org noter, copy a highlighted text in as a heading with some minor additional formatting."
   (interactive)
   (let ((precise-info (org-noter--get-precise-info)))
     (pdf-view-kill-ring-save)
-    (let ((org-noter-default-heading-title (format "\"%s\"" (replace-regexp-in-string "- " "" (car kill-ring)))))
+    (let ((org-noter-default-heading-title (amsha/format-multiline-from-kill-ring)))
       (let ((org-noter-insert-note-no-questions t))
 	(org-noter-insert-note precise-info))
       ;; sometime the replace doesn't seem to work, so redoing it?
@@ -534,6 +561,7 @@ Appends the todo state of the entry being visualized."
 
 (define-key pdf-view-mode-map (kbd "C-c i") 'amsha/org-noter-copy-text-as-note)
 (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
+(define-key pdf-view-mode-map [C-M-S-down-mouse-1] 'pdf-crop-image-and-save)
 (setq org-export-allow-bind-keywords t
       org-latex-image-default-option "scale=0.6")
 
