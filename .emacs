@@ -439,7 +439,8 @@
 ;;(require 'flyspell)
 
 ;;ispell
-(setq ispell-program-name "aspell")
+;; for hunspell on windows: http://www.nextpoint.se/?p=656
+(setq ispell-program-name "hunspell")
 (require 'ispell)
 (require 'flyspell)
 

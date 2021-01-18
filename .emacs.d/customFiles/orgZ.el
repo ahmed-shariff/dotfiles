@@ -297,7 +297,7 @@
   (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
 
 (quelpa-use-package-activate-advice)
-(use-package org-noter :ensure t :quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-noter")
+(use-package org-noter :ensure t :quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
   :config
   (setq org-noter-property-doc-file "INTERLEAVE_PDF"
         org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"))
