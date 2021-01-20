@@ -10,3 +10,6 @@
 [submodule "packages_external/stumpwm"]
 	path = packages_external/stumpwm
 	url = https://github.com/stumpwm/stumpwm.git
+[submodule ".emacs.d\\customFiles\\elcord"]
+	path = .emacs.d\\customFiles\\elcord
+	url = https://github.com/ahmed-shariff/elcord.git

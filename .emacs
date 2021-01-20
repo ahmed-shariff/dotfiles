@@ -1050,6 +1050,14 @@ T - tag prefix
   :config
   (push 'company-tabnine company-backends))
 
+
+;; emacsc discrod plugin
+(use-package elcord :ensure nil
+  :config
+  (setq elcord-display-buffer-details nil)
+  (elcord-mode))
+;; (setq elcord-client-id (gethash 'elcord-client-id configurations))
+
 ;;code to run at the end!************************************************
 
 (defun company-mode/backend-with-yas (backend)
