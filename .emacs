@@ -1051,12 +1051,19 @@ T - tag prefix
   (push 'company-tabnine company-backends))
 
 
-;; emacsc discrod plugin
-(use-package elcord :ensure nil
+;; emacs discrod plugin
+(use-package elcord :ensure nil  ;; installed using git, thus!
   :config
   (setq elcord-display-buffer-details nil)
   (elcord-mode))
 ;; (setq elcord-client-id (gethash 'elcord-client-id configurations))
+
+
+;; processing-mode*******************************************************
+(use-package processing-mode
+  :config
+  (setq processing-location "~/packages_external/processing"
+        processing-sketchbook-dir "~/Documents/Processing/sketchbook"))
 
 ;;code to run at the end!************************************************
 
