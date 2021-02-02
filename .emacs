@@ -103,7 +103,7 @@
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (org-plus-contrib org-download org-capture-pop-frame use-package spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slime slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(python-shell-interpreter "python3")
  '(sml/mode-width 15)
