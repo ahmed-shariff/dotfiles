@@ -485,6 +485,15 @@ Appends the todo state of the entry being visualized."
            (query (append '(and (level <= 1)) topic-ids)))
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query))))
 
+(defun org-projects-query-boards ()
+  "List all the in progress items in the project boards directory."
+  (interactive)
+  (let ((files (f-entries "~/Documents/org/brain/work/project_boards" (lambda (x) (s-ends-with-p ".org" x)))))
+    (org-ql-search
+      files
+      '(and (todo "INPROGRESS") (todo "TODO"))
+      :super-groups (mapcar (lambda (x) (list :file-path (f-base x))) files))))
+
 (require 'ox-extra)
 (ox-extras-activate '(ignore-headlines))
 
