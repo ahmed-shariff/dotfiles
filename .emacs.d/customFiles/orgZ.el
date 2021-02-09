@@ -456,13 +456,23 @@ Appends the todo state of the entry being visualized."
 
 (use-package org-ql)
 
-(org-ql-defpred research-topics (&rest topic-ids)
+(org-ql-defpred research-topics (&rest args)
   ""
   :body
-  (let ((parents (org-entry-get-multivalued-property (point) "BRAIN_PARENTS")))
+  (let ((parents (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))
+        (pred (car args))
+        (topic-ids (cdr args)))
+    (message "%s %s" pred topic-ids)
     (when parents
-      (-all-p (lambda (topic) (member topic parents)) topic-ids))))
+      (funcall
+       (cond
+        ((equalp pred 'or) #'-any-p)
+        ((equalp pred 'and) #'-all-p)
+        nil)
+       (lambda (topic) (member topic parents)) topic-ids))))
 
+
+;; TODO: allow mulitiple combinations of research-topics to be used (eg: (and (or ..) (or ..)))
 (defun org-brain-query-papers ()
   "."
   (interactive)
@@ -481,18 +491,26 @@ Appends the todo state of the entry being visualized."
                           (if (cdr selection)
                               (push selection topics)
                             (setq done t)))))
-    (let* ((topic-ids (mapcar (lambda (el) `(research-topics ,(cdr el)))
-                              topics))
+    (let* ((topic-ids (list (append `(research-topics 'and) (mapcar #'cdr topics))))
            (query (append '(and (level <= 1)) topic-ids)))
+      (message "%s" query)
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query))))
 
 (defun org-projects-query-boards ()
-  "List all the in progress items in the project boards directory."
+  "List the in progress items in the project boards directory. Either show all or filter based on a sprint."
   (interactive)
-  (let ((files (f-entries "~/Documents/org/brain/work/project_boards" (lambda (x) (s-ends-with-p ".org" x)))))
-    (org-ql-search
-      files
-      '(and (todo "INPROGRESS") (todo "TODO"))
+  (let* ((files (f-entries "~/Documents/org/brain/work/project_boards" (lambda (x) (s-ends-with-p ".org" x))))
+         (ivy-slection-list (append '(("ALL" . nil)) (org-brain--all-targets)))
+         (predicate '(and (todo "INPROGRESS" "TODO"))))
+    
+    (ivy-read "Project topic: " ivy-slection-list
+              :predicate (lambda (entry)
+                           (or (string= (car entry) "ALL")
+                               (s-matches-p "work/projects::Sprint.*" (car entry))))
+              :action (lambda (selection)
+                        (unless (string= (car selection) "ALL")
+                          (setq predicate (append predicate `((member ,(cdr selection) (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))))))))
+    (org-ql-search files predicate
       :super-groups (mapcar (lambda (x) (list :file-path (f-base x))) files))))
 
 (require 'ox-extra)
