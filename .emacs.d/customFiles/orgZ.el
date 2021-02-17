@@ -198,6 +198,7 @@
    :EXPORT_AUTHOR:
    :START_DATE: %u
    :END_DATE:
+   :ID:       %(org-id-new)
    :END:
 *** From previous:
     - %?
@@ -222,6 +223,9 @@
         ("et" "Add task"
 	 entry (function org-ask-task-board)
 	 "* TODO %^{TITLE}
+  :PROPERTIES:
+  :ID:       %(org-id-new)
+  :END:
 %?
 "
 	 :jump-to-captured t)
@@ -321,7 +325,9 @@
         org-capture-templates)
   (setq org-brain-visualize-default-choices 'all)
   (setq org-brain-title-max-length 50)
-  (setq org-brain-vis-title-prepend-functions '(org-brain-entry-todo-state-colored))
+  (setq org-brain-vis-title-prepend-functions (list
+                                               (org-brain-function-on-entry 'org-brain-entry-todo-state-colored)
+                                               (org-brain-function-on-entry 'org-brain-entry-priority)))
   (defun org-brain-insert-resource-icon (link)
     "Insert an icon, based on content of org-mode LINK."
     (insert (format "%s "
@@ -437,16 +443,29 @@ Appends the todo state of the entry being visualized."
      'aa2u-text t
      'face (org-brain-display-face entry face annotation))))
 
+(defmacro org-brain-function-on-entry (fn)
+  "Macro that generates a function which takes an entry and executes the fn while on a file entry."
+  `(lambda (entry)
+     (if (org-brain-filep entry)
+         ""
+       (org-with-point-at (org-brain-entry-marker entry)
+         (or (funcall ,fn entry)
+	     "")))))
+
 (defun org-brain-entry-todo-state-colored (entry)
   "Get todo state of ENTRY with colors."
-  (if (org-brain-filep entry)
-      ""
-    (org-with-point-at (org-brain-entry-marker entry)
-      (or (let ((kwd (org-entry-get (point) "TODO")))
-	    (if kwd
-		(propertize (substring kwd 0 1) 'face (org-get-todo-face kwd))
-	      nil))
-	  ""))))
+  (let ((kwd (org-entry-get (point) "TODO")))
+    (if kwd
+	(propertize (substring kwd 0 1) 'face (org-get-todo-face kwd))
+      nil)))
+
+(defun org-brain-entry-priority (entry)
+  "Get priority state of ENTRY with colors."
+  (let ((priority (org-priority-to-value (org-priority-show))))
+    (cond
+     ((= priority 2000) "[#A]")
+     (t nil))))
+
 
 ;; (advice-add 'org-brain-insert-visualize-button :override #'org-brain-insert-visualize-button-with-tags)
 
@@ -656,10 +675,12 @@ Appends the todo state of the entry being visualized."
   (interactive (list
 		(save-excursion
 		  (org-brain-goto (org-brain-choose-entry "Select research topic: " 'all (lambda (entry)
-								     (s-starts-with-p "research topics::" (car entry)))))
+                                                                                           (or
+                                                                                            (s-matches-p "work/projects::.*literature" (car entry))
+                                                                                            (s-starts-with-p "research topics::" (car entry))))))
 		  (org-entry-get (point) "ID"))))
   (let ((out-dir (expand-file-name parent-id "~/Downloads")))
-    (condition-case nil 
+    (condition-case nil
 	(make-directory out-dir)
       (file-already-exists
        (progn
@@ -667,15 +688,17 @@ Appends the todo state of the entry being visualized."
 	 (delete-directory out-dir t)
 	 (make-directory out-dir))))
     (message "Copying files to %s" out-dir)
-    (org-map-entries (lambda ()
-		       (let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
-			 (when (and file-path
-				    (member parent-id
-					    (org-entry-get-multivalued-property (point) "BRAIN_PARENTS")))
-			   (message "Copied %s" (file-name-nondirectory file-path)) 
-			   (copy-file file-path
-				      (expand-file-name (file-name-nondirectory file-path)
-							out-dir))))))
+    (save-excursion
+      (org-brain-goto "research_papers")
+      (org-map-entries (lambda ()
+		         (let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
+			   (when (and file-path
+				      (member parent-id
+					      (org-entry-get-multivalued-property (point) "BRAIN_PARENTS")))
+			     (message "Copied %s" (file-name-nondirectory file-path)) 
+			     (copy-file file-path
+				        (expand-file-name (file-name-nondirectory file-path)
+							  out-dir)))))))
     (dired out-dir)))
 
 (defun copy-related-research-paper-notes (parent-id)
