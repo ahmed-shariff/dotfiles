@@ -318,8 +318,9 @@
          ("\C-cos". org-brain-print-topics))
   :config
   ;(define-key org-brain-visualize-mode-map "")
-  (setq org-id-track-globally t)
-  (setq org-id-locations-file "~/.emacs.d/.org-id-locations")
+  (setq org-id-track-globally t
+        org-id-locations-file "~/.emacs.d/.org-id-locations"
+        org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
   (push '("b" "Brain" plain (function org-brain-goto-end)
           "* %i%?" :empty-lines 1)
         org-capture-templates)
@@ -490,9 +491,17 @@ Appends the todo state of the entry being visualized."
         nil)
        (lambda (topic) (member topic parents)) topic-ids))))
 
+(org-ql-defpred search-pdf-regexp (regexp)
+  ""
+  :body
+  (let ((text-file (org-entry-get (point) "PDF_TEXT_FILE")))
+    (when text-file
+      (with-temp-buffer
+        (insert-file-contents text-file)
+        (s-match-strings-all regexp (buffer-string))))))
 
 ;; TODO: allow mulitiple combinations of research-topics to be used (eg: (and (or ..) (or ..)))
-(defun org-brain-query-papers ()
+(defun org-brain-query-papers-by-topic ()
   "."
   (interactive)
   (let* ((topics '())
@@ -514,6 +523,14 @@ Appends the todo state of the entry being visualized."
            (query (append '(and (level <= 1)) topic-ids)))
       (message "%s" query)
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query))))
+
+(defun org-brain-query-papers-by-topic (regexp)
+  "."
+  (interactive "sRegexp: ")
+  (let* ((query '(and (level <= 1) (search-pdf-regexp regexp))))
+      (message "%s" query)
+      (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
+
 
 (defun org-projects-query-boards ()
   "List the in progress items in the project boards directory. Either show all or filter based on a sprint."
@@ -623,6 +640,9 @@ Appends the todo state of the entry being visualized."
    (format "LEVEL=%s" level)
    'region))
      
+(defun amsha/rename-full-path (file-name)
+  "FILE-NAME."
+  (replace-regexp-in-string "^\\([a-z]:\\)?\\(/.*\\)/Documents" "~/Documents" file-name))
 
 (defun research-papers-configure ()
   "."
@@ -636,7 +656,7 @@ Appends the todo state of the entry being visualized."
 			    (dir org-ref-pdf-directory)
 			    (tags (org-get-tags))
 			    (out-file-name (concatenate 'string cite-key ".pdf"))
-			    (full-path (replace-regexp-in-string "^\\([a-z]:\\)?\\(/.*\\)/Documents" "~/Documents" (expand-file-name out-file-name dir))))
+			    (full-path (amsha/rename-full-path (expand-file-name out-file-name dir))))
 		       (org-entry-put (point) "ATTACH_DIR" dir)
 		       (org-id-get-create)
 		       (when (not (member "ATTACH" tags))
@@ -653,6 +673,17 @@ Appends the todo state of the entry being visualized."
                            (progn
                              (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
                              (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY")))))))
+                       (when (file-exists-p full-path)
+                         (let ((text-file-name (expand-file-name (format "%s.txt" (file-name-base full-path)) (file-name-directory full-path))))
+                           (unless (file-exists-p text-file-name)
+                             (condition-case nil
+                                 (progn
+                                   (with-temp-buffer
+                                     (insert (amsha/pdf-to-text full-path))
+                                     (write-file text-file-name))
+                                   (org-entry-put (point) "PDF_TEXT_FILE" (amsha/rename-full-path text-file-name)))
+                               (error (message "Error: failed to read pdf file: %s" full-path)
+                                      (setq tags (append tags '("PDF_ERROR"))))))))
 		       (setq tags
 			     (if (org-entry-get (point) "BRAIN_PARENTS")
 			         (delete "NO_PARENTS" tags)
@@ -811,8 +842,11 @@ Appends the todo state of the entry being visualized."
 	(save-excursion
 	  (goto-char (org-entry-beginning-position))
 	  (delete-file (org-entry-get (point) "INTERLEAVE_PDF") nil)
+          (when (file-exists-p (org-entry-get (point) "PDF_TEXT_FILE"))
+              (delete-file (org-entry-get (point) "PDF_TEXT_FILE") nil))
 	  (org-entry-delete (point) "Attachment")
 	  (org-entry-delete (point) "INTERLEAVE_PDF")
+          (org-entry-delete (point) "PDF_TEXT_FILE")
 	  (org-set-tags (delete "nosiblings" (delete "ATTACH" (org-get-tags))))))))
 
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
@@ -825,6 +859,18 @@ Appends the todo state of the entry being visualized."
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
             (define-key org-mode-map "\C-cos" 'org-brain-print-topics)
 	    (flyspell-mode t)))
+
+(defun amsha/pdf-to-text (file-name)
+  "FILE-NAME."
+  (let* ((normalized-file-name (expand-file-name file-name)))
+    (format
+     "%s"
+     (replace-regexp-in-string
+      "\n" " "
+      (replace-regexp-in-string "- " ""
+                                (mapconcat (lambda (page-number)
+                                             (pdf-info-gettext (number-to-string page-number) '(0 0 1 1) nil normalized-file-name))
+                                           (number-sequence 1 (pdf-info-number-of-pages normalized-file-name)) " "))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet starts
 ;; (defvar org-brain-insert-visualize-button-predicate nil)
