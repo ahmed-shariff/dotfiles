@@ -5,6 +5,7 @@
 ;;; Code:
 
 ;; -*- emacs-lisp -*-
+;; 
 (require 'package)
 (set-language-environment "UTF-8")
 (set-default-coding-systems 'utf-8)
@@ -17,6 +18,9 @@
 ;	     '("melpa" . "http://melpa.org/packages/")
 ;	     '("org" . "http://orgmode.org/elpa/"))
 ; (add-to-list 'load-path "~/.emacs.d/customFiles")
+
+(setq load-prefer-newer t) ;;mkaing sure older byte compiled files are not loaded
+
 (let ((default-directory  "~/.emacs.d/customFiles/"))
   (normal-top-level-add-to-load-path `("."))
   (normal-top-level-add-subdirs-to-load-path))
@@ -25,7 +29,13 @@
 
 (when (< emacs-major-version 24)
   (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
+
+
 (package-initialize)
+;; To make sure newer files are being byte compiled 
+(require 'auto-compile)
+(auto-compile-on-load-mode)
+(auto-compile-on-save-mode)
 
 ;(package-initialize)      ;; Initialize & Install Package
 

@@ -27,6 +27,12 @@
 (require 'org-capture-pop-frame)
 ;(ido-mode)
 
+(setq org-ellipsis " ▾"
+      org-hide-emphasis-markers t
+      org-src-fontify-natively t
+      org-src-tab-acts-natively t
+      org-startup-folded 'content)
+
 (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)" "IDEA(i)" "|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
 			  (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" )))
 
@@ -524,7 +530,7 @@ Appends the todo state of the entry being visualized."
       (message "%s" query)
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query))))
 
-(defun org-brain-query-papers-by-topic (regexp)
+(defun org-brain-query-papers-by-pdf-string (regexp)
   "."
   (interactive "sRegexp: ")
   (let* ((query '(and (level <= 1) (search-pdf-regexp regexp))))
