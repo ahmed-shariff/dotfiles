@@ -1107,6 +1107,8 @@ ARG : the arg"
                                          (("n" "{"))
                                          (:foreground "IndianRed")
                                          command)
+                                        ("autoref" (("autoref" "{")) 'font-lock-constant-face command)
+                                        ("red" (("red" "{")) (:background "red") command)
                                         ("mg-comment" (("mg" "{")) (:background "blue") command)
                                         ("shf-comment" (("shf" "{")) (:background "DarkGreen") command) 
                                         ("kf-comment" (("kf" "{")) (:background "Sienna") command)  
