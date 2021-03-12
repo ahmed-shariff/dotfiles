@@ -614,6 +614,10 @@ T - tag prefix
 (pyvenv-activate "~/virtualenv/pytorch")
 (pyvenv-mode)
 
+(use-package poetry
+  :init
+  (poetry-tracking-mode))
+
 ;; from https://emacs.stackexchange.com/questions/32140/python-mode-indentation
 (defun how-many-region (begin end regexp &optional interactive)
   "Print number of non-trivial matches for REGEXP in region.
