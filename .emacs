@@ -107,13 +107,10 @@
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
      ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
- '(org-agenda-files
-   (quote
-    ("~/Documents/org/Home.org" "~/Documents/org/journal.org" "~/Documents/org/notes.org" "/home/amsha/Documents/org/brain/work/hci-scrum.org" "/home/amsha/Documents/org/brain/work/hci.org" "/home/amsha/Documents/org/brain/work/projects.org")))
  '(org-export-backends (quote (ascii html icalendar latex md)))
  '(package-selected-packages
    (quote
-    (quelpa org-plus-contrib org-download org-capture-pop-frame use-package spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame company-lsp lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slime slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
+    (quelpa org-plus-contrib org-download org-capture-pop-frame use-package spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slime slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(python-shell-interpreter "python3")
  '(sml/mode-width 15)
@@ -330,10 +327,6 @@
   :config
   (setq lsp-ui-sideline-show-hover t
 	lsp-ui-sideline-delay 1))
-(use-package company-lsp
-  :ensure t
-  :commands company-lsp
-  :config (push 'company-lsp company-backends)) ;; add company-lsp as a backend
 
 (use-package company-box
   :hook (company-mode . company-box-mode))
@@ -417,9 +410,10 @@
   (avy-setup-default))
 
 ;;pdf
-(pdf-tools-install)
-(add-hook 'pdf-view-mode-hook '(lambda ()
-				 (pdf-misc-size-indication-minor-mode)))
+(when (gethash 'use-pdf-tools configurations t)
+  (pdf-tools-install)
+  (add-hook 'pdf-view-mode-hook '(lambda ()
+				   (pdf-misc-size-indication-minor-mode))))
 
 ;;delete-selection-mode
 (delete-selection-mode t)
@@ -1060,7 +1054,8 @@ T - tag prefix
 
 (use-package company-tabnine
   :config
-  (push 'company-tabnine company-backends))
+  (when (gethash 'use-tabnine configurations t)
+    (push 'company-tabnine company-backends)))
 
 
 ;; emacs discrod plugin

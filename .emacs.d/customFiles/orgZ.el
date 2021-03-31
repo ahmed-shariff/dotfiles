@@ -36,10 +36,6 @@
 (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)" "IDEA(i)" "|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
 			  (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" )))
 
-(setq org-agenda-files '("~/Documents/org/Home.org"
-			 "~/Documents/org/journal.org"
-			 "~/Documents/org/notes.org"
-			 "~/Documents/org/brain/work"))
 ;;(set-register ("~/Documents/org/uniwork.org"
 ;;			     "~/Documents/org/uni_research.org")
 
@@ -61,19 +57,23 @@
 (add-to-list
  'org-src-lang-modes '("plantuml" . plantuml))
 (setq org-src-tab-acts-natively t)
-(org-babel-do-load-languages 'org-babel-load-languages '((ruby . t)
-							 (plantuml . t)
-							 (emacs-lisp . t)
-							 (python . t)
-							 (jupyter . t)
-							 (shell .t)))
 
-(setq org-babel-default-header-args:jupyter-python '((:async . "yes")
-						     (:session . "py")
-						     (:kernel . "python3")
-						     (:tangle . "yes")
-						     (:exports . "both")))
-(require 'ox-ipynb)
+(append org-babel-load-languages '((ruby . t)
+				   (plantuml . t)
+				   (emacs-lisp . t)
+				   (python . t)
+				   (shell .t)))
+
+(when (gethash 'use-jupyter configurations t)
+  (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
+						       (:session . "py")
+						       (:kernel . "python3")
+						       (:tangle . "yes")
+						       (:exports . "both")))
+  (require 'ox-ipynb)
+  (append org-babel-load-languages '((jupyter . t))))
+
+(org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages)
 ;; (defun my-org-confirm-babel-evaluate (lang bdy)
 ;;   "Function to eval plantuml blocks.
 ;; LANG
@@ -629,9 +629,11 @@ Appends the todo state of the entry being visualized."
 		       "LEVEL=2")
       (message "%s" (current-buffer)))))
 
-(define-key pdf-view-mode-map (kbd "C-c i") 'amsha/org-noter-copy-text-as-note)
-(define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
-(define-key pdf-view-mode-map [C-M-S-down-mouse-1] 'pdf-crop-image-and-save)
+(when (gethash 'use-pdf-tools configurations t)
+  (define-key pdf-view-mode-map (kbd "C-c i") 'amsha/org-noter-copy-text-as-note)
+  (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
+  (define-key pdf-view-mode-map [C-M-S-down-mouse-1] 'pdf-crop-image-and-save))
+
 (setq org-export-allow-bind-keywords t
       org-latex-image-default-option "scale=0.6")
 
