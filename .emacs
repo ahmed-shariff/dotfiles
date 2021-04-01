@@ -344,7 +344,7 @@
   :init
   ;; (add-hook 'prog-mode-hook #'lsp)
   ;; (setq lsp-auto-guess-root t)
-  (setq lsp-print-io t)
+  ;; (setq lsp-print-io t)
   :config
   ;; (lsp-register-client
   
@@ -362,9 +362,13 @@
    ;; lsp-pyls-plugins-pycodestyle-enabled nil
    ;; lsp-pyls-plugins-yapf-enabled nil
    ;;lsp--delay-timer 1
-   lsp-csharp-server-path (if (eq system-type 'windows-nt)
-			      (file-truename "~/packages_external/omnisharp-win-x64/OmniSharp.exe")
-			    nil)
+   gc-cons-threshold 200000000
+   read-process-output-max (* 1024 1024 4) ;; 4mb
+   lsp-idle-delay 0.500
+   lsp-enable-file-watchers nil
+   ;; lsp-csharp-server-path (if (eq system-type 'windows-nt)
+   ;;      		      (file-truename "~/packages_external/omnisharp-win-x64/OmniSharp.exe")
+   ;;      		    nil)
    )
   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
