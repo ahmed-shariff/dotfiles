@@ -105,6 +105,17 @@
          nil t)
         (goto-char (point-at-bol))))
 
+;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
+(defun amsha/org-mode-visual-fill ()
+  (setq visual-fill-column-width 110
+        visual-fill-column-center-text t)
+  (visual-fill-column-mode 1))
+
+(use-package visual-fill-column
+  :defer 
+  :hook (org-mode . amsha/org-mode-visual-fill))
+;;  ***************************************************************
+
 (defun org-ask-id (file prompt property)
   "."
   (save-window-excursion
@@ -153,6 +164,13 @@
          (target (assoc (ivy-read "Select task: " targets) targets)))
     (format "* [[file:project_boards/%s.org::*%s][%s]]  %%?  :s%%^{sprint-id}:%s:" (nth 2 target) (nth 3 target) (nth 2 target) (nth 2 target))))
 
+     ;;      [[id:8539092a-98e8-4f90-86e0-58f8978ae97c][hand_interface]] asdfasfasfd
+     ;; :PROPERTIES:
+     ;; :SPRINT:   id
+     ;; :task:     id
+     ;; :END:
+     
+          
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading) 
 
@@ -533,7 +551,7 @@ Appends the todo state of the entry being visualized."
 (defun org-brain-query-papers-by-pdf-string (regexp)
   "."
   (interactive "sRegexp: ")
-  (let* ((query '(and (level <= 1) (search-pdf-regexp regexp))))
+  (let* ((query `(and (level <= 1) (search-pdf-regexp ,regexp))))
       (message "%s" query)
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
 
@@ -867,6 +885,7 @@ Appends the todo state of the entry being visualized."
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
             (define-key org-mode-map "\C-cos" 'org-brain-print-topics)
 	    (flyspell-mode t)))
+(add-hook 'org-mode-hook 'visual-line-mode)
 
 (defun amsha/pdf-to-text (file-name)
   "FILE-NAME."
