@@ -156,19 +156,21 @@
                                                            (list (format "%s::%s"
                                                                          (file-name-base file)
                                                                          title)
-                                                                 file
+                                                                 (org-id-get-create)
                                                                  (file-name-base file)
                                                                  title)))
                                                        "LEVEL=1&TODO=\"INPROGRESS\""))
                                     project-boards))))
          (target (assoc (ivy-read "Select task: " targets) targets)))
-    (format "* [[file:project_boards/%s.org::*%s][%s]]  %%?  :s%%^{sprint-id}:%s:" (nth 2 target) (nth 3 target) (nth 2 target) (nth 2 target))))
-
-     ;;      [[id:8539092a-98e8-4f90-86e0-58f8978ae97c][hand_interface]] asdfasfasfd
-     ;; :PROPERTIES:
-     ;; :SPRINT:   id
-     ;; :task:     id
-     ;; :END:
+    (format "* [[id:%s][%s]]  %%?
+     :PROPERTIES:
+     :ID:       %s
+     :BRAIN_PARENTS: %s
+     :END:"
+            (nth 1 target)
+            (nth 2 target)
+            (org-id-new)
+            (nth 1 target))))
      
           
 ;; (defun org-ask-location ()
@@ -186,22 +188,22 @@
 	 entry (file+datetree "~/Documents/org/journal.org")
 	 "* %?")
 	("jw" "Journal entry work"
-	 entry (file+datetree "~/Documents/org/brain/work/hci.org")
+	 entry (file+datetree "~/Documents/org/brain/work/notes.org")
 	 "* %?")
 	("js" "Journal entry work-scrum"
-	 entry (file+datetree "~/Documents/org/brain/work/hci-scrum.org")
+	 entry (file+datetree "~/Documents/org/brain/work/scrum.org")
 	 "* Y:\n1. %?\n* T:\n1. "
 	 :jump-to-captured t)
 	("jt" "Journal sub entry"
-	 entry (file+datetree "~/Documents/org/brain/work/hci.org")
+	 entry (file+datetree "~/Documents/org/brain/work/notes.org")
 	 "1. %?")
 	("e" "Experiment setup information")
 	("ej" "Add Journal entry")
         ("ejt" "for task"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/hci.org")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
 	 "%(board-task-location)")
 	("eje" "for experiment"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/hci.org")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
          "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
         ("el" "Add experiment"
 	 entry (file "~/Documents/org/brain/work/experiments_log.org")
@@ -500,20 +502,20 @@ Appends the todo state of the entry being visualized."
 
 (use-package org-ql)
 
-(org-ql-defpred research-topics (&rest args)
+(org-ql-defpred brain-parent (&rest args)
   ""
   :body
   (let ((parents (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))
         (pred (car args))
-        (topic-ids (cdr args)))
-    (message "%s %s" pred topic-ids)
+        (parent-ids (cdr args)))
+    (message "%s %s" pred parent-ids)
     (when parents
       (funcall
        (cond
         ((equalp pred 'or) #'-any-p)
         ((equalp pred 'and) #'-all-p)
         nil)
-       (lambda (topic) (member topic parents)) topic-ids))))
+       (lambda (parent) (member parent parents)) parent-ids))))
 
 (org-ql-defpred search-pdf-regexp (regexp)
   ""
@@ -524,7 +526,7 @@ Appends the todo state of the entry being visualized."
         (insert-file-contents text-file)
         (s-match-strings-all regexp (buffer-string))))))
 
-;; TODO: allow mulitiple combinations of research-topics to be used (eg: (and (or ..) (or ..)))
+;; TODO: allow mulitiple combinations of brain-parent to be used (eg: (and (or ..) (or ..)))
 (defun org-brain-query-papers-by-topic ()
   "."
   (interactive)
@@ -543,7 +545,7 @@ Appends the todo state of the entry being visualized."
                           (if (cdr selection)
                               (push selection topics)
                             (setq done t)))))
-    (let* ((topic-ids (list (append `(research-topics 'and) (mapcar #'cdr topics))))
+    (let* ((topic-ids (list (append `(brain-parent 'and) (mapcar #'cdr topics))))
            (query (append '(and (level <= 1)) topic-ids)))
       (message "%s" query)
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query))))
