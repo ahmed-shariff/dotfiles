@@ -941,6 +941,36 @@ T - tag prefix
    :full-and-display-names t))
 
 
+(use-package visual-fill-column)
+
+(use-package web-search
+  :config
+  (setq web-search-default-provider "DuckDuckGo")
+  (setq web-search-providers (mapcar (lambda (provider)
+                                       (if (string-equal "DuckDuckGo" (car provider))
+                                           (-replace-at 1 "https://duckduckgo.com/?q=%s" provider)
+                                         provider))
+                                     web-search-providers))
+  (defun amsha-web-search ()
+    "Wrapper to quick pick providers and tag."
+    (interactive)
+    (let* ((query
+            (let ((initial (if (use-region-p)
+                               (buffer-substring-no-properties (region-beginning) (region-end))
+                             (current-word)))
+                  (prompt "Search: "))
+              (read-string prompt initial)))
+           (tags (web-search--tags))
+           (selection-list (append
+                            (mapcar (lambda (x) (cons (format x) :tag)) tags)
+                            (mapcar (lambda (x) (cons (car x) :provider)) web-search-providers))))
+      (ivy-read "Search in: " selection-list
+                :preselect web-search-default-provider
+                :action (lambda (selection)
+                          (cond
+                           ((eq (cdr selection) :provider) (web-search query (list (car selection))) nil)
+                           ((eq (cdr selection) :tag) (web-search query nil (car selection)))))))))
+    
 ;;alert mode************************************************************
 (use-package alert
   :commands (alert)
@@ -1073,7 +1103,7 @@ T - tag prefix
 ;; processing-mode*******************************************************
 (use-package processing-mode
   :config
-  (setq processing-location "~/packages_external/processing"
+  (setq processing-location "~/packages_external/processing/processing-java"
         processing-sketchbook-dir "~/Documents/Processing/sketchbook"))
 
 ;;code to run at the end!************************************************
