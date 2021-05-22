@@ -141,7 +141,8 @@
  '(company-tooltip            ((t (:inherit default :background "#000000"))))
  '(company-tooltip-common     ((t (:inherit font-lock-constant-face))))
  '(company-tooltip-annotation ((t (:inherit font-lock-builtin-face))))
- '(company-tooltip-selection  ((t (:inherit highlight)))))
+ '(company-tooltip-selection  ((t (:inherit highlight))))
+ '(markdown-code-face ((t (:inherit consolas)))))
 
 
 (setq-default indent-tabs-mode nil)
@@ -328,6 +329,7 @@
   (setq lsp-ui-sideline-show-hover t
 	lsp-ui-sideline-delay 1))
 
+
 (use-package company-box
   :hook (company-mode . company-box-mode))
 
@@ -387,7 +389,8 @@
                           (lsp)))
   :config
   (with-eval-after-load "lsp-mode"
-    (add-to-list 'lsp-disabled-clients 'pyls)))
+    (add-to-list 'lsp-disabled-clients 'pyls))
+  (setq lsp-pyright-venv-path 'lsp-pyright-locate-venv))
 
 (use-package lsp-java)
 
