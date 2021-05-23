@@ -141,7 +141,8 @@
  '(company-tooltip            ((t (:inherit default :background "#000000"))))
  '(company-tooltip-common     ((t (:inherit font-lock-constant-face))))
  '(company-tooltip-annotation ((t (:inherit font-lock-builtin-face))))
- '(company-tooltip-selection  ((t (:inherit highlight)))))
+ '(company-tooltip-selection  ((t (:inherit highlight))))
+ '(markdown-code-face ((t (:inherit consolas)))))
 
 
 (setq-default indent-tabs-mode nil)
@@ -328,6 +329,7 @@
   (setq lsp-ui-sideline-show-hover t
 	lsp-ui-sideline-delay 1))
 
+
 (use-package company-box
   :hook (company-mode . company-box-mode))
 
@@ -387,7 +389,8 @@
                           (lsp)))
   :config
   (with-eval-after-load "lsp-mode"
-    (add-to-list 'lsp-disabled-clients 'pyls)))
+    (add-to-list 'lsp-disabled-clients 'pyls))
+  (setq lsp-pyright-venv-path 'lsp-pyright-locate-venv))
 
 (use-package lsp-java)
 
@@ -941,6 +944,36 @@ T - tag prefix
    :full-and-display-names t))
 
 
+(use-package visual-fill-column)
+
+(use-package web-search
+  :config
+  (setq web-search-default-provider "DuckDuckGo")
+  (setq web-search-providers (mapcar (lambda (provider)
+                                       (if (string-equal "DuckDuckGo" (car provider))
+                                           (-replace-at 1 "https://duckduckgo.com/?q=%s" provider)
+                                         provider))
+                                     web-search-providers))
+  (defun amsha-web-search ()
+    "Wrapper to quick pick providers and tag."
+    (interactive)
+    (let* ((query
+            (let ((initial (if (use-region-p)
+                               (buffer-substring-no-properties (region-beginning) (region-end))
+                             (current-word)))
+                  (prompt "Search: "))
+              (read-string prompt initial)))
+           (tags (web-search--tags))
+           (selection-list (append
+                            (mapcar (lambda (x) (cons (format x) :tag)) tags)
+                            (mapcar (lambda (x) (cons (car x) :provider)) web-search-providers))))
+      (ivy-read "Search in: " selection-list
+                :preselect web-search-default-provider
+                :action (lambda (selection)
+                          (cond
+                           ((eq (cdr selection) :provider) (web-search query (list (car selection))) nil)
+                           ((eq (cdr selection) :tag) (web-search query nil (car selection)))))))))
+    
 ;;alert mode************************************************************
 (use-package alert
   :commands (alert)
