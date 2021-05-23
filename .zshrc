@@ -260,6 +260,7 @@ alias uniwork="source virtualenv/pytorch/bin/activate;cd /media/Files/Research/F
 alias activate_nm="sudo systemctl start NetworkManager;systemctl status NetworkManager"
 alias config-git='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 alias print_diamond="lpr -U $LRP_USERNAME -P $LRP_PRINTER"
+alias scrot-clip="scrot -d 3 ~/temp.png && xclip -selection clipboard -t image/png -i ~/temp.png && rm ~/temp.png"
 #alias activate_bb="sudo systemctl start bumblebeed;systemctl status bumblebeed"
 
 

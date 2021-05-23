@@ -682,7 +682,7 @@ T - tag prefix
 
  (setq tab-stop-list '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60))
  ; (setq tab-width 4)
- (setq indent-tabs-mode t)  ; use spaces only if nil
+ (setq indent-tabs-mode nil)  ; use spaces only if nil
  )
 
 (add-hook 'c-mode-common-hook 'my-c-mode-common-hook)
@@ -1072,9 +1072,16 @@ T - tag prefix
 
 ;; processing-mode*******************************************************
 (use-package processing-mode
+  :mode "\\.pde\\'"
   :config
-  (setq processing-location "~/packages_external/processing"
+  (setq processing-location "~/packages/processing/processing-java"
         processing-sketchbook-dir "~/Documents/Processing/sketchbook"))
+
+(use-package processing-snippets
+  :after (yasnippet)
+  :config
+  (autoload 'processing-snippets-initialize "processing-snippets" nil nil nil)
+  (processing-snippets-initialize))
 
 ;;code to run at the end!************************************************
 
