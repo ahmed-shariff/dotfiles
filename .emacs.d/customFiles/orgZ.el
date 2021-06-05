@@ -145,23 +145,19 @@
     (goto-char (point-max))))
 
 (defun board-task-location ()
-  (let* ((project-boards (directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org"))
+  (let* ((project-boards (directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org$"))
          (targets
-          (with-temp-buffer
-            (org-mode)
-            (apply #'append (mapcar (lambda (file)
-                                      (insert-file-contents file nil nil nil 'replace)
-                                      (org-map-entries (lambda ()
-                                                         (let ((title (org-entry-get (point) "ITEM")))
-                                                           (list (format "%s::%s"
-                                                                         (file-name-base file)
-                                                                         title)
-                                                                 (org-id-get-create)
-                                                                 (file-name-base file)
-                                                                 title)))
-                                                       "LEVEL=1&TODO=\"INPROGRESS\""))
-                                    project-boards))))
-         (target (assoc (ivy-read "Select task: " targets) targets)))
+          (org-ql-select project-boards `(and (todo "INPROGRESS") (level 1))
+            :action (lambda ()
+                      (let* ((headline-plist (cadr (org-element-headline-parser (point))))
+                             (title (car (plist-get headline-plist :title)))
+                             (file-name (file-name-base (buffer-file-name))))
+                        (list (format "%s::%s" file-name title)
+                              (org-id-get-create)
+                              file-name
+                              title)))))
+         (target (progn
+                   (assoc (ivy-read "Select task: " targets) targets))))
     (format "* [[id:%s][%s]]  %%?
      :PROPERTIES:
      :ID:       %s
@@ -178,24 +174,24 @@
 
 (setq org-capture-templates
       '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
-	 entry (file+datetree "~/Documents/org/notes.org")
+	 entry (file+olp+datetree "~/Documents/org/notes.org")
 	 "* NOTE %^g\n\tAdded: %U\n\t%?")
 	("t" "A thing i have to do(a wonderfull epiphany? 3:))->TO THE NOTES"
 	 entry (file "~/Documents/org/notes.org")
 	 "* TODO %^{Description} %^g\n\tAdded: %U\n\t%?")
 	("j" "Journal entry")
 	("jg" "Journal entry general"
-	 entry (file+datetree "~/Documents/org/journal.org")
+	 entry (file+olp+datetree "~/Documents/org/journal.org")
 	 "* %?")
 	("jw" "Journal entry work"
-	 entry (file+datetree "~/Documents/org/brain/work/notes.org")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
 	 "* %?")
 	("js" "Journal entry work-scrum"
-	 entry (file+datetree "~/Documents/org/brain/work/scrum.org")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/scrum.org")
 	 "* Y:\n1. %?\n* T:\n1. "
 	 :jump-to-captured t)
 	("jt" "Journal sub entry"
-	 entry (file+datetree "~/Documents/org/brain/work/notes.org")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
 	 "1. %?")
 	("e" "Experiment setup information")
 	("ej" "Add Journal entry")
