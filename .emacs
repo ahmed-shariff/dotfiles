@@ -577,11 +577,14 @@ T - tag prefix
 (setq company-quickhelp-delay nil)
 
 ;; ;;yasnippet setup************************************************
-(require 'yasnippet)
-(setq yas-snippet-dirs
-      '("~/.emacs.d/snippets"                 ;; personal snippets
-        ))
-(yas-global-mode 1)
+(use-package yasnippet
+  :ensure t
+  :init (yas-global-mode 1)
+  :config
+  (setq yas-snippet-dirs
+        (append yas-snippet-dirs
+                `("~/.emacs.d/snippets"))                 ;; personal snippets
+        yas-indent-line 'fixed))
 
 ;;slime and cl setup*********************************************
 (require 'slim-mode)
