@@ -31,11 +31,11 @@
   (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
 
 
-;;auto-compile *****************************************************
-;; To make sure newer files are being byte compiled 
-(require 'auto-compile)
-(auto-compile-on-load-mode)
-(auto-compile-on-save-mode)
+;; ;;auto-compile *****************************************************
+;; ;; To make sure newer files are being byte compiled 
+;; (require 'auto-compile)
+;; (auto-compile-on-load-mode)
+;; (auto-compile-on-save-mode)
 
 ;(package-initialize)      ;; Initialize & Install Package
 
@@ -55,6 +55,8 @@
 (tool-bar-mode 0)
 
 (server-start)
+(require 'configurations)
+
 ;;straight.el setup*************************************************
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -71,9 +73,24 @@
 
 ;; for emacs >= 27
 (setq straight-use-package-by-default t
-      package-enable-at-startup nil)
+      package-enable-at-startup nil
+      straight-host-usernames "ahmed-shariff")
 
-(straight-use-package 'use-package)
+(defvar my-package-list '(org-plus-contrib org-download
+					   ;; org-capture-pop-frame
+					   use-package spaceline-all-the-icons
+					   org-bullets latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode
+					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
+					   org-brain avy lsp-ui lsp-mode expand-region diminish amx flx
+					   counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
+					   dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
+					   company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane
+					   exec-path-from-shell smart-mode-line-powerline-theme slime-company slime
+					   slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
+(when (gethash 'use-jupyter configurations t)
+  (add-to-list 'my-package-list 'jupyter))
+
+(mapcar #'straight-use-package my-package-list)
 
 ;; custom variables*******************************************
 (custom-set-variables
@@ -116,9 +133,6 @@
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
      ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
  '(org-export-backends (quote (ascii html icalendar latex md)))
- '(package-selected-packages
-   (quote
-    (quelpa org-plus-contrib org-download org-capture-pop-frame use-package spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slime slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(python-shell-interpreter "python3")
  '(sml/mode-width 15)
@@ -156,8 +170,6 @@
 
 ;(exec-path-from-shell-initialize)
 
-(require 'configurations)
-(require 'diminish)
 ;;allout
 (allout-mode)
 
@@ -187,14 +199,7 @@
 ;; (require 'ido)
 ;; (ido-mode t)
 
-(require 'use-package)
-
-;; quelpa **********************************************************
-(quelpa
- '(quelpa-use-package
-   :fetcher git
-   :url "https://github.com/quelpa/quelpa-use-package.git"))
-(require 'quelpa-use-package)
+(use-package diminish)
 
 ;;selectrum  *******************************************************
 

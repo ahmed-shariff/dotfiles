@@ -24,8 +24,12 @@
 ;;; Code:
 (require 'org)
 (require 'org-capture)
-(require 'org-capture-pop-frame)
+;; (require 'org-capture-pop-frame)
 ;(ido-mode)
+
+(use-package org-capture-pop-frame
+  :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
+                                   :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame")))
 
 (setq org-ellipsis " ▾"
       org-hide-emphasis-markers t
@@ -322,12 +326,12 @@
   (helm-delete-action-from-source "Edit notes" helm-source-bibtex)
   (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
 
-(quelpa-use-package-activate-advice)
-(use-package org-noter :ensure t :quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
+(use-package org-noter ;;:quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
+  :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
+                       :fork (:host github :repo "ahmed-shariff/org-noter"))
   :config
   (setq org-noter-property-doc-file "INTERLEAVE_PDF"
         org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"))
-(quelpa-use-package-deactivate-advice)
 
 (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
   :init
