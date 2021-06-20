@@ -5,6 +5,7 @@
 ;;; Code:
 
 ;; -*- emacs-lisp -*-
+;; -*- lexical-binding: t -*-
 ;; 
 (require 'package)
 (set-language-environment "UTF-8")
@@ -76,7 +77,7 @@
       package-enable-at-startup nil
       straight-host-usernames "ahmed-shariff")
 
-(defvar my-package-list '(org-plus-contrib org-download
+(defvar my-package-list '(org-plus-contrib org-download 
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
 					   org-bullets latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode
@@ -202,9 +203,51 @@
 (use-package diminish)
 
 ;;selectrum  *******************************************************
+(use-package prescient
+  :config
+  (prescient-persist-mode +1))
+(use-package ivy-prescient)
+;;(use-package company-prescient)
+;; (use-package selectrum-prescient
+;;   :config
+;;   (selectrum-prescient-mode +1)
+;;   (setq selectrum-prescient-enable-filtering nil))
 
+(use-package orderless
+  :custom (completion-styles '(orderless))
+  :config
+  (setq orderless-matching-styles '(orderless-flex orderless-initialism)))
 
+(defun recentf-open-files+ ()
+  "Use `completing-read' to open a recent file."
+  (interactive)
+  (let ((files (mapcar 'abbreviate-file-name recentf-list)))
+    (find-file (completing-read "Find recent file: " files nil t))))
 
+(use-package selectrum
+  :init (selectrum-mode +1)
+  :config
+  (setq orderless-skip-highlighting (lambda () selectrum-is-active)
+        selectrum-highlight-candidates-function #'orderless-highlight-matches))
+
+;; Enable richer annotations using the Marginalia package
+(use-package marginalia
+  ;; Either bind `marginalia-cycle` globally or only in the minibuffer
+  :bind (("M-A" . marginalia-cycle)
+         :map minibuffer-local-map
+         ("M-A" . marginalia-cycle))
+
+  ;; The :init configuration is always executed (Not lazy!)
+  :init
+
+  ;; Must be in the :init section of use-package such that the mode gets
+  ;; enabled right away. Note that this forces loading the package.
+  (marginalia-mode))
+
+(use-package icon-affixation
+  :after (marginalia)
+  :straight (icon-affixation :type git :host github :repo "iyefrat/icon-affixation")
+  :init (icon-affixation-mode))
 
 ;;ivy-mode *********************************************************
 (use-package amx
@@ -212,14 +255,14 @@
 
 (use-package ivy
   :diminish (ivy-mode . "")             ; does not display ivy in the modeline
-  :init
-  (ivy-mode 1)                          ; enable ivy globally at startup
+  ;; :init
+  ;; (ivy-mode 1)                          ; enable ivy globally at startup
   :bind (("C-c g" . counsel-git)
 	 ("C-c j" . counsel-git-grep) 
 	 ("C-c k" . counsel-ag)       
 	 ("C-x l" . counsel-locate)   
 	 ("C-S-o" . counsel-rhythmbox)
-	 ("C-x C-f" . counsel-find-file)
+	 ;;("C-x C-f" . counsel-find-file)
 	 :map ivy-minibuffer-map        ; bind in the ivy buffer
 	 ("RET" . ivy-alt-done))
 	 ;;      ("s-<"   . ivy-avy)
