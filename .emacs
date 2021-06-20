@@ -31,7 +31,7 @@
   (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
 
 
-(package-initialize)
+;;auto-compile *****************************************************
 ;; To make sure newer files are being byte compiled 
 (require 'auto-compile)
 (auto-compile-on-load-mode)
@@ -55,6 +55,7 @@
 (tool-bar-mode 0)
 
 (server-start)
+;;straight.el setup*************************************************
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -67,6 +68,13 @@
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
+
+;; for emacs >= 27
+(setq straight-use-package-by-default t
+      package-enable-at-startup nil)
+
+(straight-use-package 'use-package)
+
 ;; custom variables*******************************************
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -116,7 +124,6 @@
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
  '(sml/theme (quote dark))
- '(use-package-always-ensure t)
  '(visible-bell t))
 
 (custom-set-faces
@@ -189,11 +196,16 @@
    :url "https://github.com/quelpa/quelpa-use-package.git"))
 (require 'quelpa-use-package)
 
+;;selectrum  *******************************************************
+
+
+
+
 ;;ivy-mode *********************************************************
-(use-package amx :ensure t
+(use-package amx
   :init (amx-mode 1))
 
-(use-package ivy :ensure t
+(use-package ivy
   :diminish (ivy-mode . "")             ; does not display ivy in the modeline
   :init
   (ivy-mode 1)                          ; enable ivy globally at startup
@@ -226,23 +238,20 @@
 	(t . ivy--regex-fuzzy))))
 
 ;; (use-package all-the-icons-ivy
-;;   :ensure t
 ;;   :config
 ;;   (all-the-icons-ivy-setup))
 
 (use-package all-the-icons-ivy-rich
-  :ensure t
   :init (all-the-icons-ivy-rich-mode 1))
 
 (use-package ivy-rich
-  :ensure t
   :init (ivy-rich-mode 1))
 
 (use-package ivy-hydra
   :after (ivy hydra))
 
 ;; helm setup ************************************************************************
-(use-package helm :ensure t
+(use-package helm
   ;; :init (helm-mode 1)
   :bind (("M-y" . helm-show-kill-ring))
   )
@@ -375,7 +384,7 @@
   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
 ;; (use-package lsp-jedi
-;;   :ensure t
+;;   :straight t
 ;;   :config
 ;;   (with-eval-after-load "lsp-mode"
 ;;     (add-to-list 'lsp-disabled-clients 'pyls)
@@ -383,7 +392,6 @@
 ;;     ))
 
 (use-package lsp-pyright
-  :ensure t
   :hook (python-mode . (lambda ()
                           (require 'lsp-pyright)
                           (lsp)))
@@ -395,7 +403,7 @@
 (use-package lsp-java)
 
 ;; (use-package lsp-python-ms
-;;   :ensure t
+;;   :straight t
 ;;   :init (setq lsp-python-ms-auto-install-server t)
 ;;   :hook (python-mode . (lambda ()
 ;;                           (require 'lsp-python-ms)
@@ -405,7 +413,7 @@
   :after lsp-mode
   :config (dap-auto-configure-mode)
   :hook (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra))))
-(use-package dap-java :ensure nil)
+(use-package dap-java :straight nil)
 
 ;;avy *******************************************************************************
 (use-package avy
@@ -461,7 +469,7 @@
 (diminish 'ivy-mode)
 (diminish 'projectile-mode "P")
 
-;; (use-package eyeliner :ensure nil
+;; (use-package eyeliner :straight nil
 ;;   :straight (eyeliner :type git
 ;;                       :host github
 ;;                       :repo "dustinlacewell/eyeliner")
@@ -481,7 +489,6 @@
 ;;   (eyeliner/install))
 
 (use-package doom-modeline
-  :ensure t
   ;;:hook (after-init . doom-modeline-mode)
   :init (doom-modeline-mode 1)
   :config
@@ -578,7 +585,6 @@ T - tag prefix
 
 ;; ;;yasnippet setup************************************************
 (use-package yasnippet
-  :ensure t
   :init (yas-global-mode 1)
   :config
   (setq yas-snippet-dirs
@@ -610,7 +616,7 @@ T - tag prefix
 ;(add-hook 'python-mode-hook '(company-anaconda 'interactive))
 ;;(add-to-list 'company-backends 'company-jedi)
 ;; (use-package elpy
-;;   :ensure t
+;;   :straight t
 ;;   :init
 ;;   (elpy-enable))
 					;(setenv "IPY_TEST_SIMPLE_PROMPT" "1")
@@ -693,7 +699,7 @@ T - tag prefix
 
 (add-hook 'c-mode-common-hook 'my-c-mode-common-hook)
 ;; (use-package ccls
-;;   :ensure t
+;;   :straight t
 ;;   :config
 ;;   (setq ccls-executable "ccls")
 ;;   (setq lsp-prefer-flymake nil)
@@ -724,7 +730,6 @@ T - tag prefix
 
 ;;treemacs setup**********************************************************************************************************
 (use-package treemacs
-  :ensure t
   :defer t
   :init
   (with-eval-after-load 'winum
@@ -793,21 +798,18 @@ T - tag prefix
         ("C-x t M-t" . treemacs-find-tag)))
 
 (use-package treemacs-projectile
-  :after treemacs projectile
-  :ensure t)
+  :after treemacs projectile)
 
 (use-package treemacs-icons-dired
   :after treemacs dired
-  :ensure t
   :config (treemacs-icons-dired-mode))
 
 (use-package treemacs-magit
   :after treemacs magit
-  :ensure t)
+  :straight t)
 
 (use-package treemacs-persp
   :after treemacs persp-mode
-  :ensure t
   :config (treemacs-set-scope-type 'Perspectives))
 
 (setq persp-keymap-prefix (kbd "C-x p"))
@@ -984,7 +986,6 @@ T - tag prefix
   (setq alert-default-style 'notifier))
 
 (use-package dashboard
-  :ensure t
   :config
   (dashboard-setup-startup-hook))
 
@@ -1026,7 +1027,6 @@ T - tag prefix
   :bind ("C-c s" . switch-web-js2))
     
 (use-package markdown-mode
-  :ensure t
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
@@ -1061,7 +1061,6 @@ T - tag prefix
 
 (use-package csharp-mode
   ;:requires omnisharp
-  :ensure t
   :hook (csharp-mode . my-csharp-mode-hook))
 
 ;; (add-hook 'csharp-mode-hook 'my-csharp-mode-hook t)
@@ -1069,7 +1068,6 @@ T - tag prefix
 
 ;;Docker
 (use-package docker
-  :ensure t
   :bind ("C-c d" . docker))
 
 ;;arxiv mode
@@ -1099,7 +1097,7 @@ T - tag prefix
 
 
 ;; emacs discrod plugin
-(use-package elcord :ensure nil  ;; installed using git, thus!
+(use-package elcord :straight nil  ;; installed using git, thus!
   :config
   (setq elcord-display-buffer-details nil)
   (elcord-mode))
