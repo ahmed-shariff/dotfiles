@@ -12,24 +12,24 @@
 (set-default-coding-systems 'utf-8)
 
 ;;mepla setup****************************************************
-(add-to-list 'package-archives
-	     '("melpa" . "https://melpa.org/packages/") t)
-(add-to-list 'package-archives
-	     '("org" . "http://orgmode.org/elpa/") t);'("elpy" . "http://jorgenschaefer.github.io/packages/"))
+;; (add-to-list 'package-archives
+;; 	     '("melpa" . "https://melpa.org/packages/") t)
+;; (add-to-list 'package-archives
+;; 	     '("org" . "http://orgmode.org/elpa/") t);'("elpy" . "http://jorgenschaefer.github.io/packages/"))
 ;	     '("melpa" . "http://melpa.org/packages/")
 ;	     '("org" . "http://orgmode.org/elpa/"))
 ; (add-to-list 'load-path "~/.emacs.d/customFiles")
 
-(setq load-prefer-newer t) ;;mkaing sure older byte compiled files are not loaded
+;; (setq load-prefer-newer t) ;;mkaing sure older byte compiled files are not loaded
 
 (let ((default-directory  "~/.emacs.d/customFiles/"))
   (normal-top-level-add-to-load-path `("."))
   (normal-top-level-add-subdirs-to-load-path))
-(add-to-list 'package-archives
-            '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+;; (add-to-list 'package-archives
+;;             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
-(when (< emacs-major-version 24)
-  (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
+;; (when (< emacs-major-version 24)
+;;   (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
 
 
 ;; ;;auto-compile *****************************************************
@@ -75,9 +75,10 @@
 ;; for emacs >= 27
 (setq straight-use-package-by-default t
       package-enable-at-startup nil
+      straight-recipes-gnu-elpa-use-mirror t
       straight-host-usernames "ahmed-shariff")
 
-(defvar my-package-list '(org-plus-contrib org-download 
+(defvar my-package-list '(org org-contrib org-download
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
 					   org-bullets latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode
@@ -91,7 +92,8 @@
 (when (gethash 'use-jupyter configurations t)
   (add-to-list 'my-package-list 'jupyter))
 
-(mapcar #'straight-use-package my-package-list)
+(mapcar #'straight-use-package
+	my-package-list)
 
 ;; custom variables*******************************************
 (custom-set-variables
@@ -373,7 +375,6 @@
 
 ;; Consult users will also want the embark-consult package.
 (use-package embark-consult
-  :ensure t
   :after (embark consult)
   :demand t ; only necessary if you have the hook below
   ;; if you want to have consult previews as you move around an
@@ -535,7 +536,7 @@
   :init
   ;; (add-hook 'prog-mode-hook #'lsp)
   ;; (setq lsp-auto-guess-root t)
-  ;; (setq lsp-print-io t)
+  ;; (setq lsp-log-io t)
   :config
   ;; (lsp-register-client
   
@@ -783,8 +784,8 @@ T - tag prefix
 (require  'slime)
 (slime-setup
  '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser slime-company))
-(unless package-archive-contents 
-  (package-refresh-contents))
+;; (unless package-archive-contents 
+;;   (package-refresh-contents))
 (setq tab-always-indent 'complete)
 (add-to-list 'completion-styles 'initials t)
 

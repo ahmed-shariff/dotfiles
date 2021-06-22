@@ -207,7 +207,7 @@ function get_music(){
     if [[ "$#" -eq 1 ]]; then
         youtube-dl -x --no-mtime --audio-quality 0 --audio-format mp3 $(python -c "print(\"$1\".split(\"&list\")[0])")
     elif [[ "$#" -eq 2 ]]; then
-         youtube-dl -x --no-mtime --audio-quality 0 --audio-format mp3 $(python -c "print(\"$1\".split(\"&list\")[0])") --exec "mv {} \"temp\"; ffmpeg -i \"temp\" -ss $2;rm \"temp\""
+         youtube-dl -x --no-mtime --audio-quality 0 --audio-format mp3 $(python -c "print(\"$1\".split(\"&list\")[0])") --exec "mv {} \"temp\"; ffmpeg -i \"temp\" -ss $2 {};rm \"temp\""
     elif [[ "$#" -eq 3 ]]; then
         youtube-dl -x --no-mtime --audio-quality 0 --audio-format mp3 $(python -c "print(\"$1\".split(\"&list\")[0])") --exec "mv {} \"temp\"; ffmpeg -i \"temp\" -ss $2 -t $3 {};rm \"temp\""
     else
