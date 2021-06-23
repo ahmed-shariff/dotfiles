@@ -1140,6 +1140,8 @@ T - tag prefix
                                            (-replace-at 1 "https://duckduckgo.com/?q=%s" provider)
                                          provider))
                                      web-search-providers))
+  (push '("google scholar ca" "https://scholar.google.ca/scholar?hl=en&as_sdt=0%%2C5&q=%s") web-search-providers)
+  
   (defun amsha-web-search ()
     "Wrapper to quick pick providers and tag."
     (interactive)
