@@ -500,7 +500,20 @@ Appends the todo state of the entry being visualized."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 
-(use-package org-ql)
+(use-package org-ql
+  :bind (:map org-agenda-mode-map
+         ("C-c o o" . org-ql-view-noter)))
+
+(defun org-ql-view-noter ()
+  (interactive)
+  (let* ((marker (or (org-get-at-bol 'org-hd-marker)
+                       (org-agenda-error)))
+         (buffer (marker-buffer marker))
+         (pos (marker-position marker)))
+    (when (equalp (buffer-name buffer) "research_papers.org")
+      (with-current-buffer buffer
+        (goto-char pos)
+        (org-noter)))))
 
 (org-ql-defpred brain-parent (&rest args)
   ""
