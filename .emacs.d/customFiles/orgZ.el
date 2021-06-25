@@ -501,6 +501,7 @@ Appends the todo state of the entry being visualized."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 
 (use-package org-ql
+  :commands org-ql-defpred
   :bind (:map org-agenda-mode-map
          ("C-c o o" . org-ql-view-noter)))
 
