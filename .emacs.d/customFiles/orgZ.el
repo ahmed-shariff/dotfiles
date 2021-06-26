@@ -508,7 +508,7 @@ Appends the todo state of the entry being visualized."
 (defun org-ql-view-noter ()
   (interactive)
   (let* ((marker (or (org-get-at-bol 'org-hd-marker)
-                       (org-agenda-error)))
+                     (org-agenda-error)))
          (buffer (marker-buffer marker))
          (pos (marker-position marker)))
     (when (equalp (buffer-name buffer) "research_papers.org")
@@ -843,7 +843,8 @@ Appends the todo state of the entry being visualized."
 (defun org-brain-add-parent-topic ()
   "."
   (interactive)
-  (let ((entry (org-brain-entry-at-pt)))
+  (let ((embark-quit-after-action nil)
+        (entry (org-brain-entry-at-pt)))
     (org-brain-add-parent entry (org-brain-choose-entries "Add parent topic: " 'all (lambda (entry)
 										      (or (s-starts-with-p "research topics::" (car entry))
                                                                                           (s-starts-with-p "misc_topics::" (car entry))

@@ -78,7 +78,7 @@
       straight-recipes-gnu-elpa-use-mirror t
       straight-host-usernames "ahmed-shariff")
 
-(defvar my-package-list '(org org-contrib org-download
+(defvar my-package-list '(org org-contrib org-download elgrep
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
 					   org-bullets latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode
@@ -510,6 +510,15 @@
   (add-hook 'csharp-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'java-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'python-mode-hook #'rainbow-delimeters-mode))
+
+;;elgrep******************************************************************************
+(use-package elgrep
+  :config
+  (defun elgrep-r ()
+    (interactive)
+    (let ((current-prefix-arg t))
+      (call-interactively 'elgrep))))
+
 
 ;;lsp-mode ***************************************************************************
 (use-package lsp-ui
