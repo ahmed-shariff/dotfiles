@@ -774,29 +774,78 @@ Appends the todo state of the entry being visualized."
 							  out-dir)))))))
     (dired out-dir)))
 
-(defun copy-related-research-paper-notes (parent-id)
-  "PARENT-ID."
-    (interactive (list
-		  (caddr (org-brain-choose-entry "Select research topic: " 'all (lambda (entry)
-										  (or (s-starts-with-p "research topics::" (car entry))
-										      (s-starts-with-p "publication::" (car entry))))))))
-    (let ((buffer  (generate-new-buffer (format "*org-paper-notes-%s*" parent-id))))
-      (save-excursion
-	(set-buffer buffer)
-	(org-mode)
-	(insert "#+OPTIONS: H:0\n\n"))
-      (save-excursion
-	(org-brain-goto "research_papers")
-	(org-map-entries (lambda ()
-			   (when (member parent-id
-					 (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))
-			     (org-copy-subtree)
-			     (save-excursion
-			       (set-buffer buffer)
-			       (goto-char (point-max))
-			       (when (not (looking-at "^")) (insert "\n"))
-			       (org-paste-subtree 1)))))
-	(switch-to-buffer buffer))))
+(defvar copy-notes-and-bib-function-org-buffer nil)
+(defvar copy-notes-and-bib-function-bib-buffer nil)
+
+(defun copy-notes-and-bib-function ()
+  "NOTES-BUFFER BIB-BUFFER PREDICATE."
+  (let* ((temp-name (secure-hash 'md5 (format "%s" (current-time))))
+         (org-file-buffer (generate-new-buffer (format "*org-paper-notes-%s*" temp-name)))
+         (bib-file-buffer (generate-new-buffer (format "*paper-notes-bib-%s*" temp-name))))
+    (with-current-buffer org-file-buffer
+      (org-mode)
+      (insert "#+OPTIONS: H:0\n\n"))
+    (with-current-buffer bib-file-buffer
+      (bibtex-mode))
+    (setq copy-notes-and-bib-function-org-buffer org-file-buffer)
+    (setq copy-notes-and-bib-function-bib-buffer bib-file-buffer)
+    (lambda ()
+      (message "%s >> " (org-entry-get (point) "Custom_ID"))
+      (let* ((key (org-entry-get (point) "Custom_ID"))
+             (org-ref-result (org-ref-get-bibtex-key-and-file key)))
+        (save-excursion
+          (find-file (cdr org-ref-result))
+          (bibtex-search-entry key)
+          (bibtex-copy-entry-as-kill)
+          (with-current-buffer bib-file-buffer
+            (bibtex-yank))))
+      (org-copy-subtree)
+      (with-current-buffer org-file-buffer
+        (when (not (looking-at "^")) (insert "\n"))
+	(org-paste-subtree 1)))))
+
+(defun copy-notes-and-bib-function-switch-to-buffers ()
+  (interactive)
+  (when copy-notes-and-bib-function-org-buffer
+    (switch-to-buffer copy-notes-and-bib-function-org-buffer))
+  (when copy-notes-and-bib-function-bib-buffer
+    (switch-to-buffer copy-notes-and-bib-function-bib-buffer)))
+
+(defun org-ql-copy-query-notes-and-bib (query)
+  "copy notes and bib file to a seperate buffer based on org-ql query QUERY."
+  (interactive "xQuery: ")
+  (org-ql-select (buffer-file-name (marker-buffer (org-brain-entry-marker "research_papers")))
+    query
+    :action (copy-notes-and-bib-function))
+  (copy-notes-and-bib-function-switch-to-buffers))
+
+(defvar org-agenda-bulk-action-started nil)
+(defvar org-agenda-bulk-action-post-execution-function nil)
+
+(defun org-agenda-bulk-action-wrapper (original &rest args)
+  (setq org-agenda-bulk-action-started t)
+  (condition-case nil
+      (apply original args)
+    (error nil))
+  (setq org-agenda-bulk-action-started nil)
+  (when org-agenda-bulk-action-post-execution-function
+    (funcall org-agenda-bulk-action-post-execution-function))
+  (setq org-agenda-bulk-action-post-execution-function nil))
+
+(advice-add 'org-agenda-bulk-action :around #'org-agenda-bulk-action-wrapper)
+
+(defvar org-agenda-copy-query-notes-and-bib-func nil)
+
+(defun org-agenda-copy-query-notes-and-bib ()
+  "To be used with the org-agenda-bulk-action."
+  (unless org-agenda-copy-query-notes-and-bib-func
+    (setq org-agenda-copy-query-notes-and-bib-func (copy-notes-and-bib-function))
+    (setq org-agenda-bulk-action-post-execution-function (lambda ()
+                                                           (setq org-agenda-copy-query-notes-and-bib-func nil)
+                                                           (copy-notes-and-bib-function-switch-to-buffers))))
+  (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
+                         (org-agenda-error))
+    (funcall org-agenda-copy-query-notes-and-bib-func)))
 
 (require 'org-ref-arxiv)
 (defun arxiv-add-bibtex-entry-with-note (arxiv-link bibfile)
