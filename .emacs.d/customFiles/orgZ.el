@@ -74,7 +74,8 @@
 						       (:kernel . "python3")
 						       (:tangle . "yes")
 						       (:exports . "both")))
-  (require 'ox-ipynb)
+  (use-package ox-ipynb
+    :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb"))
   (append org-babel-load-languages '((jupyter . t))))
 
 (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages)

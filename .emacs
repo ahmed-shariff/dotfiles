@@ -78,7 +78,7 @@
       straight-recipes-gnu-elpa-use-mirror t
       straight-host-usernames "ahmed-shariff")
 
-(defvar my-package-list '(org org-contrib org-download elgrep
+(defvar my-package-list '(org org-contrib org-download elgrep dired+
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
 					   org-bullets latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode
@@ -1279,8 +1279,9 @@ T - tag prefix
   :bind ("C-c d" . docker))
 
 ;;arxiv mode
-(require 'arxiv-mode)
-
+(use-package arxiv-mode
+  :commands (arxiv-read-new arxiv-read-recent arxiv-search)
+  :straight (arxiv-mode :type git :host github :repo "fizban007/arxiv-mode"))
 
 (defun amsha/downlad-raname-move-file (url newname dir)
   (url-copy-file url (expand-file-name newname dir)))
@@ -1305,7 +1306,7 @@ T - tag prefix
 
 
 ;; emacs discrod plugin
-(use-package elcord :straight nil  ;; installed using git, thus!
+(use-package elcord
   :config
   (setq elcord-display-buffer-details nil)
   (elcord-mode))
