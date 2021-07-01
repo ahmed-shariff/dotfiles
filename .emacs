@@ -217,7 +217,23 @@
 (use-package orderless
   :custom (completion-styles '(orderless))
   :config
-  (setq orderless-matching-styles '(orderless-flex orderless-initialism)))
+  (defun amsha/without-if-bang (pattern _index _total)
+    (cond
+     ((equal "!" pattern)
+      '(orderless-literal . ""))
+     ((string-prefix-p "!" pattern)
+      `(orderless-without-literal . ,(substring pattern 1)))))
+
+  (defun amsha/match-components-literally (orig-fun &rest args)
+    "Funtion to add as advice for interactive functions that will always use lietral completion."
+    (interactive (lambda (spec) (advice-eval-interactive-spec spec)))
+    (let ((orderless-matching-styles '(orderless-literal)))
+      (apply orig-fun args)))
+
+  (advice-add #'org-set-property :around #'amsha/match-components-literally)
+  
+  (setq orderless-matching-styles '(orderless-flex)
+        orderless-style-dispatchers '(amsha/without-if-bang)))
 
 (use-package selectrum
   :init (selectrum-mode +1)
