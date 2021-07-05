@@ -232,8 +232,8 @@
 
   (advice-add #'org-set-property :around #'amsha/match-components-literally)
   
-  (setq orderless-matching-styles '(orderless-flex)
-        orderless-style-dispatchers '(amsha/without-if-bang)))
+  (setq orderless-matching-styles '(orderless-literal orderless-regexp))
+        orderless-style-dispatchers '(amsha/without-if-bang))
 
 (use-package selectrum
   :init (selectrum-mode +1)
