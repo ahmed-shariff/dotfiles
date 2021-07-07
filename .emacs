@@ -187,6 +187,16 @@
       backup-by-copying t
       delete-old-versions t)
 
+;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
+(defun amsha/visual-fill ()
+  (setq visual-fill-column-width 110
+        visual-fill-column-center-text t)
+  (visual-fill-column-mode 1))
+
+(use-package visual-fill-column
+  :defer 
+  :hook ((org-mode LaTeX-mode latex-mode) . amsha/visual-fill))
+
 ;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
 ;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
 (if (not (eq system-type 'windows-nt))

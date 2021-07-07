@@ -110,15 +110,6 @@
          nil t)
         (goto-char (point-at-bol))))
 
-;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
-(defun amsha/org-mode-visual-fill ()
-  (setq visual-fill-column-width 110
-        visual-fill-column-center-text t)
-  (visual-fill-column-mode 1))
-
-(use-package visual-fill-column
-  :defer 
-  :hook (org-mode . amsha/org-mode-visual-fill))
 ;;  ***************************************************************
 
 (defun org-ask-id (file prompt property)
