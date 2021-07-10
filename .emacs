@@ -76,7 +76,7 @@
 (setq straight-use-package-by-default t
       package-enable-at-startup nil
       straight-recipes-gnu-elpa-use-mirror t
-      straight-host-usernames "ahmed-shariff")
+      straight-host-usernames '((github . "ahmed-shariff")))
 
 (defvar my-package-list '(org org-contrib org-download elgrep dired+
 					   ;; org-capture-pop-frame

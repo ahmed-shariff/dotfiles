@@ -493,6 +493,7 @@ Appends the todo state of the entry being visualized."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 
 (use-package org-ql
+  :straight (org-ql :type git :host github :repo "alphapapa/org-ql" :fork t)
   :commands org-ql-defpred
   :bind (:map org-agenda-mode-map
          ("C-c o o" . org-ql-view-noter)))
