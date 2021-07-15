@@ -264,10 +264,10 @@
   ;; enabled right away. Note that this forces loading the package.
   (marginalia-mode))
 
-(use-package icon-affixation
+(use-package all-the-icons-completion
   :after (marginalia)
-  :straight (icon-affixation :type git :host github :repo "iyefrat/icon-affixation")
-  :init (icon-affixation-mode))
+  :straight (all-the-icons-completion :type git :host github :repo "iyefrat/icon-affixation")
+  :init (all-the-icons-completion-mode))
 
 ;;embark & consult**************************************************
 (use-package embark
