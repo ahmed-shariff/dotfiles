@@ -515,7 +515,6 @@ Appends the todo state of the entry being visualized."
   (let ((parents (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))
         (pred (car args))
         (parent-ids (cdr args)))
-    (message "%s %s" pred parent-ids)
     (when parents
       (funcall
        (cond
@@ -554,14 +553,12 @@ Appends the todo state of the entry being visualized."
                             (setq done t)))))
     (let* ((topic-ids (list (append `(brain-parent 'and) (mapcar #'cdr topics))))
            (query (append '(and (level <= 1)) topic-ids)))
-      (message "%s" query)
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query))))
 
 (defun org-brain-query-papers-by-pdf-string (regexp)
   "."
   (interactive "sRegexp: ")
   (let* ((query `(and (level <= 1) (search-pdf-regexp ,regexp))))
-      (message "%s" query)
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
 
 
@@ -592,7 +589,6 @@ Appends the todo state of the entry being visualized."
   (interactive "@e")
   (setq current-b (buffer-name))
   (progn (pdf-view-mouse-set-region-rectangle event)
-	 (message "%s" pdf-view-active-region)
 	 (pdf-view-extract-region-image pdf-view-active-region
 					(pdf-view-current-page)
 					(pdf-view-image-size)
@@ -604,7 +600,6 @@ Appends the todo state of the entry being visualized."
   (interactive "@e")
   (setq current-b (buffer-name))
   (progn (pdf-view-mouse-set-region-rectangle event)
-	 (message "%s" pdf-view-active-region)
 	 (pdf-view-extract-region-image pdf-view-active-region
 					(pdf-view-current-page)
 					(pdf-view-image-size)
@@ -613,7 +608,6 @@ Appends the todo state of the entry being visualized."
          (set-buffer "teste.jpg")
 	 (switch-to-buffer "taste.jpg")
          (with-current-buffer "taste.jpg"
-           (message "-----  %s" (buffer-name))
            (mark-whole-buffer)
            (kill-ring-save (point-min) (point-max))
            (write-file "~/" t)
@@ -667,7 +661,6 @@ Appends the todo state of the entry being visualized."
 (defun set-property-for-level-in-region (level property value)
   "."
   (interactive "nLevel: \nsPropertyb: \nsValue: ")
-  (message "%s %s %s %s %s" level property value (region-beginning) (region-end))
   (org-map-entries
    (lambda ()
      (org-entry-put (point) (upcase property) value))
@@ -730,7 +723,6 @@ Appends the todo state of the entry being visualized."
 (defun amsha/doi-utils-get-pdf-url-uml (old-function &rest rest)
   "Making sure the urls that are being recived by org-ref is made to use uml links."
   (let ((url (apply old-function rest)))
-    (message "%s" url)
     (when url
       (amsha/get-uml-link url))))
 
@@ -783,12 +775,11 @@ Appends the todo state of the entry being visualized."
     (setq copy-notes-and-bib-function-org-buffer org-file-buffer)
     (setq copy-notes-and-bib-function-bib-buffer bib-file-buffer)
     (lambda ()
-      (message "%s >> " (org-entry-get (point) "Custom_ID"))
-      (let* ((key (org-entry-get (point) "Custom_ID"))
-             (org-ref-result (org-ref-get-bibtex-key-and-file key)))
+      (let* ((entry-key (org-entry-get (point) "Custom_ID")))
+        (message "copying %s >> " entry-key)
         (save-excursion
-          (find-file (cdr org-ref-result))
-          (bibtex-search-entry key)
+          (find-file bibtex-completion-bibliography)
+          (bibtex-search-entry entry-key)
           (bibtex-copy-entry-as-kill)
           (with-current-buffer bib-file-buffer
             (bibtex-yank))))
