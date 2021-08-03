@@ -285,7 +285,11 @@
   (add-to-list 'display-buffer-alist
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
                  nil
-                 (window-parameters (mode-line-format . none)))))
+                 (window-parameters (mode-line-format . none))))
+  
+  (define-key embark-file-map "o" nil)
+  (define-key embark-file-map "ocn" #'copy-current-file-name)
+  (define-key embark-file-map "ocf" #'copy-current-file-full-path))
 
 (use-package consult
   ;; Replace bindings. Lazily loaded due by `use-package'.
@@ -1143,7 +1147,7 @@ T - tag prefix
 
 ;;other stuff************************************************************
 (defun copy-current-file-name ()
-  "Copy the current buffers filename to the kill ring."
+  "Copy the current buffers filename or FILE to the kill ring."
   (interactive)
   (kill-new (file-name-nondirectory (buffer-file-name (window-buffer (minibuffer-selected-window))))))
 
