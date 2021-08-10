@@ -80,6 +80,17 @@
   (push '(jupyter . t) org-babel-load-languages))
 
 
+;; from https://emacs.stackexchange.com/questions/42471/how-to-export-markdown-from-org-mode-with-syntax
+(defun org-md-example-block-with-syntax (example-block _content info)
+  "Transcode element EXAMPLE-BLOCK as ```lang ...'''."
+  (format "```%s\n%s\n```"
+          (org-element-property :language example-block)
+          (org-remove-indentation
+           (org-export-format-code-default example-block info))))
+
+(advice-add 'org-md-example-block :override #'org-md-example-block-with-syntax)
+
+
 (with-eval-after-load 'org
   (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
 
