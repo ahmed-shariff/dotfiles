@@ -1280,7 +1280,8 @@ T - tag prefix
   (add-to-list 'auto-mode-alist '("\\.plantuml\\'" . plantuml-mode))
   :config
   (setq plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
-  (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar"))
+  (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
+  (setq plantuml-default-exec-mode 'jar))
   ;; (setq plantuml-exec-mode "jar")
   ;; (plantuml-set-exec-mode "jar"))
 

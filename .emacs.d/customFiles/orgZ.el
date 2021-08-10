@@ -62,11 +62,12 @@
  'org-src-lang-modes '("plantuml" . plantuml))
 (setq org-src-tab-acts-natively t)
 
-(append org-babel-load-languages '((ruby . t)
-				   (plantuml . t)
-				   (emacs-lisp . t)
-				   (python . t)
-				   (shell .t)))
+(setq org-babel-load-languages
+      (append org-babel-load-languages '((ruby . t)
+				         (plantuml . t)
+				         (emacs-lisp . t)
+				         (python . t)
+				         (shell . t))))
 
 (when (gethash 'use-jupyter configurations t)
   (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
@@ -76,9 +77,12 @@
 						       (:exports . "both")))
   (use-package ox-ipynb
     :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb"))
-  (append org-babel-load-languages '((jupyter . t))))
+  (push '(jupyter . t) org-babel-load-languages))
 
-(org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages)
+
+(with-eval-after-load 'org
+  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
+
 ;; (defun my-org-confirm-babel-evaluate (lang bdy)
 ;;   "Function to eval plantuml blocks.
 ;; LANG
