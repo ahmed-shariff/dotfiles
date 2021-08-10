@@ -411,6 +411,10 @@
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
 
+;;tramp settings ***************************************************
+;; See https://stackoverflow.com/questions/6954479/emacs-tramp-doesnt-work for more details
+(setq tramp-terminal-type "dumb")
+
 ;;ivy-mode *********************************************************
 (use-package amx
   :init (amx-mode 1))
