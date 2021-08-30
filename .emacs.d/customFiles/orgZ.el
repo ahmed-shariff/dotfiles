@@ -24,8 +24,12 @@
 ;;; Code:
 (require 'org)
 (require 'org-capture)
-(require 'org-capture-pop-frame)
+;; (require 'org-capture-pop-frame)
 ;(ido-mode)
+
+(use-package org-capture-pop-frame
+  :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
+                                   :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame")))
 
 (setq org-ellipsis " ▾"
       org-hide-emphasis-markers t
@@ -58,11 +62,12 @@
  'org-src-lang-modes '("plantuml" . plantuml))
 (setq org-src-tab-acts-natively t)
 
-(append org-babel-load-languages '((ruby . t)
-				   (plantuml . t)
-				   (emacs-lisp . t)
-				   (python . t)
-				   (shell .t)))
+(setq org-babel-load-languages
+      (append org-babel-load-languages '((ruby . t)
+				         (plantuml . t)
+				         (emacs-lisp . t)
+				         (python . t)
+				         (shell . t))))
 
 (when (gethash 'use-jupyter configurations t)
   (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
@@ -70,10 +75,111 @@
 						       (:kernel . "python3")
 						       (:tangle . "yes")
 						       (:exports . "both")))
-  (require 'ox-ipynb)
-  (append org-babel-load-languages '((jupyter . t))))
+  (use-package ox-ipynb
+    :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb"))
+  (push '(jupyter . t) org-babel-load-languages))
 
-(org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages)
+
+;; from https://emacs.stackexchange.com/questions/42471/how-to-export-markdown-from-org-mode-with-syntax
+(defun org-md-example-block-with-syntax (example-block _content info)
+  "Transcode element EXAMPLE-BLOCK as ```lang ...'''."
+  (format "```%s\n%s\n```"
+          (org-element-property :language example-block)
+          (org-remove-indentation
+           (org-export-format-code-default example-block info))))
+
+(advice-add 'org-md-example-block :override #'org-md-example-block-with-syntax)
+
+;; (defun org-md-link-github-syntax (link desc info)
+;;   "Transcode LINK object into Markdown format.
+;; DESC is the description part of the link, or the empty string.
+;; INFO is a plist holding contextual information.  See
+;; `org-export-data'."
+;;   (let* ((link-org-files-as-md
+;; 	  (lambda (raw-path)
+;; 	    ;; Treat links to `file.org' as links to `file.md'.
+;; 	    (if (string= ".org" (downcase (file-name-extension raw-path ".")))
+;; 		(concat (file-name-sans-extension raw-path) ".md")
+;; 	      raw-path)))
+;; 	 (type (org-element-property :type link))
+;; 	 (raw-path (org-element-property :path link))
+;; 	 (path (cond
+;; 		((member type '("http" "https" "ftp" "mailto"))
+;; 		 (concat type ":" raw-path))
+;; 		((string-equal  type "file")
+;; 		 (org-export-file-uri (funcall link-org-files-as-md raw-path)))
+;; 		(t raw-path))))
+;;     (cond
+;;      ;; Link type is handled by a special function.
+;;      ((org-export-custom-protocol-maybe link desc 'md info))
+;;      ((member type '("custom-id" "id" "fuzzy"))
+;;       (let ((destination (if (string= type "fuzzy")
+;; 			     (org-export-resolve-fuzzy-link link info)
+;; 			   (org-export-resolve-id-link link info))))
+;; 	(pcase (org-element-type destination)
+;; 	  (`plain-text			; External file.
+;; 	   (let ((path (funcall link-org-files-as-md destination)))
+;; 	     (if (not desc) (format "<%s>" path)
+;; 	       (format "[%s](%s)" desc path))))
+;; 	  (`headline
+;; 	    ;; Description.
+;; 	    (let ((-description (cond ((org-string-nw-p desc))
+;; 		                      ((org-export-numbered-headline-p destination info)
+;; 		                       (mapconcat #'number-to-string
+;; 			                          (org-export-get-headline-number destination info)
+;; 			                          "."))
+;; 		                      (t (org-export-data (org-element-property :title destination)
+;; 				                          info))))
+;; 	          ;; Reference.
+;;                   (-ref (->>
+;;                             (org-export-data (org-element-property :title destination)
+;; 				             info)
+;;                           (s-replace-regexp "[^[:alnum:]-\(\_\|\s\)]" "" )
+;;                           (s-replace-regexp "\s" "-")
+;;                           (s-downcase))))
+;;               (format
+;; 	       "[%s](#%s)" -description -ref)))
+;; 	  (_
+;; 	   (let ((description
+;; 		  (or (org-string-nw-p desc)
+;; 		      (let ((number (org-export-get-ordinal destination info)))
+;; 			(cond
+;; 			 ((not number) nil)
+;; 			 ((atom number) (number-to-string number))
+;; 			 (t (mapconcat #'number-to-string number ".")))))))
+;; 	     (when description
+;; 	       (format "[%s](#%s)"
+;; 		       description
+;; 		       (org-export-get-reference destination info))))))))
+;;      ((org-export-inline-image-p link org-html-inline-image-rules)
+;;       (let ((path (cond ((not (string-equal type "file"))
+;; 			 (concat type ":" raw-path))
+;; 			((not (file-name-absolute-p raw-path)) raw-path)
+;; 			(t (expand-file-name raw-path))))
+;; 	    (caption (org-export-data
+;; 		      (org-export-get-caption
+;; 		       (org-export-get-parent-element link))
+;; 		      info)))
+;; 	(format "![img](%s)"
+;; 		(if (not (org-string-nw-p caption)) path
+;; 		  (format "%s \"%s\"" path caption)))))
+;;      ((string= type "coderef")
+;;       (format (org-export-get-coderef-format path desc)
+;; 	      (org-export-resolve-coderef path info)))
+;;      ((string= type "radio")
+;;       (let ((destination (org-export-resolve-radio-link link info)))
+;; 	(if (not destination) desc
+;; 	  (format "<a href=\"#%s\">%s</a>"
+;; 		  (org-export-get-reference destination info)
+;; 		  desc))))
+;;      (t (if (not desc) (format "<%s>" path)
+;; 	  (format "[%s](%s)" desc path))))))
+
+;; (advice-add 'org-md-link :override #'org-md-link-github-syntax)
+
+(with-eval-after-load 'org
+  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
+
 ;; (defun my-org-confirm-babel-evaluate (lang bdy)
 ;;   "Function to eval plantuml blocks.
 ;; LANG
@@ -105,15 +211,6 @@
          nil t)
         (goto-char (point-at-bol))))
 
-;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
-(defun amsha/org-mode-visual-fill ()
-  (setq visual-fill-column-width 110
-        visual-fill-column-center-text t)
-  (visual-fill-column-mode 1))
-
-(use-package visual-fill-column
-  :defer 
-  :hook (org-mode . amsha/org-mode-visual-fill))
 ;;  ***************************************************************
 
 (defun org-ask-id (file prompt property)
@@ -145,23 +242,19 @@
     (goto-char (point-max))))
 
 (defun board-task-location ()
-  (let* ((project-boards (directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org"))
+  (let* ((project-boards (directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org$"))
          (targets
-          (with-temp-buffer
-            (org-mode)
-            (apply #'append (mapcar (lambda (file)
-                                      (insert-file-contents file nil nil nil 'replace)
-                                      (org-map-entries (lambda ()
-                                                         (let ((title (org-entry-get (point) "ITEM")))
-                                                           (list (format "%s::%s"
-                                                                         (file-name-base file)
-                                                                         title)
-                                                                 (org-id-get-create)
-                                                                 (file-name-base file)
-                                                                 title)))
-                                                       "LEVEL=1&TODO=\"INPROGRESS\""))
-                                    project-boards))))
-         (target (assoc (ivy-read "Select task: " targets) targets)))
+          (org-ql-select project-boards `(and (todo "INPROGRESS") (level 1))
+            :action (lambda ()
+                      (let* ((headline-plist (cadr (org-element-headline-parser (point))))
+                             (title (car (plist-get headline-plist :title)))
+                             (file-name (file-name-base (buffer-file-name))))
+                        (list (format "%s::%s" file-name title)
+                              (org-id-get-create)
+                              file-name
+                              title)))))
+         (target (progn
+                   (assoc (ivy-read "Select task: " targets) targets))))
     (format "* [[id:%s][%s]]  %%?
      :PROPERTIES:
      :ID:       %s
@@ -178,24 +271,24 @@
 
 (setq org-capture-templates
       '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
-	 entry (file+datetree "~/Documents/org/notes.org")
+	 entry (file+olp+datetree "~/Documents/org/notes.org")
 	 "* NOTE %^g\n\tAdded: %U\n\t%?")
 	("t" "A thing i have to do(a wonderfull epiphany? 3:))->TO THE NOTES"
 	 entry (file "~/Documents/org/notes.org")
 	 "* TODO %^{Description} %^g\n\tAdded: %U\n\t%?")
 	("j" "Journal entry")
 	("jg" "Journal entry general"
-	 entry (file+datetree "~/Documents/org/journal.org")
+	 entry (file+olp+datetree "~/Documents/org/journal.org")
 	 "* %?")
 	("jw" "Journal entry work"
-	 entry (file+datetree "~/Documents/org/brain/work/notes.org")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
 	 "* %?")
 	("js" "Journal entry work-scrum"
-	 entry (file+datetree "~/Documents/org/brain/work/scrum.org")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/scrum.org")
 	 "* Y:\n1. %?\n* T:\n1. "
 	 :jump-to-captured t)
 	("jt" "Journal sub entry"
-	 entry (file+datetree "~/Documents/org/brain/work/notes.org")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
 	 "1. %?")
 	("e" "Experiment setup information")
 	("ej" "Add Journal entry")
@@ -326,12 +419,12 @@
   (helm-delete-action-from-source "Edit notes" helm-source-bibtex)
   (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
 
-(quelpa-use-package-activate-advice)
-(use-package org-noter :ensure t :quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
+(use-package org-noter ;;:quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
+  :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
+                       :fork (:host github :repo "ahmed-shariff/org-noter"))
   :config
   (setq org-noter-property-doc-file "INTERLEAVE_PDF"
         org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"))
-(quelpa-use-package-deactivate-advice)
 
 (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
   :init
@@ -500,7 +593,22 @@ Appends the todo state of the entry being visualized."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 
-(use-package org-ql)
+(use-package org-ql
+  :straight (org-ql :type git :host github :repo "alphapapa/org-ql" :fork t)
+  :commands org-ql-defpred
+  :bind (:map org-agenda-mode-map
+         ("C-c o o" . org-ql-view-noter)))
+
+(defun org-ql-view-noter ()
+  (interactive)
+  (let* ((marker (or (org-get-at-bol 'org-hd-marker)
+                     (org-agenda-error)))
+         (buffer (marker-buffer marker))
+         (pos (marker-position marker)))
+    (when (equalp (buffer-name buffer) "research_papers.org")
+      (with-current-buffer buffer
+        (goto-char pos)
+        (org-noter)))))
 
 (org-ql-defpred brain-parent (&rest args)
   ""
@@ -508,7 +616,6 @@ Appends the todo state of the entry being visualized."
   (let ((parents (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))
         (pred (car args))
         (parent-ids (cdr args)))
-    (message "%s %s" pred parent-ids)
     (when parents
       (funcall
        (cond
@@ -547,14 +654,12 @@ Appends the todo state of the entry being visualized."
                             (setq done t)))))
     (let* ((topic-ids (list (append `(brain-parent 'and) (mapcar #'cdr topics))))
            (query (append '(and (level <= 1)) topic-ids)))
-      (message "%s" query)
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query))))
 
 (defun org-brain-query-papers-by-pdf-string (regexp)
   "."
   (interactive "sRegexp: ")
   (let* ((query `(and (level <= 1) (search-pdf-regexp ,regexp))))
-      (message "%s" query)
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
 
 
@@ -585,7 +690,6 @@ Appends the todo state of the entry being visualized."
   (interactive "@e")
   (setq current-b (buffer-name))
   (progn (pdf-view-mouse-set-region-rectangle event)
-	 (message "%s" pdf-view-active-region)
 	 (pdf-view-extract-region-image pdf-view-active-region
 					(pdf-view-current-page)
 					(pdf-view-image-size)
@@ -597,7 +701,6 @@ Appends the todo state of the entry being visualized."
   (interactive "@e")
   (setq current-b (buffer-name))
   (progn (pdf-view-mouse-set-region-rectangle event)
-	 (message "%s" pdf-view-active-region)
 	 (pdf-view-extract-region-image pdf-view-active-region
 					(pdf-view-current-page)
 					(pdf-view-image-size)
@@ -606,7 +709,6 @@ Appends the todo state of the entry being visualized."
          (set-buffer "teste.jpg")
 	 (switch-to-buffer "taste.jpg")
          (with-current-buffer "taste.jpg"
-           (message "-----  %s" (buffer-name))
            (mark-whole-buffer)
            (kill-ring-save (point-min) (point-max))
            (write-file "~/" t)
@@ -660,7 +762,6 @@ Appends the todo state of the entry being visualized."
 (defun set-property-for-level-in-region (level property value)
   "."
   (interactive "nLevel: \nsPropertyb: \nsValue: ")
-  (message "%s %s %s %s %s" level property value (region-beginning) (region-end))
   (org-map-entries
    (lambda ()
      (org-entry-put (point) (upcase property) value))
@@ -723,7 +824,6 @@ Appends the todo state of the entry being visualized."
 (defun amsha/doi-utils-get-pdf-url-uml (old-function &rest rest)
   "Making sure the urls that are being recived by org-ref is made to use uml links."
   (let ((url (apply old-function rest)))
-    (message "%s" url)
     (when url
       (amsha/get-uml-link url))))
 
@@ -760,29 +860,77 @@ Appends the todo state of the entry being visualized."
 							  out-dir)))))))
     (dired out-dir)))
 
-(defun copy-related-research-paper-notes (parent-id)
-  "PARENT-ID."
-    (interactive (list
-		  (caddr (org-brain-choose-entry "Select research topic: " 'all (lambda (entry)
-										  (or (s-starts-with-p "research topics::" (car entry))
-										      (s-starts-with-p "publication::" (car entry))))))))
-    (let ((buffer  (generate-new-buffer (format "*org-paper-notes-%s*" parent-id))))
-      (save-excursion
-	(set-buffer buffer)
-	(org-mode)
-	(insert "#+OPTIONS: H:0\n\n"))
-      (save-excursion
-	(org-brain-goto "research_papers")
-	(org-map-entries (lambda ()
-			   (when (member parent-id
-					 (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))
-			     (org-copy-subtree)
-			     (save-excursion
-			       (set-buffer buffer)
-			       (goto-char (point-max))
-			       (when (not (looking-at "^")) (insert "\n"))
-			       (org-paste-subtree 1)))))
-	(switch-to-buffer buffer))))
+(defvar copy-notes-and-bib-function-org-buffer nil)
+(defvar copy-notes-and-bib-function-bib-buffer nil)
+
+(defun copy-notes-and-bib-function ()
+  "NOTES-BUFFER BIB-BUFFER PREDICATE."
+  (let* ((temp-name (secure-hash 'md5 (format "%s" (current-time))))
+         (org-file-buffer (generate-new-buffer (format "*org-paper-notes-%s*" temp-name)))
+         (bib-file-buffer (generate-new-buffer (format "*paper-notes-bib-%s*" temp-name))))
+    (with-current-buffer org-file-buffer
+      (org-mode)
+      (insert "#+OPTIONS: H:0\n\n"))
+    (with-current-buffer bib-file-buffer
+      (bibtex-mode))
+    (setq copy-notes-and-bib-function-org-buffer org-file-buffer)
+    (setq copy-notes-and-bib-function-bib-buffer bib-file-buffer)
+    (lambda ()
+      (let* ((entry-key (org-entry-get (point) "Custom_ID")))
+        (message "copying %s >> " entry-key)
+        (save-excursion
+          (find-file bibtex-completion-bibliography)
+          (bibtex-search-entry entry-key)
+          (bibtex-copy-entry-as-kill)
+          (with-current-buffer bib-file-buffer
+            (bibtex-yank))))
+      (org-copy-subtree)
+      (with-current-buffer org-file-buffer
+        (when (not (looking-at "^")) (insert "\n"))
+	(org-paste-subtree 1)))))
+
+(defun copy-notes-and-bib-function-switch-to-buffers ()
+  (interactive)
+  (when copy-notes-and-bib-function-org-buffer
+    (switch-to-buffer copy-notes-and-bib-function-org-buffer))
+  (when copy-notes-and-bib-function-bib-buffer
+    (switch-to-buffer copy-notes-and-bib-function-bib-buffer)))
+
+(defun org-ql-copy-query-notes-and-bib (query)
+  "copy notes and bib file to a seperate buffer based on org-ql query QUERY."
+  (interactive "xQuery: ")
+  (org-ql-select (buffer-file-name (marker-buffer (org-brain-entry-marker "research_papers")))
+    query
+    :action (copy-notes-and-bib-function))
+  (copy-notes-and-bib-function-switch-to-buffers))
+
+(defvar org-agenda-bulk-action-started nil)
+(defvar org-agenda-bulk-action-post-execution-function nil)
+
+(defun org-agenda-bulk-action-wrapper (original &rest args)
+  (setq org-agenda-bulk-action-started t)
+  (condition-case nil
+      (apply original args)
+    (error nil))
+  (setq org-agenda-bulk-action-started nil)
+  (when org-agenda-bulk-action-post-execution-function
+    (funcall org-agenda-bulk-action-post-execution-function))
+  (setq org-agenda-bulk-action-post-execution-function nil))
+
+(advice-add 'org-agenda-bulk-action :around #'org-agenda-bulk-action-wrapper)
+
+(defvar org-agenda-copy-query-notes-and-bib-func nil)
+
+(defun org-agenda-copy-query-notes-and-bib ()
+  "To be used with the org-agenda-bulk-action."
+  (unless org-agenda-copy-query-notes-and-bib-func
+    (setq org-agenda-copy-query-notes-and-bib-func (copy-notes-and-bib-function))
+    (setq org-agenda-bulk-action-post-execution-function (lambda ()
+                                                           (setq org-agenda-copy-query-notes-and-bib-func nil)
+                                                           (copy-notes-and-bib-function-switch-to-buffers))))
+  (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
+                         (org-agenda-error))
+    (funcall org-agenda-copy-query-notes-and-bib-func)))
 
 (require 'org-ref-arxiv)
 (defun arxiv-add-bibtex-entry-with-note (arxiv-link bibfile)
@@ -829,7 +977,8 @@ Appends the todo state of the entry being visualized."
 (defun org-brain-add-parent-topic ()
   "."
   (interactive)
-  (let ((entry (org-brain-entry-at-pt)))
+  (let ((embark-quit-after-action nil)
+        (entry (org-brain-entry-at-pt)))
     (org-brain-add-parent entry (org-brain-choose-entries "Add parent topic: " 'all (lambda (entry)
 										      (or (s-starts-with-p "research topics::" (car entry))
                                                                                           (s-starts-with-p "misc_topics::" (car entry))

@@ -8,7 +8,7 @@ export ZSH=$HOME/.oh-my-zsh
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
-ZSH_THEME="powerline"
+ZSH_THEME="agnoster"
 
 # Set list of themes to load
 # Setting this variable when ZSH_THEME=random
@@ -37,7 +37,7 @@ ZSH_THEME="powerline"
 # DISABLE_AUTO_TITLE="true"
 
 # Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
+ENABLE_CORRECTION="true"
 
 # Uncomment the following line to display red dots whilst waiting for completion.
 # COMPLETION_WAITING_DOTS="true"
@@ -69,7 +69,8 @@ COLOR_3_FG=black
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-  git
+    git
+    poetry
 )
 
 source $ZSH/oh-my-zsh.sh
@@ -116,8 +117,10 @@ bindkey -e
 # The following lines were added by compinstall
 #zstyle :compinstall filename '/home/amsha/.zshrc'
 
-#autoload -Uz compinit
-#compinit
+fpath+=~/.zfunc
+
+autoload -Uz compinit
+compinit
 # End of lines added by compinstall
 
 # Load platform spcific setup
@@ -207,7 +210,7 @@ function get_music(){
     if [[ "$#" -eq 1 ]]; then
         youtube-dl -x --no-mtime --audio-quality 0 --audio-format mp3 $(python -c "print(\"$1\".split(\"&list\")[0])")
     elif [[ "$#" -eq 2 ]]; then
-         youtube-dl -x --no-mtime --audio-quality 0 --audio-format mp3 $(python -c "print(\"$1\".split(\"&list\")[0])") --exec "mv {} \"temp\"; ffmpeg -i \"temp\" -ss $2;rm \"temp\""
+         youtube-dl -x --no-mtime --audio-quality 0 --audio-format mp3 $(python -c "print(\"$1\".split(\"&list\")[0])") --exec "mv {} \"temp\"; ffmpeg -i \"temp\" -ss $2 {};rm \"temp\""
     elif [[ "$#" -eq 3 ]]; then
         youtube-dl -x --no-mtime --audio-quality 0 --audio-format mp3 $(python -c "print(\"$1\".split(\"&list\")[0])") --exec "mv {} \"temp\"; ffmpeg -i \"temp\" -ss $2 -t $3 {};rm \"temp\""
     else
@@ -293,3 +296,5 @@ neofetch
 
 # rclone----------------------------------------------------------------------
 source .sh_functions/rclone.sh 
+
+export PATH="$HOME/.poetry/bin:$PATH"

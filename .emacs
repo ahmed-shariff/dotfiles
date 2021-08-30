@@ -5,37 +5,38 @@
 ;;; Code:
 
 ;; -*- emacs-lisp -*-
+;; -*- lexical-binding: t -*-
 ;; 
 (require 'package)
 (set-language-environment "UTF-8")
 (set-default-coding-systems 'utf-8)
 
 ;;mepla setup****************************************************
-(add-to-list 'package-archives
-	     '("melpa" . "https://melpa.org/packages/") t)
-(add-to-list 'package-archives
-	     '("org" . "http://orgmode.org/elpa/") t);'("elpy" . "http://jorgenschaefer.github.io/packages/"))
+;; (add-to-list 'package-archives
+;; 	     '("melpa" . "https://melpa.org/packages/") t)
+;; (add-to-list 'package-archives
+;; 	     '("org" . "http://orgmode.org/elpa/") t);'("elpy" . "http://jorgenschaefer.github.io/packages/"))
 ;	     '("melpa" . "http://melpa.org/packages/")
 ;	     '("org" . "http://orgmode.org/elpa/"))
 ; (add-to-list 'load-path "~/.emacs.d/customFiles")
 
-(setq load-prefer-newer t) ;;mkaing sure older byte compiled files are not loaded
+;; (setq load-prefer-newer t) ;;mkaing sure older byte compiled files are not loaded
 
 (let ((default-directory  "~/.emacs.d/customFiles/"))
   (normal-top-level-add-to-load-path `("."))
   (normal-top-level-add-subdirs-to-load-path))
-(add-to-list 'package-archives
-            '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+;; (add-to-list 'package-archives
+;;             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
-(when (< emacs-major-version 24)
-  (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
+;; (when (< emacs-major-version 24)
+;;   (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
 
 
-(package-initialize)
-;; To make sure newer files are being byte compiled 
-(require 'auto-compile)
-(auto-compile-on-load-mode)
-(auto-compile-on-save-mode)
+;; ;;auto-compile *****************************************************
+;; ;; To make sure newer files are being byte compiled 
+;; (require 'auto-compile)
+;; (auto-compile-on-load-mode)
+;; (auto-compile-on-save-mode)
 
 ;(package-initialize)      ;; Initialize & Install Package
 
@@ -55,6 +56,9 @@
 (tool-bar-mode 0)
 
 (server-start)
+(require 'configurations)
+
+;;straight.el setup*************************************************
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -67,6 +71,30 @@
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
+
+;; for emacs >= 27
+(setq straight-use-package-by-default t
+      package-enable-at-startup nil
+      straight-recipes-gnu-elpa-use-mirror t
+      straight-host-usernames '((github . "ahmed-shariff")))
+
+(defvar my-package-list '(org org-contrib org-download elgrep dired+
+					   ;; org-capture-pop-frame
+					   use-package spaceline-all-the-icons
+					   org-bullets latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode
+					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
+					   org-brain avy lsp-ui lsp-mode expand-region diminish amx flx
+					   counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
+					   dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
+					   company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane
+					   exec-path-from-shell smart-mode-line-powerline-theme slime-company slime
+					   slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
+(when (gethash 'use-jupyter configurations t)
+  (add-to-list 'my-package-list 'jupyter))
+
+(mapcar #'straight-use-package
+	my-package-list)
+
 ;; custom variables*******************************************
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -88,7 +116,6 @@
  '(company-c-headers-path-system
    (quote
     ("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/")))
- '(custom-enabled-themes (quote (misterioso)))
  '(custom-safe-themes
    (quote
     ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default)))
@@ -108,15 +135,11 @@
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
      ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
  '(org-export-backends (quote (ascii html icalendar latex md)))
- '(package-selected-packages
-   (quote
-    (quelpa org-plus-contrib org-download org-capture-pop-frame use-package spaceline-all-the-icons org-bullets org-noter latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode jupyter docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game org-brain avy org-capture-pop-frame lsp-ui lsp-mode expand-region diminish amx flx counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane exec-path-from-shell smart-mode-line-powerline-theme slime-company slime slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda)))
  '(prolog-system (quote swi))
  '(python-shell-interpreter "python3")
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
  '(sml/theme (quote dark))
- '(use-package-always-ensure t)
  '(visible-bell t))
 
 (custom-set-faces
@@ -149,8 +172,6 @@
 
 ;(exec-path-from-shell-initialize)
 
-(require 'configurations)
-(require 'diminish)
 ;;allout
 (allout-mode)
 
@@ -166,6 +187,16 @@
       backup-by-copying t
       delete-old-versions t)
 
+;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
+(defun amsha/visual-fill ()
+  (setq visual-fill-column-width 110
+        visual-fill-column-center-text t)
+  (visual-fill-column-mode 1))
+
+(use-package visual-fill-column
+  :defer 
+  :hook ((org-mode LaTeX-mode latex-mode) . amsha/visual-fill))
+
 ;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
 ;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
 (if (not (eq system-type 'windows-nt))
@@ -180,29 +211,224 @@
 ;; (require 'ido)
 ;; (ido-mode t)
 
-(require 'use-package)
+(use-package diminish)
 
-;; quelpa **********************************************************
-(quelpa
- '(quelpa-use-package
-   :fetcher git
-   :url "https://github.com/quelpa/quelpa-use-package.git"))
-(require 'quelpa-use-package)
+;;selectrum  *******************************************************
+(use-package prescient
+  :config
+  (prescient-persist-mode +1))
+(use-package ivy-prescient)
+;;(use-package company-prescient)
+;; (use-package selectrum-prescient
+;;   :config
+;;   (selectrum-prescient-mode +1)
+;;   (setq selectrum-prescient-enable-filtering nil))
+
+(use-package orderless
+  :custom (completion-styles '(orderless))
+  :config
+  (defun amsha/without-if-bang (pattern _index _total)
+    (cond
+     ((equal "!" pattern)
+      '(orderless-literal . ""))
+     ((string-prefix-p "!" pattern)
+      `(orderless-without-literal . ,(substring pattern 1)))))
+
+  (defun amsha/match-components-literally (orig-fun &rest args)
+    "Funtion to add as advice for interactive functions that will always use lietral completion."
+    (interactive (lambda (spec) (advice-eval-interactive-spec spec)))
+    (let ((orderless-matching-styles '(orderless-literal)))
+      (apply orig-fun args)))
+
+  (advice-add #'org-set-property :around #'amsha/match-components-literally)
+  
+  (setq orderless-matching-styles '(orderless-literal orderless-regexp))
+        orderless-style-dispatchers '(amsha/without-if-bang))
+
+(use-package selectrum
+  :init (selectrum-mode +1)
+  :config
+  (setq orderless-skip-highlighting (lambda () selectrum-is-active)
+        selectrum-highlight-candidates-function #'orderless-highlight-matches))
+
+;; Enable richer annotations using the Marginalia package
+(use-package marginalia
+  ;; Either bind `marginalia-cycle` globally or only in the minibuffer
+  :bind (("M-A" . marginalia-cycle)
+         :map minibuffer-local-map
+         ("M-A" . marginalia-cycle))
+
+  ;; The :init configuration is always executed (Not lazy!)
+  :init
+  ;; Must be in the :init section of use-package such that the mode gets
+  ;; enabled right away. Note that this forces loading the package.
+  (marginalia-mode))
+
+(use-package all-the-icons-completion
+  :after (marginalia)
+  :straight (all-the-icons-completion :type git :host github :repo "iyefrat/icon-affixation")
+  :init (all-the-icons-completion-mode))
+
+;;embark & consult**************************************************
+(use-package embark
+  :bind
+  (("C-." . embark-act)         ;; pick some comfortable binding
+   ("C-;" . embark-dwim)        ;; good alternative: M-.
+   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+
+  :init
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none))))
+  
+  (define-key embark-file-map "o" nil)
+  (define-key embark-file-map "ocn" #'copy-current-file-name)
+  (define-key embark-file-map "ocf" #'copy-current-file-full-path))
+
+(use-package consult
+  ;; Replace bindings. Lazily loaded due by `use-package'.
+  :bind (;; C-c bindings (mode-specific-map)
+         ("C-c h" . consult-history)
+         ("C-c m" . consult-mode-command)
+         ("C-c b" . consult-bookmark)
+         ("C-c k" . consult-kmacro)
+         ;; C-x bindings (ctl-x-map)
+         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+         ;; Custom M-# bindings for fast register access
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+         ("C-M-#" . consult-register)
+         ;; Other custom bindings
+         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+         ("<help> a" . consult-apropos)            ;; orig. apropos-command
+         ;; M-g bindings (goto-map)
+         ("M-g e" . consult-compile-error)
+         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+         ;; ("M-g g" . consult-goto-line)             ;; orig. goto-line
+         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+         ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ("M-g i" . consult-imenu)
+         ("M-g I" . consult-project-imenu)
+         ;; M-s bindings (search-map)
+         ("M-s f" . consult-find)
+         ("M-s L" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s r" . consult-ripgrep)
+         ("M-s l" . consult-line)
+         ("M-s m" . consult-multi-occur)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ;; Isearch integration
+         ("M-s e" . consult-isearch)
+         :map isearch-mode-map
+         ("M-e" . consult-isearch)                 ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch)               ;; orig. isearch-edit-string
+         ("M-s l" . consult-line))                 ;; needed by consult-line to detect isearch
+
+  ;; Enable automatic preview at point in the *Completions* buffer.
+  ;; This is relevant when you use the default completion UI,
+  ;; and not necessary for Selectrum, Vertico etc.
+  :hook (completion-list-mode . consult-preview-at-point-mode)
+
+  ;; The :init configuration is always executed (Not lazy)
+  :init
+
+  ;; Optionally configure the register formatting. This improves the register
+  ;; preview for `consult-register', `consult-register-load',
+  ;; `consult-register-store' and the Emacs built-ins.
+  (setq register-preview-delay 0
+        register-preview-function #'consult-register-format)
+
+  ;; Optionally tweak the register preview window.
+  ;; This adds thin lines, sorting and hides the mode line of the window.
+  (advice-add #'register-preview :override #'consult-register-window)
+
+  ;; Use Consult to select xref locations with preview
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref)
+
+  ;; Configure other variables and modes in the :config section,
+  ;; after lazily loading the package.
+  :config
+
+  ;; Optionally configure preview. The default value
+  ;; is 'any, such that any key triggers the preview.
+  ;; (setq consult-preview-key 'any)
+  ;; (setq consult-preview-key (kbd "M-."))
+  ;; (setq consult-preview-key (list (kbd "<S-down>") (kbd "<S-up>")))
+  ;; For some commands and buffer sources it is useful to configure the
+  ;; :preview-key on a per-command basis using the `consult-customize' macro.
+  (consult-customize
+   consult-theme
+   :preview-key '(:debounce 0.2 any)
+   consult-ripgrep consult-git-grep consult-grep
+   consult-bookmark consult-recent-file consult-xref
+   consult--source-file consult--source-project-file consult--source-bookmark
+   :preview-key (kbd "M-."))
+
+  ;; Optionally configure the narrowing key.
+  ;; Both < and C-+ work reasonably well.
+  (setq consult-narrow-key "<") ;; (kbd "C-+")
+
+  ;; Optionally make narrowing help available in the minibuffer.
+  ;; You may want to use `embark-prefix-help-command' or which-key instead.
+  ;; (define-key consult-narrow-map (vconcat consult-narrow-key "?") #'consult-narrow-help)
+
+  ;; Optionally configure a function which returns the project root directory.
+  ;; There are multiple reasonable alternatives to chose from.
+  ;;;; 1. project.el (project-roots)
+  (setq consult-project-root-function
+        (lambda ()
+          (when-let (project (project-current))
+            (car (project-roots project)))))
+  ;;;; 2. projectile.el (projectile-project-root)
+  ;; (autoload 'projectile-project-root "projectile")
+  ;; (setq consult-project-root-function #'projectile-project-root)
+  ;;;; 3. vc.el (vc-root-dir)
+  ;; (setq consult-project-root-function #'vc-root-dir)
+  ;;;; 4. locate-dominating-file
+  ;; (setq consult-project-root-function (lambda () (locate-dominating-file "." ".git")))
+)
+
+;; Consult users will also want the embark-consult package.
+(use-package embark-consult
+  :after (embark consult)
+  :demand t ; only necessary if you have the hook below
+  ;; if you want to have consult previews as you move around an
+  ;; auto-updating embark collect buffer
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+
+;;tramp settings ***************************************************
+;; See https://stackoverflow.com/questions/6954479/emacs-tramp-doesnt-work for more details
+(setq tramp-terminal-type "dumb")
 
 ;;ivy-mode *********************************************************
-(use-package amx :ensure t
+(use-package amx
   :init (amx-mode 1))
 
-(use-package ivy :ensure t
+(use-package ivy
   :diminish (ivy-mode . "")             ; does not display ivy in the modeline
-  :init
-  (ivy-mode 1)                          ; enable ivy globally at startup
+  ;; :init
+  ;; (ivy-mode 1)                          ; enable ivy globally at startup
   :bind (("C-c g" . counsel-git)
 	 ("C-c j" . counsel-git-grep) 
 	 ("C-c k" . counsel-ag)       
 	 ("C-x l" . counsel-locate)   
 	 ("C-S-o" . counsel-rhythmbox)
-	 ("C-x C-f" . counsel-find-file)
+	 ;;("C-x C-f" . counsel-find-file)
 	 :map ivy-minibuffer-map        ; bind in the ivy buffer
 	 ("RET" . ivy-alt-done))
 	 ;;      ("s-<"   . ivy-avy)
@@ -226,25 +452,22 @@
 	(t . ivy--regex-fuzzy))))
 
 ;; (use-package all-the-icons-ivy
-;;   :ensure t
 ;;   :config
 ;;   (all-the-icons-ivy-setup))
 
 (use-package all-the-icons-ivy-rich
-  :ensure t
   :init (all-the-icons-ivy-rich-mode 1))
 
 (use-package ivy-rich
-  :ensure t
   :init (ivy-rich-mode 1))
 
 (use-package ivy-hydra
   :after (ivy hydra))
 
 ;; helm setup ************************************************************************
-(use-package helm :ensure t
+(use-package helm
   ;; :init (helm-mode 1)
-  :bind (("M-y" . helm-show-kill-ring))
+  ;; :bind (("M-y" . helm-show-kill-ring))
   )
 
 ;;which key **************************************************************************
@@ -321,6 +544,15 @@
   (add-hook 'java-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'python-mode-hook #'rainbow-delimeters-mode))
 
+;;elgrep******************************************************************************
+(use-package elgrep
+  :config
+  (defun elgrep-r ()
+    (interactive)
+    (let ((current-prefix-arg t))
+      (call-interactively 'elgrep))))
+
+
 ;;lsp-mode ***************************************************************************
 (use-package lsp-ui
   :init
@@ -346,7 +578,7 @@
   :init
   ;; (add-hook 'prog-mode-hook #'lsp)
   ;; (setq lsp-auto-guess-root t)
-  ;; (setq lsp-print-io t)
+  ;; (setq lsp-log-io t)
   :config
   ;; (lsp-register-client
   
@@ -375,7 +607,7 @@
   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
 ;; (use-package lsp-jedi
-;;   :ensure t
+;;   :straight t
 ;;   :config
 ;;   (with-eval-after-load "lsp-mode"
 ;;     (add-to-list 'lsp-disabled-clients 'pyls)
@@ -383,7 +615,6 @@
 ;;     ))
 
 (use-package lsp-pyright
-  :ensure t
   :hook (python-mode . (lambda ()
                           (require 'lsp-pyright)
                           (lsp)))
@@ -395,7 +626,7 @@
 (use-package lsp-java)
 
 ;; (use-package lsp-python-ms
-;;   :ensure t
+;;   :straight t
 ;;   :init (setq lsp-python-ms-auto-install-server t)
 ;;   :hook (python-mode . (lambda ()
 ;;                           (require 'lsp-python-ms)
@@ -405,7 +636,7 @@
   :after lsp-mode
   :config (dap-auto-configure-mode)
   :hook (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra))))
-(use-package dap-java :ensure nil)
+(use-package dap-java :straight nil)
 
 ;;avy *******************************************************************************
 (use-package avy
@@ -461,7 +692,7 @@
 (diminish 'ivy-mode)
 (diminish 'projectile-mode "P")
 
-;; (use-package eyeliner :ensure nil
+;; (use-package eyeliner :straight nil
 ;;   :straight (eyeliner :type git
 ;;                       :host github
 ;;                       :repo "dustinlacewell/eyeliner")
@@ -481,12 +712,28 @@
 ;;   (eyeliner/install))
 
 (use-package doom-modeline
-  :ensure t
   ;;:hook (after-init . doom-modeline-mode)
   :init (doom-modeline-mode 1)
   :config
   (setq doom-modeline-icon (display-graphic-p)
 	doom-modeline-minor-modes (featurep 'minions)))
+
+(use-package doom-themes
+  :config
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  (load-theme 'doom-city-lights t)
+
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (all-the-icons must be installed!)
+  (doom-themes-neotree-config)
+  ;; or for treemacs users
+  (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
 
 (require 'dired+)
 (diredp-toggle-find-file-reuse-dir 1)
@@ -577,11 +824,13 @@ T - tag prefix
 (setq company-quickhelp-delay nil)
 
 ;; ;;yasnippet setup************************************************
-(require 'yasnippet)
-(setq yas-snippet-dirs
-      '("~/.emacs.d/snippets"                 ;; personal snippets
-        ))
-(yas-global-mode 1)
+(use-package yasnippet
+  :init (yas-global-mode 1)
+  :config
+  (setq yas-snippet-dirs
+        (append yas-snippet-dirs
+                `("~/.emacs.d/snippets"))                 ;; personal snippets
+        yas-indent-line 'fixed))
 
 ;;slime and cl setup*********************************************
 (require 'slim-mode)
@@ -594,8 +843,8 @@ T - tag prefix
 (require  'slime)
 (slime-setup
  '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser slime-company))
-(unless package-archive-contents 
-  (package-refresh-contents))
+;; (unless package-archive-contents 
+;;   (package-refresh-contents))
 (setq tab-always-indent 'complete)
 (add-to-list 'completion-styles 'initials t)
 
@@ -607,7 +856,7 @@ T - tag prefix
 ;(add-hook 'python-mode-hook '(company-anaconda 'interactive))
 ;;(add-to-list 'company-backends 'company-jedi)
 ;; (use-package elpy
-;;   :ensure t
+;;   :straight t
 ;;   :init
 ;;   (elpy-enable))
 					;(setenv "IPY_TEST_SIMPLE_PROMPT" "1")
@@ -690,7 +939,7 @@ T - tag prefix
 
 (add-hook 'c-mode-common-hook 'my-c-mode-common-hook)
 ;; (use-package ccls
-;;   :ensure t
+;;   :straight t
 ;;   :config
 ;;   (setq ccls-executable "ccls")
 ;;   (setq lsp-prefer-flymake nil)
@@ -721,7 +970,6 @@ T - tag prefix
 
 ;;treemacs setup**********************************************************************************************************
 (use-package treemacs
-  :ensure t
   :defer t
   :init
   (with-eval-after-load 'winum
@@ -790,21 +1038,18 @@ T - tag prefix
         ("C-x t M-t" . treemacs-find-tag)))
 
 (use-package treemacs-projectile
-  :after treemacs projectile
-  :ensure t)
+  :after treemacs projectile)
 
 (use-package treemacs-icons-dired
   :after treemacs dired
-  :ensure t
   :config (treemacs-icons-dired-mode))
 
 (use-package treemacs-magit
   :after treemacs magit
-  :ensure t)
+  :straight t)
 
 (use-package treemacs-persp
   :after treemacs persp-mode
-  :ensure t
   :config (treemacs-set-scope-type 'Perspectives))
 
 (setq persp-keymap-prefix (kbd "C-x p"))
@@ -848,6 +1093,7 @@ T - tag prefix
 
 ;;magit******************************************************************
 (global-set-key (kbd "C-x g") 'magit-status)
+(setq magit-git-executable "git")
 
 
 ;;projectile mode********************************************************
@@ -906,7 +1152,7 @@ T - tag prefix
 
 ;;other stuff************************************************************
 (defun copy-current-file-name ()
-  "Copy the current buffers filename to the kill ring."
+  "Copy the current buffers filename or FILE to the kill ring."
   (interactive)
   (kill-new (file-name-nondirectory (buffer-file-name (window-buffer (minibuffer-selected-window))))))
 
@@ -954,6 +1200,8 @@ T - tag prefix
                                            (-replace-at 1 "https://duckduckgo.com/?q=%s" provider)
                                          provider))
                                      web-search-providers))
+  (push '("google scholar ca" "https://scholar.google.ca/scholar?hl=en&as_sdt=0%%2C5&q=%s") web-search-providers)
+  
   (defun amsha-web-search ()
     "Wrapper to quick pick providers and tag."
     (interactive)
@@ -981,7 +1229,6 @@ T - tag prefix
   (setq alert-default-style 'notifier))
 
 (use-package dashboard
-  :ensure t
   :config
   (dashboard-setup-startup-hook))
 
@@ -1023,7 +1270,6 @@ T - tag prefix
   :bind ("C-c s" . switch-web-js2))
     
 (use-package markdown-mode
-  :ensure t
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
@@ -1035,7 +1281,8 @@ T - tag prefix
   (add-to-list 'auto-mode-alist '("\\.plantuml\\'" . plantuml-mode))
   :config
   (setq plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
-  (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar"))
+  (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
+  (setq plantuml-default-exec-mode 'jar))
   ;; (setq plantuml-exec-mode "jar")
   ;; (plantuml-set-exec-mode "jar"))
 
@@ -1058,7 +1305,6 @@ T - tag prefix
 
 (use-package csharp-mode
   ;:requires omnisharp
-  :ensure t
   :hook (csharp-mode . my-csharp-mode-hook))
 
 ;; (add-hook 'csharp-mode-hook 'my-csharp-mode-hook t)
@@ -1066,12 +1312,12 @@ T - tag prefix
 
 ;;Docker
 (use-package docker
-  :ensure t
   :bind ("C-c d" . docker))
 
 ;;arxiv mode
-(require 'arxiv-mode)
-
+(use-package arxiv-mode
+  :commands (arxiv-read-new arxiv-read-recent arxiv-search)
+  :straight (arxiv-mode :type git :host github :repo "fizban007/arxiv-mode"))
 
 (defun amsha/downlad-raname-move-file (url newname dir)
   (url-copy-file url (expand-file-name newname dir)))
@@ -1096,7 +1342,7 @@ T - tag prefix
 
 
 ;; emacs discrod plugin
-(use-package elcord :ensure nil  ;; installed using git, thus!
+(use-package elcord
   :config
   (setq elcord-display-buffer-details nil)
   (elcord-mode))

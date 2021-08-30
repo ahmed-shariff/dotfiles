@@ -1,15 +1,6 @@
-[submodule ".emacs.d/customFiles/arxiv-mode"]
-	path = .emacs.d/customFiles/arxiv-mode
-	url = https://github.com/fizban007/arxiv-mode.git
 [submodule ".stumpwm.d/betterlockscreen"]
 	path = .stumpwm.d/betterlockscreen
 	url = https://github.com/pavanjadhaw/betterlockscreen.git
-[submodule ".emacs.d/customFiles/ox-ipynb"]
-	path = .emacs.d/customFiles/ox-ipynb
-	url = https://github.com/jkitchin/ox-ipynb.git
 [submodule "packages_external/stumpwm"]
 	path = packages_external/stumpwm
 	url = https://github.com/stumpwm/stumpwm.git
-[submodule ".emacs.d/customFiles/elcord"]
-	path = .emacs.d/customFiles/elcord
-	url = https://github.com/ahmed-shariff/elcord.git
