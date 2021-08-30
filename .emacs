@@ -1093,6 +1093,7 @@ T - tag prefix
 
 ;;magit******************************************************************
 (global-set-key (kbd "C-x g") 'magit-status)
+(setq magit-git-executable "git")
 
 
 ;;projectile mode********************************************************
