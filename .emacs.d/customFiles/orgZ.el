@@ -90,6 +90,92 @@
 
 (advice-add 'org-md-example-block :override #'org-md-example-block-with-syntax)
 
+;; (defun org-md-link-github-syntax (link desc info)
+;;   "Transcode LINK object into Markdown format.
+;; DESC is the description part of the link, or the empty string.
+;; INFO is a plist holding contextual information.  See
+;; `org-export-data'."
+;;   (let* ((link-org-files-as-md
+;; 	  (lambda (raw-path)
+;; 	    ;; Treat links to `file.org' as links to `file.md'.
+;; 	    (if (string= ".org" (downcase (file-name-extension raw-path ".")))
+;; 		(concat (file-name-sans-extension raw-path) ".md")
+;; 	      raw-path)))
+;; 	 (type (org-element-property :type link))
+;; 	 (raw-path (org-element-property :path link))
+;; 	 (path (cond
+;; 		((member type '("http" "https" "ftp" "mailto"))
+;; 		 (concat type ":" raw-path))
+;; 		((string-equal  type "file")
+;; 		 (org-export-file-uri (funcall link-org-files-as-md raw-path)))
+;; 		(t raw-path))))
+;;     (cond
+;;      ;; Link type is handled by a special function.
+;;      ((org-export-custom-protocol-maybe link desc 'md info))
+;;      ((member type '("custom-id" "id" "fuzzy"))
+;;       (let ((destination (if (string= type "fuzzy")
+;; 			     (org-export-resolve-fuzzy-link link info)
+;; 			   (org-export-resolve-id-link link info))))
+;; 	(pcase (org-element-type destination)
+;; 	  (`plain-text			; External file.
+;; 	   (let ((path (funcall link-org-files-as-md destination)))
+;; 	     (if (not desc) (format "<%s>" path)
+;; 	       (format "[%s](%s)" desc path))))
+;; 	  (`headline
+;; 	    ;; Description.
+;; 	    (let ((-description (cond ((org-string-nw-p desc))
+;; 		                      ((org-export-numbered-headline-p destination info)
+;; 		                       (mapconcat #'number-to-string
+;; 			                          (org-export-get-headline-number destination info)
+;; 			                          "."))
+;; 		                      (t (org-export-data (org-element-property :title destination)
+;; 				                          info))))
+;; 	          ;; Reference.
+;;                   (-ref (->>
+;;                             (org-export-data (org-element-property :title destination)
+;; 				             info)
+;;                           (s-replace-regexp "[^[:alnum:]-\(\_\|\s\)]" "" )
+;;                           (s-replace-regexp "\s" "-")
+;;                           (s-downcase))))
+;;               (format
+;; 	       "[%s](#%s)" -description -ref)))
+;; 	  (_
+;; 	   (let ((description
+;; 		  (or (org-string-nw-p desc)
+;; 		      (let ((number (org-export-get-ordinal destination info)))
+;; 			(cond
+;; 			 ((not number) nil)
+;; 			 ((atom number) (number-to-string number))
+;; 			 (t (mapconcat #'number-to-string number ".")))))))
+;; 	     (when description
+;; 	       (format "[%s](#%s)"
+;; 		       description
+;; 		       (org-export-get-reference destination info))))))))
+;;      ((org-export-inline-image-p link org-html-inline-image-rules)
+;;       (let ((path (cond ((not (string-equal type "file"))
+;; 			 (concat type ":" raw-path))
+;; 			((not (file-name-absolute-p raw-path)) raw-path)
+;; 			(t (expand-file-name raw-path))))
+;; 	    (caption (org-export-data
+;; 		      (org-export-get-caption
+;; 		       (org-export-get-parent-element link))
+;; 		      info)))
+;; 	(format "![img](%s)"
+;; 		(if (not (org-string-nw-p caption)) path
+;; 		  (format "%s \"%s\"" path caption)))))
+;;      ((string= type "coderef")
+;;       (format (org-export-get-coderef-format path desc)
+;; 	      (org-export-resolve-coderef path info)))
+;;      ((string= type "radio")
+;;       (let ((destination (org-export-resolve-radio-link link info)))
+;; 	(if (not destination) desc
+;; 	  (format "<a href=\"#%s\">%s</a>"
+;; 		  (org-export-get-reference destination info)
+;; 		  desc))))
+;;      (t (if (not desc) (format "<%s>" path)
+;; 	  (format "[%s](%s)" desc path))))))
+
+;; (advice-add 'org-md-link :override #'org-md-link-github-syntax)
 
 (with-eval-after-load 'org
   (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
