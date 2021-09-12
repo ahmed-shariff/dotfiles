@@ -249,6 +249,16 @@ function lock_cmd(){
     # echo "hahahahahah"
 }
 
+
+# From https://stackoverflow.com/questions/5130968/how-can-i-copy-the-output-of-a-command-directly-into-my-clipboard
+_copy(){
+    xclip -selection clipboard $1
+}
+
+_paste(){
+    xclip -selection clipboard -o
+}
+
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/cuda/lib64:/opt/intel/lib/intel64:"
 export CUDA_HOME=/opt/cuda
 export LIB=lib
