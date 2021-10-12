@@ -289,7 +289,11 @@
   (add-to-list 'display-buffer-alist
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
                  nil
-                 (window-parameters (mode-line-format . none)))))
+                 (window-parameters (mode-line-format . none))))
+  
+  (define-key embark-file-map "o" nil)
+  (define-key embark-file-map "ocn" #'copy-current-file-name)
+  (define-key embark-file-map "ocf" #'copy-current-file-full-path))
 
 (use-package consult
   ;; Replace bindings. Lazily loaded due by `use-package'.
@@ -410,6 +414,10 @@
   ;; auto-updating embark collect buffer
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
+
+;;tramp settings ***************************************************
+;; See https://stackoverflow.com/questions/6954479/emacs-tramp-doesnt-work for more details
+(setq tramp-terminal-type "dumb")
 
 ;;ivy-mode *********************************************************
 (use-package amx
@@ -930,7 +938,7 @@ T - tag prefix
 
  (setq tab-stop-list '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60))
  ; (setq tab-width 4)
- (setq indent-tabs-mode t)  ; use spaces only if nil
+ (setq indent-tabs-mode nil)  ; use spaces only if nil
  )
 
 (add-hook 'c-mode-common-hook 'my-c-mode-common-hook)
@@ -1089,6 +1097,7 @@ T - tag prefix
 
 ;;magit******************************************************************
 (global-set-key (kbd "C-x g") 'magit-status)
+(setq magit-git-executable "git")
 
 
 ;;projectile mode********************************************************
@@ -1147,7 +1156,7 @@ T - tag prefix
 
 ;;other stuff************************************************************
 (defun copy-current-file-name ()
-  "Copy the current buffers filename to the kill ring."
+  "Copy the current buffers filename or FILE to the kill ring."
   (interactive)
   (kill-new (file-name-nondirectory (buffer-file-name (window-buffer (minibuffer-selected-window))))))
 
@@ -1276,7 +1285,8 @@ T - tag prefix
   (add-to-list 'auto-mode-alist '("\\.plantuml\\'" . plantuml-mode))
   :config
   (setq plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
-  (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar"))
+  (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
+  (setq plantuml-default-exec-mode 'jar))
   ;; (setq plantuml-exec-mode "jar")
   ;; (plantuml-set-exec-mode "jar"))
 
@@ -1345,9 +1355,16 @@ T - tag prefix
 
 ;; processing-mode*******************************************************
 (use-package processing-mode
+  :mode "\\.pde\\'"
   :config
-  (setq processing-location "~/packages_external/processing/processing-java"
+  (setq processing-location "~/packages/processing/processing-java"
         processing-sketchbook-dir "~/Documents/Processing/sketchbook"))
+
+(use-package processing-snippets
+  :after (yasnippet)
+  :config
+  (autoload 'processing-snippets-initialize "processing-snippets" nil nil nil)
+  (processing-snippets-initialize))
 
 ;;code to run at the end!************************************************
 
