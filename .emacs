@@ -76,6 +76,7 @@
 (setq straight-use-package-by-default t
       package-enable-at-startup nil
       straight-recipes-gnu-elpa-use-mirror t
+      straight-vc-git-default-protocol 'https
       straight-host-usernames '((github . "ahmed-shariff")))
 
 (defvar my-package-list '(org org-contrib org-download elgrep dired+
@@ -212,6 +213,9 @@
 ;; (ido-mode t)
 
 (use-package diminish)
+
+(use-package persistent-scratch
+  :init (persistent-scratch-setup-default))
 
 ;;selectrum  *******************************************************
 (use-package prescient
