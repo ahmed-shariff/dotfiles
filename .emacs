@@ -836,6 +836,29 @@ T - tag prefix
                 `("~/.emacs.d/snippets"))                 ;; personal snippets
         yas-indent-line 'fixed))
 
+;; font setup****************************************************
+(use-package mixed-pitch
+  :hook
+  (text-mode . mixed-pitch-mode))
+
+(set-face-attribute 'default nil
+                       :font "Iosevka"
+                       :weight 'normal
+                       :height 115)
+
+;; Set the fixed pitch face
+(set-face-attribute 'fixed-pitch nil
+                    :font "Iosevka"
+                    :weight 'normal
+                    :height 115)
+
+;; Set the variable pitch face
+(set-face-attribute 'variable-pitch nil
+                    ;; :font "Cantarell"
+                    :font "Iosevka Aile"
+                    :height 115
+                    :weight 'normal)
+
 ;;slime and cl setup*********************************************
 (require 'slim-mode)
 ;;(load (expand-file-name "/home/amsha/quicklisp/slime-helper.el"))
@@ -1051,6 +1074,73 @@ T - tag prefix
 (use-package treemacs-magit
   :after treemacs magit
   :straight t)
+
+(use-package git-gutter
+  :straight git-gutter-fringe
+  :diminish
+  :hook ((text-mode . git-gutter-mode)
+         (prog-mode . git-gutter-mode))
+  :config
+  (setq git-gutter:update-interval 2)
+  (setq git-gutter-fr:side 'right-fringe)
+  (unless nil ;; dw/is-termux
+    (require 'git-gutter-fringe)
+    (set-face-foreground 'git-gutter-fr:added "LightGreen")
+    (fringe-helper-define 'git-gutter-fr:added nil
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      ".........."
+      ".........."
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      ".........."
+      ".........."
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      "XXXXXXXXXX")
+
+    (set-face-foreground 'git-gutter-fr:modified "LightGoldenrod")
+    (fringe-helper-define 'git-gutter-fr:modified nil
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      ".........."
+      ".........."
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      ".........."
+      ".........."
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      "XXXXXXXXXX")
+
+    (set-face-foreground 'git-gutter-fr:deleted "LightCoral")
+    (fringe-helper-define 'git-gutter-fr:deleted nil
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      ".........."
+      ".........."
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      ".........."
+      ".........."
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"
+      "XXXXXXXXXX"))
+
+  ;; These characters are used in terminal mode
+  (setq git-gutter:modified-sign "≡")
+  (setq git-gutter:added-sign "≡")
+  (setq git-gutter:deleted-sign "≡")
+  (set-face-foreground 'git-gutter:added "LightGreen")
+  (set-face-foreground 'git-gutter:modified "LightGoldenrod")
+  (set-face-foreground 'git-gutter:deleted "LightCoral"))
+
 
 (use-package treemacs-persp
   :after treemacs persp-mode
