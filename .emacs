@@ -842,22 +842,22 @@ T - tag prefix
   (text-mode . mixed-pitch-mode))
 
 (set-face-attribute 'default nil
-                       :font "Iosevka"
-                       :weight 'normal
-                       :height 115)
+                       :font "Fira Code"
+                       :weight 'light
+                       :height 100)
 
 ;; Set the fixed pitch face
 (set-face-attribute 'fixed-pitch nil
-                    :font "Iosevka"
+                    :font "Fira Code"
                     :weight 'normal
-                    :height 115)
+                    :height 100)
 
 ;; Set the variable pitch face
 (set-face-attribute 'variable-pitch nil
                     ;; :font "Cantarell"
                     :font "Iosevka Aile"
-                    :height 115
-                    :weight 'normal)
+                    :height 105
+                    :weight 'light)
 
 ;;slime and cl setup*********************************************
 (require 'slim-mode)
