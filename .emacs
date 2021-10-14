@@ -1324,6 +1324,58 @@ T - tag prefix
 
 (use-package dashboard
   :config
+  (defun dashboard-insert-sprints (list-size)
+    "Add the list of LIST-SIZE items."
+    (let ((sprints (amsha/get-sprints '("INPROGRESS")))
+          (dashboard-set-file-icons nil))
+      (dashboard-insert-section
+       (concat (all-the-icons-octicon "globe"
+                                       :height 1.2 :v-adjust 0.0 :face 'dashboard-heading)
+               " Active Sprints")
+       sprints
+       list-size
+       "s"
+       `(lambda (&rest ignore)
+          (org-id-goto (cdr (quote ,el))))
+       (format "%s" (car el)))))
+
+  (defun dashboard-insert-tasks (list-size)
+    "Add the list of LIST-SIZE items."
+    (let* ((files (directory-files (expand-file-name "work/project_boards" org-brain-path) t ".org"))
+           (tasks (org-ql-select files '(todo "INPROGRESS")
+                      :action (lambda () (cons
+                                          (format "%-10s - %-40s: %s"
+                                                  (org-entry-get (point) "TODO")
+                                                  (file-name-base (buffer-file-name))
+                                                  (org-no-properties (org-get-heading t t t t)))
+                                          (org-id-get)))))
+          (dashboard-set-file-icons nil))
+      (dashboard-insert-section
+       (concat (all-the-icons-octicon "checklist"
+                                       :height 1.2 :v-adjust 0.0 :face 'dashboard-heading)
+                " Active Tasks")
+       tasks
+       list-size
+       "t"
+       `(lambda (&rest ignore)
+          (org-id-goto (cdr (quote ,el))))
+       (format "%s" (car el)))))
+
+  (add-to-list 'dashboard-item-generators  '(sprints . dashboard-insert-sprints))
+  (add-to-list 'dashboard-item-generators  '(tasks . dashboard-insert-tasks))
+  (dashboard-modify-heading-icons '((sprints . "milestone") (tasks . "check-circle-fill")))
+  
+  (setq dashboard-items '((recents  . 5)
+                          (projects . 5)
+                          (tasks . 5)
+                          (sprints . 5)
+                          (agenda . 5)
+                          (registers . 5)
+                          (bookmarks . 5))
+        dashboard-set-navigator t
+        dashboard-set-heading-icons t
+        dashboard-set-file-icons t
+        dashboard-center-content t)
   (dashboard-setup-startup-hook))
 
 ;; (require 'web-mode)

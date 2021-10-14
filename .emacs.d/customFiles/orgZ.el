@@ -662,24 +662,28 @@ Appends the todo state of the entry being visualized."
   (let* ((query `(and (level <= 1) (search-pdf-regexp ,regexp))))
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
 
+(defun amsha/get-sprints (states)
+  "Return sprints based on STATUS."
+  (org-ql-select (expand-file-name "work/projects.org" org-brain-path)
+    `(and (level 2) (todo ,@states) (h* "Sprint"))
+    :action (lambda () (cons
+                        (format "%-10s - %-40s: %s"
+                                (org-entry-get (point) "TODO")
+                                (save-excursion
+                                  (org-up-heading-safe)
+                                  (s-replace-regexp
+                                   "^<<[0-9]+>> " ""
+                                   (org-no-properties (org-get-heading t t t t))))
+                                (org-no-properties (org-get-heading t t t t)))
+                        (org-id-get)))))
+
 (defun org-brain-query-boards ()
   "List the in progress items in the project boards directory.
 Either show all or filter based on a sprint."
   (interactive)
   (let* ((files (directory-files (expand-file-name "work/project_boards" org-brain-path) t ".org"))
          (selection-list (append '(("ALL"))
-                                 (org-ql-select (expand-file-name "work/projects.org" org-brain-path)
-                                   '(and (level 2) (todo "INPROGRESS" "TODO") (h* "Sprint"))
-                                   :action (lambda () (cons
-                                                       (format "%-10s - %-40s: %s"
-                                                               (org-entry-get (point) "TODO")
-                                                               (save-excursion
-                                                                 (org-up-heading-safe)
-                                                                 (s-replace-regexp
-                                                                  "^<<[0-9]+>> " ""
-                                                                  (org-no-properties (org-get-heading t t t t))))
-                                                               (org-no-properties (org-get-heading t nil t t)))
-                                                       (org-id-get))))
+                                 (amsha/get-sprints '("INPROGRESS" "TODO"))
                                  (--map (list (format "work/project_boards::%s" (file-name-base it)) it) files)))
          (predicate '(and (todo "INPROGRESS" "TODO")))
          (selection (assoc (completing-read "Project topic: " selection-list nil t) selection-list)))
