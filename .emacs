@@ -1367,8 +1367,8 @@ T - tag prefix
   
   (setq dashboard-items '((recents  . 5)
                           (projects . 5)
-                          (tasks . 5)
-                          (sprints . 5)
+                          (tasks . 50)
+                          (sprints . 50)
                           (agenda . 5)
                           (registers . 5)
                           (bookmarks . 5))
