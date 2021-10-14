@@ -254,7 +254,7 @@
                               file-name
                               title)))))
          (target (progn
-                   (assoc (ivy-read "Select task: " targets) targets))))
+                   (assoc (completing-read "Select task: " targets nil t) targets))))
     (format "* [[id:%s][%s]]  %%?
      :PROPERTIES:
      :ID:       %s
@@ -633,52 +633,67 @@ Appends the todo state of the entry being visualized."
         (insert-file-contents text-file)
         (s-match-strings-all regexp (buffer-string))))))
 
+
 ;; TODO: allow mulitiple combinations of brain-parent to be used (eg: (and (or ..) (or ..)))
 (defun org-brain-query-papers-by-topic ()
-  "."
+  "CONNECTOR."
   (interactive)
-  (let* ((topics '())
-         (done nil)
-         (selection-list (append '(("-- DONE" . nil)) (org-brain--all-targets))))
-    (while (not done)
-      (ivy-read "Query topic: " selection-list
-                :predicate (lambda (entry)
-			     (or (s-starts-with-p "--" (car entry))
-                                 (s-starts-with-p "research topics::" (car entry))
-                                 (s-starts-with-p "misc_topics::" (car entry))
-			         (s-matches-p "work/projects::.*literature" (car entry))
-			         (s-starts-with-p "publication::" (car entry))))
-                :action (lambda (selection)
-                          (if (cdr selection)
-                              (push selection topics)
-                            (setq done t)))))
-    (let* ((topic-ids (list (append `(brain-parent 'and) (mapcar #'cdr topics))))
-           (query (append '(and (level <= 1)) topic-ids)))
-      (org-ql-search '("~/Documents/org/brain/research_papers.org")  query))))
+  (let* ((selection-list (org-brain--all-targets))
+         (topics 
+          (completing-read-multiple "Query topic: " selection-list
+                                    (lambda (entry)
+			              (or (s-starts-with-p "research topics::" entry)
+                                          (s-starts-with-p "misc_topics::" entry)
+			                  (s-matches-p "work/projects::.*literature" entry)
+			                  (s-starts-with-p "publication::" entry)))
+                                    t))
+         (connector (if (> (length topics) 1)
+                        (pcase (completing-read "connector: " '(and or) nil t)
+                          ("or" 'or)
+                          ("and" 'and))
+                      'and))
+         (topic-ids (list (append `(brain-parent (quote ,connector)) (mapcar (lambda (topic) (cdr (assoc topic selection-list))) topics))))
+         (query (append '(and (level <= 1)) topic-ids)))
+    (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
 
 (defun org-brain-query-papers-by-pdf-string (regexp)
-  "."
+  "REGEXP."
   (interactive "sRegexp: ")
   (let* ((query `(and (level <= 1) (search-pdf-regexp ,regexp))))
       (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
 
-
-(defun org-projects-query-boards ()
-  "List the in progress items in the project boards directory. Either show all or filter based on a sprint."
+(defun org-brain-query-boards ()
+  "List the in progress items in the project boards directory.
+Either show all or filter based on a sprint."
   (interactive)
-  (let* ((files (f-entries "~/Documents/org/brain/work/project_boards" (lambda (x) (s-ends-with-p ".org" x))))
-         (ivy-slection-list (append '(("ALL" . nil)) (org-brain--all-targets)))
-         (predicate '(and (todo "INPROGRESS" "TODO"))))
-    
-    (ivy-read "Project topic: " ivy-slection-list
-              :predicate (lambda (entry)
-                           (or (string= (car entry) "ALL")
-                               (s-matches-p "work/projects::Sprint.*" (car entry))))
-              :action (lambda (selection)
-                        (unless (string= (car selection) "ALL")
-                          (setq predicate (append predicate `((member ,(cdr selection) (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))))))))
+  (let* ((files (directory-files (expand-file-name "work/project_boards" org-brain-path) t ".org"))
+         (selection-list (append '(("ALL"))
+                                 (org-ql-select (expand-file-name "work/projects.org" org-brain-path)
+                                   '(and (level 2) (todo "INPROGRESS" "TODO") (h* "Sprint"))
+                                   :action (lambda () (cons
+                                                       (format "%-10s - %-40s: %s"
+                                                               (org-entry-get (point) "TODO")
+                                                               (save-excursion
+                                                                 (org-up-heading-safe)
+                                                                 (s-replace-regexp
+                                                                  "^<<[0-9]+>> " ""
+                                                                  (org-no-properties (org-get-heading t t t t))))
+                                                               (org-no-properties (org-get-heading t nil t t)))
+                                                       (org-id-get))))
+                                 (--map (list (format "work/project_boards::%s" (file-name-base it)) it) files)))
+         (predicate '(and (todo "INPROGRESS" "TODO")))
+         (selection (assoc (completing-read "Project topic: " selection-list nil t) selection-list)))
+    (cond
+     ((s-starts-with-p "work/project_boards::" (car selection))
+      (setq files (cdr selection)))
+     ((not (string= (car selection) "ALL"))
+      (setq predicate
+            (append predicate
+                    `((member ,(cdr selection)
+                              (org-entry-get-multivalued-property (point) "BRAIN_PARENTS")))))))
     (org-ql-search files predicate
-      :super-groups (mapcar (lambda (x) (list :file-path (f-base x))) files))))
+      :super-groups (mapcar (lambda (x) (list :file-path (f-base x))) files)
+      :title (car selection))))
 
 (require 'ox-extra)
 (ox-extras-activate '(ignore-headlines))

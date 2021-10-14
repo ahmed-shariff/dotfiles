@@ -843,7 +843,7 @@ T - tag prefix
 
 (set-face-attribute 'default nil
                        :font "Fira Code"
-                       :weight 'light
+                       :weight 'normal
                        :height 100)
 
 ;; Set the fixed pitch face
@@ -857,7 +857,7 @@ T - tag prefix
                     ;; :font "Cantarell"
                     :font "Iosevka Aile"
                     :height 105
-                    :weight 'light)
+                    :weight 'normal)
 
 ;;slime and cl setup*********************************************
 (require 'slim-mode)
