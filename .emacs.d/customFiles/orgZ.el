@@ -803,7 +803,7 @@ Either show all or filter based on a sprint."
 			    (cite-key (org-entry-get (point) "Custom_ID"))
 			    (dir org-ref-pdf-directory)
 			    (tags (org-get-tags))
-			    (out-file-name (concatenate 'string cite-key ".pdf"))
+			    (out-file-name (s-concat cite-key ".pdf"))
 			    (full-path (amsha/rename-full-path (expand-file-name out-file-name dir))))
 		       (org-entry-put (point) "ATTACH_DIR" dir)
 		       (org-id-get-create)
