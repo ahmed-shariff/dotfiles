@@ -1326,11 +1326,11 @@ T - tag prefix
   :config
   (defun dashboard-insert-sprints (list-size)
     "Add the list of LIST-SIZE items."
-    (let ((sprints (amsha/get-sprints '("INPROGRESS")))
+    (let ((sprints (condition-case nil (amsha/get-sprints '("INPROGRESS")) ((user-error))))
           (dashboard-set-file-icons nil))
       (dashboard-insert-section
        (concat (all-the-icons-octicon "globe"
-                                       :height 1.2 :v-adjust 0.0 :face 'dashboard-heading)
+                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading)
                " Active Sprints")
        sprints
        list-size
@@ -1342,18 +1342,20 @@ T - tag prefix
   (defun dashboard-insert-tasks (list-size)
     "Add the list of LIST-SIZE items."
     (let* ((files (directory-files (expand-file-name "work/project_boards" org-brain-path) t ".org"))
-           (tasks (org-ql-select files '(todo "INPROGRESS")
-                      :action (lambda () (cons
-                                          (format "%-10s - %-40s: %s"
-                                                  (org-entry-get (point) "TODO")
-                                                  (file-name-base (buffer-file-name))
-                                                  (org-no-properties (org-get-heading t t t t)))
-                                          (org-id-get)))))
-          (dashboard-set-file-icons nil))
+           (tasks (if files
+                      (org-ql-select files '(todo "INPROGRESS")
+                        :action (lambda () (cons
+                                            (format "%-10s - %-40s: %s"
+                                                    (org-entry-get (point) "TODO")
+                                                    (file-name-base (buffer-file-name))
+                                                    (org-no-properties (org-get-heading t t t t)))
+                                            (org-id-get))))
+                    nil))
+           (dashboard-set-file-icons nil))
       (dashboard-insert-section
        (concat (all-the-icons-octicon "checklist"
-                                       :height 1.2 :v-adjust 0.0 :face 'dashboard-heading)
-                " Active Tasks")
+                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading)
+               " Active Tasks")
        tasks
        list-size
        "t"
