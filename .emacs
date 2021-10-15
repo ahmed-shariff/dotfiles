@@ -103,44 +103,43 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(TeX-view-program-selection
-   (quote
-    (((output-dvi has-no-display-manager)
+   '(((output-dvi has-no-display-manager)
       "dvi2tty")
      ((output-dvi style-pstricks)
       "dvips and gv")
      (output-dvi "xdvi")
      (output-pdf "PDF Tools")
-     (output-html "xdg-open"))))
+     (output-html "xdg-open")))
  '(ansi-color-faces-vector
    [default default default italic underline success warning error])
  '(bookmark-save-flag 1)
  '(company-c-headers-path-system
-   (quote
-    ("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/")))
+   '("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/"))
  '(custom-safe-themes
-   (quote
-    ("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default)))
- '(ede-project-directories
-   (quote
-    ("/media/Files/Research/FoodClassification/deployment")))
+   '("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default))
+ '(ede-project-directories '("/media/Files/Research/FoodClassification/deployment"))
  '(elpy-rpc-python-command "python3")
  '(explicit-shell-file-name "/bin/zsh")
  '(ledger-post-amount-alignment-at :decimal)
  '(ledger-reconcile-default-commodity nil)
  '(ledger-reports
-   (quote
-    (("asd" "ledger")
+   '(("asd" "ledger")
      ("a" "ledger ")
      ("bal" "%(binary) -f %(ledger-file) bal")
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
-     ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
- '(org-export-backends (quote (ascii html icalendar latex md)))
- '(prolog-system (quote swi))
+     ("account" "%(binary) -f %(ledger-file) reg %(account)")))
+ '(org-export-backends '(ascii html icalendar latex md))
+ '(prolog-system 'swi)
  '(python-shell-interpreter "python3")
+ '(safe-local-variable-values
+   '((eval font-lock-add-keywords nil
+           '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
+             ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-level-7 t))
+           'append)))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
- '(sml/theme (quote dark))
+ '(sml/theme 'dark)
  '(visible-bell t))
 
 (custom-set-faces
@@ -148,6 +147,13 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(company-scrollbar-bg ((t (:background "#000000"))))
+ '(company-scrollbar-fg ((t (:background "#555555"))))
+ '(company-tooltip ((t (:inherit default :background "#000000"))))
+ '(company-tooltip-annotation ((t (:inherit font-lock-builtin-face))))
+ '(company-tooltip-common ((t (:inherit font-lock-constant-face))))
+ '(company-tooltip-selection ((t (:inherit highlight))))
+ '(markdown-code-face ((t (:inherit consolas))))
  '(micgoline-pl-active-green ((t (:inherit mode-line :background "light sky blue" :foreground "#FFFFFF"))))
  '(micgoline-pl-active-red ((t (:inherit mode-line :background "deep sky blue" :foreground "#FFFFFF"))))
  '(micgoline-pl-active-yellow ((t (:inherit mode-line :background "tomato1" :foreground "white"))))
@@ -159,14 +165,7 @@
  '(org-special-keyword ((t (:inherit outline-1 :foreground "sienna"))))
  '(powerline-active0 ((t (:inherit mode-line :background "medium blue" :foreground "#FFFFFF"))))
  '(powerline-active1 ((t (:inherit mode-line :background "tomato1" :foreground "#FFFFFF"))))
- '(powerline-active2 ((t (:inherit mode-line :background "light sky blue" :foreground "white"))))
- '(company-scrollbar-bg       ((t (:background "#000000"))))
- '(company-scrollbar-fg       ((t (:background "#555555"))))
- '(company-tooltip            ((t (:inherit default :background "#000000"))))
- '(company-tooltip-common     ((t (:inherit font-lock-constant-face))))
- '(company-tooltip-annotation ((t (:inherit font-lock-builtin-face))))
- '(company-tooltip-selection  ((t (:inherit highlight))))
- '(markdown-code-face ((t (:inherit consolas)))))
+ '(powerline-active2 ((t (:inherit mode-line :background "light sky blue" :foreground "white")))))
 
 
 (setq-default indent-tabs-mode nil)
