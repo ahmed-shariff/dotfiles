@@ -635,6 +635,10 @@
 ;;                           (require 'lsp-python-ms)
 ;;                           (lsp))))  ; or lsp-deferred
 
+(use-package lsp-treemacs
+  :config
+  (lsp-treemacs-sync-mode 1))
+
 (use-package dap-mode
   :after lsp-mode
   :config (dap-auto-configure-mode)
@@ -652,17 +656,13 @@
 
 ;;pdf
 (when (gethash 'use-pdf-tools configurations t)
-  (pdf-tools-install)
+  (pdf-tools-install t)
   (add-hook 'pdf-view-mode-hook '(lambda ()
 				   (pdf-misc-size-indication-minor-mode))))
 
 ;;delete-selection-mode
 (delete-selection-mode t)
 (require 'vlf-setup)
-
-;;speedbar settings
-(require 'sr-speedbar)
-(global-set-key (kbd "M-s M-s") 'dired-sidebar-toggle-sidebar)
 
 ;; Flycheck: On the fly syntax checking
 (require 'flycheck)
@@ -918,11 +918,15 @@ T - tag prefix
         (tab-count (how-many-region (point-min) (point-max) "^\t")))
     (if (> space-count tab-count) (setq indent-tabs-mode nil))
     (if (> tab-count space-count) (setq indent-tabs-mode t))))
-(add-hook 'python-mode-hook 'linum-mode)
-(add-hook 'python-mode-hook
+(add-hook 'prog-mode-hook
     (lambda ()
         (setq indent-tabs-mode nil)
-        (infer-indentation-style)))
+        (infer-indentation-style)
+        (linum-mode 1)
+        (hl-line-mode 1)
+        (hl-todo-mode 1)))
+
+
 ;; (highlight-indentation-mode t)
 ;; (highlight-indentation-current-column t)
 ;; (use-package diminish)
@@ -1074,6 +1078,53 @@ T - tag prefix
   :after treemacs magit
   :straight t)
 
+(use-package treemacs-persp
+  :after treemacs persp-mode
+  :config (treemacs-set-scope-type 'Perspectives))
+
+(setq persp-keymap-prefix (kbd "C-x p"))
+
+;;latex setup***********************************************************************************
+(defun turn-on-outline-minor-mode ()
+  "."
+  (outline-minor-mode 1))
+
+(use-package auctex
+  :requires (preview company-auctex)
+  :init 
+  (setq TeX-auto-save t
+	TeX-parse-self t
+	TeX-save-query nil
+	TeX-PDF-mode t
+	reftex-plug-into-AUCTeX t
+	TeX-PDF-from-DVI "Dvips")
+  (TeX-global-PDF-mode t)
+  (setq-default TeX-master nil)
+  :config
+  (company-auctex-init)
+  (setq outline-minor-mode-prefix "\C-c \C-o")
+  :hook ((LaTeX-mode-hook . turn-on-outline-minor-mode)
+	 (latex-mode-hook . turn-on-outline-minor-mode)
+	 (LaTeX-mode-hook . flyspell-mode)
+	 (latex-mode-hook . flyspell-mode)
+	 (LaTeX-mode-hook . turn-on-reftex)))
+
+;; (defun activate-preview-mode ()
+;;   (load "preview-latex.el" nil t t))
+
+;; (add-hook 'LaTeX-mode-hook 'turn-on-outline-minor-mode)
+;; (add-hook 'latex-mode-hook 'turn-on-outline-minor-mode)
+;; ;; (add-hook 'LaTeX-mode-hook 'activate-preview-mode)
+;; ;; (add-hook 'laTeX-mode-hook 'activate-preview-mode)
+;; (add-hook 'LaTeX-mode-hook 'flyspell-mode)
+;; (add-hook 'latex-mode-hook 'flyspell-mode)
+;; (setq outline-minor-mode-prefix "\C-c \C-o")
+
+
+;;magit******************************************************************
+(global-set-key (kbd "C-x g") 'magit-status)
+(setq magit-git-executable "git")
+
 (use-package git-gutter
   :straight git-gutter-fringe
   :diminish
@@ -1140,54 +1191,9 @@ T - tag prefix
   (set-face-foreground 'git-gutter:modified "LightGoldenrod")
   (set-face-foreground 'git-gutter:deleted "LightCoral"))
 
-
-(use-package treemacs-persp
-  :after treemacs persp-mode
-  :config (treemacs-set-scope-type 'Perspectives))
-
-(setq persp-keymap-prefix (kbd "C-x p"))
-
-;;latex setup***********************************************************************************
-(defun turn-on-outline-minor-mode ()
-  "."
-  (outline-minor-mode 1))
-
-(use-package auctex
-  :requires (preview company-auctex)
-  :init 
-  (setq TeX-auto-save t
-	TeX-parse-self t
-	TeX-save-query nil
-	TeX-PDF-mode t
-	reftex-plug-into-AUCTeX t
-	TeX-PDF-from-DVI "Dvips")
-  (TeX-global-PDF-mode t)
-  (setq-default TeX-master nil)
+(use-package magit-todos
   :config
-  (company-auctex-init)
-  (setq outline-minor-mode-prefix "\C-c \C-o")
-  :hook ((LaTeX-mode-hook . turn-on-outline-minor-mode)
-	 (latex-mode-hook . turn-on-outline-minor-mode)
-	 (LaTeX-mode-hook . flyspell-mode)
-	 (latex-mode-hook . flyspell-mode)
-	 (LaTeX-mode-hook . turn-on-reftex)))
-
-;; (defun activate-preview-mode ()
-;;   (load "preview-latex.el" nil t t))
-
-;; (add-hook 'LaTeX-mode-hook 'turn-on-outline-minor-mode)
-;; (add-hook 'latex-mode-hook 'turn-on-outline-minor-mode)
-;; ;; (add-hook 'LaTeX-mode-hook 'activate-preview-mode)
-;; ;; (add-hook 'laTeX-mode-hook 'activate-preview-mode)
-;; (add-hook 'LaTeX-mode-hook 'flyspell-mode)
-;; (add-hook 'latex-mode-hook 'flyspell-mode)
-;; (setq outline-minor-mode-prefix "\C-c \C-o")
-
-
-;;magit******************************************************************
-(global-set-key (kbd "C-x g") 'magit-status)
-(setq magit-git-executable "git")
-
+  (magit-todos-mode))
 
 ;;projectile mode********************************************************
 (projectile-mode +1)
@@ -1366,7 +1372,9 @@ T - tag prefix
   (add-to-list 'dashboard-item-generators  '(tasks . dashboard-insert-tasks))
   (dashboard-modify-heading-icons '((sprints . "milestone") (tasks . "check-circle-fill")))
   
-  (setq dashboard-items '((recents  . 5)
+  (setq dashboard-startup-banner "~/.emacs.d/customFiles/banner.png"
+        dashboard-image-banner-max-height 200
+        dashboard-items '((recents  . 5)
                           (projects . 5)
                           (tasks . 50)
                           (sprints . 50)
