@@ -403,7 +403,7 @@
 	org-ref-bibliography-notes "~/Documents/org/brain/research_papers.org"
 	org-ref-default-bibliography '("~/Documents/org/bibliography/references.bib")
 	org-ref-pdf-directory "~/Documents/org/bibliography/pdfs/"
-	bibtex-completion-bibliography "~/Documents/org/bibliography/references.bib"
+	bibtex-completion-bibliography '("~/Documents/org/bibliography/references.bib")
 	bibtex-completion-library-path "~/Documents/org/bibliography/pdfs/"
 	bibtex-completion-notes-path "~/Documents/org/brain/research_papers.org"
 	org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
@@ -898,7 +898,7 @@ Either show all or filter based on a sprint."
       (let* ((entry-key (org-entry-get (point) "Custom_ID")))
         (message "copying %s >> " entry-key)
         (save-excursion
-          (find-file bibtex-completion-bibliography)
+          (find-file (car bibtex-completion-bibliography))
           (bibtex-search-entry entry-key)
           (bibtex-copy-entry-as-kill)
           (with-current-buffer bib-file-buffer
