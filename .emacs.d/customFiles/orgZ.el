@@ -605,7 +605,7 @@ Appends the todo state of the entry being visualized."
                      (org-agenda-error)))
          (buffer (marker-buffer marker))
          (pos (marker-position marker)))
-    (when (equalp (buffer-name buffer) "research_papers.org")
+    (when (s-equals-p (buffer-name buffer) "research_papers.org")
       (with-current-buffer buffer
         (goto-char pos)
         (org-noter)))))
@@ -619,8 +619,8 @@ Appends the todo state of the entry being visualized."
     (when parents
       (funcall
        (cond
-        ((equalp pred 'or) #'-any-p)
-        ((equalp pred 'and) #'-all-p)
+        ((equal pred 'or) #'-any-p)
+        ((equal pred 'and) #'-all-p)
         nil)
        (lambda (parent) (member parent parents)) parent-ids))))
 
@@ -1023,7 +1023,7 @@ Either show all or filter based on a sprint."
     (mapcar (lambda (entry)
               (message "%s " entry)
               (when (and (listp entry))
-                (if (equalp (car entry) "research topics")
+                (if (s-equals-p (car entry) "research topics")
                   (push (cadr entry) topics)            
                   (push (cadr entry) other-parents))))
             parents)
