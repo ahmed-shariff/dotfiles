@@ -1078,11 +1078,18 @@ T - tag prefix
   :after treemacs magit
   :straight t)
 
-(use-package treemacs-persp
-  :after treemacs persp-mode
+(use-package treemacs-perspective
+  :after treemacs perspective
   :config (treemacs-set-scope-type 'Perspectives))
 
-(setq persp-keymap-prefix (kbd "C-x p"))
+;;perspective mode******************************************************************************
+
+(use-package perspective
+  :bind (("C-x b" . persp-switch-to-buffer*)
+         ("C-x k" . persp-kill-buffer*))
+  :hook (kill-emacs-hook . persp-state-save)
+  :config
+  (persp-mode))
 
 ;;latex setup***********************************************************************************
 (defun turn-on-outline-minor-mode ()
