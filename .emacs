@@ -378,8 +378,35 @@
    :preview-key '(:debounce 0.2 any)
    consult-ripgrep consult-git-grep consult-grep
    consult-bookmark consult-recent-file consult-xref
-   consult--source-file consult--source-project-file consult--source-bookmark
-   :preview-key (kbd "M-."))
+   consult--source-file consult--source-project-file consult--source-bookmark :preview-key (kbd "M-.")
+   consult--source-buffer :hidden t :default nil)
+
+  (defvar consult--source-perspective
+    (list :name     "Perspective"
+          :narrow   ?s
+          :category 'buffer
+          :state    #'consult--buffer-state
+          :default  t
+          :items    #'persp-get-buffer-names))
+
+  (push consult--source-perspective consult-buffer-sources)
+
+  (defvar consult--source-dogears
+    (list :name     "Dogears"
+          :narrow   ?d
+          :category 'dogears
+          :items    (lambda ()
+                      (mapcar
+                       (lambda (place)
+                         (propertize (dogears--format-record place)
+                                     'consult--candidate place))
+                       dogears-list))
+          :action   (lambda (cand)
+                      (dogears-go (get-text-property 0 'consult--candidate cand)))))
+  
+  (defun consult-dogears ()
+    (interactive)
+    (consult--multi '(consult--source-dogears)))
 
   ;; Optionally configure the narrowing key.
   ;; Both < and C-+ work reasonably well.
@@ -998,6 +1025,14 @@ T - tag prefix
 ;;  '(mode-line-inactive ((t (:background "#666666" :foreground "#f9f9f9" :box nil :height 0.9))))
 ;;  '(sml/global ((t (:foreground "gray50" :inverse-video nil :height 0.9 :width normal)))))
 
+;;perspective mode******************************************************************************
+
+(use-package perspective
+  :bind (("C-x k" . persp-kill-buffer*))
+  :hook (kill-emacs-hook . persp-state-save)
+  :init (persp-mode 1)
+  (setq persp-state-default-file "~/.emacs.d/.cache/perspective-state-default-file"))
+
 ;;treemacs setup**********************************************************************************************************
 (use-package treemacs
   :defer t
@@ -1082,14 +1117,18 @@ T - tag prefix
   :after treemacs perspective
   :config (treemacs-set-scope-type 'Perspectives))
 
-;;perspective mode******************************************************************************
-
-(use-package perspective
-  :bind (("C-x b" . persp-switch-to-buffer*)
-         ("C-x k" . persp-kill-buffer*))
-  :hook (kill-emacs-hook . persp-state-save)
-  :config
-  (persp-mode))
+;; dogears *************************************************************************************
+(use-package dogears
+  :straight (dogears :host github :repo "alphapapa/dogears.el"
+                     :files (:defaults (:exclude "helm-dogears.el")))
+  ;; These bindings are optional, of course:
+  :bind (:map global-map
+              ("M-g d" . consult-dogears)
+              ("M-g r" . dogears-remember)
+              ("M-g M-b" . dogears-back)
+              ("M-g M-f" . dogears-forward)
+              ("M-g M-d" . dogears-list)
+              ("M-g M-D" . dogears-sidebar)))
 
 ;;latex setup***********************************************************************************
 (defun turn-on-outline-minor-mode ()
