@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: debug log
+# key: delog
+# --
+Debug.Log(\$"$1");
