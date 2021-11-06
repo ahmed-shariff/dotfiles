@@ -387,6 +387,7 @@
           :category 'buffer
           :state    #'consult--buffer-state
           :default  t
+          :history  'consult--buffer-history
           :items    #'persp-get-buffer-names))
 
   (push consult--source-perspective consult-buffer-sources)
@@ -1130,7 +1131,10 @@ T - tag prefix
               ("M-g M-b" . dogears-back)
               ("M-g M-f" . dogears-forward)
               ("M-g M-d" . dogears-list)
-              ("M-g M-D" . dogears-sidebar)))
+              ("M-g M-D" . dogears-sidebar))
+  :config
+  (advice-add 'end-of-buffer :before #'dogears-remember)
+  (advice-add 'beginning-of-buffer :before #'dogears-remember))
 
 ;;latex setup***********************************************************************************
 (defun turn-on-outline-minor-mode ()
