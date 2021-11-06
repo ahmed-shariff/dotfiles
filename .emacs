@@ -571,6 +571,7 @@
   :config
   (add-hook 'emacs-lisp-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'csharp-mode-hook #'rainbow-delimeters-mode)
+  (add-hook 'csharp-tree-sitter-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'java-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'python-mode-hook #'rainbow-delimeters-mode))
 
@@ -602,6 +603,7 @@
 (use-package lsp-mode
   :hook (;;(python-mode . lsp)
          (csharp-mode . lsp)
+         (csharp-tree-sitter-mode . lsp)
 	 (java-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
   
@@ -1502,28 +1504,12 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   ;; (plantuml-set-exec-mode "jar"))
 
 ;; csharp #####################################################################
-(defun my-csharp-mode-hook ()
-  ;; enable the stuff you want for C# here
-  (company-mode)
-  (flycheck-mode)
-  
-  (setq indent-tabs-mode nil)
-  (setq c-syntactic-indentation t)
-  (c-set-style "ellemtel")
-  (setq c-basic-offset 4)
-  (setq truncate-lines t)
-  ; (setq tab-width 4)
-  (setq evil-shift-width 4)
-
-  (local-set-key (kbd "C-c r r") 'omnisharp-run-code-action-refactoring)
-  (local-set-key (kbd "C-c C-c") 'recompile))
+(use-package tree-sitter)
+(use-package tree-sitter-langs)
 
 (use-package csharp-mode
-  ;:requires omnisharp
-  :hook (csharp-mode . my-csharp-mode-hook))
-
-;; (add-hook 'csharp-mode-hook 'my-csharp-mode-hook t)
-;; (add-hook 'csharp-mode-hook #'flycheck-mode)
+  :config
+  (add-to-list 'auto-mode-alist '("\\.cs\\'" . csharp-tree-sitter-mode)))
 
 ;;Docker
 (use-package docker
