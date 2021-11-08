@@ -397,27 +397,22 @@
 (require 'org-bullets)
 
 (use-package org-ref
+  :bind (:map org-mode-map
+              ("C-c ]" . org-ref-insert-link))
   ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
   :config
-  (setq reftex-default-bibliography '("~/Documents/org/bibliography/references.bib")
-	org-ref-bibliography-notes "~/Documents/org/brain/research_papers.org"
-	org-ref-default-bibliography '("~/Documents/org/bibliography/references.bib")
-	org-ref-pdf-directory "~/Documents/org/bibliography/pdfs/"
+  (setq bibtex-completion-notes-path "~/Documents/org/brain/research_papers.org"
 	bibtex-completion-bibliography '("~/Documents/org/bibliography/references.bib")
-	bibtex-completion-library-path "~/Documents/org/bibliography/pdfs/"
-	bibtex-completion-notes-path "~/Documents/org/brain/research_papers.org"
+        bibtex-completion-library-path "~/Documents/org/bibliography/pdfs/"
+        reftex-default-bibliography bibtex-completion-bibliography
+	
 	org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
 	org-ref-completion-library "org-ref-ivy"
 	bibtex-completion-notes-template-one-file
 	(format
 	 "\n* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
 	doi-utils-open-pdf-after-download nil
-	org-ref-note-title-format "* (%y) %t [%9a] \n  :PROPERTIES:\n  :Custom_ID: %k\n  :AUTHOR: %9a\n  :JOURNAL: %j\n  :YEAR: %y\n  :VOLUME: %v\n  :PAGES: %p\n  :DOI: %D\n  :URL: %U\n  :END:\n\n  - ")
-  (defun my/org-ref-notes-function (candidates)
-    (let ((key (helm-marked-candidates)))
-      (funcall org-ref-notes-function (car key))))
-  (helm-delete-action-from-source "Edit notes" helm-source-bibtex)
-  (helm-add-action-to-source "Edit notes" 'my/org-ref-notes-function helm-source-bibtex 7))
+        doi-utils-download-pdf nil))
 
 (use-package org-noter ;;:quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
   :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
