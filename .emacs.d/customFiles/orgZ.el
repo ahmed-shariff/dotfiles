@@ -396,7 +396,20 @@
 
 (require 'org-bullets)
 
+(use-package bibtex-completion)
+
+(use-package ivy-bibtex
+  :config
+  (require 'org-ref-ivy)
+  (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
+        org-ref-insert-cite-function 'org-ref-cite-insert-ivy
+        org-ref-insert-label-function 'org-ref-insert-label-link
+        org-ref-insert-ref-function 'org-ref-insert-ref-link
+        org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body))))
+
+
 (use-package org-ref
+  :defer nil
   :bind (:map org-mode-map
               ("C-c ]" . org-ref-insert-link))
   ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
@@ -796,7 +809,7 @@ Either show all or filter based on a sprint."
                                       nil
                                     link-string))
 			    (cite-key (org-entry-get (point) "Custom_ID"))
-			    (dir org-ref-pdf-directory)
+			    (dir bibtex-completion-library-path)
 			    (tags (org-get-tags))
 			    (out-file-name (s-concat cite-key ".pdf"))
 			    (full-path (amsha/rename-full-path (expand-file-name out-file-name dir))))
