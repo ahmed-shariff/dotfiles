@@ -400,9 +400,15 @@ advice, files on WSL can not be saved."
           :narrow   ?s
           :category 'buffer
           :state    #'consult--buffer-state
+          :action   #'consult--buffer-action
           :default  t
-          :history  'consult--buffer-history
-          :items    #'persp-get-buffer-names))
+          :items
+          (lambda () (let ((current-persp-buffers (persp-get-buffer-names)))
+                       (consult--buffer-query :sort 'visibility
+                                              :as #'buffer-name
+                                              :predicate
+                                              (lambda (it)
+                                                (member (buffer-name it) current-persp-buffers)))))))
 
   (push consult--source-perspective consult-buffer-sources)
 
