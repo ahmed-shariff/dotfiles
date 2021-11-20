@@ -399,6 +399,7 @@
 (use-package bibtex-completion)
 
 (use-package ivy-bibtex
+  :after (org-ref)
   :config
   (require 'org-ref-ivy)
   (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
