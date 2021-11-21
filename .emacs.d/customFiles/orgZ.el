@@ -31,6 +31,41 @@
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
                                    :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame")))
 
+(use-package org-protocol
+  :ensure nil
+  :straight nil
+  :config
+  (add-to-list 'org-protocol-protocol-alist
+               '("add doi link"
+                 :protocol "add-doi-pdf"
+                 :function add-doi-and-pdf
+                 :kill-client t))
+
+  (defun add-doi-and-pdf (data)
+    "DATA exepcts to be an alist with keys :url and :filename."
+    (message "Trying to add: %s" data)
+    (let* ((url (plist-get data :url))
+           (file-name (format "file:///%s" (expand-file-name (plist-get data :filename))))
+           doi)
+      (save-match-data 
+        (if (and (string-match "\\(10.1145/[0-9]*\\.*[0-9]*\\)" url)
+                 (setq doi (match-string 1 url)))
+            (progn
+              (save-excursion
+                (doi-add-bibtex-entry doi (car bibtex-completion-bibliography))
+                (doi-utils-open-bibtex doi)
+                (org-ref-open-bibtex-notes)
+                (org-set-property "LINK" file-name)
+                (research-papers-configure)))
+          (if (string-match "arxiv\\.org.*pdf$")
+              (arxiv-add-bibtex-entry-with-note url (car bibtex-completion-bibliography))
+            (progn 
+              (push file-name kill-ring)
+              (message "No valid DOI: Adding %s to kill ring" file-name))))))
+    (find-file bibtex-completion-notes-path)
+    ;; returning nil to avoid a file buffer being opened
+    nil))
+
 (setq org-ellipsis " ▾"
       org-hide-emphasis-markers t
       org-src-fontify-natively t
@@ -968,8 +1003,7 @@ Either show all or filter based on a sprint."
          ;;  now get the bibfile to add it to
          (completing-read
           "Bibfile: "
-          (append (f-entries "." (lambda (f) (f-ext? f "bib")))
-                  org-ref-default-bibliography))))
+          bibtex-completion-bibliography)))
   (save-window-excursion
     (find-file bibfile)
     (let* ((arxiv-number (s-chop-suffix ".pdf" (car (last (s-split "/" arxiv-link)))))
@@ -985,8 +1019,8 @@ Either show all or filter based on a sprint."
 	  (org-ref-clean-bibtex-entry)
 	  (message "%s" (buffer-file-name))
 	  (save-excursion
-	    (when (f-file? org-ref-bibliography-notes)
-	      (find-file-noselect org-ref-bibliography-notes)
+	    (when (f-file? bibtex-completion-notes-path)
+	      (find-file-noselect bibtex-completion-notes-path)
 	      (save-buffer))
 	    (let ((bibtex-completion-bibliography (list (buffer-file-name)))
 		  (keys (progn		  

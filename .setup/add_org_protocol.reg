@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\org-protocol]
+@="URL:Org Protocol"
+"URL Protocol"=""
+[HKEY_CLASSES_ROOT\org-protocol\shell]
+[HKEY_CLASSES_ROOT\org-protocol\shell\open]
+[HKEY_CLASSES_ROOT\org-protocol\shell\open\command]
+@=hex(2):22,00,25,00,45,00,4d,00,41,00,43,00,53,00,5f,00,48,00,4f,00,4d,\
+  00,45,00,25,00,5c,00,5c,00,65,00,6d,00,61,00,63,00,73,00,63,00,6c,00,69,00,\
+  65,00,6e,00,74,00,77,00,2e,00,65,00,78,00,65,00,22,00,20,00,22,00,25,00,31,\
+  00,22,00,00,00
