@@ -48,8 +48,8 @@
            (file-name (format "file:///%s" (expand-file-name (plist-get data :filename))))
            doi)
       (save-match-data 
-        (if (and (string-match "\\(10.1145/[0-9]*\\.*[0-9]*\\)" url)
-                 (setq doi (match-string 1 url)))
+        (if (and (string-match "\\(10\\.[0-9]\\{4\\}\\(/\\|%2F\\)\\([a-z]\\|[0-9]\\|_\\|-\\|\\.\\)+\\)" url)
+                 (setq doi (s-replace-regexp "\\.$" "" (s-replace "%2F" "/" (match-string 1 url)))))
             (progn
               (save-excursion
                 (doi-add-bibtex-entry doi (car bibtex-completion-bibliography))
@@ -57,9 +57,9 @@
                 (org-ref-open-bibtex-notes)
                 (org-set-property "LINK" file-name)
                 (research-papers-configure)))
-          (if (string-match "arxiv\\.org.*pdf$")
+          (if (string-match "arxiv\\.org.*pdf$" url)
               (arxiv-add-bibtex-entry-with-note url (car bibtex-completion-bibliography))
-            (progn 
+            (progn
               (push file-name kill-ring)
               (message "No valid DOI: Adding %s to kill ring" file-name))))))
     (find-file bibtex-completion-notes-path)
@@ -443,9 +443,8 @@
         org-ref-insert-ref-function 'org-ref-insert-ref-link
         org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body))))
 
-
 (use-package org-ref
-  :defer nil
+  :demand
   :bind (:map org-mode-map
               ("C-c ]" . org-ref-insert-link))
   ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
@@ -462,6 +461,14 @@
 	 "\n* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
 	doi-utils-open-pdf-after-download nil
         doi-utils-download-pdf nil))
+
+(defun doi-add-bibtex-entry-with-note ()
+  "."
+  (interactive)
+  (call-interactively #'doi-utils-add-bibtex-entry-from-doi)
+  (find-file (car bibtex-completion-bibliography))
+  (org-ref-open-bibtex-notes)
+  (org-set-property "LINK" (completing-read "LINK: " nil)))
 
 (use-package org-noter ;;:quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
   :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
@@ -1097,6 +1104,7 @@ Either show all or filter based on a sprint."
 	    (define-key org-mode-map "\C-cop" 'org-brain-add-parent-topic)
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
             (define-key org-mode-map "\C-cos" 'org-brain-print-topics)
+            (define-key org-mode-map (kbd "C-'") nil)
 	    (flyspell-mode t)))
 (add-hook 'org-mode-hook 'visual-line-mode)
 
