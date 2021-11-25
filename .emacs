@@ -50,6 +50,11 @@
   ;; (toggle-frame-maximized))
   (set-frame-parameter nil 'fullscreen 'maximized))
 
+(defun enlarge-window-horizontally-to (percentage)
+  "Enlarge window horizontally by PERCENTAGE."
+  (interactive (list (string-to-number (completing-read "Percentage: " '("10" "20" "50" "60" "75" "85")))))
+  (enlarge-window-horizontally (truncate (- (* (frame-width) (/ (float percentage) 100)) (window-width)))))
+
 (maximize)
 (add-hook 'after-make-frame-functions 'maximize)
 (setq ns-auto-hide-menu-bar t)
