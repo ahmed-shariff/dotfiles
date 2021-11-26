@@ -290,15 +290,9 @@
                               title)))))
          (target (progn
                    (assoc (completing-read "Select task: " targets nil t) targets))))
-    (format "* [[id:%s][%s]]  %%?
-     :PROPERTIES:
-     :ID:       %s
-     :BRAIN_PARENTS: %s
-     :END:"
+    (format "* [[id:%s][%s]]  %%?"
             (nth 1 target)
-            (nth 2 target)
-            (org-id-new)
-            (nth 1 target))))
+            (nth 2 target))))
      
           
 ;; (defun org-ask-location ()
@@ -433,22 +427,28 @@
 
 (use-package bibtex-completion)
 
-;; (use-package org-roam
-;;   :ensure t
-;;   :custom
-;;   (org-roam-directory (file-truename org-brain-path))
-;;   :bind (("C-c n l" . org-roam-buffer-toggle)
-;;          ("C-c n f" . org-roam-node-find)
-;;          ("C-c n g" . org-roam-graph)
-;;          ("C-c n i" . org-roam-node-insert)
-;;          ("C-c n c" . org-roam-capture)
-;;          ;; Dailies
-;;          ("C-c n j" . org-roam-dailies-capture-today))
-;;   :config
-;;   (org-roam-db-autosync-mode)
-;;   ;; If using org-roam-protocol
-;;   ;; (require 'org-roam-protocol)
-;;   )
+(use-package org-roam
+  :ensure t
+  :custom
+  (org-roam-directory (file-truename org-brain-path))
+  (org-roam-dailies-directory "dailies")
+  (org-roam-dailies-capture-templates '(("d" "default" entry "%(board-task-location)"
+                                         :target (file+datetree
+                                                  "~/Documents/org/brain/work/notes.org"
+                                                  "day"))))
+  (org-roam-node-display-template (concat "${title:90}   " (propertize "${tags:30}  " 'face 'org-tag) " ${file:*}"))
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n g" . org-roam-graph)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         ;; Dailies
+         ("C-c n j" . org-roam-dailies-capture-today))
+  :config
+  (org-roam-db-autosync-mode)
+  ;; If using org-roam-protocol
+  ;; (require 'org-roam-protocol)
+  )
 
 (use-package ivy-bibtex
   :after (org-ref)
