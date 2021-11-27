@@ -290,15 +290,9 @@
                               title)))))
          (target (progn
                    (assoc (completing-read "Select task: " targets nil t) targets))))
-    (format "* [[id:%s][%s]]  %%?
-     :PROPERTIES:
-     :ID:       %s
-     :BRAIN_PARENTS: %s
-     :END:"
+    (format "* [[id:%s][%s]]  %%?"
             (nth 1 target)
-            (nth 2 target)
-            (org-id-new)
-            (nth 1 target))))
+            (nth 2 target))))
      
           
 ;; (defun org-ask-location ()
@@ -433,22 +427,43 @@
 
 (use-package bibtex-completion)
 
-;; (use-package org-roam
-;;   :ensure t
-;;   :custom
-;;   (org-roam-directory (file-truename org-brain-path))
-;;   :bind (("C-c n l" . org-roam-buffer-toggle)
-;;          ("C-c n f" . org-roam-node-find)
-;;          ("C-c n g" . org-roam-graph)
-;;          ("C-c n i" . org-roam-node-insert)
-;;          ("C-c n c" . org-roam-capture)
-;;          ;; Dailies
-;;          ("C-c n j" . org-roam-dailies-capture-today))
-;;   :config
-;;   (org-roam-db-autosync-mode)
-;;   ;; If using org-roam-protocol
-;;   ;; (require 'org-roam-protocol)
-;;   )
+(use-package org-roam
+  :ensure t
+  :init
+  (setq org-roam-v2-ack t)
+  :custom
+  (org-roam-directory (file-truename org-brain-path))
+  (org-roam-dailies-directory "dailies")
+  (org-roam-dailies-capture-templates
+   '(("d" "default" entry "%(board-task-location)"
+      :target (file+datetree
+               "~/Documents/org/brain/work/notes.org"
+               "day"))))
+  (org-roam-capture-templates
+   '(("d" "default" entry "* ${title}%?
+  :PROPERTIES:
+  :ID:       %(org-id-new)
+  :END:"
+      :target
+      (file+head+olp
+       (lambda () (completing-read "File: "
+                                   (f-glob "*.org" (file-truename org-brain-path))
+                                   nil nil))
+       nil nil)
+      :prepend t
+      :kill-buffer t)))
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n g" . org-roam-graph)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         ;; Dailies
+         ("C-c n j" . org-roam-dailies-capture-today))
+  :config
+  (org-roam-db-autosync-mode)
+  ;; If using org-roam-protocol
+  ;; (require 'org-roam-protocol)
+  )
 
 (use-package ivy-bibtex
   :after (org-ref)
@@ -906,7 +921,8 @@ Either show all or filter based on a sprint."
 			       (append tags '("NO_PARENTS"))))
 		       (org-set-tags (delete "nosiblings" (delete-dups tags)))))
 		   "LEVEL=1")
-  (org-brain-update-id-locations))
+  (org-brain-update-id-locations)
+  (org-roam-db-sync))
 
 (defun amsha/doi-utils-get-pdf-url-uml (old-function &rest rest)
   "Making sure the urls that are being recived by org-ref is made to use uml links."
