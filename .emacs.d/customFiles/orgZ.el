@@ -452,6 +452,7 @@
        nil nil)
       :prepend t
       :kill-buffer t)))
+  (org-roam-node-display-template (concat "${title:90}   " (propertize "${tags:30}  " 'face 'org-tag) " ${file:*}"))
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n g" . org-roam-graph)
