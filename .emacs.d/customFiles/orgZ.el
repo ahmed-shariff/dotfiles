@@ -279,21 +279,23 @@
 (defun board-task-location ()
   (let* ((project-boards (directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org$"))
          (targets
-          (org-ql-select project-boards `(and (todo "INPROGRESS") (level 1))
+          (org-ql-select project-boards `(level 1)
             :action (lambda ()
                       (let* ((headline-plist (cadr (org-element-headline-parser (point))))
                              (title (car (plist-get headline-plist :title)))
-                             (file-name (file-name-base (buffer-file-name))))
-                        (list (format "%s::%s" file-name title)
-                              (org-id-get-create)
-                              file-name
-                              title)))))
+                             (file-name (file-name-base (buffer-file-name)))
+                             (todo-state (plist-get headline-plist :todo-keyword)))
+                        (cons (format "%-10s  %-30s %s"
+                                      (propertize todo-state 'face (org-get-todo-face todo-state))
+                                      (propertize file-name 'face 'marginalia-documentation)
+                                      title)
+                              (org-id-get-create))))))
          (target (progn
-                   (assoc (completing-read "Select task: " targets nil t) targets))))
+                   (assoc (completing-read "Select task: " (org-brain--targets-with-metadata targets) nil t) targets))))
     (format "* [[id:%s][%s]]  %%?"
-            (nth 1 target)
-            (nth 2 target))))
-     
+            (car target)
+            (cdr target))))
+    
           
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading) 
@@ -511,6 +513,7 @@
         org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"))
 
 (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
+  :demand
   :init
   (setq org-brain-path "~/Documents/org/brain")
   :bind (("C-c v" . org-brain-visualize)
@@ -520,7 +523,16 @@
          ("\C-cob" . org-brain-goto-button-at-pt)
          ("\C-cos". org-brain-print-topics))
   :config
-  ;(define-key org-brain-visualize-mode-map "")
+  ;;(define-key org-brain-visualize-mode-map "")
+  (defmacro org-brain-function-on-entry (fn)
+  "Macro that generates a function which takes an entry and executes the fn while on a file entry."
+  `(lambda (entry)
+     (if (org-brain-filep entry)
+         ""
+       (org-with-point-at (org-brain-entry-marker entry)
+         (or (funcall ,fn entry)
+	     "")))))
+
   (setq org-id-track-globally t
         org-id-locations-file "~/.emacs.d/.org-id-locations"
         org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
@@ -550,6 +562,22 @@
                            (all-the-icons-fileicon "brain"))
                           (t
                            (all-the-icons-icon-for-file link))))))
+  (defun org-brain--targets-with-metadata (collection)
+    "To use with completing read to allow having additional annotations with marginalia."
+    (lambda (string predicate action)
+      (if (eq action 'metadata)
+          `(metadata
+            (category . org-brain-node))
+        (complete-with-action action collection string predicate))))
+
+  (defun org-brain-completing-read--metadata (args)
+    (append (list (nth 0 args)
+                  (org-brain--targets-with-metadata (nth 1 args)))
+            (cddr args)))
+  
+  (advice-add #'org-brain-completing-read :filter-args 'org-brain-completing-read--metadata)
+  ;; (advice-remove #'org-brain-completing-read 'org-brain-completing-read--metadata)
+  
   (add-hook 'org-brain-after-resource-button-functions #'org-brain-insert-resource-icon)
   (defface aa2u-face '((t . nil))
     "Face for aa2u box drawing characters")
@@ -647,15 +675,6 @@ Appends the todo state of the entry being visualized."
      'aa2u-text t
      'face (org-brain-display-face entry face annotation))))
 
-(defmacro org-brain-function-on-entry (fn)
-  "Macro that generates a function which takes an entry and executes the fn while on a file entry."
-  `(lambda (entry)
-     (if (org-brain-filep entry)
-         ""
-       (org-with-point-at (org-brain-entry-marker entry)
-         (or (funcall ,fn entry)
-	     "")))))
-
 (defun org-brain-entry-todo-state-colored (entry)
   "Get todo state of ENTRY with colors."
   (let ((kwd (org-entry-get (point) "TODO")))
@@ -752,7 +771,8 @@ Appends the todo state of the entry being visualized."
     `(and (level 2) (todo ,@states) (h* "Sprint"))
     :action (lambda () (cons
                         (format "%-10s - %-40s: %s"
-                                (org-entry-get (point) "TODO")
+                                (let ((todo-state (org-entry-get (point) "TODO")))
+                                  (propertize todo-state 'face (org-get-todo-face todo-state)))
                                 (save-excursion
                                   (org-up-heading-safe)
                                   (s-replace-regexp

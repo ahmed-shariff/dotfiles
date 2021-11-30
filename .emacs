@@ -1442,7 +1442,8 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                       (org-ql-select files '(todo "INPROGRESS")
                         :action (lambda () (cons
                                             (format "%-10s - %-40s: %s"
-                                                    (org-entry-get (point) "TODO")
+                                                    (let ((todo-state (org-entry-get (point) "TODO")))
+                                                      (propertize todo-state 'face (org-get-todo-face todo-state)))
                                                     (file-name-base (buffer-file-name))
                                                     (org-no-properties (org-get-heading t t t t)))
                                             (org-id-get))))
