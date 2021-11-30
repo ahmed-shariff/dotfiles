@@ -264,8 +264,8 @@ advice, files on WSL can not be saved."
 
   (advice-add #'org-set-property :around #'amsha/match-components-literally)
   
-  (setq orderless-matching-styles '(orderless-literal orderless-regexp))
-        orderless-style-dispatchers '(amsha/without-if-bang))
+  (setq orderless-matching-styles '(orderless-literal orderless-regexp)
+        orderless-style-dispatchers '(amsha/without-if-bang)))
 
 (use-package selectrum
   :init (selectrum-mode +1)
@@ -317,7 +317,7 @@ advice, files on WSL can not be saved."
   ;; Replace bindings. Lazily loaded due by `use-package'.
   :bind (;; C-c bindings (mode-specific-map)
          ("C-c h" . consult-history)
-         ("C-c m" . consult-mode-command)
+         ;; ("C-c m" . consult-mode-command)
          ("C-c b" . consult-bookmark)
          ("C-c k" . consult-kmacro)
          ;; C-x bindings (ctl-x-map)
@@ -353,7 +353,7 @@ advice, files on WSL can not be saved."
          ("M-s k" . consult-keep-lines)
          ("M-s u" . consult-focus-lines)
          ;; Isearch integration
-         ("M-s e" . consult-isearch)
+         ("M-s e" . consult-isearch-history)
          :map isearch-mode-map
          ("M-e" . consult-isearch)                 ;; orig. isearch-edit-string
          ("M-s e" . consult-isearch)               ;; orig. isearch-edit-string
