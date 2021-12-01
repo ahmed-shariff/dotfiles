@@ -188,6 +188,18 @@
 
 (electric-pair-mode 1)
 
+(global-hl-line-mode 1)
+
+(use-package beacon
+  :demand
+  :custom
+  (beacon-push-mark nil)
+  (beacon-color "#cc342b")
+  (beacon-blink-delay 0.1)
+  (beacon-blink-duration 0.3)
+  :config
+  (beacon-mode))
+
 (setq backup-directory-alist `(("." . "~/.backups_emacs"))
       backup-by-copying t
       delete-old-versions t)
@@ -511,6 +523,13 @@ advice, files on WSL can not be saved."
 ;;   :config
 ;;   (all-the-icons-ivy-setup))
 
+(use-package consult-dir
+  :ensure t
+  :bind (("C-x C-d" . consult-dir)
+         :map minibuffer-local-completion-map
+         ("C-x C-d" . consult-dir)
+         ("C-x C-j" . consult-dir-jump-file)))
+
 (use-package all-the-icons-ivy-rich
   :init (all-the-icons-ivy-rich-mode 1))
 
@@ -600,6 +619,13 @@ advice, files on WSL can not be saved."
   (add-hook 'csharp-tree-sitter-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'java-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'python-mode-hook #'rainbow-delimeters-mode))
+
+;;highlight-indent-mode***************************************************************
+(use-package highlight-indent-guides
+  :hook (prog-mode . highlight-indent-guides-mode)
+  :config
+  (setq highlight-indent-guides-method 'column
+        highlight-indent-guides-auto-character-face-perc 20))
 
 ;;elgrep******************************************************************************
 (use-package elgrep
@@ -978,7 +1004,6 @@ T - tag prefix
         (setq indent-tabs-mode nil)
         (infer-indentation-style)
         (linum-mode 1)
-        (hl-line-mode 1)
         (hl-todo-mode 1)))
 
 
