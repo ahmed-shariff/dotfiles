@@ -461,12 +461,20 @@
          ("C-c n i" . org-roam-node-insert)
          ("C-c n c" . org-roam-capture)
          ;; Dailies
-         ("C-c n j" . org-roam-dailies-capture-today))
+         ("C-c n j" . org-roam-dailies-capture-today)
+         ;; org-roam-bibtex
+         ("C-c n b" . orb-insert-link))
   :config
   (org-roam-db-autosync-mode)
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
   )
+
+(use-package org-roam-bibtex
+  :after org-roam
+  :custom
+  (orb-roam-ref-format "org-ref-v3")
+  (orb-insert-interface "ivy-bibtex"))
 
 (use-package ivy-bibtex
   :after (org-ref)
@@ -490,7 +498,6 @@
         reftex-default-bibliography bibtex-completion-bibliography
 	
 	org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
-	org-ref-completion-library "org-ref-ivy"
 	bibtex-completion-notes-template-one-file
 	(format
 	 "\n* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
