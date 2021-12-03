@@ -284,17 +284,18 @@
                       (let* ((headline-plist (cadr (org-element-headline-parser (point))))
                              (title (car (plist-get headline-plist :title)))
                              (file-name (file-name-base (buffer-file-name)))
-                             (todo-state (plist-get headline-plist :todo-keyword)))
-                        (cons (format "%-10s  %-30s %s"
+                             (todo-state (or (plist-get headline-plist :todo-keyword) "")))
+                        (list (format "%-10s  %-30s %s"
                                       (propertize todo-state 'face (org-get-todo-face todo-state))
                                       (propertize file-name 'face 'marginalia-documentation)
                                       title)
+                              title
                               (org-id-get-create))))))
          (target (progn
                    (assoc (completing-read "Select task: " (org-brain--targets-with-metadata targets) nil t) targets))))
     (format "* [[id:%s][%s]]  %%?"
-            (car target)
-            (cdr target))))
+            (nth 2 target)
+            (nth 1 target))))
     
           
 ;; (defun org-ask-location ()
