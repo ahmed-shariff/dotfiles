@@ -660,6 +660,7 @@ advice, files on WSL can not be saved."
 	 (lsp-mode . lsp-enable-which-key-integration))
   
   :init
+  (setq lsp-keymap-prefix "C-x l")
   ;; (add-hook 'prog-mode-hook #'lsp)
   ;; (setq lsp-auto-guess-root t)
   ;; (setq lsp-log-io t)
