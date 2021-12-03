@@ -523,12 +523,14 @@ advice, files on WSL can not be saved."
 ;;   :config
 ;;   (all-the-icons-ivy-setup))
 
-(use-package consult-dir
-  :ensure t
-  :bind (("C-x C-d" . consult-dir)
-         :map minibuffer-local-completion-map
-         ("C-x C-d" . consult-dir)
-         ("C-x C-j" . consult-dir-jump-file)))
+;; This block for some magical reason seems to be intefering with magit so commenting out.
+;; (use-package consult-dir
+;;   :custom
+;;   (consult-dir-project-list-function 'consult-dir-projectile-dirs)
+;;   :bind (("c-x c-d" . consult-dir)
+;;          :map minibuffer-local-completion-map
+;;          ("c-x c-d" . consult-dir)
+;;          ("c-x c-j" . consult-dir-jump-file)))
 
 (use-package all-the-icons-ivy-rich
   :init (all-the-icons-ivy-rich-mode 1))
