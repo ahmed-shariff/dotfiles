@@ -992,6 +992,30 @@ Either show all or filter based on a sprint."
 							  out-dir)))))))
     (dired out-dir)))
 
+
+(defun copy-related-research-papers-org-ql (query)
+  "QUERY."
+  (interactive "xQuery: ")
+  (let ((out-dir (expand-file-name (secure-hash 'md5 (format "%s" (current-time))) "~/Downloads")))
+    (condition-case nil
+	(make-directory out-dir)
+      (file-already-exists
+       (progn
+	 (message "Deleting directory and creating anew: %s" out-dir) 
+	 (delete-directory out-dir t)
+	 (make-directory out-dir))))
+    (message "Copying files to %s" out-dir)
+    (org-ql-select (buffer-file-name (marker-buffer (org-brain-entry-marker "research_papers")))
+      query
+      :action (lambda ()
+		(when-let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
+		  (message "Copied %s" (file-name-nondirectory file-path)) 
+		  (copy-file file-path
+			     (expand-file-name (file-name-nondirectory file-path)
+					       out-dir)))))
+    (dired out-dir)))
+
+
 (defvar copy-notes-and-bib-function-org-buffer nil)
 (defvar copy-notes-and-bib-function-bib-buffer nil)
 
