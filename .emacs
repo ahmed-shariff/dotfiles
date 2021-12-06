@@ -657,7 +657,7 @@ advice, files on WSL can not be saved."
 (use-package lsp-mode
   :hook (;;(python-mode . lsp)
          (csharp-mode . lsp)
-         (csharp-tree-sitter-mode . lsp)
+         ;; (csharp-tree-sitter-mode . lsp)
 	 (java-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
   
@@ -1567,7 +1567,16 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
 (use-package csharp-mode
   :config
-  (add-to-list 'auto-mode-alist '("\\.cs\\'" . csharp-tree-sitter-mode)))
+  (add-to-list 'auto-mode-alist '("\\.cs\\'" . csharp-mode)))
+
+
+;; Unity setup#################################################################
+(use-package unity
+  :straight (unity :type git :host github :repo "elizagamedev/unity.el"
+                   :files ("*.el" "*.c"))
+  :config
+  (setq unity-vcvarsall-file (gethash 'unity-vcvarsall-file configurations))
+  (unity-setup))
 
 ;;Docker
 (use-package docker
