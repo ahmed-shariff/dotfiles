@@ -1582,6 +1582,10 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
 
 ;; Unity setup#################################################################
+;; To set up:
+;; 1. build using `unity-build-code-shim'
+;; 2. Add the code.exe at .emacs.d/var/unity ad the editor to unity
+;; 3. Set the args to: emacsclient -n +$(Line):$(Column) $(File)
 (use-package unity
   :straight (unity :type git :host github :repo "elizagamedev/unity.el"
                    :files ("*.el" "*.c"))
