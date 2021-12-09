@@ -749,14 +749,16 @@ advice, files on WSL can not be saved."
 (require 'vlf-setup)
 
 ;; Flycheck: On the fly syntax checking
-(require 'flycheck)
-(add-hook 'after-init-hook #'global-flycheck-mode)
-; stronger error display
-(defface flycheck-error
-  '((t (:foreground "red" :underline (:color "Red1" :style wave) :weight bold)))
-  "Flycheck face for errors"
-  :group "flycheck")
-(setq flycheck-check-syntax-automatically '(mode-enabled new-line))
+(use-package flycheck
+  :defer t
+  :hook (lsp-mode . flycheck-mode)
+  :config
+  ;; stronger error display
+  (defface flycheck-error
+    '((t (:foreground "red" :underline (:color "Red1" :style wave) :weight bold)))
+    "Flycheck face for errors"
+    :group "flycheck")
+  (setq flycheck-check-syntax-automatically '(mode-enabled new-line save)))
 
 (use-package all-the-icons)
 ;;flycheck
