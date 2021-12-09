@@ -1191,6 +1191,15 @@ T - tag prefix
   (advice-add 'end-of-buffer :before #'dogears-remember)
   (advice-add 'beginning-of-buffer :before #'dogears-remember))
 
+;;atomic-chrome*********************************************************************************
+(use-package atomic-chrome
+  :init (atomic-chrome-start-server)
+  :config
+  (setq atomic-chrome-url-major-mode-alist '(("overleaf\\.com" . latex-mode))
+        atomic-chrome-extension-type-list '(ghost-text)
+        atomic-chrome-buffer-open-style 'frame
+        atomic-chrome-default-major-mode 'markdown-mode))
+
 ;;latex setup***********************************************************************************
 (defun turn-on-outline-minor-mode ()
   "."
