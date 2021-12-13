@@ -277,7 +277,9 @@
     (goto-char (point-max))))
 
 (defun board-task-location ()
-  (let* ((project-boards (directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org$"))
+  "Return a org title with board task after prompting for it."
+  (let* ((project-boards (--keep (when (not (s-contains-p "#" it)) it)
+                                 (directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org$")))
          (targets
           (org-ql-select project-boards `(level 1)
             :action (lambda ()
