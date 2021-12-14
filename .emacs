@@ -190,6 +190,8 @@
 
 (global-hl-line-mode 1)
 
+(setq view-read-only t)
+
 (use-package beacon
   :demand
   :custom
@@ -581,6 +583,12 @@ advice, files on WSL can not be saved."
   ("e" er/mark-email)
   ("f" er/mark-defun)
   ("q" nil)))
+
+;;embrace ****************************************************************************
+(use-package embrace
+  :bind ("C-," . embrace-commander)
+  :hook ((org-mode . embrace-org-mode-hook)
+         (LaTeX-mode . embrace-LaTeX-mode-hook)))
 
 ;;mulitple cursor ********************************************************************
 (use-package multiple-cursors
