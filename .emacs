@@ -1484,14 +1484,15 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
   (defun dashboard-insert-tasks (list-size)
     "Add the list of LIST-SIZE items."
-    (let* ((files (directory-files (expand-file-name "work/project_boards" org-brain-path) t ".org"))
+    (let* ((files (f-glob "*/project_boards/*.org" org-brain-path))
            (tasks (if files
                       (org-ql-select files '(todo "INPROGRESS")
                         :action (lambda () (cons
                                             (format "%-10s - %-40s: %s"
-                                                    (let ((todo-state (org-entry-get (point) "TODO")))
-                                                      (propertize todo-state 'face (org-get-todo-face todo-state)))
-                                                    (file-name-base (buffer-file-name))
+                                                    (--> (org-entry-get (point) "TODO")
+                                                         (propertize it 'face (org-get-todo-face it)))
+                                                    (--> (buffer-file-name)
+                                                         (format "%s/%s" (f-base (f-parent (f-parent it))) (file-name-base it)))
                                                     (org-no-properties (org-get-heading t t t t)))
                                             (org-id-get))))
                     nil))

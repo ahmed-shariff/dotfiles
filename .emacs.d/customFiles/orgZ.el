@@ -271,21 +271,28 @@
 
 (defun org-ask-task-board ()
   "."
-  (let* ((project-boards (mapcar (lambda (file) (cons (file-name-base file) file))(directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org")))
-         (board-file (cdr (assoc (ivy-read "Select poject board" project-boards) project-boards))))
+  (let* ((project-boards (mapcar (lambda (file) (cons (format "%-10s %s"
+                                                              (propertize (f-base (f-parent (f-parent file)))  'face 'marginalia-documentation)
+                                                              (file-name-base file))
+                                                       file))
+                                 (--keep
+                                  (when (not (s-contains-p "#" it)) it)
+                                  (f-glob "*/project_boards/*.org" org-brain-path))))
+         (board-file (cdr (assoc (completing-read "Select poject board: " project-boards) project-boards))))
     (find-file board-file)
     (goto-char (point-max))))
 
 (defun board-task-location ()
   "Return a org title with board task after prompting for it."
   (let* ((project-boards (--keep (when (not (s-contains-p "#" it)) it)
-                                 (directory-files "~/Documents/org/brain/work/project_boards" t ".*\\.org$")))
+                                 (f-glob "*/project_boards/*.org" org-brain-path)))
          (targets
           (org-ql-select project-boards `(level 1)
             :action (lambda ()
                       (let* ((headline-plist (cadr (org-element-headline-parser (point))))
-                             (title (car (plist-get headline-plist :title)))
-                             (file-name (file-name-base (buffer-file-name)))
+                             (title (org-entry-get (point) "ITEM"))
+                             (full-file-name (buffer-file-name))
+                             (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
                              (todo-state (or (plist-get headline-plist :todo-keyword) "")))
                         (list (format "%-10s  %-30s %s"
                                       (propertize todo-state 'face (org-get-todo-face todo-state))
@@ -443,6 +450,10 @@
    '(("d" "default" entry "%(board-task-location)"
       :target (file+datetree
                "~/Documents/org/brain/work/notes.org"
+               "day"))
+     ("p" "personal" entry "%(board-task-location)"
+      :target (file+datetree
+               "~/Documents/org/brain/personal/notes.org"
                "day"))))
   (org-roam-capture-templates
    '(("d" "default" entry "* ${title}%?
@@ -795,14 +806,16 @@ Appends the todo state of the entry being visualized."
   "List the in progress items in the project boards directory.
 Either show all or filter based on a sprint."
   (interactive)
-  (let* ((files (directory-files (expand-file-name "work/project_boards" org-brain-path) t ".org"))
+  (let* ((files (f-glob "*/project_boards/*.org" org-brain-path))
          (selection-list (append '(("ALL"))
                                  (amsha/get-sprints '("INPROGRESS" "TODO"))
-                                 (--map (list (format "work/project_boards::%s" (file-name-base it)) it) files)))
+                                 (--map (list (format "%s/project_boards::%s"
+                                                      (f-base (f-parent (f-parent it)))
+                                                      (file-name-base it)) it) files)))
          (predicate '(and (todo "INPROGRESS" "TODO")))
          (selection (assoc (completing-read "Project topic: " selection-list nil t) selection-list)))
     (cond
-     ((s-starts-with-p "work/project_boards::" (car selection))
+     ((s-contains-p "/project_boards::" (car selection))
       (setq files (cdr selection)))
      ((not (string= (car selection) "ALL"))
       (setq predicate
@@ -810,7 +823,7 @@ Either show all or filter based on a sprint."
                     `((member ,(cdr selection)
                               (org-entry-get-multivalued-property (point) "BRAIN_PARENTS")))))))
     (org-ql-search files predicate
-      :super-groups (mapcar (lambda (x) (list :file-path (f-base x))) files)
+      :super-groups (mapcar (lambda (x) (list :file-path (car (s-match "[^/]*/[^/]*/[^/]*\\.org" x)))) files)
       :title (car selection))))
 
 (require 'ox-extra)
