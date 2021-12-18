@@ -516,7 +516,19 @@
 	(format
 	 "\n* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :END:\n\n  - cite:${=key=}")
 	doi-utils-open-pdf-after-download nil
-        doi-utils-download-pdf nil))
+        doi-utils-download-pdf nil)
+
+  (defun org-ref-get-bibtex-key-under-cursor-with-latex (old-func &rest)
+    (if (derived-mode-p 'latex-mode)
+        (bibtex-completion-get-key-latex)
+      (funcall old-func)))
+
+  (advice-add 'org-ref-get-bibtex-key-under-cursor :around #'org-ref-get-bibtex-key-under-cursor-with-latex)
+
+  (defun org-ref-latex-click ()
+    "Open bibtex hydra in latex buffer."
+    (interactive)
+    (org-ref-citation-hydra/body)))
 
 (defun doi-add-bibtex-entry-with-note ()
   "."
@@ -562,9 +574,9 @@
         org-capture-templates)
   (setq org-brain-visualize-default-choices 'all)
   (setq org-brain-title-max-length 50)
-  (setq org-brain-vis-title-prepend-functions (list
-                                               (org-brain-function-on-entry 'org-brain-entry-todo-state-colored)
-                                               (org-brain-function-on-entry 'org-brain-entry-priority)))
+  ;; (setq org-brain-vis-title-prepend-functions (list
+  ;;                                              (org-brain-function-on-entry 'org-brain-entry-todo-state-colored)
+  ;;                                              (org-brain-function-on-entry 'org-brain-entry-priority)))
   (defun org-brain-insert-resource-icon (link)
     "Insert an icon, based on content of org-mode LINK."
     (insert (format "%s "
