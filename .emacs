@@ -740,7 +740,7 @@ advice, files on WSL can not be saved."
 ;;avy *******************************************************************************
 (use-package avy
   :bind (("C-S-s" . avy-goto-char)
-	 ("C-'" . avy-goto-char-2)
+	 ("C-'" . avy-goto-char-timer)
 	 ("M-g l" . avy-goto-line)
 	 ("M-g w" . avy-goto-word-1))
   :config
