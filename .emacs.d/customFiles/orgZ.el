@@ -270,7 +270,7 @@
 
 
 (defun org-ask-task-board ()
-  "."
+  "Move the cursor to a location in a task board."
   (let* ((project-boards (mapcar (lambda (file) (cons (format "%-10s %s"
                                                               (propertize (f-base (f-parent (f-parent file)))  'face 'marginalia-documentation)
                                                               (file-name-base file))
@@ -482,7 +482,53 @@
   (org-roam-db-autosync-mode)
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
-  )
+
+  (defun org-roam-backlinks-get-brain-children (node)
+    "Get org-brain-children as backlinks.
+Modified `org-roam-backlink-get'."
+    (let* ((node-id (org-roam-node-id node))
+           (backlinks
+            ;; Getting brain-children and convert them to roam backlinks.
+            (mapcar (lambda (entry)
+                      (--> (org-brain-entry-marker entry)
+                           (with-current-buffer (marker-buffer it)
+                             (goto-char (marker-position it))
+                             (list (org-id-get)
+                                   node-id
+                                   (point)
+                                   ;; This can error if link is not under any headline
+                                   ;; copied from `org-roam-db-insert-link'
+                                   (list
+                                    :outline
+                                    (ignore-errors
+                                      (org-get-outline-path 'with-self 'use-cache)))))))
+                    (org-brain-children (with-current-buffer
+                                            (org-roam-node-find-noselect
+                                             (org-roam-node-from-id node-id))
+                                          (org-brain-entry-at-pt))))))
+      (cl-loop for backlink in backlinks
+               collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
+                         (org-roam-populate
+                          (org-roam-backlink-create
+                           :source-node (org-roam-node-create :id source-id)
+                           :target-node (org-roam-node-create :id dest-id)
+                           :point pos
+                           :properties properties))))))
+
+  (defun org-roam-brain-children-section (node)
+    "The brain children section for NODE.
+Copied  from `org-roam-backlink-get'."
+    (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (org-roam-backlinks-get-brain-children node))))
+      (magit-insert-section (org-roam-backlinks)
+        (magit-insert-heading "Brain children:")
+        (dolist (backlink backlinks)
+          (org-roam-node-insert-section
+           :source-node (org-roam-backlink-source-node backlink)
+           :point (org-roam-backlink-point backlink)
+           :properties (org-roam-backlink-properties backlink)))
+        (insert ?\n))))
+
+  (push #'org-roam-brain-children-section org-roam-mode-section-functions))
 
 (use-package org-roam-bibtex
   :after org-roam
