@@ -1680,6 +1680,7 @@ ARG : the arg"
   (yank-pop (- arg)))
 (global-set-key "\M-Y" 'yank-pop-forwards) ; M-Y (Meta-Shift-Y)
 
+;; After chaning this value, run (font-latex-make-user-keywords) and (font-lock-fontify-buffer)
 (setq font-latex-user-keyword-classes '(("positive-comment"
                                          (("p" "{"))
                                          (:foreground "aquamarine")
@@ -1690,9 +1691,14 @@ ARG : the arg"
                                          command)
                                         ("autoref" (("autoref" "{")) 'font-lock-constant-face command)
                                         ("red" (("red" "{")) (:background "red") command)
+                                        ("green" (("green" "{")) (:background "Springgreen4") command)
                                         ("mg-comment" (("mg" "{")) (:background "blue") command)
                                         ("shf-comment" (("shf" "{")) (:background "DarkGreen") command) 
                                         ("kf-comment" (("kf" "{")) (:background "Sienna") command)  
-                                        ("dh-comment" (("dh" "{")) (:background "Firebrick") command)
-                                        ("pp-comment" (("pp" "{")) (:background "DarkSlateBlue") command)))
+                                        ("dh-comment" (("dyh" "{")) (:background "Firebrick") command)
+                                        ("rc-commen" (("rc" "{")) (:background "orange") command)
+                                        ("ly-commen" (("ly" "{")) (:background "blue1") command)
+                                        ("jj-commen" (("jj" "{")) (:background "magenta") command)
+                                        ("ld-commen" (("ld" "{")) (:background "cyan") command)
+                                        ("pp-comment" (("ppi" "{")) (:background "DarkSlateBlue") command)))
 
