@@ -1199,6 +1199,11 @@ T - tag prefix
   (advice-add 'end-of-buffer :before #'dogears-remember)
   (advice-add 'beginning-of-buffer :before #'dogears-remember))
 
+;; pomodoro*************************************************************************************
+(use-package pomm
+  :straight t
+  :commands (pomm))
+
 ;;atomic-chrome*********************************************************************************
 (use-package atomic-chrome
   :init (atomic-chrome-start-server)
