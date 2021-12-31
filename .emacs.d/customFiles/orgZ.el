@@ -467,7 +467,11 @@
                                    nil nil))
        nil nil)
       :prepend t
-      :kill-buffer t)))
+      :kill-buffer t)
+     ("n" "new note" plain "%?"
+     :target (file+head "~/Documents/org/brain/roam-notes/${slug}-%<%Y%m%d%H%M%S>.org"
+                        "#+title: ${title}\n")
+     :unnarrowed t)))
   (org-roam-node-display-template (concat "${title:90}   " (propertize "${tags:30}  " 'face 'org-tag) " ${file:*}"))
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
@@ -980,49 +984,52 @@ Either show all or filter based on a sprint."
 (defun research-papers-configure ()
   "."
   (interactive)
-  (org-map-entries (lambda ()
-		     (let* ((link-string (org-entry-get (point) "LINK"))
-                            (link (if (string-empty-p link-string)
-                                      nil
-                                    link-string))
-			    (cite-key (org-entry-get (point) "Custom_ID"))
-			    (dir bibtex-completion-library-path)
-			    (tags (org-get-tags))
-			    (out-file-name (s-concat cite-key ".pdf"))
-			    (full-path (amsha/rename-full-path (expand-file-name out-file-name dir))))
-		       (org-entry-put (point) "ATTACH_DIR" dir)
-		       (org-id-get-create)
-		       (when (not (member "ATTACH" tags))
-                         (if (or (file-exists-p full-path)
-                                 (and link
-                                      cite-key
-                                      (condition-case nil
-                                          (amsha/downlad-raname-move-file link out-file-name dir)
-                                        (file-already-exists t))))
+  (with-current-buffer (find-file-noselect bibtex-completion-notes-path)
+    (org-map-entries (lambda ()
+		       (let* ((link-string (org-entry-get (point) "LINK"))
+                              (link (if (string-empty-p link-string)
+                                        nil
+                                      link-string))
+			      (cite-key (org-entry-get (point) "Custom_ID"))
+			      (dir bibtex-completion-library-path)
+			      (tags (org-get-tags))
+			      (out-file-name (s-concat cite-key ".pdf"))
+			      (full-path (amsha/rename-full-path (expand-file-name out-file-name dir))))
+		         (org-entry-put (point) "ATTACH_DIR" dir)
+		         (org-id-get-create)
+		         (when (not (member "ATTACH" tags))
+                           (if (or (file-exists-p full-path)
+                                   (and link
+                                        cite-key
+                                        (condition-case nil
+                                            (amsha/downlad-raname-move-file link out-file-name dir)
+                                          (file-already-exists t))))
+                               (progn
+                                 (org-entry-put (point) "Attachment" out-file-name)
+                                 (setq tags (append tags '("ATTACH")))
+                                 (org-entry-put (point) "INTERLEAVE_PDF" full-path))
                              (progn
-                               (org-entry-put (point) "Attachment" out-file-name)
-                               (setq tags (append tags '("ATTACH")))
-                               (org-entry-put (point) "INTERLEAVE_PDF" full-path))
-                           (progn
-                             (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
-                             (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY")))))))
-                       (when (file-exists-p full-path)
-                         (let ((text-file-name (expand-file-name (format "%s.txt" (file-name-base full-path)) (file-name-directory full-path))))
-                           (unless (file-exists-p text-file-name)
-                             (condition-case nil
-                                 (progn
-                                   (with-temp-buffer
-                                     (insert (amsha/pdf-to-text full-path))
-                                     (write-file text-file-name))
-                                   (org-entry-put (point) "PDF_TEXT_FILE" (amsha/rename-full-path text-file-name)))
-                               (error (message "Error: failed to read pdf file: %s" full-path)
-                                      (setq tags (append tags '("PDF_ERROR"))))))))
-		       (setq tags
-			     (if (org-entry-get (point) "BRAIN_PARENTS")
-			         (delete "NO_PARENTS" tags)
-			       (append tags '("NO_PARENTS"))))
-		       (org-set-tags (delete "nosiblings" (delete-dups tags)))))
-		   "LEVEL=1")
+                               (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
+                               (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY")))))))
+                         (when (file-exists-p full-path)
+                           (let ((text-file-name (expand-file-name (format "%s.txt" (file-name-base full-path)) (file-name-directory full-path))))
+                             (unless (file-exists-p text-file-name)
+                               (condition-case nil
+                                   (progn
+                                     (with-temp-buffer
+                                       (insert (amsha/pdf-to-text full-path))
+                                       (write-file text-file-name))
+                                     (org-entry-put (point) "PDF_TEXT_FILE" (amsha/rename-full-path text-file-name)))
+                                 (error (message "Error: failed to read pdf file: %s" full-path)
+                                        (setq tags (append tags '("PDF_ERROR"))))))))
+		         (setq tags
+			       (if (org-entry-get (point) "BRAIN_PARENTS")
+			           (delete "NO_PARENTS" tags)
+			         (append tags '("NO_PARENTS"))))
+		         (org-set-tags (delete "nosiblings" (delete-dups tags)))
+                         (when (and cite-key (not (org-entry-get nil "ROAM_REFS")))
+                           (org-entry-put nil "ROAM_REFS" (format "cite:&%s" cite-key)))))
+		     "LEVEL=1"))
   (org-brain-update-id-locations)
   (org-roam-db-sync))
 
