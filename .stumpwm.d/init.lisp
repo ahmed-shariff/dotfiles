@@ -174,8 +174,9 @@
 
 ;; Outer gaps add more padding to the outermost borders
 ;; (touching the screen border)
-(setf swm-gaps:*inner-gaps-size* 10)
-(setf swm-gaps:*outer-gaps-size* 0)
+;; Removing setting gaps to resolve buf with stump crashing
+;; (setf swm-gaps:*inner-gaps-size* 10)
+;; (setf swm-gaps:*outer-gaps-size* 0)
 (run-commands "toggle-gaps")
 
 (defcommand yay () ()
