@@ -604,7 +604,7 @@ Copied  from `org-roam-backlink-get'."
 	 ("\C-coo" . org-brain-open-org-noter)
 	 ("\C-cop" . org-brain-add-parent-topic)
          ("\C-cob" . org-brain-goto-button-at-pt)
-         ("\C-cos". org-brain-print-topics))
+         ("\C-cos". org-brain-print-parents))
   :config
   ;;(define-key org-brain-visualize-mode-map "")
   (defmacro org-brain-function-on-entry (fn)
@@ -887,6 +887,20 @@ Either show all or filter based on a sprint."
     (org-ql-search files predicate
       :super-groups (mapcar (lambda (x) (list :file-path (car (s-match "[^/]*/[^/]*/[^/]*\\.org" x)))) files)
       :title (car selection))))
+
+(defun amsha/org-brain-children-topics (entry)
+  "list parents of all the children of an ENTRY."
+  (interactive (list (org-brain-choose-entry "Entry: " 'all nil t (org-brain-title (org-brain-entry-at-pt)))))
+  (let (topics other-parents)
+    (mapcar (lambda (child-entry)
+              (-let (((-topics . -other-parents) (org-brain-parents-by-topics child-entry)))
+                (setq topics (append topics -topics)
+                      other-parents (append other-parents -other-parents))))
+            (org-brain-children entry))
+    (setq topics (-uniq topics)
+          other-parents (-uniq other-parents))
+    (org-brain-print-parents topics other-parents)
+    (cons topics other-parents)))
 
 (require 'ox-extra)
 (ox-extras-activate '(ignore-headlines))
@@ -1214,19 +1228,20 @@ Either show all or filter based on a sprint."
   (interactive)
   (let ((embark-quit-after-action nil)
         (entry (org-brain-entry-at-pt)))
-    (org-brain-add-parent entry (org-brain-choose-entries "Add parent topic: " 'all (lambda (entry)
-										      (or (s-starts-with-p "research topics::" (car entry))
-                                                                                          (s-starts-with-p "misc_topics::" (car entry))
-											  (s-matches-p "work/projects::.*literature" (car entry))
-											  (s-starts-with-p "publication::" (car entry))))))
-    (org-brain-print-topics entry)))
+    (org-brain-add-parent entry (org-brain-choose-entries "Add parent topic: " 'all)) ;;(lambda (entry)
+    ;; (or (s-starts-with-p "People::" (car entry))
+    ;;     (s-starts-with-p "research topics::" (car entry))
+    ;;     (s-starts-with-p "misc_topics::" (car entry))
+    ;;     (s-matches-p "work/projects::.*literature" (car entry))
+    ;;     (s-starts-with-p "publication::" (car entry))))))
+    (org-brain-print-parents entry)))
 
 (defun org-brain-goto-button-at-pt ()
   "."
   (interactive)
   (org-brain-goto (car (org-brain-button-at-point))))
 
-(defun org-brain-print-topics (&optional entry)
+(defun org-brain-parents-by-topics (&optional entry)
   "."
   (interactive)
   (when (null entry)
@@ -1237,14 +1252,19 @@ Either show all or filter based on a sprint."
         (topics '())
         (other-parents '()))
     (mapcar (lambda (entry)
-              (message "%s " entry)
-              (when (and (listp entry))
-                (if (s-equals-p (car entry) "research topics")
-                  (push (cadr entry) topics)            
-                  (push (cadr entry) other-parents))))
+              (if (and (listp entry) (s-equals-p (car entry) "research topics"))
+                  (push (org-brain-vis-title entry) topics)            
+                (push (org-brain-vis-title entry) other-parents)))
             parents)
-    (message "%s \n********************************\n\t\t%s" (mapconcat 'identity topics "\n") (mapconcat 'identity other-parents "\n\t\t"))
     (cons topics other-parents)))
+
+(defun org-brain-print-parents (&optional topics other-parents)
+  "."
+  (interactive)
+  (when (and (null topics)
+             (null other-parents))
+    (-setq (topics . other-parents) (org-brain-parents-by-topics)))
+  (message "%s \n********************************\n\t\t%s" (mapconcat 'identity (-list topics) "\n") (mapconcat 'identity (-list other-parents) "\n\t\t")))
 
 (defun org-brain-delete-interleve-entry ()
   "Deletes the pdf entry of an org brain bib at point at point."
@@ -1269,7 +1289,7 @@ Either show all or filter based on a sprint."
 	    (define-key org-mode-map "\C-coo" 'org-noter)
 	    (define-key org-mode-map "\C-cop" 'org-brain-add-parent-topic)
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
-            (define-key org-mode-map "\C-cos" 'org-brain-print-topics)
+            (define-key org-mode-map "\C-cos" 'org-brain-print-parents)
             (define-key org-mode-map (kbd "C-'") nil)
 	    (flyspell-mode t)))
 (add-hook 'org-mode-hook 'visual-line-mode)
