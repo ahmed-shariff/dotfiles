@@ -1206,7 +1206,22 @@ T - tag prefix
 ;; pomodoro*************************************************************************************
 (use-package pomm
   :straight t
-  :commands (pomm))
+  :commands (pomm)
+  :config
+  (pomm-mode-line-mode)
+
+  (setq pomm-audio-enabled nil)
+
+  (defun pomm--play-sound-file (kind)
+    "Alternative function for `pomm--maybe-play-sound'."
+    (when (not (eq kind 'tick))
+      (invert-face 'mode-line)
+      (run-with-timer 0.1 nil #'invert-face 'mode-line)
+      (when pomm-audio-enabled
+          (when-let (sound (alist-get kind pomm-audio-files))
+            (play-sound-file sound 0.05)))))
+
+  (advice-add 'pomm--maybe-play-sound :override #'pomm--play-sound-file))
 
 ;;atomic-chrome*********************************************************************************
 (use-package atomic-chrome
