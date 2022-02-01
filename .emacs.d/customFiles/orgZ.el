@@ -827,11 +827,12 @@ Appends the todo state of the entry being visualized."
   (let* ((selection-list (org-brain--all-targets))
          (topics 
           (completing-read-multiple "Query topic: " selection-list
-                                    (lambda (entry)
-			              (or (s-starts-with-p "research topics::" entry)
-                                          (s-starts-with-p "misc_topics::" entry)
-			                  (s-matches-p "work/projects::.*literature" entry)
-			                  (s-starts-with-p "publication::" entry)))
+                                    ;; (lambda (entry)
+			            ;;   (or (s-starts-with-p "research topics::" entry)
+                                    ;;       (s-starts-with-p "misc_topics::" entry)
+			            ;;       (s-matches-p "work/projects::.*literature" entry)
+			            ;;       (s-starts-with-p "publication::" entry)))
+                                    nil
                                     t))
          (connector (if (> (length topics) 1)
                         (pcase (completing-read "connector: " '(and or) nil t)
@@ -1043,9 +1044,9 @@ Either show all or filter based on a sprint."
 		         (org-set-tags (delete "nosiblings" (delete-dups tags)))
                          (when (and cite-key (not (org-entry-get nil "ROAM_REFS")))
                            (org-entry-put nil "ROAM_REFS" (format "cite:&%s" cite-key)))))
-		     "LEVEL=1"))
-  (org-brain-update-id-locations)
-  (org-roam-db-sync))
+		     "LEVEL=1")))
+;; (org-brain-update-id-locations)
+;; (org-roam-db-sync))
 
 (defun amsha/doi-utils-get-pdf-url-uml (old-function &rest rest)
   "Making sure the urls that are being recived by org-ref is made to use uml links."
@@ -1204,7 +1205,6 @@ Either show all or filter based on a sprint."
 	  (when (not (looking-at "^")) (insert "\n"))
 	  (insert (arxiv-get-bibtex-entry-via-arxiv-api arxiv-number))
 	  (org-ref-clean-bibtex-entry)
-	  (message "%s" (buffer-file-name))
 	  (save-excursion
 	    (when (f-file? bibtex-completion-notes-path)
 	      (find-file-noselect bibtex-completion-notes-path)
