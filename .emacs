@@ -919,7 +919,10 @@ T - tag prefix
 (add-hook 'after-init-hook 'global-company-mode)
 ;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
 (setq company-minimum-prefix-length 1)
-(setq company-idle-delay 0.0)
+(setq company-idle-delay 0.1)
+;;;; GC issue
+;; (add-hook 'after-init-hook (lambda () (setq gc-cons-threshold 100000000))) ;; This is set in lsp-mode
+(add-hook 'focus-out-hook 'garbage-collect)
 ;; ;; ;;company quickhelp gives docstring info
 (company-quickhelp-mode 1)
 (setq company-quickhelp-delay nil)
