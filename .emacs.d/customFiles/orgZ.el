@@ -49,10 +49,14 @@
            doi)
       (save-match-data 
         (if (and (string-match "\\(10\\.[0-9]\\{4\\}\\(/\\|%2F\\)\\([a-z]\\|[0-9]\\|_\\|-\\|\\.\\)+\\)" url)
-                 (setq doi (s-replace-regexp "\\.$" "" (s-replace "%2F" "/" (match-string 1 url)))))
+                 (setq doi (s-replace-regexp
+                            "\\.$" ""
+                            (s-replace-regexp
+                             "\\.pdf$" ""
+                             (s-replace "%2F" "/" (match-string 1 url))))))
             (progn
               (save-excursion
-                (doi-add-bibtex-entry doi (car bibtex-completion-bibliography))
+                (ignore-errors (doi-add-bibtex-entry doi (car bibtex-completion-bibliography)))
                 (doi-utils-open-bibtex doi)
                 (org-ref-open-bibtex-notes)
                 (org-set-property "LINK" file-name)
