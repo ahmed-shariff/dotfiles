@@ -1104,7 +1104,11 @@ T - tag prefix
   :bind (("C-x k" . persp-kill-buffer*))
   :hook (kill-emacs-hook . persp-state-save)
   :init (persp-mode 1)
-  (setq persp-state-default-file "~/.emacs.d/.cache/perspective-state-default-file"))
+  (setq persp-state-default-file "~/.emacs.d/.cache/perspective-state-default-file")
+  (setq projectile-switch-project-action (lambda ()
+                                           (message "asdf")
+                                           (persp-switch (projectile-project-name))
+                                           (projectile-find-file))))
 
 ;;treemacs setup**********************************************************************************************************
 (use-package treemacs
@@ -1657,7 +1661,19 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 (use-package company-tabnine
   :config
   (when (gethash 'use-tabnine configurations t)
-    (push 'company-tabnine company-backends)))
+    (push 'company-tabnine company-backends))
+  (defun tabnine-toggle ()
+    "Toggle tabnine."
+    (interactive)
+    (--> '(company-tabnine :with company-yasnippet)
+         (if (member it company-backends)
+             (progn
+               (company-tabnine-kill-process)
+               (message "Started")
+               (setq company-backends
+                     (delete it company-backends)))
+           (message "Stopped")
+           (add-to-list 'company-backends it)))))
 
 
 ;; emacs discrod plugin
