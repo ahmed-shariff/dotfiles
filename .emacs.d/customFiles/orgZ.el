@@ -259,6 +259,30 @@
     (org-ask-title-location prompt)
     (org-entry-get (point) property)))
 
+(defun orgz--org-templates-get-project-id ()
+  "Get the new project id."
+  (number-to-string
+   (1+ (apply #'max
+              (org-ql-select (expand-file-name "work/projects.org" org-brain-path) `(level 1)
+                :action (lambda ()
+                          (condition-case nil
+                              (string-to-number (cadr (s-match "<<\\([0-9]+\\)>>" (org-brain-title (org-brain-entry-at-pt)))))
+                            (wrong-type-argument 0))))))))
+
+(defun orgz--org-templates-get-sprint-id ()
+  "Get the new sprint id."
+  (number-to-string
+   (1+
+    (apply #'max
+           (org-ql-select
+             (expand-file-name "work/projects.org" org-brain-path)
+             `(parent ,(s-replace-regexp "/$" "" (car org-refile-history)))
+             :action  (lambda ()
+                        (condition-case nil
+                            (string-to-number (cadr (s-match "Sprint \\([0-9]+\\):"
+                                                             (org-brain-title (org-brain-entry-at-pt)))))
+                          (wrong-type-argument 0))))))))
+
 (defun org-ask-experiment-id ()
   "."
   (save-window-excursion
@@ -271,7 +295,6 @@
 (defun org-ask-project-id ()
   "."
   (org-ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
-
 
 (defun org-ask-task-board ()
   "Move the cursor to a location in a task board."
@@ -354,10 +377,10 @@
 	 :jump-to-captured t)
 	("es" "Add sprint"
 	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
-	 "** TODO Sprint %^{ID}: %^{TITLE}
+	 "** TODO Sprint %(orgz--org-templates-get-sprint-id): %^{TITLE}
    :PROPERTIES:
    :EXPORT_TOC: nil
-   :EXPORT_TITLE: %\\2
+   :EXPORT_TITLE: %\\1
    :EXPORT_OPTIONS: H:2
    :EXPORT_AUTHOR:
    :START_DATE: %u
@@ -372,12 +395,12 @@
 " :jump-to-captured t)
 	("ep" "Add project"
 	 entry (file "~/Documents/org/brain/work/projects.org")
-	 "* TODO <<%^{ID}>> %^{TITLE}
+	 "* TODO <<%(orgz--org-templates-get-project-id)>> %^{TITLE}
   :PROPERTIES:
-  :CUSTOM_ID: %\\1
+  :CUSTOM_ID: %(orgz--org-templates-get-project-id)
   :ID:       %(org-id-new)
   :END:
-** %\\2 literature
+** %\\1 literature
    :PROPERTIES:
    :ID:       %(org-id-new)
    :END:
