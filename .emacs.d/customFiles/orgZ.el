@@ -510,7 +510,7 @@
          ;; org-roam-bibtex
          ("C-c n b" . orb-insert-link))
   :config
-  (org-roam-db-autosync-mode)
+  ;; (org-roam-db-autosync-mode)
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
 

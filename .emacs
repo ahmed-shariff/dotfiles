@@ -415,7 +415,8 @@ advice, files on WSL can not be saved."
    :preview-key '(:debounce 0.2 any)
    consult-ripgrep consult-git-grep consult-grep
    consult-bookmark consult-recent-file consult-xref
-   consult--source-file consult--source-project-file consult--source-bookmark :preview-key (kbd "M-.")
+   consult--source-recent-file consult--source-project-recent-file
+   consult--source-bookmark :preview-key (kbd "M-.")
    consult--source-buffer :hidden t :default nil)
 
   (defvar consult--source-perspective
@@ -630,7 +631,7 @@ advice, files on WSL can not be saved."
   :config
   (add-hook 'emacs-lisp-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'csharp-mode-hook #'rainbow-delimeters-mode)
-  (add-hook 'csharp-tree-sitter-mode-hook #'rainbow-delimeters-mode)
+  ;; (add-hook 'csharp-tree-sitter-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'java-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'python-mode-hook #'rainbow-delimeters-mode))
 
@@ -1508,7 +1509,8 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                " Active Sprints")
        sprints
        list-size
-       "s"
+       'sprints
+       (dashboard-get-shortcut 'sprints)
        `(lambda (&rest ignore)
           (org-id-goto (cdr (quote ,el))))
        (format "%s" (car el)))))
@@ -1534,13 +1536,16 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                " Active Tasks")
        tasks
        list-size
-       "t"
+       'tasks
+       (dashboard-get-shortcut 'tasks)
        `(lambda (&rest ignore)
           (org-id-goto (cdr (quote ,el))))
        (format "%s" (car el)))))
 
   (add-to-list 'dashboard-item-generators  '(sprints . dashboard-insert-sprints))
   (add-to-list 'dashboard-item-generators  '(tasks . dashboard-insert-tasks))
+  (add-to-list 'dashboard-item-shortcuts '(sprints . "s"))
+  (add-to-list 'dashboard-item-shortcuts '(tasks . "t"))
   (dashboard-modify-heading-icons '((sprints . "milestone") (tasks . "check-circle-fill")))
   
   (setq dashboard-startup-banner "~/.emacs.d/customFiles/banner.png"
@@ -1613,8 +1618,8 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   ;; (plantuml-set-exec-mode "jar"))
 
 ;; csharp #####################################################################
-(use-package tree-sitter)
-(use-package tree-sitter-langs)
+;; (use-package tree-sitter)
+;; (use-package tree-sitter-langs)
 
 (use-package csharp-mode
   :config
