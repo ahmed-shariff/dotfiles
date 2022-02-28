@@ -625,6 +625,11 @@ advice, files on WSL can not be saved."
   ("q" nil)))
 
 
+;;cycle at point *********************************************************************
+(use-package cycle-at-point
+  :commands cycle-at-point
+  :bind ("M-P" . cycle-at-point))
+
 ;;rainbow delimeters******************************************************************
 (use-package rainbow-delimiters
   :commands rainbow-delimiters-mode
@@ -650,6 +655,9 @@ advice, files on WSL can not be saved."
     (let ((current-prefix-arg t))
       (call-interactively 'elgrep))))
 
+;;deadgrep****************************************************************************
+(use-package deadgrep
+  :commands deadgrep)
 
 ;;lsp-mode ***************************************************************************
 (use-package lsp-ui
@@ -1099,17 +1107,49 @@ T - tag prefix
 ;;  '(mode-line-inactive ((t (:background "#666666" :foreground "#f9f9f9" :box nil :height 0.9))))
 ;;  '(sml/global ((t (:foreground "gray50" :inverse-video nil :height 0.9 :width normal)))))
 
+;;projectile mode********************************************************
+(projectile-mode +1)
+(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+
+;;consult-projectile****************************************************************************
+(use-package consult-projectile
+  :config
+  (advice-add 'projectile-find-file
+              :override 'consult-projectile-find-file)
+  (advice-add 'projectile-switch-project
+              :override 'consult-projectile-switch-project)
+  (advice-add 'projectile-find-dir
+              :override 'consult-projectile-find-dir)
+  (advice-add 'projectile-recentf
+              :override 'consult-projectile-recentf)
+  (advice-add 'projectile-switch-to-buffer
+              :override 'consult-projectile-switch-to-buffer))
+
+;; (use-package persp-projectile)  ;; for bridging the projectile functions with persp
+;;   (define-key projectile-mode-map [remap projectile-switch-project] 'consult-projectile))
+
 ;;perspective mode******************************************************************************
 
 (use-package perspective
+  :after consult-projectile
   :bind (("C-x k" . persp-kill-buffer*))
   :hook (kill-emacs-hook . persp-state-save)
   :init (persp-mode 1)
   (setq persp-state-default-file "~/.emacs.d/.cache/perspective-state-default-file")
-  (setq projectile-switch-project-action (lambda ()
-                                           (message "asdf")
-                                           (persp-switch (projectile-project-name))
-                                           (projectile-find-file))))
+  ;; (setq projectile-switch-project-action (lambda ()
+  ;;                                          (persp-switch (projectile-project-name))
+  ;;                                          (projectile-find-file)))
+  
+  (defun consult-projectile--switch-persp (&optional project)
+    (ignore-errors
+      (persp-switch (projectile-project-name project))))
+  
+  (advice-add 'consult-projectile--file :before 'consult-projectile--switch-persp)
+  (advice-add 'consult-projectile-find-file :before 'consult-projectile--switch-persp)
+  (advice-add 'consult-projectile-find-dir :before 'consult-projectile--switch-persp)
+  (advice-add 'consult-projectile-recentf :before 'consult-projectile--switch-persp)
+  (advice-add 'consult-projectile-switch-to-buffer :before 'consult-projectile--switch-persp))
 
 ;;treemacs setup**********************************************************************************************************
 (use-package treemacs
@@ -1365,10 +1405,19 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   :config
   (magit-todos-mode))
 
-;;projectile mode********************************************************
-(projectile-mode +1)
-(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+(use-package blamer
+  :bind (("s-i" . blamer-show-commit-info))
+  :defer 20
+  :custom
+  (blamer-idle-time 0.3)
+  (blamer-min-offset 70)
+  :custom-face
+  (blamer-face ((t :foreground "#7a88cf"
+                    :background nil
+                    :height 100  ;; TODO: find a way to get this from font attribute
+                    :italic t)))
+  :config
+  (global-blamer-mode 1))
 
 ;;ibuffer****************************************************************
 (global-set-key (kbd "C-x C-b") 'ibuffer)
