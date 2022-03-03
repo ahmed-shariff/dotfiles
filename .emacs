@@ -675,11 +675,15 @@ advice, files on WSL can not be saved."
 ;; about using lsp-csharp for unity, just make sure you have installed latest omnisharp-roslyn and have mono >= 6 installed on your machine
 ;; the omnisharp-roslyn that lsp-mode install does not work for unity projects because it needs a recent mono version installed and the mono built-in on omnisharp-roslyn doesn't have msbuild, some libs that unity require
 
+;; With the tsserver for web-mode, may have to manually install the tsserver using npm (https://github.com/typescript-language-server/typescript-language-server/issues/336)
+
 (use-package lsp-mode
   :hook (;;(python-mode . lsp)
          (csharp-mode . lsp)
          ;; (csharp-tree-sitter-mode . lsp)
 	 (java-mode . lsp)
+         (js2-mode . lsp)
+         (web-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
   
   :init
@@ -1640,14 +1644,21 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   :mode	"\\.as[cp]x\\'"
   :mode	"\\.erb\\'"
   :mode "\\.html?\\'"
-  :bind ("C-c s" . switch-web-js2))
+  :mode "\\.js[x]?\\'"
+  :bind ("C-c s" . switch-web-js2)
+  :config
+  (setq web-mode-content-types-alist '(("jsx" . ".*\\.js[x]?"))
+        web-mode-sql-indent-offset 2
+        web-mode-code-indent-offset 4
+        web-mode-attr-indent-offset 2
+        web-mode-markup-indent-offset 2))
 
 (use-package web-narrow-mode
   :hook 'web-mode)
 
-(use-package js2-mode
-  :mode "\\.js\\'"
-  :bind ("C-c s" . switch-web-js2))
+;; (use-package js2-mode
+;;   :mode "\\.js\\'"
+;;   :bind ("C-c s" . switch-web-js2))
     
 (use-package markdown-mode
   :commands (markdown-mode gfm-mode)
