@@ -624,6 +624,8 @@ Copied  from `org-roam-backlink-get'."
         org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"))
 
 (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
+  :straight (org-brain :type git :host github :repo "Kungsgeten/org-brain"
+                       :fork (:host github :repo "ahmed-shariff/org-brain"))
   :demand
   :init
   (setq org-brain-path "~/Documents/org/brain")
