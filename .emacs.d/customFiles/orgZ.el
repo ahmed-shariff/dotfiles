@@ -466,6 +466,8 @@
 
 (use-package bibtex-completion)
 
+
+;; On windows when the `cygwin1.dll mismatch issue` issue happens, This is solved by manually running the command seen in the *compilation* buffer
 (use-package org-roam
   :ensure t
   :init
@@ -533,9 +535,8 @@ Modified `org-roam-backlink-get'."
                                     :outline
                                     (ignore-errors
                                       (org-get-outline-path 'with-self 'use-cache)))))))
-                    (org-brain-children (with-current-buffer
-                                            (org-roam-node-find-noselect
-                                             (org-roam-node-from-id node-id))
+                    (org-brain-children (save-excursion
+                                          (org-id-goto node-id)
                                           (org-brain-entry-at-pt))))))
       (cl-loop for backlink in backlinks
                collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
