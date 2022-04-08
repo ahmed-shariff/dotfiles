@@ -648,7 +648,9 @@ Copied  from `org-roam-backlink-get'."
 
   (setq org-id-track-globally t
         org-id-locations-file "~/.emacs.d/.org-id-locations"
-        org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+        org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id
+        org-brain-completion-system (lambda (&rest args) (s-join "," (apply #'completing-read-multiple args)))
+        org-brain-entry-separator ";")
   (push '("b" "Brain" plain (function org-brain-goto-end)
           "* %i%?" :empty-lines 1)
         org-capture-templates)
