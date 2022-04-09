@@ -560,11 +560,15 @@ Copied  from `org-roam-backlink-get'."
            :properties (org-roam-backlink-properties backlink)))
         (insert ?\n))))
 
-  (push #'org-roam-brain-children-section org-roam-mode-section-functions)
+  (push #'org-roam-brain-children-section org-roam-mode-sections)
 
-  (defun org-roam-re-paper-aware-preview-function ()
-    "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers."
-    (if (s-equals-p (org-roam-node-file (org-roam-node-from-id (org-id-get))) (file-truename bibtex-completion-notes-path))
+  (defun org-roam-subtree-aware-preview-function ()
+    "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
+    (if (member (org-roam-node-file (org-roam-node-from-id
+                                     ;; move up the tree until an el with id is found
+                                     (do () ((org-id-get) (org-id-get)) (org-up-element))))
+                (list
+                 (file-truename bibtex-completion-notes-path) (file-truename "~/Documents/org/brain/work/notes.org") (file-truename "~/Documents/org/brain/personal/notes.org")))
         (let ((beg (progn (org-roam-end-of-meta-data t)
                           (point)))
               (end (progn (org-end-of-subtree)
@@ -576,7 +580,42 @@ Copied  from `org-roam-backlink-get'."
            (list (string-trim (buffer-substring-no-properties beg end)) "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "BRAIN_PARENTS" "PROPERTIES:\n *:END")))
       (org-roam-preview-default-function)))
 
-  (setq org-roam-preview-function 'org-roam-re-paper-aware-preview-function))
+  (setq org-roam-preview-function 'org-roam-subtree-aware-preview-function)
+
+  (defun org-roam-list-notes (filters)
+    "Filter based on the list of ids (FILTER) in the notes files."
+    (interactive (list (org-brain-choose-entries "Filter topics:" 'all)))
+
+    (let* ((entries (-non-nil (-replace-where #'org-brain-filep (lambda (el) nil) filters)))
+           (names (s-join "," (--map (cadr it) entries)))
+           (title (format "(%s)" names))
+           (buffer (get-buffer-create (format "*notes: %s*" names)))
+           (ids (apply #'vector (--map (caddr it) entries))))
+      ;; copied  from `org-roam-buffer-render-contents'
+      (with-current-buffer buffer
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (org-roam-mode)
+          (setq-local default-directory org-roam-buffer-current-directory)
+          (setq-local org-roam-directory org-roam-buffer-current-directory)
+          (org-roam-buffer-set-header-line-format title)
+          (magit-insert-section (org-roam)
+            (magit-insert-heading)
+            (dolist (entry 
+                     (org-roam-db-query
+                      [:select [links:source links:pos links:properties]
+                               :from links :inner :join nodes :on (= links:source nodes:id)
+                               :where (and (in links:dest $v1) (in nodes:file $v2))]
+                      ids
+                      (vector
+                       (file-truename "~/Documents/org/brain/personal/notes.org")
+                       (file-truename "~/Documents/org/brain/work/notes.org"))))
+              (pcase-let ((`(,source ,pos ,properties) entry))
+                (org-roam-node-insert-section :source-node (org-roam-node-from-id source) :point pos :properties properties))
+              (insert ?\n))
+            (run-hooks 'org-roam-buffer-postrender-functions)
+            (goto-char 0))))
+      (display-buffer buffer))))
 
 (use-package org-roam-bibtex
   :after org-roam
