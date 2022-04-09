@@ -560,7 +560,23 @@ Copied  from `org-roam-backlink-get'."
            :properties (org-roam-backlink-properties backlink)))
         (insert ?\n))))
 
-  (push #'org-roam-brain-children-section org-roam-mode-section-functions))
+  (push #'org-roam-brain-children-section org-roam-mode-section-functions)
+
+  (defun org-roam-re-paper-aware-preview-function ()
+    "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers."
+    (if (s-equals-p (org-roam-node-file (org-roam-node-from-id (org-id-get))) (file-truename bibtex-completion-notes-path))
+        (let ((beg (progn (org-roam-end-of-meta-data t)
+                          (point)))
+              (end (progn (org-end-of-subtree)
+                          (point))))
+          (-reduce 
+           (lambda (str el)
+             (s-replace-regexp (format "\n *:%s:.*$" el) "" str))
+           ;; remove properties not interested. If prop drawer is empty at the end, remove drawer itself
+           (list (string-trim (buffer-substring-no-properties beg end)) "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "BRAIN_PARENTS" "PROPERTIES:\n *:END")))
+      (org-roam-preview-default-function)))
+
+  (setq org-roam-preview-function 'org-roam-re-paper-aware-preview-function))
 
 (use-package org-roam-bibtex
   :after org-roam
