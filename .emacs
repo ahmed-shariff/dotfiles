@@ -1648,10 +1648,10 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   :bind ("C-c s" . switch-web-js2)
   :config
   (setq web-mode-content-types-alist '(("jsx" . ".*\\.js[x]?"))
-        web-mode-sql-indent-offset 2
+        web-mode-sql-indent-offset 4
         web-mode-code-indent-offset 4
-        web-mode-attr-indent-offset 2
-        web-mode-markup-indent-offset 2))
+        web-mode-attr-indent-offset 4
+        web-mode-markup-indent-offset 4))
 
 (use-package web-narrow-mode
   :hook 'web-mode)

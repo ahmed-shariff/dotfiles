@@ -466,6 +466,8 @@
 
 (use-package bibtex-completion)
 
+
+;; On windows when the `cygwin1.dll mismatch issue` issue happens, This is solved by manually running the command seen in the *compilation* buffer
 (use-package org-roam
   :ensure t
   :init
@@ -533,9 +535,8 @@ Modified `org-roam-backlink-get'."
                                     :outline
                                     (ignore-errors
                                       (org-get-outline-path 'with-self 'use-cache)))))))
-                    (org-brain-children (with-current-buffer
-                                            (org-roam-node-find-noselect
-                                             (org-roam-node-from-id node-id))
+                    (org-brain-children (save-excursion
+                                          (org-id-goto node-id)
                                           (org-brain-entry-at-pt))))))
       (cl-loop for backlink in backlinks
                collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
@@ -559,7 +560,62 @@ Copied  from `org-roam-backlink-get'."
            :properties (org-roam-backlink-properties backlink)))
         (insert ?\n))))
 
-  (push #'org-roam-brain-children-section org-roam-mode-section-functions))
+  (push #'org-roam-brain-children-section org-roam-mode-sections)
+
+  (defun org-roam-subtree-aware-preview-function ()
+    "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
+    (if (member (org-roam-node-file (org-roam-node-from-id
+                                     ;; move up the tree until an el with id is found
+                                     (do () ((org-id-get) (org-id-get)) (org-up-element))))
+                (list
+                 (file-truename bibtex-completion-notes-path) (file-truename "~/Documents/org/brain/work/notes.org") (file-truename "~/Documents/org/brain/personal/notes.org")))
+        (let ((beg (progn (org-roam-end-of-meta-data t)
+                          (point)))
+              (end (progn (org-end-of-subtree)
+                          (point))))
+          (-reduce 
+           (lambda (str el)
+             (s-replace-regexp (format "\n *:%s:.*$" el) "" str))
+           ;; remove properties not interested. If prop drawer is empty at the end, remove drawer itself
+           (list (string-trim (buffer-substring-no-properties beg end)) "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "BRAIN_PARENTS" "PROPERTIES:\n *:END")))
+      (org-roam-preview-default-function)))
+
+  (setq org-roam-preview-function 'org-roam-subtree-aware-preview-function)
+
+  (defun org-roam-list-notes (filters)
+    "Filter based on the list of ids (FILTER) in the notes files."
+    (interactive (list (org-brain-choose-entries "Filter topics:" 'all)))
+
+    (let* ((entries (-non-nil (-replace-where #'org-brain-filep (lambda (el) nil) filters)))
+           (names (s-join "," (--map (cadr it) entries)))
+           (title (format "(%s)" names))
+           (buffer (get-buffer-create (format "*notes: %s*" names)))
+           (ids (apply #'vector (--map (caddr it) entries))))
+      ;; copied  from `org-roam-buffer-render-contents'
+      (with-current-buffer buffer
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (org-roam-mode)
+          (setq-local default-directory org-roam-buffer-current-directory)
+          (setq-local org-roam-directory org-roam-buffer-current-directory)
+          (org-roam-buffer-set-header-line-format title)
+          (magit-insert-section (org-roam)
+            (magit-insert-heading)
+            (dolist (entry 
+                     (org-roam-db-query
+                      [:select [links:source links:pos links:properties]
+                               :from links :inner :join nodes :on (= links:source nodes:id)
+                               :where (and (in links:dest $v1) (in nodes:file $v2))]
+                      ids
+                      (vector
+                       (file-truename "~/Documents/org/brain/personal/notes.org")
+                       (file-truename "~/Documents/org/brain/work/notes.org"))))
+              (pcase-let ((`(,source ,pos ,properties) entry))
+                (org-roam-node-insert-section :source-node (org-roam-node-from-id source) :point pos :properties properties))
+              (insert ?\n))
+            (run-hooks 'org-roam-buffer-postrender-functions)
+            (goto-char 0))))
+      (display-buffer buffer))))
 
 (use-package org-roam-bibtex
   :after org-roam
@@ -623,6 +679,8 @@ Copied  from `org-roam-backlink-get'."
         org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"))
 
 (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
+  :straight (org-brain :type git :host github :repo "Kungsgeten/org-brain"
+                       :fork (:host github :repo "ahmed-shariff/org-brain"))
   :demand
   :init
   (setq org-brain-path "~/Documents/org/brain")
@@ -645,7 +703,8 @@ Copied  from `org-roam-backlink-get'."
 
   (setq org-id-track-globally t
         org-id-locations-file "~/.emacs.d/.org-id-locations"
-        org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+        org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id
+        org-brain-completion-system (lambda (&rest args) (s-join org-brain-entry-separator (apply #'completing-read-multiple args))))
   (push '("b" "Brain" plain (function org-brain-goto-end)
           "* %i%?" :empty-lines 1)
         org-capture-templates)
