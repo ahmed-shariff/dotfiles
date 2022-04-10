@@ -1650,8 +1650,8 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   (setq web-mode-content-types-alist '(("jsx" . ".*\\.js[x]?"))
         web-mode-sql-indent-offset 4
         web-mode-code-indent-offset 4
-        web-mode-attr-indent-offset 4
-        web-mode-markup-indent-offset 4))
+        web-mode-attr-indent-offset 2
+        web-mode-markup-indent-offset 2))
 
 (use-package web-narrow-mode
   :hook 'web-mode)
@@ -1666,6 +1666,10 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
   :init (setq markdown-command "multimarkdown"))
+
+(use-package json-mode
+  :hook ((json-mode . (lambda () (setq tab-width 2
+                                       js-indent-level 2)))))
 
 (use-package plantuml-mode
   :init
