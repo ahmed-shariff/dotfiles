@@ -501,7 +501,7 @@
      :target (file+head "~/Documents/org/brain/roam-notes/${slug}-%<%Y%m%d%H%M%S>.org"
                         "#+title: ${title}\n")
      :unnarrowed t)))
-  (org-roam-node-display-template (concat "${title:90}   " (propertize "${tags:30}  " 'face 'org-tag) " ${file:*}"))
+  (org-roam-node-display-template (concat (propertize " ${file:50}" 'face 'hl-line) (propertize "    ${title:90}   " 'face 'bold) (propertize "${tags:30}  " 'face 'org-tag)))
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n g" . org-roam-graph)
