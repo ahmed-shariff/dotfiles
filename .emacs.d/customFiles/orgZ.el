@@ -989,6 +989,20 @@ Either show all or filter based on a sprint."
     (org-brain-print-parents topics other-parents)
     (cons topics other-parents)))
 
+(defun amsha/org-ql-topics ()
+  "List all parent topics of all results from QUERY.
+Currently written to work in org-ql butter."
+  (interactive)
+  (when (and org-ql-view-query org-ql-view-buffers-files)
+    (let* (topics other-parents)
+      (org-ql-select org-ql-view-buffers-files org-ql-view-query
+        :action (lambda () (-let (((-topics . -other-parents) (org-brain-parents-by-topics (org-brain-entry-at-pt))))
+                             (setq topics (append topics -topics)
+                                   other-parents (append other-parents -other-parents)))))
+      (setq topics (-uniq topics)
+            other-parents (-uniq other-parents))
+      (org-brain-print-parents topics other-parents))))
+
 (require 'ox-extra)
 (ox-extras-activate '(ignore-headlines))
 
