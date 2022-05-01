@@ -214,7 +214,7 @@
 
 (use-package visual-fill-column
   :defer 
-  :hook ((org-mode LaTeX-mode latex-mode) . amsha/visual-fill))
+  :hook ((org-mode LaTeX-mode latex-mode markdown-mode) . amsha/visual-fill))
 
 ;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
 ;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
@@ -1650,8 +1650,8 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   (setq web-mode-content-types-alist '(("jsx" . ".*\\.js[x]?"))
         web-mode-sql-indent-offset 4
         web-mode-code-indent-offset 4
-        web-mode-attr-indent-offset 2
-        web-mode-markup-indent-offset 2))
+        web-mode-attr-indent-offset 4
+        web-mode-markup-indent-offset 4))
 
 (use-package web-narrow-mode
   :hook 'web-mode)
