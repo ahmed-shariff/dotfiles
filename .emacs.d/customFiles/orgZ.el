@@ -633,7 +633,10 @@ Copied  from `org-roam-backlink-get'."
         org-ref-insert-ref-function 'org-ref-insert-ref-link
         org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body))))
 
+(use-package ox-pandoc)
+
 (use-package org-ref
+  :after ox-pandoc
   :demand
   :bind (:map org-mode-map
               ("C-c ]" . org-ref-insert-link))
@@ -661,7 +664,45 @@ Copied  from `org-roam-backlink-get'."
   (defun org-ref-latex-click ()
     "Open bibtex hydra in latex buffer."
     (interactive)
-    (org-ref-citation-hydra/body)))
+    (org-ref-citation-hydra/body))
+
+  (defun org-ref-copy-formated-from-query (query)
+    "QUERY."
+    (interactive (list (read (read-string "Query:"))))
+    (let ((buffer (get-buffer-create (format "*temp-org-ref-copy-formated-from-query-%s*" (random)))))
+      (with-current-buffer buffer 
+          (--map (insert (format "\n\n%s" it))
+                 (org-ql-select bibtex-completion-notes-path query
+                   :action (lambda ()
+                             ;; from org-ref-open-url-at-point
+                             (let* ((bibtex-completion-bibliography (org-ref-find-bibliography))
+                                    (key (org-entry-get (point) "Custom_ID"))
+	                            (results (org-ref-get-bibtex-key-and-file key))
+                                    (bibfile (cdr results))
+                                    bib-url)
+                               (save-excursion
+                                 (with-temp-buffer
+                                   (insert-file-contents bibfile)
+                                   (bibtex-set-dialect (parsebib-find-bibtex-dialect) t)
+                                   (bibtex-search-entry key)
+                                   ;; I like this better than bibtex-url which does not always find
+                                   ;; the urls
+                                   (catch 'done
+                                     (let ((url (s-trim (bibtex-autokey-get-field "url"))))
+                                       (unless (s-blank? url)
+                                         (setq bib-url url)
+                                         (throw 'done nil)))
+
+                                     (let ((doi (s-trim (bibtex-autokey-get-field "doi"))))
+                                       (unless (s-blank? doi)
+                                         (if (string-match "^http" doi)
+                                             (setq bib-url doi)
+                                           (setq bib-url (format "http://dx.doi.org/%s" doi)))
+                                         (throw 'done nil))))))
+                               (format "%s \n URL: %s"
+                                       (bibtex-completion-apa-format-reference key)
+                                       bib-url))))))
+      (switch-to-buffer buffer))))
 
 (defun doi-add-bibtex-entry-with-note ()
   "."
@@ -989,7 +1030,7 @@ Either show all or filter based on a sprint."
     (org-brain-print-parents topics other-parents)
     (cons topics other-parents)))
 
-(defun amsha/org-ql-topics ()
+(defun org-ql-query-topics ()
   "List all parent topics of all results from QUERY.
 Currently written to work in org-ql butter."
   (interactive)
