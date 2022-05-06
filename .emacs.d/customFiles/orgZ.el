@@ -1451,6 +1451,106 @@ Currently written to work in org-ql butter."
                                              (pdf-info-gettext (number-to-string page-number) '(0 0 1 1) nil normalized-file-name))
                                            (number-sequence 1 (pdf-info-number-of-pages normalized-file-name)) " "))))))
 
+(use-package asana
+  :straight (asana :type git :host github :repo "ahmed-shariff/emacs-asana")
+  :config
+  (setq asana-token (gethash 'asana-token configurations))
+
+  (defun org-asana-get-project-id ()
+    "Return the ASANA_ID from the file, which is the project ID."
+    (when (equalp major-mode 'org-mode)
+      (save-excursion
+        (org-entry-get 0 "ASANA_ID"))))
+
+  (defun org-asana-update-section-ids ()
+    ""
+    (-when-let (sections (asana-get (concat "/projects/" (org-asana-get-project-id) "/sections")))
+      (save-excursion
+        (org-entry-put 0 "ASANA_SECTIONS" (format "%s" (--map (cons (asana-assocdr 'name it) (asana-assocdr 'gid it)) sections))))))
+
+  (defun org-asana-get-todo-id (todo-state)
+    ""
+    (when todo-state (format "%s" (asana-assocdr (read todo-state) (read (org-entry-get 0 "ASANA_SECTIONS"))))))
+
+  (defun org-asana-get-todo-state (todo-id)
+    ""
+    (format "%s" (asana-rassocar (read todo-id) (read (org-entry-get 0 "ASANA_SECTIONS")))))
+
+  (defun org-asana-get-tasks ()
+    ""
+    (-when-let* ((project-id (org-asana-get-project-id))
+                 (task-ids (--map (asana-assocdr 'gid it) (asana-get (concat "/projects/" project-id "/tasks")))))
+      task-ids))
+  
+
+  (defun org-asana-push-new-tasks ()
+    (org-map-entries (lambda ()
+                       (unless (org-entry-get (point) "ASANA_ID")
+                         (-when-let (task-id (asana-assocdr 'gid (asana-post "/tasks" `(("projects" . (,(org-asana-get-project-id)))
+                                                                                        ("name" . ,(org-entry-get (point) "ITEM"))))))
+                           (asana-post (concat "/sections/"
+                                               (org-asana-get-todo-id
+                                                (org-entry-get (point) "TODO"))
+                                               "/addTask")
+                                       `(("task" . ,task-id)))
+                           (org-entry-put (point) "ASANA_ID" task-id))))))
+
+  (defun org-asana--get-todo-state-from-task (task)
+    (org-asana-get-todo-state
+     (asana-assocdr 'gid
+                    (asana-assocdr 'section
+                                   (car (asana-assocdr 'memberships task))))))
+
+  (defun org-asana-pull-new-tasks ()
+    "Gets all tasks from the asnaa project board and create headings for tasks not already in the project org file."
+    (let ((existing-tasks (-non-nil (org-map-entries (lambda () (org-entry-get (point) "ASANA_ID")) "LEVEL=1"))))
+      (-map (lambda (task-id)
+              (unless (member task-id existing-tasks)
+                (-when-let (task (asana-get (format "/tasks/%s" task-id)))
+                  (save-excursion
+                    (goto-char (point-max))
+                    (insert (format "\n* %s %s"
+                                    (org-asana--get-todo-state-from-task task)
+                                    (asana-assocdr 'name task)))
+                    (org-id-get-create)
+                    (org-entry-put (point) "ASANA_ID" (asana-assocdr 'gid task))))))
+            (org-asana-get-tasks))))
+
+  (defun org-asana-push-states ()
+    (let ((local-tasks (org-ql-select (current-buffer) '(level 1) :action (lambda () (cons (org-entry-get (point) "ASANA_ID") (org-id-get))))))
+      (-map (lambda (task-id)
+              (-when-let (task (asana-get (format "/tasks/%s" task-id)))
+                (save-excursion
+                  (org-id-goto (asana-assocdr task-id local-tasks))
+                  (unless (equalp (org-entry-get (point) "TODO") (org-asana--get-todo-state-from-task task))
+                    (asana-post (concat "/sections/"
+                                        (org-asana-get-todo-id
+                                         (org-entry-get (point) "TODO"))
+                                        "/addTask")
+                                `(("task" . ,task-id))))
+                  (-when-let* ((remote-due-on (asana-assocdr 'due_on task))
+                               (local-scheduled (org-entry-get (point) "SCHEDULED"))
+                               (local-scheduled (parse-time-string local-scheduled)) ;; (SEC MIN HOUR DAY MON YEAR DOW DST TZ)
+                               (local-due-on (format "%s-%02d-%02d" (nth 5 local-scheduled) (nth 4 local-scheduled) (nth 3 local-scheduled))))
+                    (unless (equalp remote-due-on local-due-on)
+                      (asana-put (format "/tasks/%s" task-id)
+                                 `(("due_on" . ,local-due-on))))))))
+            (org-asana-get-tasks))))
+
+  (defun org-asana-pull-states ()
+    "Pull all tasks from the project org file and update the states (todo and schedule)."
+    (let ((local-tasks (org-ql-select (current-buffer) '(level 1) :action (lambda () (cons (org-entry-get (point) "ASANA_ID") (org-id-get))))))
+      (-map (lambda (task-id)
+              (-when-let (task (asana-get (format "/tasks/%s" task-id)))
+                (save-excursion
+                  (org-id-goto (asana-assocdr task-id local-tasks))
+                  (let ((new-state (org-asana--get-todo-state-from-task task)))
+                    (unless (equalp (org-entry-get (point) "TODO") new-state)
+                      (org-entry-put (point) "TODO" new-state)))
+                  (-if-let (due-on (asana-assocdr 'due_on task))
+                      (org-schedule :time due-on)))))
+            (org-asana-get-tasks)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet starts
 ;; (defvar org-brain-insert-visualize-button-predicate nil)
 
