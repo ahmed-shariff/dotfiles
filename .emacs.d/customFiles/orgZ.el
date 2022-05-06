@@ -1006,8 +1006,12 @@ Currently written to work in org-ql butter."
 (require 'ox-extra)
 (ox-extras-activate '(ignore-headlines))
 
-(require 'org-download)
-(setq org-download-screenshot-method "scrot")
+(use-package org-download
+  :straight (org-download :type git :host github :repo "abo-abo/org-download"
+                          :fork (:host github :repo "ahmed-shariff/org-download"))
+  :custom
+  (org-download-screenshot-method (if (equalp system-type 'windows-nt) "magick convert clipboard: %s" "scrot")))
+  
 (defun pdf-crop-image (event &optional switch-back)
   "EVENT SWITCH-BACK."
   (interactive "@e")
