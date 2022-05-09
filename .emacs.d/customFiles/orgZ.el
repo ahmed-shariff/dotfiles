@@ -1589,6 +1589,17 @@ Currently written to work in org-ql butter."
 ;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-with-predicate)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 
+(defun org-archive--compute-location-to-dir (computed-location)
+  "See ORG-ARCHIVE--COMPUTE-LOCATION, makes the locations move to dir named archive."
+  (cons (let* ((f (car computed-location))
+               (f (f-join (f-dirname f) "archive" (f-filename f))))
+          (unless (f-exists-p f)
+            (f-mkdir (f-dirname f)))
+          f)
+        (cdr computed-location)))
+
+(advice-add 'org-archive--compute-location :filter-return #'org-archive--compute-location-to-dir)
+
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
@@ -1606,7 +1617,11 @@ Currently written to work in org-ql butter."
       org-agenda-span 10
       org-agenda-start-on-weekday nil
       org-agenda-start-day "-3d"
-      org-agenda-files (f-files "~/Documents/org/brain/" (lambda (f) (s-equals-p (f-ext f) "org")) t))
+      org-agenda-files (f-files "~/Documents/org/brain/"
+                                (lambda (f)
+                                  (and (s-equals-p (f-ext f) "org")
+                                       (not (member (f-base f) '("research_papers" "notes")))))
+                                t))
 
 (provide 'orgZ)
 ;;; orgZ.el ends here
