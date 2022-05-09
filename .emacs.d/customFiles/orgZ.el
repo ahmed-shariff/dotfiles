@@ -1493,7 +1493,8 @@ Currently written to work in org-ql butter."
                                                 (org-entry-get (point) "TODO"))
                                                "/addTask")
                                        `(("task" . ,task-id)))
-                           (org-entry-put (point) "ASANA_ID" task-id))))))
+                           (org-entry-put (point) "ASANA_ID" task-id))))
+                     "LEVEL=1"))
 
   (defun org-asana--get-todo-state-from-task (task)
     (org-asana-get-todo-state
