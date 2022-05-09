@@ -1602,7 +1602,11 @@ Currently written to work in org-ql butter."
 (setq org-outline-path-complete-in-steps t)(setq org-completion-use-ido t)
 (setq org-attach-directory "~/Documents/org/documents/")
 (setq org-clock-continuously t
-      org-clock-idle-time 10)
+      org-clock-idle-time 10
+      org-agenda-span 10
+      org-agenda-start-on-weekday nil
+      org-agenda-start-day "-3d"
+      org-agenda-files (f-files "~/Documents/org/brain/" (lambda (f) (s-equals-p (f-ext f) "org")) t))
 
 (provide 'orgZ)
 ;;; orgZ.el ends here
