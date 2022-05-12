@@ -1099,8 +1099,8 @@ T - tag prefix
 ;;set transparency********************************************
 ;;(set-frame-parameter (selected-frame) 'alpha '(<active> . <inactive>))
  ;;(set-frame-parameter (selected-frame) 'alpha <both>)
-(set-frame-parameter (selected-frame) 'alpha '(95 . 85))
-(add-to-list 'default-frame-alist '(alpha . (95 . 85)))
+(set-frame-parameter (selected-frame) 'alpha '(98 . 89))
+(add-to-list 'default-frame-alist '(alpha . (98 . 89)))
 
 
 ;; (custom-set-faces
@@ -1608,13 +1608,16 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                           (projects . 5)
                           (tasks . 50)
                           (sprints . 50)
-                          (agenda . 5)
+                          (agenda . 50)
                           (registers . 5)
                           (bookmarks . 5))
         dashboard-set-navigator t
         dashboard-set-heading-icons t
         dashboard-set-file-icons t
-        dashboard-center-content t)
+        dashboard-center-content t
+        dashboard-agenda-sort-strategy '(time-up)
+        dashboard-week-agenda t
+        dashboard-agenda-prefix-format " %-12s %-20:c")
   (dashboard-setup-startup-hook))
 
 ;; (require 'web-mode)
