@@ -464,6 +464,21 @@
 
 (require 'org-bullets)
 
+(use-package org-transclusion
+  :bind (:map org-mode-map
+              ("C-c o t" . org-transclusion-hydra/body))
+  :custom-face
+  (org-transclusion-fringe ((t (:background "Brown" :weight ultra-bold :width extra-expanded))))
+  (org-transclusion-source-fringe ((t (:background "Brown" :weight ultra-bold :width extra-expanded))))
+  (org-transclusion ((t (:background "Brown" :weight ultra-bold :width extra-expanded))))
+  :config
+  (defhydra org-transclusion-hydra (:color blue)
+    "Transclusion functions"
+    ("m" org-transclusion-make-from-link "Make link")
+    ("a" org-transclusion-add "Add")
+    ("A" org-transclusion-add-all "Add all")
+    ("t" org-transclusion-mode "org-transclusion-mode")))
+
 (use-package bibtex-completion)
 
 
