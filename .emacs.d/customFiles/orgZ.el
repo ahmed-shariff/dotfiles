@@ -918,19 +918,26 @@ Appends the todo state of the entry being visualized."
 (use-package org-ql
   :straight (org-ql :type git :host github :repo "alphapapa/org-ql" :fork t)
   :commands org-ql-defpred
-  :bind (:map org-agenda-mode-map
-         ("C-c o o" . org-ql-view-noter)))
+  :config
+  (org-agenda-action org-ql-view-noter
+    (org-noter))
+  (org-agenda-action org-ql-view-topics
+    (org-brain-print-parents))
+  (bind-key "C-c o s" #'org-ql-view-topics org-agenda-mode-map)
+  (bind-key "C-c o o" #'org-ql-view-noter org-agenda-mode-map))
 
-(defun org-ql-view-noter ()
-  (interactive)
-  (let* ((marker (or (org-get-at-bol 'org-hd-marker)
-                     (org-agenda-error)))
-         (buffer (marker-buffer marker))
-         (pos (marker-position marker)))
-    (when (s-equals-p (buffer-name buffer) "research_papers.org")
-      (with-current-buffer buffer
-        (goto-char pos)
-        (org-noter)))))
+(defmacro org-agenda-action (name &rest body)
+  (declare (indent defun))
+  `(defun ,name ()
+     (interactive)
+     (let* ((marker (or (org-get-at-bol 'org-hd-marker)
+                        (org-agenda-error)))
+            (buffer (marker-buffer marker))
+            (pos (marker-position marker)))
+       (when (s-equals-p (buffer-name buffer) "research_papers.org")
+         (with-current-buffer buffer
+           (goto-char pos)
+           ,@body)))))
 
 (org-ql-defpred brain-parent (&rest args)
   ""
