@@ -1535,7 +1535,10 @@ Currently written to work in org-ql butter."
                                (local-due-on (format "%s-%02d-%02d" (nth 5 local-scheduled) (nth 4 local-scheduled) (nth 3 local-scheduled))))
                     (unless (equalp (asana-assocdr 'due_on task) local-due-on)
                       (asana-put (format "/tasks/%s" task-id)
-                                 `(("due_on" . ,local-due-on))))))))
+                                 `(("due_on" . ,local-due-on)))))
+                  (when (and (org-entry-get (point) "CLOSED") (asana-assocdr 'due_on task))
+                    (asana-put (format "/tasks/%s" task-id)
+                               `(("completed" . t)))))))
             (org-asana-get-tasks))))
 
   (defun org-asana-pull-states ()
@@ -1545,11 +1548,15 @@ Currently written to work in org-ql butter."
               (-when-let (task (asana-get (format "/tasks/%s" task-id)))
                 (save-excursion
                   (org-id-goto (asana-assocdr task-id local-tasks))
+                  ;; setting schedule info before todo state to avoid todostate changes being overwritten
+                  (-if-let (due-on (asana-assocdr 'due_on task))
+                      (when (equalp t (asana-assocdr 'completed task))
+                        (org-schedule :time due-on)))
                   (let ((new-state (org-asana--get-todo-state-from-task task)))
                     (unless (equalp (org-entry-get (point) "TODO") new-state)
-                      (org-entry-put (point) "TODO" new-state)))
-                  (-if-let (due-on (asana-assocdr 'due_on task))
-                      (org-schedule :time due-on)))))
+                      (org-entry-put (point) "TODO" new-state)
+                      (when (member new-state org-done-keywords)
+                        (org-entry-put (point) "SCHEDULED" nil)))))))
             (org-asana-get-tasks)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet starts
