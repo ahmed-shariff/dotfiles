@@ -138,11 +138,12 @@
  '(prolog-system 'swi)
  '(python-shell-interpreter "python3")
  '(safe-local-variable-values
-   '((org-download-image-dir . "figures")
-     (eval font-lock-add-keywords nil
+   '((eval font-lock-add-keywords nil
            '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
-             ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-level-7 t))
-           'append)))
+             ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-level-7 t)
+             ("`\\([a-zA-Z].*[a-zA-Z\\.]\\)`" 1 'org-quote t))
+           'append)
+     (org-download-image-dir . "figures")))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
  '(sml/theme 'dark)
