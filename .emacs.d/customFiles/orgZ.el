@@ -593,11 +593,12 @@ Copied  from `org-roam-backlink-get'."
            (ids (apply #'vector (--map (caddr it) entries))))
       ;; copied  from `org-roam-buffer-render-contents'
       (with-current-buffer buffer
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (org-roam-mode)
+        (let ((inhibit-read-only t)
+              (org-roam-buffer-current-directory org-roam-directory))
           (setq-local default-directory org-roam-buffer-current-directory)
           (setq-local org-roam-directory org-roam-buffer-current-directory)
+          (erase-buffer)
+          (org-roam-mode)
           (org-roam-buffer-set-header-line-format title)
           (magit-insert-section (org-roam)
             (magit-insert-heading)
@@ -1090,7 +1091,7 @@ Currently written to work in org-ql butter."
 
 (defun amsha/format-multiline-from-kill-ring ()
   "Format a mulitline kill in the kill-ring into a single line."
-  (format "\"%s\"" (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" (car kill-ring)))))
+  (format "`%s`" (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" (car kill-ring)))))
 
 (defun amsha/paste-formatted-multiline-from-kill-ring ()
   "Paste a multiline segment (generally copied from pdf) as a single line."
@@ -1529,11 +1530,10 @@ Currently written to work in org-ql butter."
                                          (org-entry-get (point) "TODO"))
                                         "/addTask")
                                 `(("task" . ,task-id))))
-                  (-when-let* ((remote-due-on (asana-assocdr 'due_on task))
-                               (local-scheduled (org-entry-get (point) "SCHEDULED"))
+                  (-when-let* ((local-scheduled (org-entry-get (point) "SCHEDULED"))
                                (local-scheduled (parse-time-string local-scheduled)) ;; (SEC MIN HOUR DAY MON YEAR DOW DST TZ)
                                (local-due-on (format "%s-%02d-%02d" (nth 5 local-scheduled) (nth 4 local-scheduled) (nth 3 local-scheduled))))
-                    (unless (equalp remote-due-on local-due-on)
+                    (unless (equalp (asana-assocdr 'due_on task) local-due-on)
                       (asana-put (format "/tasks/%s" task-id)
                                  `(("due_on" . ,local-due-on))))))))
             (org-asana-get-tasks))))
