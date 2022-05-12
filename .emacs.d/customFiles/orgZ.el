@@ -703,7 +703,15 @@ Copied  from `org-roam-backlink-get'."
                                (format "%s \n URL: %s"
                                        (bibtex-completion-apa-format-reference key)
                                        bib-url))))))
-      (switch-to-buffer buffer))))
+      (switch-to-buffer buffer)))
+
+  (defhydra+ org-ref-citation-hydra ()
+    ("t" (lambda ()
+           (interactive)
+           (save-excursion
+             (org-ref-open-notes-at-point)
+             (org-noter)))
+     "open noter" :column "Open")))
 
 (defun doi-add-bibtex-entry-with-note ()
   "."
@@ -1436,6 +1444,7 @@ Currently written to work in org-ql butter."
 	    (define-key org-mode-map "\C-cop" 'org-brain-add-parent-topic)
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
             (define-key org-mode-map "\C-cos" 'org-brain-print-parents)
+            (define-key org-mode-map "\C-coa" 'org-asana-hydra/body)
             (define-key org-mode-map (kbd "C-'") nil)
 	    (flyspell-mode t)))
 (add-hook 'org-mode-hook 'visual-line-mode)
@@ -1465,6 +1474,7 @@ Currently written to work in org-ql butter."
 
   (defun org-asana-update-section-ids ()
     ""
+    (interactive)
     (-when-let (sections (asana-get (concat "/projects/" (org-asana-get-project-id) "/sections")))
       (save-excursion
         (org-entry-put 0 "ASANA_SECTIONS" (format "%s" (--map (cons (asana-assocdr 'name it) (asana-assocdr 'gid it)) sections))))))
@@ -1485,6 +1495,7 @@ Currently written to work in org-ql butter."
   
 
   (defun org-asana-push-new-tasks ()
+    (interactive)
     (org-map-entries (lambda ()
                        (unless (org-entry-get (point) "ASANA_ID")
                          (-when-let (task-id (asana-assocdr 'gid (asana-post "/tasks" `(("projects" . (,(org-asana-get-project-id)))
@@ -1505,6 +1516,7 @@ Currently written to work in org-ql butter."
 
   (defun org-asana-pull-new-tasks ()
     "Gets all tasks from the asnaa project board and create headings for tasks not already in the project org file."
+    (interactive)
     (let ((existing-tasks (-non-nil (org-map-entries (lambda () (org-entry-get (point) "ASANA_ID")) "LEVEL=1"))))
       (-map (lambda (task-id)
               (unless (member task-id existing-tasks)
@@ -1519,6 +1531,7 @@ Currently written to work in org-ql butter."
             (org-asana-get-tasks))))
 
   (defun org-asana-push-states ()
+    (interactive)
     (let ((local-tasks (org-ql-select (current-buffer) '(level 1) :action (lambda () (cons (org-entry-get (point) "ASANA_ID") (org-id-get))))))
       (-map (lambda (task-id)
               (-when-let (task (asana-get (format "/tasks/%s" task-id)))
@@ -1543,6 +1556,7 @@ Currently written to work in org-ql butter."
 
   (defun org-asana-pull-states ()
     "Pull all tasks from the project org file and update the states (todo and schedule)."
+    (interactive)
     (let ((local-tasks (org-ql-select (current-buffer) '(level 1) :action (lambda () (cons (org-entry-get (point) "ASANA_ID") (org-id-get))))))
       (-map (lambda (task-id)
               (-when-let (task (asana-get (format "/tasks/%s" task-id)))
@@ -1557,7 +1571,16 @@ Currently written to work in org-ql butter."
                       (org-entry-put (point) "TODO" new-state)
                       (when (member new-state org-done-keywords)
                         (org-entry-put (point) "SCHEDULED" nil)))))))
-            (org-asana-get-tasks)))))
+            (org-asana-get-tasks))))
+
+  (defhydra org-asana-hydra (:color blue :hint nil :post (message "Asana call complete"))
+    "Asana actions."
+    ("pn" org-asana-push-new-tasks "Push new tasks" :column "Push")
+    ("ps" org-asana-push-states "Push states" :column "Push")
+    ("fn" org-asana-pull-new-tasks "Pull new tasks" :column "Pull")
+    ("fs" org-asana-pull-states "Pull states" :column "Pull")
+    ("s" org-asana-update-section-ids "Updates todo section ids" :column "Pull")))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet starts
 ;; (defvar org-brain-insert-visualize-button-predicate nil)
