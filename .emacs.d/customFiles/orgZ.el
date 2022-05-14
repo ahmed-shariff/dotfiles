@@ -638,14 +638,23 @@ Copied  from `org-roam-backlink-get'."
       (display-buffer buffer))))
 
 (use-package org-roam-bibtex
-  :after org-roam
+  :after (org-roam consult-bibtex)
   :defer 2
   :custom
   (orb-roam-ref-format "org-ref-v3")
-  (orb-insert-interface "ivy-bibtex"))
+  (orb-insert-interface "generic")
+  :config
+  (defun orb-inesert-consult-bibtex (&optional arg)
+    "Overriding `ORB-INSERT-GENERIC' to use `consult-bibtex'."
+    (orb-insert-edit-note (consult-bibtex--read-entry)))
 
-(use-package ivy-bibtex
-  :after (org-ref)
+  (advice-add 'orb-insert-generic :override #'orb-inesert-consult-bibtex))
+
+(use-package consult-bibtex
+  :straight '(consult-bibtex :host github
+                             :repo "mohkale/consult-bibtex")
+  ;; (use-package ivy-bibtex
+  ;;   :after (org-ref)
   :defer 2
   :config
   (require 'org-ref-ivy)
