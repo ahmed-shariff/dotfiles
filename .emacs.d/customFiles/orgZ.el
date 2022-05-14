@@ -465,6 +465,8 @@
 (require 'org-bullets)
 
 (use-package org-transclusion
+  :after org
+  :defer 2
   :bind (:map org-mode-map
               ("C-c o t" . org-transclusion-hydra/body))
   :custom-face
@@ -484,6 +486,8 @@
 
 ;; On windows when the `cygwin1.dll mismatch issue` issue happens, This is solved by manually running the command seen in the *compilation* buffer
 (use-package org-roam
+  :after org
+  :defer 2
   :ensure t
   :init
   (setq org-roam-v2-ack t)
@@ -635,12 +639,14 @@ Copied  from `org-roam-backlink-get'."
 
 (use-package org-roam-bibtex
   :after org-roam
+  :defer 2
   :custom
   (orb-roam-ref-format "org-ref-v3")
   (orb-insert-interface "ivy-bibtex"))
 
 (use-package ivy-bibtex
   :after (org-ref)
+  :defer 2
   :config
   (require 'org-ref-ivy)
   (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
@@ -1656,16 +1662,17 @@ Currently written to work in org-ql butter."
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
-(setq org-log-done 'note)
-(setq org-log-into-drawer t)
-(setq org-deadline-warning-days 2)
-(setq org-clock-idle-time 10)
-(setq org-return-follows-link t)
-(setq org-return-follows-link t)
-(setq org-refile-use-outline-path "file")
-(setq org-outline-path-complete-in-steps t)(setq org-completion-use-ido t)
-(setq org-attach-directory "~/Documents/org/documents/")
-(setq org-clock-continuously t
+(setq org-log-done 'note
+      org-log-into-drawer t
+      org-deadline-warning-days 2
+      org-clock-idle-time 10
+      org-return-follows-link t
+      org-return-follows-link t
+      org-refile-use-outline-path "file"
+      org-outline-path-complete-in-steps t
+      org-completion-use-ido t
+      org-attach-directory "~/Documents/org/documents/"
+      org-clock-continuously t
       org-clock-idle-time 10
       org-agenda-span 10
       org-agenda-start-on-weekday nil
@@ -1674,7 +1681,8 @@ Currently written to work in org-ql butter."
                                 (lambda (f)
                                   (and (s-equals-p (f-ext f) "org")
                                        (not (member (f-base f) '("research_papers" "notes")))))
-                                t))
+                                t)
+      org-export-with-broken-links t)
 
 (provide 'orgZ)
 ;;; orgZ.el ends here
