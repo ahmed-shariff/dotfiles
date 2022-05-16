@@ -59,7 +59,10 @@
                 (ignore-errors (doi-add-bibtex-entry doi (car bibtex-completion-bibliography)))
                 (doi-utils-open-bibtex doi)
                 (org-ref-open-bibtex-notes)
-                (org-set-property "LINK" file-name)
+                (-if-let* ((link (org-entry-get (point) "LINK"))
+                           (l (> (length link) 0)))
+                    nil  ;; do nothing
+                  (org-set-property "LINK" file-name))
                 (research-papers-configure)))
           (if (string-match "arxiv\\.org.*pdf$" url)
               (arxiv-add-bibtex-entry-with-note url (car bibtex-completion-bibliography))
@@ -481,7 +484,9 @@
     ("A" org-transclusion-add-all "Add all")
     ("t" org-transclusion-mode "org-transclusion-mode")))
 
-(use-package bibtex-completion)
+(use-package bibtex-completion
+  :config
+  (setf (alist-get 'org-mode bibtex-completion-format-citation-functions) (lambda (keys) (s-join "," (--map (format "cite:&%s" it) keys)))))
 
 
 ;; On windows when the `cygwin1.dll mismatch issue` issue happens, This is solved by manually running the command seen in the *compilation* buffer
@@ -657,9 +662,9 @@ Copied  from `org-roam-backlink-get'."
   ;;   :after (org-ref)
   :defer 2
   :config
-  (require 'org-ref-ivy)
+  ;; (require 'org-ref-ivy)
   (setq org-ref-insert-link-function 'org-ref-insert-link-hydra/body
-        org-ref-insert-cite-function 'org-ref-cite-insert-ivy
+        org-ref-insert-cite-function '(lambda () (consult-bibtex (consult-bibtex--read-entry)))
         org-ref-insert-label-function 'org-ref-insert-label-link
         org-ref-insert-ref-function 'org-ref-insert-ref-link
         org-ref-cite-onclick-function (lambda (_) (org-ref-citation-hydra/body))))
@@ -749,7 +754,9 @@ Copied  from `org-roam-backlink-get'."
   (call-interactively #'doi-utils-add-bibtex-entry-from-doi)
   (find-file (car bibtex-completion-bibliography))
   (org-ref-open-bibtex-notes)
-  (org-set-property "LINK" (completing-read "LINK: " nil)))
+  (org-set-property "LINK" (completing-read "LINK: " nil nil nil (when (s-starts-with-p "file://" (car kill-ring))
+                                                                   (car kill-ring))))
+  (research-papers-configure))
 
 (use-package org-noter ;;:quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
   :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
