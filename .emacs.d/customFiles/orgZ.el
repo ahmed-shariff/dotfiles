@@ -595,7 +595,8 @@ Copied  from `org-roam-backlink-get'."
                  (file-truename bibtex-completion-notes-path) (file-truename "~/Documents/org/brain/work/notes.org") (file-truename "~/Documents/org/brain/personal/notes.org")))
         (let ((beg (progn (org-roam-end-of-meta-data t)
                           (point)))
-              (end (progn (org-end-of-subtree)
+              (end (progn (org-previous-visible-heading 1)
+                          (org-end-of-subtree)
                           (point))))
           (-reduce 
            (lambda (str el)
@@ -630,15 +631,17 @@ Copied  from `org-roam-backlink-get'."
           (org-roam-buffer-set-header-line-format title)
           (magit-insert-section (org-roam)
             (magit-insert-heading)
-            (dolist (entry 
-                     (org-roam-db-query
-                      [:select [links:source links:pos links:properties]
-                               :from links :inner :join nodes :on (= links:source nodes:id)
-                               :where (and (in links:dest $v1) (in nodes:file $v2))]
-                      ids
-                      (vector
-                       (file-truename "~/Documents/org/brain/personal/notes.org")
-                       (file-truename "~/Documents/org/brain/work/notes.org"))))
+            (dolist (entry
+                     ;;(seq-uniq  ;; removing duplicates as the whole subtree will be getting displayed
+                      (org-roam-db-query
+                       [:select [links:source links:pos links:properties]
+                                :from links :inner :join nodes :on (= links:source nodes:id)
+                                :where (and (in links:dest $v1) (in nodes:file $v2))]
+                       ids
+                       (vector
+                        (file-truename "~/Documents/org/brain/personal/notes.org")
+                        (file-truename "~/Documents/org/brain/work/notes.org"))))
+                      ;;(lambda (e1 e2) (equal (car e1) (car e2)))))
               (pcase-let ((`(,source ,pos ,properties) entry))
                 (org-roam-node-insert-section :source-node (org-roam-node-from-id source) :point pos :properties properties))
               (insert ?\n))
