@@ -981,7 +981,7 @@ Appends the todo state of the entry being visualized."
   :body
   (let ((parents (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))
         (pred (car args))
-        (parent-ids (cdr args)))
+        (parent-ids (--map (if (consp it) (cdr it) it) (cdr args))))
     (when parents
       (funcall
        (cond
@@ -1019,7 +1019,11 @@ Appends the todo state of the entry being visualized."
                           ("or" 'or)
                           ("and" 'and))
                       'and))
-         (topic-ids (list (append `(brain-parent (quote ,connector)) (mapcar (lambda (topic) (cdr (assoc topic selection-list))) topics))))
+         (topic-ids (list (append `(brain-parent (quote ,connector))
+                                  (mapcar
+                                   (lambda (topic)
+                                     `(quote ,(assoc topic selection-list)))
+                                   topics))))
          (query (append '(and (level <= 1)) topic-ids)))
     (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
 
