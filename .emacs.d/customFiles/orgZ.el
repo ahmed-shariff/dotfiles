@@ -599,12 +599,16 @@ Copied  from `org-roam-backlink-get'."
                           (point))))
           (-reduce 
            (lambda (str el)
+             ;; remove properties not interested. If prop drawer is empty at the end, remove drawer itself
              (s-replace-regexp (format "\n *:%s:.*$" el) "" str))
-           ;; remove properties not interested. If prop drawer is empty at the end, remove drawer itself
-           (list (string-trim (buffer-substring-no-properties beg end)) "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "BRAIN_PARENTS" "PROPERTIES:\n *:END")))
+           ;; remove links
+           (list (s-replace-regexp "\\[id:\\([a-z]\\|[0-9]\\)\\{8\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{12\\}\\]"
+                                   ""
+                                   (string-trim (buffer-substring-no-properties beg end)))
+                 "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "BRAIN_PARENTS" "PROPERTIES:\n *:END")))
       (org-roam-preview-default-function)))
 
-  (setq org-roam-preview-function 'org-roam-subtree-aware-preview-function)
+  (setq org-roam-preview-function #'org-roam-subtree-aware-preview-function)
 
   (defun org-roam-list-notes (filters)
     "Filter based on the list of ids (FILTER) in the notes files."
