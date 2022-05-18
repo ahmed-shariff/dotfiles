@@ -194,6 +194,11 @@
 
 (setq view-read-only t)
 
+(defmacro em (n &rest args)
+  "Call `messaage' with N %s and ARGS passed as args of `message'. 
+This macro is used with "
+  `(message ,(s-join "," (append '(">>>>>    ") (-repeat n " %s"))) ,@args))
+
 (use-package beacon
   :demand
   :custom
@@ -1327,14 +1332,16 @@ T - tag prefix
 (global-set-key (kbd "C-x g") 'magit-status)
 (setq magit-git-executable "git")
 
+(defvar home-dir-magit-files '("~/" "~/.emacs.d/customFiles/"))
+
 (defun home-dir-magit-process-environment (env)
   "Add GIT_DIR and GIT_WORK_TREE to ENV when in a special directory.
 https://github.com/magit/magit/issues/460 (@cpitclaudel)."
-  (let ((default (file-name-as-directory (expand-file-name default-directory)))
-        (home (expand-file-name "~/")))
-    (when (string= default home)
+  (let* ((default (file-name-as-directory (expand-file-name default-directory)))
+         (dot-dirs (--map (expand-file-name it) home-dir-magit-files)))
+    (when (member default dot-dirs)
       (let ((gitdir (expand-file-name "~/.dotfiles/")))
-        (push (format "GIT_WORK_TREE=%s" home) env)
+        (push (format "GIT_WORK_TREE=%s" (car dot-dirs)) env) ;; car of dot-dirs should be ~/
         (push (format "GIT_DIR=%s" gitdir) env))))
   env)
 
