@@ -238,6 +238,25 @@
 (setq org-refile-targets '((org-agenda-files :maxlevel . 6)))
 			   ;(org-c-refile-targets :maxlevel . 6)))
 
+
+;;**********************bulk action wrappers***********************
+(defvar org-agenda-bulk-action-started nil)
+(defvar org-agenda-bulk-action-post-execution-function nil)
+
+(defun org-agenda-bulk-action-wrapper (original &rest args)
+  (setq org-agenda-bulk-action-started t)
+  (condition-case nil
+      (apply original args)
+    (error nil))
+  (setq org-agenda-bulk-action-started nil)
+  (when org-agenda-bulk-action-post-execution-function
+    (funcall org-agenda-bulk-action-post-execution-function))
+  (setq org-agenda-bulk-action-post-execution-function nil))
+
+(advice-add 'org-agenda-bulk-action :around #'org-agenda-bulk-action-wrapper)
+
+;;  ***************************************************************
+
 (defun org-ask-title-location (&optional prompt)
   "From  https://stackoverflow.com/questions/9005843/interactively-enter-headline-under-which-to-place-an-entry-using-capture."
   (let* ((prompt (or prompt "Project "))
@@ -961,14 +980,18 @@ Appends the todo state of the entry being visualized."
 
 (use-package org-ql
   :straight (org-ql :type git :host github :repo "alphapapa/org-ql" :fork t)
+  :bind (:map org-agenda-mode-map
+              ("C-c o s" . org-ql-view-topics)
+              ("C-c o o" . org-ql-view-noter)
+              ("C-c o p" . org-ql-add-parents))
   :commands org-ql-defpred
   :config
   (org-agenda-action org-ql-view-noter
     (org-noter))
   (org-agenda-action org-ql-view-topics
     (org-brain-print-parents))
-  (bind-key "C-c o s" #'org-ql-view-topics org-agenda-mode-map)
-  (bind-key "C-c o o" #'org-ql-view-noter org-agenda-mode-map))
+  (org-agenda-action org-ql-add-parents
+    (org-brain-add-parent-topic)))
 
 (defmacro org-agenda-action (name &rest body)
   (declare (indent defun))
@@ -1364,21 +1387,6 @@ Currently written to work in org-ql butter."
     :action (copy-notes-and-bib-function))
   (copy-notes-and-bib-function-switch-to-buffers))
 
-(defvar org-agenda-bulk-action-started nil)
-(defvar org-agenda-bulk-action-post-execution-function nil)
-
-(defun org-agenda-bulk-action-wrapper (original &rest args)
-  (setq org-agenda-bulk-action-started t)
-  (condition-case nil
-      (apply original args)
-    (error nil))
-  (setq org-agenda-bulk-action-started nil)
-  (when org-agenda-bulk-action-post-execution-function
-    (funcall org-agenda-bulk-action-post-execution-function))
-  (setq org-agenda-bulk-action-post-execution-function nil))
-
-(advice-add 'org-agenda-bulk-action :around #'org-agenda-bulk-action-wrapper)
-
 (defvar org-agenda-copy-query-notes-and-bib-func nil)
 
 (defun org-agenda-copy-query-notes-and-bib ()
@@ -1432,18 +1440,34 @@ Currently written to work in org-ql butter."
 	    (org-set-property "LINK" arxiv-link)
 	    (research-papers-configure)))))))
 
-(defun org-brain-add-parent-topic ()
+(defun org-brain-add-parent-topic (&optional parents entry)
   "."
   (interactive)
-  (let ((embark-quit-after-action nil)
-        (entry (org-brain-entry-at-pt)))
-    (org-brain-add-parent entry (org-brain-choose-entries "Add parent topic: " 'all)) ;;(lambda (entry)
-    ;; (or (s-starts-with-p "People::" (car entry))
-    ;;     (s-starts-with-p "research topics::" (car entry))
-    ;;     (s-starts-with-p "misc_topics::" (car entry))
-    ;;     (s-matches-p "work/projects::.*literature" (car entry))
-    ;;     (s-starts-with-p "publication::" (car entry))))))
+  ;; forgoing interactive args to allow this to be called interactively.
+  (unless parents
+    (setq parents (org-brain-choose-entries "Add parent topic: " 'all))) ;;(lambda (entry)
+  ;; (or (s-starts-with-p "People::" (car entry))
+  ;;     (s-starts-with-p "research topics::" (car entry))
+  ;;     (s-starts-with-p "misc_topics::" (car entry))
+  ;;     (s-matches-p "work/projects::.*literature" (car entry))
+  ;;     (s-starts-with-p "publication::" (car entry))))))
+  (unless entry
+    (setq entry (org-brain-entry-at-pt)))
+  (let ((embark-quit-after-action nil))
+    (org-brain-add-parent entry parents)
     (org-brain-print-parents entry)))
+
+(defvar org-agenda-brain-add-parents--parents nil)
+
+(defun org-agenda-brain-add-parents ()
+  "To be used with the org-agenda-bulk-action."
+  (unless org-agenda-brain-add-parents--parents
+    (setq org-agenda-brain-add-parents--parents (org-brain-choose-entries "Add parent topic: " 'all)
+          org-agenda-bulk-action-post-execution-function (lambda ()
+                                                           (setq org-agenda-brain-add-parents--parents nil))))
+  (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
+                         (org-agenda-error))
+    (org-brain-add-parent-topic org-agenda-brain-add-parents--parents (org-brain-entry-at-pt))))
 
 (defun org-brain-goto-button-at-pt ()
   "."
