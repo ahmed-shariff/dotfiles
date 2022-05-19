@@ -238,6 +238,10 @@
 (setq org-refile-targets '((org-agenda-files :maxlevel . 6)))
 			   ;(org-c-refile-targets :maxlevel . 6)))
 
+(defun org-id-get-closest ()
+  "move up the tree until an el with id is found"
+  (ignore-error user-error (do () ((org-id-get) (org-id-get)) (org-up-element))))
+
 
 ;;**********************bulk action wrappers***********************
 (defvar org-agenda-bulk-action-started nil)
@@ -547,9 +551,10 @@
   (org-roam-node-display-template (concat (propertize " ${file:50}" 'face 'hl-line) (propertize "    ${title:90}   " 'face 'bold) (propertize "${tags:30}  " 'face 'org-tag)))
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
-         ("C-c n g" . org-roam-graph)
+         ;;("C-c n g" . org-roam-graph)
          ("C-c n i" . org-roam-node-insert)
          ("C-c n c" . org-roam-capture)
+         ("C-c n y" . org-roam-db-sync)
          ;; Dailies
          ("C-c n j" . org-roam-dailies-capture-today)
          ;; org-roam-bibtex
@@ -607,9 +612,7 @@ Copied  from `org-roam-backlink-get'."
 
   (defun org-roam-subtree-aware-preview-function ()
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
-    (if (member (org-roam-node-file (org-roam-node-from-id
-                                     ;; move up the tree until an el with id is found
-                                     (do () ((org-id-get) (org-id-get)) (org-up-element))))
+    (if (member (org-roam-node-file (org-roam-node-from-id (org-id-get-closest)))
                 (list
                  (file-truename bibtex-completion-notes-path) (file-truename "~/Documents/org/brain/work/notes.org") (file-truename "~/Documents/org/brain/personal/notes.org")))
         (let ((beg (progn (org-roam-end-of-meta-data t)
@@ -1138,7 +1141,18 @@ Currently written to work in org-ql butter."
   :straight (org-download :type git :host github :repo "abo-abo/org-download"
                           :fork (:host github :repo "ahmed-shariff/org-download"))
   :custom
-  (org-download-screenshot-method (if (equalp system-type 'windows-nt) "magick convert clipboard: %s" "scrot")))
+  (org-download-image-dir (expand-file-name "work/figures/" org-brain-path))
+  (org-download-screenshot-method (if (equalp system-type 'windows-nt) "magick convert clipboard: %s" "scrot"))
+
+  :config
+  (defun org-download--dir-2-use-id (oldfun &rest args)
+    "Use ID if one of the parents has an ID or use the default behaviour of dir-2"
+    (-if-let (id (save-excursion
+                   (org-id-get-closest)))
+        id
+      (funcall oldfun args)))
+
+  (advice-add 'org-download--dir-2 :around #'org-download--dir-2-use-id))
   
 (defun pdf-crop-image (event &optional switch-back)
   "EVENT SWITCH-BACK."
