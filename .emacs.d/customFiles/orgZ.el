@@ -332,7 +332,7 @@
                               (org-id-get-create))))))
          (target (progn
                    (assoc (completing-read "Select task: " (org-brain--targets-with-metadata targets) nil t) targets))))
-    (format "* [[id:%s][%s]]  %%?"
+    (format "**** [[id:%s][%s]]  %%?"
             (nth 2 target)
             (nth 1 target))))
     
