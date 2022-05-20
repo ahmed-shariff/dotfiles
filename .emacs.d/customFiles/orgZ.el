@@ -799,7 +799,7 @@ Copied  from `org-roam-backlink-get'."
                        :fork (:host github :repo "ahmed-shariff/org-brain"))
   :demand
   :init
-  (setq org-brain-path "~/Documents/org/brain")
+  (setq org-brain-path (file-truename "~/Documents/org/brain"))
   :bind (("C-c v" . org-brain-visualize)
 	 :map org-brain-visualize-mode-map
 	 ("\C-coo" . org-brain-open-org-noter)
@@ -1141,7 +1141,7 @@ Currently written to work in org-ql butter."
   :straight (org-download :type git :host github :repo "abo-abo/org-download"
                           :fork (:host github :repo "ahmed-shariff/org-download"))
   :custom
-  (org-download-image-dir (expand-file-name "work/figures/" org-brain-path))
+  (org-download-image-dir (file-truename (expand-file-name "work/figures/" org-brain-path)))
   (org-download-screenshot-method (if (equalp system-type 'windows-nt) "magick convert clipboard: %s" "scrot"))
 
   :config
@@ -1152,7 +1152,14 @@ Currently written to work in org-ql butter."
         id
       (funcall oldfun args)))
 
+  (defun org-download--dir-1-get-relative-path (&rest args)
+    "Get relative path to `org-download-image-dir'."
+    (or (when org-download-image-dir
+          (f-relative org-download-image-dir))
+        "."))
+  (advice-add 'org-download--dir-1 :override #'org-download--dir-1-get-relative-path)
   (advice-add 'org-download--dir-2 :around #'org-download--dir-2-use-id))
+ 
   
 (defun pdf-crop-image (event &optional switch-back)
   "EVENT SWITCH-BACK."
