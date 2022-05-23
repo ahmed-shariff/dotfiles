@@ -59,11 +59,16 @@
                 (ignore-errors (doi-add-bibtex-entry doi (car bibtex-completion-bibliography)))
                 (doi-utils-open-bibtex doi)
                 (org-ref-open-bibtex-notes)
+                ;; make sure at the top most level
+                (while (not (equalp 1 (org-outline-level)))
+                  (org-up-element))
+                ;; add link if not already set
                 (-if-let* ((link (org-entry-get (point) "LINK"))
                            (l (> (length link) 0)))
                     nil  ;; do nothing
                   (org-set-property "LINK" file-name))
                 (research-papers-configure)))
+          ;; handle arxiv links
           (if (string-match "arxiv\\.org.*pdf$" url)
               (arxiv-add-bibtex-entry-with-note url (car bibtex-completion-bibliography))
             (progn
@@ -1664,7 +1669,7 @@ Currently written to work in org-ql butter."
                   (org-id-goto (asana-assocdr task-id local-tasks))
                   ;; setting schedule info before todo state to avoid todostate changes being overwritten
                   (-if-let (due-on (asana-assocdr 'due_on task))
-                      (when (equalp t (asana-assocdr 'completed task))
+                      (unless (asana-assocdr 'completed task)
                         (org-schedule :time due-on)))
                   (let ((new-state (org-asana--get-todo-state-from-task task)))
                     (unless (equalp (org-entry-get (point) "TODO") new-state)
@@ -1677,8 +1682,14 @@ Currently written to work in org-ql butter."
     "Asana actions."
     ("pn" org-asana-push-new-tasks "Push new tasks" :column "Push")
     ("ps" org-asana-push-states "Push states" :column "Push")
+    ("p" (lambda ()
+           (org-asana-push-new-tasks)
+           (org-asana-push-states)) "Push updates (tasks & states)" :column "Push")
     ("fn" org-asana-pull-new-tasks "Pull new tasks" :column "Pull")
     ("fs" org-asana-pull-states "Pull states" :column "Pull")
+    ("f" (lambda ()
+           (org-asana-pull-new-tasks)
+           (org-asana-pull-states)) "Push updates (tasks & states)" :column "Push")
     ("s" org-asana-update-section-ids "Updates todo section ids" :column "Pull")))
 
 
