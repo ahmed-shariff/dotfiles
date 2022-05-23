@@ -666,6 +666,15 @@ advice, files on WSL can not be saved."
 (use-package deadgrep
   :commands deadgrep)
 
+;;helpful ****************************************************************************
+(use-package helpful
+  :bind (("C-h f" . helpful-callable)
+         ("C-h v" . helpful-variable)
+         ("C-h k" . helpful-key)
+         ("C-c C-d" . helpful-at-point)
+         ("C-h F" . helpful-function)
+         ("C-h C" . helpful-command)))
+
 ;;lsp-mode ***************************************************************************
 (use-package lsp-ui
   :init
@@ -762,13 +771,34 @@ advice, files on WSL can not be saved."
 (use-package dap-java :straight nil)
 
 ;;avy *******************************************************************************
+;; see https://karthinks.com/software/avy-can-do-anything/#kill-a-candidate-word-sexp-or-line for more cool stuff
 (use-package avy
-  :bind (("C-S-s" . avy-goto-char)
+  :bind (("C-S-s" . avy-isearch)
 	 ("C-'" . avy-goto-char-timer)
 	 ("M-g l" . avy-goto-line)
 	 ("M-g w" . avy-goto-word-1))
   :config
-  (avy-setup-default))
+  (avy-setup-default)
+
+  (defun avy-action-helpful (pt)
+    (save-excursion
+      (goto-char pt)
+      (helpful-at-point))
+    (select-window
+     (cdr (ring-ref avy-ring 0)))
+    t)
+
+  (defun avy-action-embark (pt)
+    (unwind-protect
+        (save-excursion
+          (goto-char pt)
+          (embark-act))
+      (select-window
+       (cdr (ring-ref avy-ring 0))))
+    t)
+
+  (setf (alist-get ?H avy-dispatch-alist) 'avy-action-helpful)
+  (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark))
 
 ;;pdf
 (when (gethash 'use-pdf-tools configurations t)
