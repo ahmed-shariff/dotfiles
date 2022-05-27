@@ -138,7 +138,8 @@
  '(prolog-system 'swi)
  '(python-shell-interpreter "python3")
  '(safe-local-variable-values
-   '((eval font-lock-add-keywords nil
+   '((org-download-image-dir . "figures/notes")
+     (eval font-lock-add-keywords nil
            '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
              ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-level-7 t)
              ("`\\([a-zA-Z].*[a-zA-Z\\.]\\)`" 1 'org-quote t))
