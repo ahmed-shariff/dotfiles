@@ -642,7 +642,11 @@ Copied  from `org-roam-backlink-get'."
     "Filter based on the list of ids (FILTER) in the notes files."
     (interactive (list (org-brain-choose-entries "Filter topics:" 'all)))
 
-    (let* ((entries (-non-nil (-replace-where #'org-brain-filep (lambda (el) nil) filters)))
+    (let* ((entries (-non-nil (-replace-where #'org-brain-filep (lambda (el)
+                                                                  (save-excursion
+                                                                    (org-brain-goto el)
+                                                                    (list el el (org-id-get))))
+                                              filters)))
            (names (s-join "," (--map (cadr it) entries)))
            (title (format "(%s)" names))
            (buffer (get-buffer-create (format "*notes: %s*" names)))
@@ -1683,13 +1687,15 @@ Currently written to work in org-ql butter."
     ("pn" org-asana-push-new-tasks "Push new tasks" :column "Push")
     ("ps" org-asana-push-states "Push states" :column "Push")
     ("p" (lambda ()
+           (interactive)
            (org-asana-push-new-tasks)
            (org-asana-push-states)) "Push updates (tasks & states)" :column "Push")
     ("fn" org-asana-pull-new-tasks "Pull new tasks" :column "Pull")
     ("fs" org-asana-pull-states "Pull states" :column "Pull")
     ("f" (lambda ()
+           (interactive)
            (org-asana-pull-new-tasks)
-           (org-asana-pull-states)) "Push updates (tasks & states)" :column "Push")
+           (org-asana-pull-states)) "Pull updates (tasks & states)" :column "Pull")
     ("s" org-asana-update-section-ids "Updates todo section ids" :column "Pull")))
 
 
