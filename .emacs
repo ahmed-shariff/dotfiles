@@ -84,12 +84,12 @@
       straight-vc-git-default-protocol 'https
       straight-host-usernames '((github . "ahmed-shariff")))
 
-(defvar my-package-list '(org org-contrib org-download elgrep dired+
+(defvar my-package-list '(org org-contrib elgrep dired+
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
 					   org-bullets latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode
 					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
-					   org-brain avy lsp-ui lsp-mode expand-region diminish amx flx
+					   avy lsp-ui lsp-mode expand-region diminish amx flx
 					   counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
 					   company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane

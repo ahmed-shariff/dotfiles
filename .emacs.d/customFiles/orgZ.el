@@ -1151,7 +1151,7 @@ Currently written to work in org-ql butter."
                           :fork (:host github :repo "ahmed-shariff/org-download"))
   :custom
   (org-download-image-dir (file-truename (expand-file-name "work/figures/" org-brain-path)))
-  (org-download-screenshot-method (if (equalp system-type 'windows-nt) "magick convert clipboard: %s" "scrot"))
+  (org-download-screenshot-method (if (eq system-type 'windows-nt) "magick convert clipboard: %s" "scrot"))
 
   :config
   (defun org-download--dir-2-use-id (oldfun &rest args)
