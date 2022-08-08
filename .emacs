@@ -92,7 +92,7 @@
 					   avy lsp-ui lsp-mode expand-region diminish amx flx
 					   counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
-					   company-auctex auctex pdf-tools yasnippet company-jedi jedi sr-speedbar latex-preview-pane
+					   company-auctex auctex yasnippet company-jedi jedi sr-speedbar latex-preview-pane
 					   exec-path-from-shell smart-mode-line-powerline-theme slime-company slime
 					   slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
 (when (gethash 'use-jupyter configurations t)
@@ -801,11 +801,13 @@ advice, files on WSL can not be saved."
   (setf (alist-get ?H avy-dispatch-alist) 'avy-action-helpful)
   (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark))
 
-;;pdf
-(when (gethash 'use-pdf-tools configurations t)
-  (pdf-tools-install t)
-  (add-hook 'pdf-view-mode-hook '(lambda ()
-				   (pdf-misc-size-indication-minor-mode))))
+;; pdf
+(use-package pdf-tools
+  :config
+  (when (gethash 'use-pdf-tools configurations t)
+    (pdf-tools-install t)
+    (add-hook 'pdf-view-mode-hook '(lambda ()
+				     (pdf-misc-size-indication-minor-mode)))))
 
 ;;delete-selection-mode
 (delete-selection-mode t)
@@ -1175,6 +1177,7 @@ T - tag prefix
 
 (use-package perspective
   :after consult-projectile
+  :custom (persp-mode-prefix-key (kbd "C-c w"))
   :bind (("C-x k" . persp-kill-buffer*))
   :hook (kill-emacs-hook . persp-state-save)
   :init (persp-mode 1)
