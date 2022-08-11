@@ -195,10 +195,10 @@
 
 (setq view-read-only t)
 
-(defmacro em (n &rest args)
-  "Call `messaage' with N %s and ARGS passed as args of `message'. 
-This macro is used with "
-  `(message ,(s-join "," (append '(">>>>>    ") (-repeat n " %s"))) ,@args))
+(defmacro em (&rest args)
+  "Call `messaage' ARGS passed as args of `message'."
+  ;; `(signal 'error ""))
+  `(message ,(s-join "," (append '(">>>>>    ") (-repeat (length args) " %s"))) ,@args))
 
 (use-package beacon
   :demand
@@ -1516,15 +1516,27 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 ;; (add-hs-hook (list 'python-mode-hook 'lisp-mode-hook))
 
 ;;other stuff************************************************************
-(defun copy-current-file-name ()
+(defun copy-buffer-file-name (buffer-file-name)
+  "Copy the file name without the directory. If directory, copy the directory-name.
+ If buffer/non-exisitant file just copy buffer-file-name."
+  (kill-new
+   (if (f-exists-p buffer-file-name)
+       (copy-file-name buffer-file-name)
+     buffer-file-name)))
+
+(defun copy-file-full-path (file-name)
+  "Copy the full path of the file-name"
+  (kill-new (file-truename file-name)))
+
+(defun copy-current-file-buffer-name ()
   "Copy the current buffers filename or FILE to the kill ring."
   (interactive)
-  (kill-new (file-name-nondirectory (buffer-file-name (window-buffer (minibuffer-selected-window))))))
+  (copy-buffer-file-name (buffer-name (window-buffer (minibuffer-selected-window)))))
 
 (defun copy-current-file-full-path ()
   "Copy the current buffers filename to the kill ring."
   (interactive)
-  (kill-new (buffer-file-name (window-buffer (minibuffer-selected-window)))))
+  (copy-file-full-path (buffer-file-name (window-buffer (minibuffer-selected-window)))))
 
 (defun single-linify (beg end)
   "Make a paragraph single-lined by replacing line break with space.
