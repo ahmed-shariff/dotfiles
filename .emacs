@@ -1241,7 +1241,9 @@ T - tag prefix
   (advice-add 'consult-projectile-switch-to-buffer :before 'consult-projectile--switch-persp)
 
   (defun amsha/launch-lsp-mode-after-switch ()
-    (when (derived-mode-p 'prog-mode)
+    (when (and (derived-mode-p 'prog-mode)
+               (member (s-replace "-mode" "" (symbol-name major-mode))
+                       (--map (cdr it) lsp-language-id-configuration)))
       (lsp)))
 
   (add-hook 'persp-switch-hook #'amsha/launch-lsp-mode-after-switch))
