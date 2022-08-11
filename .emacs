@@ -90,7 +90,7 @@
 					   org-bullets latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode
 					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
 					   avy lsp-ui lsp-mode expand-region diminish amx flx
-					   counsel ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
+					   ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
 					   company-auctex auctex yasnippet company-jedi jedi sr-speedbar latex-preview-pane
 					   exec-path-from-shell smart-mode-line-powerline-theme slime-company slime
@@ -222,7 +222,7 @@ This macro is used with "
 
 (use-package visual-fill-column
   :defer 
-  :hook ((org-mode LaTeX-mode latex-mode markdown-mode) . amsha/visual-fill))
+  :hook ((org-mode LaTeX-mode latex-mode markdown-mode org-roam-mode) . amsha/visual-fill))
 
 ;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
 ;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
@@ -506,11 +506,11 @@ advice, files on WSL can not be saved."
   :diminish (ivy-mode . "")             ; does not display ivy in the modeline
   ;; :init
   ;; (ivy-mode 1)                          ; enable ivy globally at startup
-  :bind (("C-c g" . counsel-git)
-	 ("C-c j" . counsel-git-grep) 
-	 ("C-c k" . counsel-ag)       
-	 ("C-x l" . counsel-locate)   
-	 ("C-S-o" . counsel-rhythmbox)
+  :bind (;; ("C-c g" . counsel-git)
+	 ;; ("C-c j" . counsel-git-grep) 
+	 ;; ("C-c k" . counsel-ag)       
+	 ;; ("C-x l" . counsel-locate)   
+	 ;; ("C-S-o" . counsel-rhythmbox)
 	 ;;("C-x C-f" . counsel-find-file)
 	 :map ivy-minibuffer-map        ; bind in the ivy buffer
 	 ("RET" . ivy-alt-done))
@@ -547,14 +547,14 @@ advice, files on WSL can not be saved."
 ;;          ("c-x c-d" . consult-dir)
 ;;          ("c-x c-j" . consult-dir-jump-file)))
 
-(use-package all-the-icons-ivy-rich
-  :init (all-the-icons-ivy-rich-mode 1))
+;; (use-package all-the-icons-ivy-rich
+;;   :init (all-the-icons-ivy-rich-mode 1))
 
-(use-package ivy-rich
-  :init (ivy-rich-mode 1))
+;; (use-package ivy-rich
+;;   :init (ivy-rich-mode 1))
 
-(use-package ivy-hydra
-  :after (ivy hydra))
+;; (use-package ivy-hydra
+;;   :after (ivy hydra))
 
 ;; helm setup ************************************************************************
 (use-package helm
