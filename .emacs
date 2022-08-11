@@ -101,6 +101,17 @@
 (mapcar #'straight-use-package
 	my-package-list)
 
+(defun straight-visit-package-local-repo (recipe-local-repo)
+  "Open the directory of the given recipe's local dir."
+  (interactive (list
+                (completing-read "Package:"
+                                 (let (packages)
+                                   (maphash (lambda (key value)
+                                              (push (plist-get value :local-repo) packages))
+                                            straight--repo-cache)
+                                   packages))))
+  (find-file (straight--repos-dir recipe-local-dir)))
+
 ;; custom variables*******************************************
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
