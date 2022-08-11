@@ -336,8 +336,46 @@ advice, files on WSL can not be saved."
                  (window-parameters (mode-line-format . none))))
   
   (define-key embark-file-map "o" nil)
-  (define-key embark-file-map "ocn" #'copy-current-file-name)
-  (define-key embark-file-map "ocf" #'copy-current-file-full-path))
+  (define-key embark-file-map "ocn" #'copy-buffer-file-name)
+  (define-key embark-file-map "ocf" #'copy-file-full-path)
+
+  (defun embark-which-key-indicator ()
+    "An embark indicator that displays keymaps using which-key.
+The which-key help message will show the type and value of the
+current target followed by an ellipsis if there are further
+targets."
+    (lambda (&optional keymap targets prefix)
+      (if (null keymap)
+          (which-key--hide-popup-ignore-command)
+        (which-key--show-keymap
+         (if (eq (plist-get (car targets) :type) 'embark-become)
+             "Become"
+           (format "Act on %s '%s'%s"
+                   (plist-get (car targets) :type)
+                   (embark--truncate-target (plist-get (car targets) :target))
+                   (if (cdr targets) "…" "")))
+         (if prefix
+             (pcase (lookup-key keymap prefix 'accept-default)
+               ((and (pred keymapp) km) km)
+               (_ (key-binding prefix 'accept-default)))
+           keymap)
+         nil nil t (lambda (binding)
+                     (not (string-suffix-p "-argument" (cdr binding))))))))
+
+  (setq embark-indicators
+        '(embark-which-key-indicator
+          embark-highlight-indicator
+          embark-isearch-highlight-indicator))
+
+  (defun embark-hide-which-key-indicator (fn &rest args)
+    "Hide the which-key indicator immediately when using the completing-read prompter."
+    (which-key--hide-popup-ignore-command)
+    (let ((embark-indicators
+           (remq #'embark-which-key-indicator embark-indicators)))
+      (apply fn args)))
+
+  (advice-add #'embark-completing-read-prompter
+              :around #'embark-hide-which-key-indicator))
 
 (use-package consult
   ;; Replace bindings. Lazily loaded due by `use-package'.
@@ -369,21 +407,27 @@ advice, files on WSL can not be saved."
          ("M-g i" . consult-imenu)
          ("M-g I" . consult-project-imenu)
          ;; M-s bindings (search-map)
-         ("M-s f" . consult-find)
-         ("M-s L" . consult-locate)
+         ("M-s d" . consult-find)
+         ("M-s D" . consult-locate)
          ("M-s g" . consult-grep)
          ("M-s G" . consult-git-grep)
          ("M-s r" . consult-ripgrep)
          ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
          ("M-s m" . consult-multi-occur)
          ("M-s k" . consult-keep-lines)
          ("M-s u" . consult-focus-lines)
          ;; Isearch integration
          ("M-s e" . consult-isearch-history)
          :map isearch-mode-map
-         ("M-e" . consult-isearch)                 ;; orig. isearch-edit-string
-         ("M-s e" . consult-isearch)               ;; orig. isearch-edit-string
-         ("M-s l" . consult-line))                 ;; needed by consult-line to detect isearch
+         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+         ("M-r" . consult-history))                ;; orig. previous-matching-history-element
 
   ;; Enable automatic preview at point in the *Completions* buffer.
   ;; This is relevant when you use the default completion UI,
@@ -1194,7 +1238,14 @@ T - tag prefix
   (advice-add 'consult-projectile-find-file :before 'consult-projectile--switch-persp)
   (advice-add 'consult-projectile-find-dir :before 'consult-projectile--switch-persp)
   (advice-add 'consult-projectile-recentf :before 'consult-projectile--switch-persp)
-  (advice-add 'consult-projectile-switch-to-buffer :before 'consult-projectile--switch-persp))
+  (advice-add 'consult-projectile-switch-to-buffer :before 'consult-projectile--switch-persp)
+
+  (defun amsha/launch-lsp-mode-after-switch ()
+    (when (derived-mode-p 'prog-mode)
+      (lsp)))
+
+  (add-hook 'persp-switch-hook #'amsha/launch-lsp-mode-after-switch))
+  
 
 ;;treemacs setup**********************************************************************************************************
 (use-package treemacs
