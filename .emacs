@@ -106,11 +106,6 @@
   (projectile-find-file))
 
 (advice-add 'straight-visit-package :after #'straight-visit-package-projectile)
-;; (defun straight-visit-package-local-repo (recipe-local-repo)
-;;   "Open the directory of the given recipe's local dir."
-;;   (interactive (list (straight--select-package "Package"
-;;                                                #'straight--installed-p)))
-;;   (find-file (straight--repos-dir recipe-local-dir)))
 
 ;; custom variables*******************************************
 (custom-set-variables
