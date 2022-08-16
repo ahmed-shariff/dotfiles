@@ -244,6 +244,8 @@
 ;; (require 'ido)
 ;; (ido-mode t)
 
+(use-package golden-ratio)
+
 (use-package diminish)
 
 (use-package persistent-scratch
