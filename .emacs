@@ -202,9 +202,12 @@
 (setq view-read-only t)
 
 (defmacro em (&rest args)
-  "Call `messaage' ARGS passed as args of `message'."
+  "Call `messaage' ARGS passed as args of `message' & retur the first argument passed.
+Used for debugging."
   ;; `(signal 'error ""))
-  `(message ,(s-join "," (append '(">>>>>    ") (-repeat (length args) " %s"))) ,@args))
+  `(progn
+     (message ,(format ">>>>>    %s" (s-join "," (-repeat (length args) " %s"))) ,@args)
+     ,(car args)))
 
 (use-package beacon
   :demand
