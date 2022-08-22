@@ -713,7 +713,9 @@ Copied  from `org-roam-backlink-get'."
   :after ox-pandoc
   :demand
   :bind (:map org-mode-map
-              ("C-c ]" . org-ref-insert-link))
+         ("C-c ]" . org-ref-insert-link)
+         :map LaTeX-mode-map
+         ("C-c [" . org-ref-insert-link))
   ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
   :config
   (setq bibtex-completion-notes-path "~/Documents/org/brain/research_papers.org"

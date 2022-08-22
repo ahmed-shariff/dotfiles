@@ -1405,7 +1405,6 @@ T - tag prefix
 	reftex-plug-into-AUCTeX t
 	TeX-PDF-from-DVI "Dvips")
   (TeX-global-PDF-mode t)
-  (setq-default TeX-master nil)
   :config
   (company-auctex-init)
   (setq outline-minor-mode-prefix "\C-c \C-o")
