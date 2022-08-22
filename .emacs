@@ -1302,7 +1302,8 @@ T - tag prefix
           treemacs-tag-follow-cleanup            t
           treemacs-tag-follow-delay              1.5
           treemacs-user-mode-line-format         nil
-          treemacs-width                         35)
+          treemacs-width                         35
+          treemacs-python-executable             "python")
 
     ;; The default width and height of the icons is 22 pixels. If you are
     ;; using a Hi-DPI display, uncomment this to double the icon size.
@@ -1582,7 +1583,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
  If buffer/non-exisitant file just copy buffer-file-name."
   (kill-new
    (if (f-exists-p buffer-file-name)
-       (copy-file-name buffer-file-name)
+       (f-filename buffer-file-name)
      buffer-file-name)))
 
 (defun copy-file-full-path (file-name)
