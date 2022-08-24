@@ -103,7 +103,12 @@
 
 (defun straight-visit-package-projectile (&rest args)
   "Open projectile after visiting straight repo."
-  (projectile-find-file))
+  (let ((b (current-buffer))
+        (p (persp-current-name)))
+    (projectile-find-file)
+    (persp-add-buffer b)
+    (with-perspective p
+      (persp-remove-buffer b))))
 
 (advice-add 'straight-visit-package :after #'straight-visit-package-projectile)
 
