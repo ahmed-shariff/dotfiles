@@ -92,7 +92,7 @@
 					   avy lsp-ui lsp-mode expand-region diminish amx flx
 					   ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
-					   company-auctex auctex yasnippet company-jedi jedi sr-speedbar latex-preview-pane
+					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
 					   exec-path-from-shell smart-mode-line-powerline-theme slime-company slime
 					   slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
 (when (gethash 'use-jupyter configurations t)
@@ -1395,24 +1395,30 @@ T - tag prefix
   "."
   (outline-minor-mode 1))
 
-(use-package auctex
-  :requires (preview company-auctex)
-  :init 
-  (setq TeX-auto-save t
-	TeX-parse-self t
-	TeX-save-query nil
-	TeX-PDF-mode t
-	reftex-plug-into-AUCTeX t
-	TeX-PDF-from-DVI "Dvips")
-  (TeX-global-PDF-mode t)
+(use-package company-auctex
+  :after (auctex)
   :config
-  (company-auctex-init)
-  (setq outline-minor-mode-prefix "\C-c \C-o")
+  (company-auctex-init))
+
+(use-package latex
+  :straight auctex
+  :defer t
+  :bind (:map LaTeX-mode-map
+         ("C-c [" . org-ref-insert-link))
   :hook ((LaTeX-mode-hook . turn-on-outline-minor-mode)
-	 (latex-mode-hook . turn-on-outline-minor-mode)
-	 (LaTeX-mode-hook . flyspell-mode)
-	 (latex-mode-hook . flyspell-mode)
-	 (LaTeX-mode-hook . turn-on-reftex)))
+         (latex-mode-hook . turn-on-outline-minor-mode)
+         (LaTeX-mode-hook . flyspell-mode)
+         (latex-mode-hook . flyspell-mode)
+         (LaTeX-mode-hook . turn-on-reftex))
+  :config
+  (setq TeX-auto-save t
+        TeX-parse-self t
+        TeX-save-query nil
+        TeX-PDF-mode t
+        reftex-plug-into-AUCTeX t
+        TeX-PDF-from-DVI "Dvips")
+  (TeX-global-PDF-mode t)
+  (setq outline-minor-mode-prefix "\C-c \C-o"))
 
 ;; (defun activate-preview-mode ()
 ;;   (load "preview-latex.el" nil t t))
