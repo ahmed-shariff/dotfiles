@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: git-message-dt
+# key: gm
+# --
+[`(gethash 'system-name configurations "Check system-name in configurations.el")`] Updates `(format-time-string "%Y-%m-%dT%H:%M:%S%:z")`
