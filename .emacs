@@ -95,8 +95,6 @@
 					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
 					   exec-path-from-shell smart-mode-line-powerline-theme slime-company slime
 					   slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
-(when (gethash 'use-jupyter configurations t)
-  (add-to-list 'my-package-list 'jupyter))
 
 (mapcar #'straight-use-package
 	my-package-list)
@@ -814,7 +812,8 @@ targets."
   :config
   (with-eval-after-load "lsp-mode"
     (add-to-list 'lsp-disabled-clients 'pyls))
-  (setq lsp-pyright-venv-path 'lsp-pyright-locate-venv))
+  (setq lsp-pyright-use-library-code-for-types t ;; set this to nil if getting too many false positive type errors
+        lsp-pyright-stub-path "~/.emacs.d/python-type-stubs")) ;; example
 
 (use-package lsp-java
   :defer t)

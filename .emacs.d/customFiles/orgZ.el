@@ -117,14 +117,22 @@
 				         (shell . t))))
 
 (when (gethash 'use-jupyter configurations t)
-  (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
-						       (:session . "py")
-						       (:kernel . "python3")
-						       (:tangle . "yes")
-						       (:exports . "both")))
+  (use-package jupyter
+    :defer t
+    :custom
+    (org-babel-jupyter-resource-directory "jupyter-output")
+    :config
+    (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
+						    (:session . "py")
+						    (:kernel . "python3")
+						    (:tangle . "jupyter-python/tangled.py")
+						    (:exports . "both")))
+    (push '(jupyter . t) org-babel-load-languages))
+      
   (use-package ox-ipynb
-    :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb"))
-  (push '(jupyter . t) org-babel-load-languages))
+    :defer t
+    :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb")))
+  
 
 
 ;; from https://emacs.stackexchange.com/questions/42471/how-to-export-markdown-from-org-mode-with-syntax
