@@ -7,7 +7,7 @@
 ;; -*- emacs-lisp -*-
 ;; -*- lexical-binding: t -*-
 ;; 
-(require 'package)
+;; (require 'package)
 (set-language-environment "UTF-8")
 (set-default-coding-systems 'utf-8)
 
@@ -87,10 +87,10 @@
 (defvar my-package-list '(org org-contrib elgrep dired+
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
-					   org-bullets latex-math-preview all-the-icons-ivy csproj-mode csharp-mode plantuml-mode
+					   org-bullets latex-math-preview csproj-mode csharp-mode plantuml-mode
 					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
 					   avy lsp-ui lsp-mode expand-region diminish amx flx
-					   ivy dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
+					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
 					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
 					   exec-path-from-shell smart-mode-line-powerline-theme slime-company slime
@@ -206,6 +206,8 @@
 
 (setq view-read-only t)
 
+;; (setq use-package-compute-statistics t)
+
 (defmacro em (&rest args)
   "Call `messaage' ARGS passed as args of `message' & retur the first argument passed.
 Used for debugging."
@@ -278,10 +280,10 @@ advice, files on WSL can not be saved."
   (setq stumpwm-shell-program "/home/amsha/.stumpwm.d/modules/util/stumpish/stumpish"))
 
 ;;selectrum  *******************************************************
-(use-package prescient
-  :config
-  (prescient-persist-mode +1))
-(use-package ivy-prescient)
+;; (use-package prescient
+;;   :config
+;;   (prescient-persist-mode +1))
+
 ;;(use-package company-prescient)
 ;; (use-package selectrum-prescient
 ;;   :config
@@ -738,6 +740,7 @@ targets."
 
 ;;lsp-mode ***************************************************************************
 (use-package lsp-ui
+  :after (lsp-mode)
   :init
   (add-hook 'python-mode-hook #'lsp-ui-mode)
   :config
@@ -804,6 +807,7 @@ targets."
 ;;     ))
 
 (use-package lsp-pyright
+  :defer t
   :hook (python-mode . (lambda ()
                           (require 'lsp-pyright)
                           (lsp)))
@@ -812,7 +816,8 @@ targets."
     (add-to-list 'lsp-disabled-clients 'pyls))
   (setq lsp-pyright-venv-path 'lsp-pyright-locate-venv))
 
-(use-package lsp-java)
+(use-package lsp-java
+  :defer t)
 
 ;; (use-package lsp-python-ms
 ;;   :straight t
@@ -822,6 +827,7 @@ targets."
 ;;                           (lsp))))  ; or lsp-deferred
 
 (use-package lsp-treemacs
+  :after (lsp-mode)
   :config
   (lsp-treemacs-sync-mode 1))
 
@@ -829,7 +835,9 @@ targets."
   :after lsp-mode
   :config (dap-auto-configure-mode)
   :hook (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra))))
-(use-package dap-java :straight nil)
+
+(use-package dap-java :straight nil
+  :after (lsp-java))
 
 ;;avy *******************************************************************************
 ;; see https://karthinks.com/software/avy-can-do-anything/#kill-a-candidate-word-sexp-or-line for more cool stuff
@@ -863,6 +871,7 @@ targets."
 
 ;; pdf
 (use-package pdf-tools
+  :defer 5
   :config
   (when (gethash 'use-pdf-tools configurations t)
     (pdf-tools-install t)
@@ -1524,6 +1533,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   (set-face-foreground 'git-gutter:deleted "LightCoral"))
 
 (use-package magit-todos
+  :after (magit)
   :config
   (magit-todos-mode))
 
@@ -1801,6 +1811,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   :init (setq markdown-command "multimarkdown"))
 
 (use-package json-mode
+  :defer 5
   :hook ((json-mode . (lambda () (setq tab-width 2
                                        js-indent-level 2)))))
 
