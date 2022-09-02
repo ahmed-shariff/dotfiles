@@ -1080,6 +1080,10 @@ T - tag prefix
                     :height 105
                     :weight 'normal)
 
+(when (member "Segoe UI Emoji" (font-family-list))
+  (set-fontset-font
+   t 'unicode (font-spec :family "Segoe UI Emoji") nil 'prepend))
+
 ;;slime and cl setup*********************************************
 (require 'slim-mode)
 ;;(load (expand-file-name "/home/amsha/quicklisp/slime-helper.el"))
@@ -1813,6 +1817,9 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   :defer 5
   :hook ((json-mode . (lambda () (setq tab-width 2
                                        js-indent-level 2)))))
+
+(use-package toml-mode
+  :mode "\\.toml\\'")
 
 (use-package plantuml-mode
   :init
