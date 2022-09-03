@@ -214,6 +214,16 @@ Used for debugging."
      (message ,(format ">>>>>    %s" (s-join "," (-repeat (length args) " %s"))) ,@args)
      ,(car args)))
 
+(defmacro plist-multi-put (plist &rest args)
+  "Put KEY VALUES list in setq."
+  (let ((list nil)
+        (plist-sym (gensym)))
+    (while args
+      (push `(setq ,plist-sym (plist-put ,plist-sym ,(pop args) ,(pop args))) list))
+    `(let ((,plist-sym ,plist))
+       ,@(nreverse list)
+       ,plist-sym)))
+
 (use-package beacon
   :demand
   :custom
