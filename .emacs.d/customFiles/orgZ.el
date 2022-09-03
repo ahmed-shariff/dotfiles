@@ -118,7 +118,6 @@
 
 (when (gethash 'use-jupyter configurations t)
   (use-package jupyter
-    :defer t
     :custom
     (org-babel-jupyter-resource-directory "jupyter-output")
     :config
@@ -130,7 +129,6 @@
     (push '(jupyter . t) org-babel-load-languages))
       
   (use-package ox-ipynb
-    :defer t
     :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb")))
   
 
@@ -579,12 +577,13 @@
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
 
-  (defun org-roam-backlinks-get-brain-children (node)
-    "Get org-brain-children as backlinks.
-Modified `org-roam-backlink-get'."
-    (let* ((node-id (org-roam-node-id node))
+  (defmacro org-roam-backlinks-get-brain-relation (relation-function node)
+    "Use `relation-function' to get the relations as backlinks for the given org-roam `node'.
+`relation-function' is any function that takes a org-brain entry and
+return a list of org-brain entries."
+    `(let* ((node-id (org-roam-node-id ,node))
            (backlinks
-            ;; Getting brain-children and convert them to roam backlinks.
+            ;; Getting brain-relation and convert them to roam backlinks.
             (mapcar (lambda (entry)
                       (--> (org-brain-entry-marker entry)
                            (with-current-buffer (marker-buffer it)
@@ -598,7 +597,7 @@ Modified `org-roam-backlink-get'."
                                     :outline
                                     (ignore-errors
                                       (org-get-outline-path 'with-self 'use-cache)))))))
-                    (org-brain-children (save-excursion
+                    (,relation-function (save-excursion
                                           (org-id-goto node-id)
                                           (org-brain-entry-at-pt))))))
       (cl-loop for backlink in backlinks
@@ -613,7 +612,7 @@ Modified `org-roam-backlink-get'."
   (defun org-roam-brain-children-section (node)
     "The brain children section for NODE.
 Copied  from `org-roam-backlink-get'."
-    (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (org-roam-backlinks-get-brain-children node))))
+    (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (org-roam-backlinks-get-brain-relation org-brain-children node))))
       (magit-insert-section (org-roam-backlinks)
         (magit-insert-heading "Brain children:")
         (dolist (backlink backlinks)
@@ -689,6 +688,57 @@ Copied  from `org-roam-backlink-get'."
             (run-hooks 'org-roam-buffer-postrender-functions)
             (goto-char 0))))
       (display-buffer buffer))))
+
+(use-package consult-notes
+  :straight (:type git :host github :repo "mclear-tools/consult-notes")
+  :bind (("C-c n n" . consult-notes-search-in-all-notes)
+         ("C-c n v" . consult-notes-visit-relation))
+  :commands (consult-notes
+             consult-notes-search-in-all-notes
+             consult-notes-org-roam-find-node
+             consult-notes-org-roam-find-node-relation)
+  :config
+  (setq consult-notes-sources `(("Org"  ?o  ,org-brain-path))) ;; Set notes dir(s), see below
+  (consult-notes-org-roam-mode) ;; Set org-roam integration
+
+  (defun consult-notes-visit-relation (node)
+    "Navigate to related node of `node'."
+    (interactive (list (or (when (eq major-mode 'org-mode) (org-roam-node-at-point)) (org-roam-node-read nil nil nil t "Select node: "))))
+    (consult--multi (list
+                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                                      :name (propertize "Backlinks" 'face 'consult-notes-sep)
+                                      :narrow ?b
+                                      :items (lambda () (--map (org-roam-node-title (org-roam-backlink-source-node it))
+                                                               (org-roam-backlinks-get node :unique t))))
+                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                                      :name (propertize "Brain Children" 'face 'consult-notes-sep)
+                                      :narrow ?c
+                                      :items (lambda () (--map (org-roam-node-title
+                                                                (org-roam-node-from-id
+                                                                 (save-excursion
+                                                                   (org-brain-goto it)
+                                                                   (org-id-get))))
+                                                               (org-brain-children (org-brain-entry-from-id (org-roam-node-id node))))))
+                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                                       :name (propertize "Forwardlink" 'face 'consult-notes-sep)
+                                       :narrow ?f
+                                       :items (lambda () (-map #'car (org-roam-db-query
+                                                                      [:select :distinct nodes:title
+                                                                               :from links :inner :join nodes :on (= links:dest nodes:id)
+                                                                               :where (in links:source $v1)]
+                                                                      (vector (org-roam-node-id node))))))
+                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                                      :name (propertize "Brain Parents" 'face 'consult-notes-sep)
+                                      :narrow ?p
+                                      :items (lambda () (--map (org-roam-node-title
+                                                                (org-roam-node-from-id
+                                                                 (save-excursion
+                                                                   (org-brain-goto it)
+                                                                   (org-id-get))))
+                                                               (org-brain-parents (org-brain-entry-from-id (org-roam-node-id node)))))))
+                    :require-match t
+                    :prompt "Related nodes:")))
+
 
 (use-package org-roam-bibtex
   :after (org-roam consult-bibtex)
