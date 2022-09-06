@@ -787,8 +787,8 @@ Copied  from `org-roam-backlink-get'."
 	org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
 	bibtex-completion-notes-template-one-file
 	(format
-	 "* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :RPC-TAGS: NO_LINK NO_PARENTS NO_CITE_KEY\n  :BRAIN_PARENTS: brain_parent:%s\n  :END:\n\n  - cite:${=key=}"
-         (org-roam-node-id (org-roam-node-from-title-or-alias "research_papers")))
+	 "* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :RPC-TAGS: NO_LINK NO_PARENTS NO_CITE_KEY\n  :BRAIN_PARENTS: brain-parent:%s\n  :END:\n\n  - cite:${=key=}"
+         "34854c23-cf0a-40ba-b0c6-c9e5b3bb3030") ;; research_papers id TODO: think of a better way to do this?
         bibtex-completion-notes-template-multiple-files bibtex-completion-notes-template-one-file
         ;;":PROPERTIES:\n:Custom_ID: ${=key=}\n:Keywords: ${keywords}\n:LINK: ${pdf}\n:YEAR: ${year}\n:RPC-TAGS: :NO_LINK NO_PARENTS NO_CITE_KEY\n:END:\n\n#+TITLE: (${year}) ${title} [${author}]\n\n"
 	doi-utils-open-pdf-after-download nil
@@ -1327,9 +1327,9 @@ Currently written to work in org-ql butter."
 (defun research-papers-configure ()
   "."
   (interactive)
+  (delay-mode-hooks (org-mode))
   (mapcar (lambda (f)
-            (with-current-buffer (find-file-noselect f)
-              (em "YAY")
+            (org-roam-with-file f nil
 	      (let* ((link-string (org-entry-get (point) "LINK"))
                      (link (if (string-empty-p link-string)
                                nil
@@ -1345,7 +1345,7 @@ Currently written to work in org-ql butter."
                 (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
                 (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))
 
-                (em out-file-name full-path)
+                ;; (em out-file-name full-path)
 	        (when (and (not (member "ATTACH" tags))
                            full-path
                            (or (file-exists-p full-path)
@@ -1376,20 +1376,15 @@ Currently written to work in org-ql butter."
 		        (append tags '("NO_PARENTS"))))
 	        (apply #'org-entry-put-multivalued-property (point) "RPC-TAGS" (delete "nosiblings" (delete-dups tags)))
                 (when (and cite-key (not (org-entry-get nil "ROAM_REFS")))
-                  (org-entry-put nil "ROAM_REFS" (format "cite:&%s" cite-key)))
-                ;; copied from org-roam-db.el
-                (condition-case err
-                    (org-roam-db-update-file f)
-                  (error
-                   (org-roam-db-clear-file f)
-                   (lwarn 'org-roam :error "Failed to process %s with error %s, skipping..."
-                          file (error-message-string err)))))
+                  (org-entry-put nil "ROAM_REFS" (format "cite:&%s" cite-key))))
               (save-buffer)))
           (if current-prefix-arg
-              (f-glob "*.org" bibtex-completion-notes-path)
+              (f-files bibtex-completion-notes-path (lambda (f) (not (s-starts-with-p "." (f-base f)))))
             (--> (buffer-file-name)
                  (when (and it (f-descendant-of-p (file-truename it) (file-truename bibtex-completion-notes-path)))
-                   (list it))))))
+                   (list it)))))
+  (projectile-save-project-buffers)
+  (org-roam-db-sync))
 ;; (org-brain-update-id-locations)
 ;; (org-roam-db-sync))
 
@@ -1849,11 +1844,14 @@ Currently written to work in org-ql butter."
       org-agenda-span 10
       org-agenda-start-on-weekday nil
       org-agenda-start-day "-3d"
-      org-agenda-files (f-files "~/Documents/org/brain/"
-                                (lambda (f)
-                                  (and (s-equals-p (f-ext f) "org")
-                                       (not (member (f-base f) '("research_papers" "notes")))))
-                                t)
+      org-agenda-files (flatten-tree (list (mapcar #'f-files (f-glob "~/Documents/org/brain/*/project_boards"))
+                                           (f-files "~/Documents/org/brain/roam-notes"
+                                                    (lambda (f)
+                                                      (and (f-ext-p f "org")
+                                                           (with-temp-buffer
+                                                             (insert-file f)
+                                                             (when-let (kwds (org-collect-keywords '("filetags")))
+                                                               (member "agenda-track" (split-string (cadar kwds) ":" 'omit-nulls)))))))))
       org-export-with-broken-links t)
 
 (provide 'orgZ)
