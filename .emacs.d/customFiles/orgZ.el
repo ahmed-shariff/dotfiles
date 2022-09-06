@@ -27,6 +27,9 @@
 ;; (require 'org-capture-pop-frame)
 ;(ido-mode)
 
+(defvar okm-base-direcory (file-truename "~/Documents/org/brain") "org knowladge management base direcory.")
+(defvar okm-research-papers-id "34854c23-cf0a-40ba-b0c6-c9e5b3bb3030" "The id of the research_papers file.") ;; research_papers id TODO: think of a better way to do this?
+
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
                                    :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame")))
@@ -290,51 +293,51 @@
 
 ;;  ***************************************************************
 
-(defun org-ask-id (file prompt property)
+(defun okm--ask-id (file prompt property)
   "."
   (save-window-excursion
     (find-file file)
     (org-ask-title-location prompt)
     (org-entry-get (point) property)))
 
-(defun orgz--org-templates-get-project-id ()
+(defun okm--org-templates-get-project-id ()
   "Get the new project id."
   (number-to-string
    (1+ (apply #'max
-              (org-ql-select (expand-file-name "work/projects.org" org-brain-path) `(level 1)
+              (org-ql-select (expand-file-name "work/projects.org" okm-base-directory) `(level 1)
                 :action (lambda ()
                           (condition-case nil
-                              (string-to-number (cadr (s-match "<<\\([0-9]+\\)>>" (org-brain-title (org-brain-entry-at-pt)))))
+                              (string-to-number (cadr (s-match "<<\\([0-9]+\\)>>" (org-get-heading t t t t))))
                             (wrong-type-argument 0))))))))
 
-(defun orgz--org-templates-get-sprint-id ()
+(defun okm--org-templates-get-sprint-id ()
   "Get the new sprint id."
   (number-to-string
    (1+
     (apply #'max
            (org-ql-select
-             (expand-file-name "work/projects.org" org-brain-path)
+             (expand-file-name "work/projects.org" okm-base-directory)
              `(parent ,(s-replace-regexp "/$" "" (car org-refile-history)))
              :action  (lambda ()
                         (condition-case nil
                             (string-to-number (cadr (s-match "Sprint \\([0-9]+\\):"
-                                                             (org-brain-title (org-brain-entry-at-pt)))))
+                                                             (org-get-heading t t t t))))
                           (wrong-type-argument 0))))))))
 
-(defun org-ask-experiment-id ()
+(defun okm-ask-experiment-id ()
   "."
   (save-window-excursion
     (find-file "~/Documents/org/brain/work/experiments_log.org")
     (org-ask-title-location  "Experiment ")
     (org-entry-get (point) "CUSTOM_ID"))
-  ;;(org-ask-id "~/Documents/org/brain/work/experiments_log.org"  "Experiment " "CUSTOM_ID"))
+  ;;(okm--ask-id "~/Documents/org/brain/work/experiments_log.org"  "Experiment " "CUSTOM_ID"))
 )
 
-(defun org-ask-project-id ()
+(defun okm-ask-project-id ()
   "."
-  (org-ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
+  (okm--ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
 
-(defun org-ask-task-board ()
+(defun okm-ask-task-board ()
   "Move the cursor to a location in a task board."
   (let* ((project-boards (mapcar (lambda (file) (cons (format "%-10s %s"
                                                               (propertize (f-base (f-parent (f-parent file)))  'face 'marginalia-documentation)
@@ -342,15 +345,15 @@
                                                        file))
                                  (--keep
                                   (when (not (s-contains-p "#" it)) it)
-                                  (f-glob "*/project_boards/*.org" org-brain-path))))
+                                  (f-glob "*/project_boards/*.org" okm-base-directory))))
          (board-file (cdr (assoc (completing-read "Select poject board: " project-boards) project-boards))))
     (find-file board-file)
     (goto-char (point-max))))
 
-(defun board-task-location ()
+(defun okm-board-task-location ()
   "Return a org title with board task after prompting for it."
   (let* ((project-boards (--keep (when (not (s-contains-p "#" it)) it)
-                                 (f-glob "*/project_boards/*.org" org-brain-path)))
+                                 (f-glob "*/project_boards/*.org" okm-base-directory)))
          (targets
           (org-ql-select project-boards `(level 1)
             :action (lambda ()
@@ -366,7 +369,7 @@
                               title
                               (org-id-get-create))))))
          (target (progn
-                   (assoc (completing-read "Select task: " (org-brain--targets-with-metadata targets) nil t) targets))))
+                   (assoc (completing-read "Select task: " targets nil t) targets))))
     (format "**** [[id:%s][%s]]  %%?"
             (nth 2 target)
             (nth 1 target))))
@@ -400,7 +403,7 @@
 	("ej" "Add Journal entry")
         ("ejt" "for task"
 	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-	 "%(board-task-location)")
+	 "%(okm-board-task-location)")
 	("eje" "for experiment"
 	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
          "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
@@ -415,7 +418,7 @@
 	 :jump-to-captured t)
 	("es" "Add sprint"
 	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
-	 "** TODO Sprint %(orgz--org-templates-get-sprint-id): %^{TITLE}
+	 "** TODO Sprint %(okm--org-templates-get-sprint-id): %^{TITLE}
    :PROPERTIES:
    :EXPORT_TOC: nil
    :EXPORT_TITLE: %\\1
@@ -433,9 +436,9 @@
 " :jump-to-captured t)
 	("ep" "Add project"
 	 entry (file "~/Documents/org/brain/work/projects.org")
-	 "* TODO <<%(orgz--org-templates-get-project-id)>> %^{TITLE}
+	 "* TODO <<%(okm--org-templates-get-project-id)>> %^{TITLE}
   :PROPERTIES:
-  :CUSTOM_ID: %(orgz--org-templates-get-project-id)
+  :CUSTOM_ID: %(okm--org-templates-get-project-id)
   :ID:       %(org-id-new)
   :END:
 ** %\\1 literature
@@ -446,7 +449,7 @@
 "
 	 :jump-to-captured t)
         ("et" "Add task"
-	 entry (function org-ask-task-board)
+	 entry (function okm-ask-task-board)
 	 "* TODO %^{TITLE}
   :PROPERTIES:
   :ID:       %(org-id-new)
@@ -456,7 +459,7 @@
 	 :jump-to-captured t)
 	("b" "Org brain")
 	("bp" "Add research paper"
-	 entry (function (lambda () (org-brain-goto "research_papers")));(file "~/Documents/org/brain/research_papers.org")
+	 entry (function (lambda () (org-id-goto okm-research-papers-id)));(file "~/Documents/org/brain/research_papers.org")
 	 "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :LINK: %^{LINK\}n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
   \n  - %^{LINK}"
 	 :jump-to-captured t)))
@@ -534,14 +537,14 @@
   :init
   (setq org-roam-v2-ack t)
   :custom
-  (org-roam-directory (file-truename org-brain-path))
+  (org-roam-directory (file-truename okm-base-directory))
   (org-roam-dailies-directory "dailies")
   (org-roam-dailies-capture-templates
-   '(("d" "default" entry "%(board-task-location)"
+   '(("d" "default" entry "%(okm-board-task-location)"
       :target (file+datetree
                "~/Documents/org/brain/work/notes.org"
                "day"))
-     ("p" "personal" entry "%(board-task-location)"
+     ("p" "personal" entry "%(okm-board-task-location)"
       :target (file+datetree
                "~/Documents/org/brain/personal/notes.org"
                "day"))))
@@ -553,7 +556,7 @@
       :target
       (file+head+olp
        (lambda () (completing-read "File: "
-                                   (f-glob "*.org" (file-truename org-brain-path))
+                                   (f-glob "*.org" (file-truename okm-base-directory))
                                    nil nil))
        nil nil)
       :prepend t
@@ -578,59 +581,59 @@
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
 
-  (defmacro org-roam-backlinks-get-brain-relation (relation-function node)
-    "Use `relation-function' to get the relations as backlinks for the given org-roam `node'.
-`relation-function' is any function that takes a org-brain entry and
-return a list of org-brain entries."
-    `(let* ((node-id (org-roam-node-id ,node))
-           (backlinks
-            ;; Getting brain-relation and convert them to roam backlinks.
-            (mapcar (lambda (entry)
-                      (--> (org-brain-entry-marker entry)
-                           (with-current-buffer (marker-buffer it)
-                             (goto-char (marker-position it))
-                             (list (org-id-get)
-                                   node-id
-                                   (point)
-                                   ;; This can error if link is not under any headline
-                                   ;; copied from `org-roam-db-insert-link'
-                                   (list
-                                    :outline
-                                    (ignore-errors
-                                      (org-get-outline-path 'with-self 'use-cache)))))))
-                    (,relation-function (save-excursion
-                                          (org-id-goto node-id)
-                                          (org-brain-entry-at-pt))))))
-      (cl-loop for backlink in backlinks
-               collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
-                         (org-roam-populate
-                          (org-roam-backlink-create
-                           :source-node (org-roam-node-create :id source-id)
-                           :target-node (org-roam-node-create :id dest-id)
-                           :point pos
-                           :properties properties))))))
+;;   (defmacro org-roam-backlinks-get-brain-relation (relation-function node)
+;;     "Use `relation-function' to get the relations as backlinks for the given org-roam `node'.
+;; `relation-function' is any function that takes a org-brain entry and
+;; return a list of org-brain entries."
+;;     `(let* ((node-id (org-roam-node-id ,node))
+;;            (backlinks
+;;             ;; Getting brain-relation and convert them to roam backlinks.
+;;             (mapcar (lambda (entry)
+;;                       (--> (org-brain-entry-marker entry)
+;;                            (with-current-buffer (marker-buffer it)
+;;                              (goto-char (marker-position it))
+;;                              (list (org-id-get)
+;;                                    node-id
+;;                                    (point)
+;;                                    ;; This can error if link is not under any headline
+;;                                    ;; copied from `org-roam-db-insert-link'
+;;                                    (list
+;;                                     :outline
+;;                                     (ignore-errors
+;;                                       (org-get-outline-path 'with-self 'use-cache)))))))
+;;                     (,relation-function (save-excursion
+;;                                           (org-id-goto node-id)
+;;                                           (org-brain-entry-at-pt))))))
+;;       (cl-loop for backlink in backlinks
+;;                collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
+;;                          (org-roam-populate
+;;                           (org-roam-backlink-create
+;;                            :source-node (org-roam-node-create :id source-id)
+;;                            :target-node (org-roam-node-create :id dest-id)
+;;                            :point pos
+;;                            :properties properties))))))
 
-  (defun org-roam-brain-children-section (node)
-    "The brain children section for NODE.
-Copied  from `org-roam-backlink-get'."
-    (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (org-roam-backlinks-get-brain-relation org-brain-children node))))
-      (magit-insert-section (org-roam-backlinks)
-        (magit-insert-heading "Brain children:")
-        (dolist (backlink backlinks)
-          (org-roam-node-insert-section
-           :source-node (org-roam-backlink-source-node backlink)
-           :point (org-roam-backlink-point backlink)
-           :properties (org-roam-backlink-properties backlink)))
-        (insert ?\n))))
+;;   (defun org-roam-brain-children-section (node)
+;;     "The brain children section for NODE.
+;; Copied  from `org-roam-backlink-get'."
+;;     (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (org-roam-backlinks-get-brain-relation org-brain-children node))))
+;;       (magit-insert-section (org-roam-backlinks)
+;;         (magit-insert-heading "Brain children:")
+;;         (dolist (backlink backlinks)
+;;           (org-roam-node-insert-section
+;;            :source-node (org-roam-backlink-source-node backlink)
+;;            :point (org-roam-backlink-point backlink)
+;;            :properties (org-roam-backlink-properties backlink)))
+;;         (insert ?\n))))
 
-  (push #'org-roam-brain-children-section org-roam-mode-sections)
+  ;; (push #'org-roam-brain-children-section org-roam-mode-sections)
 
   (defun org-roam-subtree-aware-preview-function ()
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
     (if (--> (org-roam-node-file (org-roam-node-from-id (org-id-get-closest)))
-             (or (member it)
-                 (list
-                  (file-truename "~/Documents/org/brain/work/notes.org") (file-truename "~/Documents/org/brain/personal/notes.org"))
+             (or (member it
+                         (list
+                          (file-truename "~/Documents/org/brain/work/notes.org") (file-truename "~/Documents/org/brain/personal/notes.org")))
                  (f-ancestor-of-p bibtex-completion-notes-path it)))
         (let ((beg (progn (org-roam-end-of-meta-data t)
                           (point)))
@@ -650,19 +653,30 @@ Copied  from `org-roam-backlink-get'."
 
   (setq org-roam-preview-function #'org-roam-subtree-aware-preview-function)
 
-  (defun org-roam-list-notes (filters)
+  (defun okm-roam-list-notes (entries)
     "Filter based on the list of ids (FILTER) in the notes files."
-    (interactive (list (org-brain-choose-entries "Filter topics:" 'all)))
-
-    (let* ((entries (-non-nil (-replace-where #'org-brain-filep (lambda (el)
-                                                                  (save-excursion
-                                                                    (org-brain-goto el)
-                                                                    (list el el (org-id-get))))
-                                              filters)))
-           (names (s-join "," (--map (cadr it) entries)))
+    ;; TODO: Lookinto useing marginalia instead of the template used with roam
+    (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
+                  (completing-read-multiple
+                   "Node: "
+                   (lambda (string pred action)
+                     (if (eq action 'metadata)
+                         '(metadata
+                           ;; (annotation-function . consult-notes-org-roam-annotate)
+                           (category . org-roam-node))
+                       (complete-with-action
+                        action
+                        (mapcar (lambda (node)
+                                  (cons (org-roam-node-title node) node))
+                                (org-roam-node-list))
+                        string
+                        pred))))))
+    (let* ((entries (--map (if (stringp it) (org-roam-node-from-title-or-alias it) it) entries))
+           (names (s-join "," (--map (org-roam-node-title it) entries)))
            (title (format "(%s)" names))
            (buffer (get-buffer-create (format "*notes: %s*" names)))
-           (ids (apply #'vector (--map (caddr it) entries))))
+           (ids (apply #'vector (--map (org-roam-node-id it) entries))))
+      (em names ids)
       ;; copied  from `org-roam-buffer-render-contents'
       (with-current-buffer buffer
         (let ((inhibit-read-only t)
@@ -701,7 +715,7 @@ Copied  from `org-roam-backlink-get'."
              consult-notes-org-roam-find-node
              consult-notes-org-roam-find-node-relation)
   :config
-  (setq consult-notes-sources `(("Org"  ?o  ,org-brain-path))) ;; Set notes dir(s), see below
+  (setq consult-notes-sources `(("Org"  ?o  ,okm-base-directory))) ;; Set notes dir(s), see below
   (consult-notes-org-roam-mode) ;; Set org-roam integration
 
   (defun consult-notes-visit-relation (node)
@@ -788,7 +802,7 @@ Copied  from `org-roam-backlink-get'."
 	bibtex-completion-notes-template-one-file
 	(format
 	 "* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :RPC-TAGS: NO_LINK NO_PARENTS NO_CITE_KEY\n  :BRAIN_PARENTS: brain-parent:%s\n  :END:\n\n  - cite:${=key=}"
-         "34854c23-cf0a-40ba-b0c6-c9e5b3bb3030") ;; research_papers id TODO: think of a better way to do this?
+         okm-research-papers-id) 
         bibtex-completion-notes-template-multiple-files bibtex-completion-notes-template-one-file
         ;;":PROPERTIES:\n:Custom_ID: ${=key=}\n:Keywords: ${keywords}\n:LINK: ${pdf}\n:YEAR: ${year}\n:RPC-TAGS: :NO_LINK NO_PARENTS NO_CITE_KEY\n:END:\n\n#+TITLE: (${year}) ${title} [${author}]\n\n"
 	doi-utils-open-pdf-after-download nil
@@ -874,7 +888,7 @@ Copied  from `org-roam-backlink-get'."
                        :fork (:host github :repo "ahmed-shariff/org-brain"))
   :demand
   :init
-  (setq org-brain-path (file-truename "~/Documents/org/brain"))
+  (setq okm-base-directory (file-truename "~/Documents/org/brain"))
   :bind (("C-c v" . org-brain-visualize)
 	 :map org-brain-visualize-mode-map
 	 ("\C-coo" . org-brain-open-org-noter)
@@ -904,53 +918,54 @@ Copied  from `org-roam-backlink-get'."
   ;; (setq org-brain-vis-title-prepend-functions (list
   ;;                                              (org-brain-function-on-entry 'org-brain-entry-todo-state-colored)
   ;;                                              (org-brain-function-on-entry 'org-brain-entry-priority)))
-  (defun org-brain-insert-resource-icon (link)
-    "Insert an icon, based on content of org-mode LINK."
-    (insert (format "%s "
-                    (cond ((string-prefix-p "http" link)
-                           (cond ((string-match "wikipedia\\.org" link)
-                                  (all-the-icons-faicon "wikipedia-w"))
-				 ((string-match "github\\.com" link)
-                                  (all-the-icons-octicon "mark-github"))
-				 ((string-match "vimeo\\.com" link)
-                                  (all-the-icons-faicon "vimeo"))
-				 ((string-match "youtube\\.com" link)
-                                  (all-the-icons-faicon "youtube"))
-				 (t
-                                  (all-the-icons-faicon "globe"))))
-                          ((string-prefix-p "brain:" link)
-                           (all-the-icons-fileicon "brain"))
-                          (t
-                           (all-the-icons-icon-for-file link))))))
-  (defun org-brain--targets-with-metadata (collection)
-    "To use with completing read to allow having additional annotations with marginalia."
-    (lambda (string predicate action)
-      (if (eq action 'metadata)
-          `(metadata
-            (category . org-brain-node))
-        (complete-with-action action collection string predicate))))
+  ;; (defun org-brain-insert-resource-icon (link)
+  ;;   "Insert an icon, based on content of org-mode LINK."
+  ;;   (insert (format "%s "
+  ;;                   (cond ((string-prefix-p "http" link)
+  ;;                          (cond ((string-match "wikipedia\\.org" link)
+  ;;                                 (all-the-icons-faicon "wikipedia-w"))
+  ;;       			 ((string-match "github\\.com" link)
+  ;;                                 (all-the-icons-octicon "mark-github"))
+  ;;       			 ((string-match "vimeo\\.com" link)
+  ;;                                 (all-the-icons-faicon "vimeo"))
+  ;;       			 ((string-match "youtube\\.com" link)
+  ;;                                 (all-the-icons-faicon "youtube"))
+  ;;       			 (t
+  ;;                                 (all-the-icons-faicon "globe"))))
+  ;;                         ((string-prefix-p "brain:" link)
+  ;;                          (all-the-icons-fileicon "brain"))
+  ;;                         (t
+  ;;                          (all-the-icons-icon-for-file link))))))
+  ;; (defun org-brain--targets-with-metadata (collection)
+  ;;   "To use with completing read to allow having additional annotations with marginalia."
+  ;;   (lambda (string predicate action)
+  ;;     (if (eq action 'metadata)
+  ;;         `(metadata
+  ;;           (category . org-brain-node))
+  ;;       (complete-with-action action collection string predicate))))
 
-  (defun org-brain-completing-read--metadata (args)
-    (append (list (nth 0 args)
-                  (org-brain--targets-with-metadata (nth 1 args)))
-            (cddr args)))
+  ;; (defun org-brain-completing-read--metadata (args)
+  ;;   (append (list (nth 0 args)
+  ;;                 (org-brain--targets-with-metadata (nth 1 args)))
+  ;;           (cddr args)))
   
-  (advice-add #'org-brain-completing-read :filter-args 'org-brain-completing-read--metadata)
+  ;; (advice-add #'org-brain-completing-read :filter-args 'org-brain-completing-read--metadata)
   ;; (advice-remove #'org-brain-completing-read 'org-brain-completing-read--metadata)
   
-  (add-hook 'org-brain-after-resource-button-functions #'org-brain-insert-resource-icon)
-  (defface aa2u-face '((t . nil))
-    "Face for aa2u box drawing characters")
-  (advice-add #'aa2u-1c :filter-return
-              (lambda (str) (propertize str 'face 'aa2u-face)))
-  (defun aa2u-org-brain-buffer ()
-    (let ((inhibit-read-only t))
-      (make-local-variable 'face-remapping-alist)
-      (add-to-list 'face-remapping-alist
-                   '(aa2u-face . org-brain-wires))
-      (ignore-errors (aa2u (point-min) (point-max)))))  
-  (with-eval-after-load 'org-brain
-    (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer)))
+  ;; (add-hook 'org-brain-after-resource-button-functions #'org-brain-insert-resource-icon)
+  ;; (defface aa2u-face '((t . nil))
+  ;;   "Face for aa2u box drawing characters")
+  ;; (advice-add #'aa2u-1c :filter-return
+  ;;             (lambda (str) (propertize str 'face 'aa2u-face)))
+  ;; (defun aa2u-org-brain-buffer ()
+  ;;   (let ((inhibit-read-only t))
+  ;;     (make-local-variable 'face-remapping-alist)
+  ;;     (add-to-list 'face-remapping-alist
+  ;;                  '(aa2u-face . org-brain-wires))
+  ;;     (ignore-errors (aa2u (point-min) (point-max)))))  
+  ;; (with-eval-after-load 'org-brain
+  ;;   (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer))
+  )
 
 (defun org-brain-open-org-noter ()
   (interactive)
@@ -1009,45 +1024,45 @@ Copied  from `org-roam-backlink-get'."
 
 ;;(advice-remove 'org-brain--vis-children #'org-brain--vis-children-with-tags)
 
-(defun org-brain-insert-visualize-button-with-tags (entry &optional face edge)
-  "Insert a button, running `org-brain-visualize' on ENTRY when clicked.
-FACE is sent to `org-brain-display-face' and sets the face of the button.
-Appends the todo state of the entry being visualized."
-  (let ((annotation (org-brain-get-edge-annotation org-brain--vis-entry
-                                                   entry
-                                                   org-brain--vis-entry-keywords)))
-    (let ((kwd-setting
-	   (unless (org-brain-filep entry)
-	     (org-with-point-at
-		 (org-brain-entry-marker entry)
-	       (let ((kwd (org-entry-get (point) "TODO")))
-		 (if kwd
-		     (list kwd (org-get-todo-face kwd))
-		   nil))))))
-      (when kwd-setting
-	(insert (propertize (substring (first kwd-setting) 0 1) 'face (second kwd-setting)) " ")))
-    (insert-text-button
-     (org-brain-title entry)
-     'action (lambda (_x) (org-brain-visualize entry))
-     'id (org-brain-entry-identifier entry)
-     'follow-link t
-     'help-echo annotation
-     'aa2u-text t
-     'face (org-brain-display-face entry face annotation))))
+;; (defun org-brain-insert-visualize-button-with-tags (entry &optional face edge)
+;;   "Insert a button, running `org-brain-visualize' on ENTRY when clicked.
+;; FACE is sent to `org-brain-display-face' and sets the face of the button.
+;; Appends the todo state of the entry being visualized."
+;;   (let ((annotation (org-brain-get-edge-annotation org-brain--vis-entry
+;;                                                    entry
+;;                                                    org-brain--vis-entry-keywords)))
+;;     (let ((kwd-setting
+;; 	   (unless (org-brain-filep entry)
+;; 	     (org-with-point-at
+;; 		 (org-brain-entry-marker entry)
+;; 	       (let ((kwd (org-entry-get (point) "TODO")))
+;; 		 (if kwd
+;; 		     (list kwd (org-get-todo-face kwd))
+;; 		   nil))))))
+;;       (when kwd-setting
+;; 	(insert (propertize (substring (first kwd-setting) 0 1) 'face (second kwd-setting)) " ")))
+;;     (insert-text-button
+;;      (org-brain-title entry)
+;;      'action (lambda (_x) (org-brain-visualize entry))
+;;      'id (org-brain-entry-identifier entry)
+;;      'follow-link t
+;;      'help-echo annotation
+;;      'aa2u-text t
+;;      'face (org-brain-display-face entry face annotation))))
 
-(defun org-brain-entry-todo-state-colored (entry)
-  "Get todo state of ENTRY with colors."
-  (let ((kwd (org-entry-get (point) "TODO")))
-    (if kwd
-	(propertize (substring kwd 0 1) 'face (org-get-todo-face kwd))
-      nil)))
+;; (defun org-brain-entry-todo-state-colored (entry)
+;;   "Get todo state of ENTRY with colors."
+;;   (let ((kwd (org-entry-get (point) "TODO")))
+;;     (if kwd
+;; 	(propertize (substring kwd 0 1) 'face (org-get-todo-face kwd))
+;;       nil)))
 
-(defun org-brain-entry-priority (entry)
-  "Get priority state of ENTRY with colors."
-  (let ((priority (org-priority-to-value (org-priority-show))))
-    (cond
-     ((= priority 2000) "[#A]")
-     (t nil))))
+;; (defun org-brain-entry-priority (entry)
+;;   "Get priority state of ENTRY with colors."
+;;   (let ((priority (org-priority-to-value (org-priority-show))))
+;;     (cond
+;;      ((= priority 2000) "[#A]")
+;;      (t nil))))
 
 
 ;; (advice-add 'org-brain-insert-visualize-button :override #'org-brain-insert-visualize-button-with-tags)
@@ -1143,7 +1158,7 @@ Appends the todo state of the entry being visualized."
 
 (defun amsha/get-sprints (states)
   "Return sprints based on STATUS."
-  (org-ql-select (expand-file-name "work/projects.org" org-brain-path)
+  (org-ql-select (expand-file-name "work/projects.org" okm-base-directory)
     `(and (level 2) (todo ,@states) (h* "Sprint"))
     :action (lambda () (cons
                         (format "%-10s - %-40s: %s"
@@ -1161,7 +1176,7 @@ Appends the todo state of the entry being visualized."
   "List the in progress items in the project boards directory.
 Either show all or filter based on a sprint."
   (interactive)
-  (let* ((files (f-glob "*/project_boards/*.org" org-brain-path))
+  (let* ((files (f-glob "*/project_boards/*.org" okm-base-directory))
          (selection-list (append '(("ALL"))
                                  (amsha/get-sprints '("INPROGRESS" "TODO"))
                                  (--map (list (format "%s/project_boards::%s"
@@ -1216,7 +1231,7 @@ Currently written to work in org-ql butter."
   :straight (org-download :type git :host github :repo "abo-abo/org-download"
                           :fork (:host github :repo "ahmed-shariff/org-download"))
   :custom
-  (org-download-image-dir (file-truename (expand-file-name "work/figures/" org-brain-path)))
+  (org-download-image-dir (file-truename (expand-file-name "work/figures/" okm-base-directory)))
   (org-download-screenshot-method (if (eq system-type 'windows-nt) "magick convert clipboard: %s" "scrot"))
 
   :config
