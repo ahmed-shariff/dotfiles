@@ -27,8 +27,10 @@
 ;; (require 'org-capture-pop-frame)
 ;(ido-mode)
 
-(defvar okm-base-direcory (file-truename "~/Documents/org/brain") "org knowladge management base direcory.")
+(defvar okm-base-directory (file-truename "~/Documents/org/brain") "org knowladge management base direcory.")
 (defvar okm-research-papers-id "34854c23-cf0a-40ba-b0c6-c9e5b3bb3030" "The id of the research_papers file.") ;; research_papers id TODO: think of a better way to do this?
+(defvar okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
+(defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
@@ -255,7 +257,7 @@
 
 (defun org-id-get-closest ()
   "move up the tree until an el with id is found"
-  (ignore-error user-error (do () ((org-id-get) (org-id-get)) (org-up-element))))
+  (ignore-error user-error (cl-do () ((org-id-get) (org-id-get)) (org-up-element))))
 
 
 ;;**********************bulk action wrappers***********************
@@ -648,35 +650,39 @@
            (list (s-replace-regexp "\\[id:\\([a-z]\\|[0-9]\\)\\{8\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{12\\}\\]"
                                    ""
                                    (string-trim (buffer-substring-no-properties beg end)))
-                 "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "BRAIN_PARENTS" "PROPERTIES:\n *:END")))
+                 "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" okm-parent-property-name "PROPERTIES:\n *:END")))
       (org-roam-preview-default-function)))
 
   (setq org-roam-preview-function #'org-roam-subtree-aware-preview-function)
 
-  (defun okm-roam-list-notes (entries)
+  (defun org-roam-node-read-multiple (&optional prompt)
+    "Like org-roam-node-read, but with mulitiple read excluding the template used by roam."
+    (--map (org-roam-node-from-title-or-alias it)
+           (completing-read-multiple
+            (or prompt "Node(s):")
+            (lambda (string pred action)
+              (if (eq action 'metadata)
+                  '(metadata
+                    ;; (annotation-function . consult-notes-org-roam-annotate)
+                    (category . org-roam-node))
+                (complete-with-action
+                 action
+                 (mapcar (lambda (node)
+                           (cons (org-roam-node-title node) node))
+                         (org-roam-node-list))
+                 string
+                 pred))))))
+  
+  (defun okm-org-roam-list-notes (entries)
     "Filter based on the list of ids (FILTER) in the notes files."
     ;; TODO: Lookinto useing marginalia instead of the template used with roam
     (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
-                  (completing-read-multiple
-                   "Node: "
-                   (lambda (string pred action)
-                     (if (eq action 'metadata)
-                         '(metadata
-                           ;; (annotation-function . consult-notes-org-roam-annotate)
-                           (category . org-roam-node))
-                       (complete-with-action
-                        action
-                        (mapcar (lambda (node)
-                                  (cons (org-roam-node-title node) node))
-                                (org-roam-node-list))
-                        string
-                        pred))))))
+                  (org-roam-node-read-multiple)))
     (let* ((entries (--map (if (stringp it) (org-roam-node-from-title-or-alias it) it) entries))
            (names (s-join "," (--map (org-roam-node-title it) entries)))
            (title (format "(%s)" names))
            (buffer (get-buffer-create (format "*notes: %s*" names)))
            (ids (apply #'vector (--map (org-roam-node-id it) entries))))
-      (em names ids)
       ;; copied  from `org-roam-buffer-render-contents'
       (with-current-buffer buffer
         (let ((inhibit-read-only t)
@@ -727,15 +733,15 @@
                                       :narrow ?b
                                       :items (lambda () (--map (org-roam-node-title (org-roam-backlink-source-node it))
                                                                (org-roam-backlinks-get node :unique t))))
-                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
-                                      :name (propertize "Brain Children" 'face 'consult-notes-sep)
-                                      :narrow ?c
-                                      :items (lambda () (--map (org-roam-node-title
-                                                                (org-roam-node-from-id
-                                                                 (save-excursion
-                                                                   (org-brain-goto it)
-                                                                   (org-id-get))))
-                                                               (org-brain-children (org-brain-entry-from-id (org-roam-node-id node))))))
+                     ;; (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                     ;;                  :name (propertize "Brain Children" 'face 'consult-notes-sep)
+                     ;;                  :narrow ?c
+                     ;;                  :items (lambda () (--map (org-roam-node-title
+                     ;;                                            (org-roam-node-from-id
+                     ;;                                             (save-excursion
+                     ;;                                               (org-brain-goto it)
+                     ;;                                               (org-id-get))))
+                     ;;                                           (org-brain-children (org-brain-entry-from-id (org-roam-node-id node))))))
                      (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
                                        :name (propertize "Forwardlink" 'face 'consult-notes-sep)
                                        :narrow ?f
@@ -744,15 +750,16 @@
                                                                                :from links :inner :join nodes :on (= links:dest nodes:id)
                                                                                :where (in links:source $v1)]
                                                                       (vector (org-roam-node-id node))))))
-                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
-                                      :name (propertize "Brain Parents" 'face 'consult-notes-sep)
-                                      :narrow ?p
-                                      :items (lambda () (--map (org-roam-node-title
-                                                                (org-roam-node-from-id
-                                                                 (save-excursion
-                                                                   (org-brain-goto it)
-                                                                   (org-id-get))))
-                                                               (org-brain-parents (org-brain-entry-from-id (org-roam-node-id node)))))))
+                     ;; (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                     ;;                  :name (propertize "Brain Parents" 'face 'consult-notes-sep)
+                     ;;                  :narrow ?p
+                     ;;                  :items (lambda () (--map (org-roam-node-title
+                     ;;                                            (org-roam-node-from-id
+                     ;;                                             (save-excursion
+                     ;;                                               (org-brain-goto it)
+                     ;;                                               (org-id-get))))
+                     ;;                                           (org-brain-parents (org-brain-entry-from-id (org-roam-node-id node))))))
+                     )
                     :require-match t
                     :prompt "Related nodes:")))
 
@@ -801,8 +808,8 @@
 	org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
 	bibtex-completion-notes-template-one-file
 	(format
-	 "* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :RPC-TAGS: NO_LINK NO_PARENTS NO_CITE_KEY\n  :BRAIN_PARENTS: brain-parent:%s\n  :END:\n\n  - cite:${=key=}"
-         okm-research-papers-id) 
+	 "* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :RPC-TAGS: NO_LINK NO_PARENTS NO_CITE_KEY\n  :BRAIN_PARENTS: %s:%s\n  :END:\n\n  - cite:${=key=}"
+         okm-parent-id-type-name okm-research-papers-id) 
         bibtex-completion-notes-template-multiple-files bibtex-completion-notes-template-one-file
         ;;":PROPERTIES:\n:Custom_ID: ${=key=}\n:Keywords: ${keywords}\n:LINK: ${pdf}\n:YEAR: ${year}\n:RPC-TAGS: :NO_LINK NO_PARENTS NO_CITE_KEY\n:END:\n\n#+TITLE: (${year}) ${title} [${author}]\n\n"
 	doi-utils-open-pdf-after-download nil
@@ -888,13 +895,13 @@
                        :fork (:host github :repo "ahmed-shariff/org-brain"))
   :demand
   :init
-  (setq okm-base-directory (file-truename "~/Documents/org/brain"))
+  (setq org-brain-path (file-truename "~/Documents/org/brain"))
   :bind (("C-c v" . org-brain-visualize)
 	 :map org-brain-visualize-mode-map
 	 ("\C-coo" . org-brain-open-org-noter)
-	 ("\C-cop" . org-brain-add-parent-topic)
+	 ("\C-cop" . okm-add-parent-topic)
          ("\C-cob" . org-brain-goto-button-at-pt)
-         ("\C-cos". org-brain-print-parents))
+         ("\C-cos". okm-print-parents))
   :config
   ;;(define-key org-brain-visualize-mode-map "")
   (defmacro org-brain-function-on-entry (fn)
@@ -1082,9 +1089,9 @@
   (org-agenda-action org-ql-view-noter
     (org-noter))
   (org-agenda-action org-ql-view-topics
-    (org-brain-print-parents))
+    (okm-print-parents))
   (org-agenda-action org-ql-add-parents
-    (org-brain-add-parent-topic)))
+    (okm-add-parent-topic)))
 
 (defmacro org-agenda-action (name &rest body)
   (declare (indent defun))
@@ -1094,15 +1101,16 @@
                         (org-agenda-error)))
             (buffer (marker-buffer marker))
             (pos (marker-position marker)))
-       (when (s-equals-p (buffer-name buffer) "research_papers.org")
+       (when (okm-is-research-paper (buffer-file-name buffer))
          (with-current-buffer buffer
            (goto-char pos)
            ,@body)))))
 
-(org-ql-defpred brain-parent (&rest args)
-  ""
+(org-ql-defpred okm-parent (&rest args)
+  "args - (pred ...parent-ids).
+`pred' can be 'or or 'and."
   :body
-  (let ((parents (org-entry-get-multivalued-property (point) "BRAIN_PARENTS"))
+  (let ((parents (org-entry-get-multivalued-property (point) okm-parent-property-name))
         (pred (car args))
         (parent-ids (--map (if (consp it) (cdr it) it) (cdr args))))
     (when parents
@@ -1122,39 +1130,91 @@
         (insert-file-contents text-file)
         (s-match-strings-all regexp (buffer-string))))))
 
+(defun okm-is-research-paper (path)
+  (f-descendant-of-p (file-truename path) (file-truename (f-join okm-base-directory "research_papers"))))
+
+(defun org-ql-roam-view (nodes title &optional super-groups)
+  "Basically what `org-ql-search does', but for org-roam-nodes.
+NODES is a list of org-roam-nodes. TITLE is a title to associate with the view.
+See `org-roam-search' for details on SUPER-GROUPS."
+  (let* ((results (--map (save-excursion
+                           (org-roam-with-file (org-roam-node-file it) nil
+                             (org-roam-node-open it)
+                             (org-ql--add-markers (org-element-context))))
+                         nodes))
+         (strings (em (-map #'org-ql-view--format-element (-non-nil results))))
+         (title (format "org-roam - %s" title))
+         (buffer (format "%s %s*" org-ql-view-buffer-name-prefix title))
+         (header (org-ql-view--header-line-format
+                  :title title))
+         ;; Bind variables for `org-ql-view--display' to set.
+         (org-ql-view-buffers-files nil)
+         (org-ql-view-query nil)
+         (org-ql-view-sort nil)
+         (org-ql-view-super-groups super-groups)
+         (org-ql-view-title title))
+    (when super-groups
+      (let ((org-super-agenda-groups (cl-etypecase super-groups
+                                       (symbol (symbol-value super-groups))
+                                       (list super-groups))))
+        (setf strings (org-super-agenda--group-items strings))))
+    (org-ql-view--display :buffer buffer :header header
+      :string (s-join "\n" strings))))
+
+(defun okm-query-papers-by-topics ()
+  "Query papers based on topics."
+  (interactive)
+  (let* ((topics 
+          (org-roam-node-read-multiple "Query topics: "))
+         (topic-ids (--map (org-roam-node-id it) topics))
+         ;; (topic-ids '("02f57fb4-4d54-41ba-88a1-2a969e926100" "89edeac4-8d67-402c-ab83-5e45cd7b97e6"))
+         (grouped-results (-map
+                           (lambda (el)
+                             (-map #'cadr (cdr el)))
+                           ;; assuming the grouping will result in all individual ids from topics being there
+                           (-group-by #'car
+                                      (org-roam-db-query [:select [ links:dest nodes:id]
+                                                                  :from links :inner :join nodes :on (= links:source nodes:id)
+                                                                  :where (in links:dest $v1)]
+                                                         (apply #'vector topic-ids))))))
+    (org-ql-roam-view
+     (-filter
+      (lambda (node)
+        (okm-is-research-paper (org-roam-node-file node)))
+      (-map #'org-roam-node-from-id
+            (if (eq (length grouped-results) 1)
+                (car grouped-results)
+              (-reduce (pcase (completing-read "connector: " '(and or) nil t)
+                         ("or" #'-union)
+                         ("and" #'-intersection))
+                       grouped-results))))
+     (format "(%s)" (s-join ", " (-map #'org-roam-node-title topics))))))
 
 ;; TODO: allow mulitiple combinations of brain-parent to be used (eg: (and (or ..) (or ..)))
-(defun org-brain-query-papers-by-topic ()
+(defun okm-query-papers-by-topic-with-ql ()
   "CONNECTOR."
   (interactive)
-  (let* ((selection-list (org-brain--all-targets))
-         (topics 
-          (completing-read-multiple "Query topic: " selection-list
-                                    ;; (lambda (entry)
-			            ;;   (or (s-starts-with-p "research topics::" entry)
-                                    ;;       (s-starts-with-p "misc_topics::" entry)
-			            ;;       (s-matches-p "work/projects::.*literature" entry)
-			            ;;       (s-starts-with-p "publication::" entry)))
-                                    nil
-                                    t))
+  (let* ((topics 
+          (org-roam-node-read-multiple "Query topics: "))
          (connector (if (> (length topics) 1)
                         (pcase (completing-read "connector: " '(and or) nil t)
                           ("or" 'or)
                           ("and" 'and))
                       'and))
-         (topic-ids (list (append `(brain-parent (quote ,connector))
+         (topic-ids (list (append `(okm-parent (quote ,connector))
                                   (mapcar
                                    (lambda (topic)
-                                     `(quote ,(assoc topic selection-list)))
+                                     `(quote ,(cons (org-roam-node-title topic) (org-roam-node-id topic))))
                                    topics))))
-         (query (append '(and (level <= 1)) topic-ids)))
-    (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
+         (query (append '(and (level <= 1)) topic-ids))
+         (after-change-major-mode-hook nil))
+    (org-ql-search (f-glob "*.org" (f-join okm-base-directory "research_papers"))  query)))
 
-(defun org-brain-query-papers-by-pdf-string (regexp)
+(defun okm-query-papers-by-pdf-string (regexp)
   "REGEXP."
   (interactive "sRegexp: ")
   (let* ((query `(and (level <= 1) (search-pdf-regexp ,regexp))))
-      (org-ql-search '("~/Documents/org/brain/research_papers.org")  query)))
+      (org-ql-search '("~/Documents/org/brain/research_papers/")  query)))
 
 (defun amsha/get-sprints (states)
   "Return sprints based on STATUS."
@@ -1191,23 +1251,23 @@ Either show all or filter based on a sprint."
       (setq predicate
             (append predicate
                     `((member ,(cdr selection)
-                              (org-entry-get-multivalued-property (point) "BRAIN_PARENTS")))))))
+                              (org-entry-get-multivalued-property (point) okm-parent-property-name)))))))
     (org-ql-search files predicate
       :super-groups (mapcar (lambda (x) (list :file-path (car (s-match "[^/]*/[^/]*/[^/]*\\.org" x)))) files)
       :title (car selection))))
 
 (defun amsha/org-brain-children-topics (entry)
   "list parents of all the children of an ENTRY."
-  (interactive (list (org-brain-choose-entry "Entry: " 'all nil t (org-brain-title (org-brain-entry-at-pt)))))
+  (interactive (list (org-roam-node-read-multiple)))
   (let (topics other-parents)
     (mapcar (lambda (child-entry)
-              (-let (((-topics . -other-parents) (org-brain-parents-by-topics child-entry)))
+              (-let (((-topics . -other-parents) (okm-parents-by-topics (org-roam-node-id (org-roam-backlink-target-node child-entry)))))
                 (setq topics (append topics -topics)
                       other-parents (append other-parents -other-parents))))
-            (org-brain-children entry))
+            (org-roam-backlinks-get entry))
     (setq topics (-uniq topics)
           other-parents (-uniq other-parents))
-    (org-brain-print-parents topics other-parents)
+    (okm-print-parents topics other-parents)
     (cons topics other-parents)))
 
 (defun org-ql-query-topics ()
@@ -1217,12 +1277,12 @@ Currently written to work in org-ql butter."
   (when (and org-ql-view-query org-ql-view-buffers-files)
     (let* (topics other-parents)
       (org-ql-select org-ql-view-buffers-files org-ql-view-query
-        :action (lambda () (-let (((-topics . -other-parents) (org-brain-parents-by-topics (org-brain-entry-at-pt))))
+        :action (lambda () (-let (((-topics . -other-parents) (okm-parents-by-topics (org-brain-entry-at-pt))))
                              (setq topics (append topics -topics)
                                    other-parents (append other-parents -other-parents)))))
       (setq topics (-uniq topics)
             other-parents (-uniq other-parents))
-      (org-brain-print-parents topics other-parents))))
+      (okm-print-parents topics other-parents))))
 
 (require 'ox-extra)
 (ox-extras-activate '(ignore-headlines))
@@ -1231,7 +1291,7 @@ Currently written to work in org-ql butter."
   :straight (org-download :type git :host github :repo "abo-abo/org-download"
                           :fork (:host github :repo "ahmed-shariff/org-download"))
   :custom
-  (org-download-image-dir (file-truename (expand-file-name "work/figures/" okm-base-directory)))
+  (org-download-image-dir (f-join okm-base-directory "work/figures/"))
   (org-download-screenshot-method (if (eq system-type 'windows-nt) "magick convert clipboard: %s" "scrot"))
 
   :config
@@ -1360,7 +1420,6 @@ Currently written to work in org-ql butter."
                 (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
                 (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))
 
-                ;; (em out-file-name full-path)
 	        (when (and (not (member "ATTACH" tags))
                            full-path
                            (or (file-exists-p full-path)
@@ -1386,7 +1445,7 @@ Currently written to work in org-ql butter."
                         (error (message "Error: failed to read pdf file: %s" full-path)
                                (setq tags (append tags '("PDF_ERROR"))))))))
 	        (setq tags
-		      (if (org-entry-get (point) "BRAIN_PARENTS")
+		      (if (org-entry-get (point) okm-parent-property-name)
 			  (delete "NO_PARENTS" tags)
 		        (append tags '("NO_PARENTS"))))
 	        (apply #'org-entry-put-multivalued-property (point) "RPC-TAGS" (delete "nosiblings" (delete-dups tags)))
@@ -1396,7 +1455,7 @@ Currently written to work in org-ql butter."
           (if current-prefix-arg
               (f-files bibtex-completion-notes-path (lambda (f) (not (s-starts-with-p "." (f-base f)))))
             (--> (buffer-file-name)
-                 (when (and it (f-descendant-of-p (file-truename it) (file-truename bibtex-completion-notes-path)))
+                 (when (and it (em (okm-is-research-paper it)))
                    (list it)))))
   (projectile-save-project-buffers)
   (org-roam-db-sync))
@@ -1435,7 +1494,7 @@ Currently written to work in org-ql butter."
 		         (let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
 			   (when (and file-path
 				      (member parent-id
-					      (org-entry-get-multivalued-property (point) "BRAIN_PARENTS")))
+					      (org-entry-get-multivalued-property (point) okm-parent-property-name)))
 			     (message "Copied %s" (file-name-nondirectory file-path)) 
 			     (copy-file file-path
 				        (expand-file-name (file-name-nondirectory file-path)
@@ -1563,67 +1622,85 @@ Currently written to work in org-ql butter."
 	    (org-set-property "LINK" arxiv-link)
 	    (research-papers-configure)))))))
 
-(defun org-brain-add-parent-topic (&optional parents entry)
-  "."
+
+(defun okm-add-parents (parents &optional entry-id)
+  "Add PARENTS, which are expected to be ids to the entry with ENTRY-ID or in entry at point."
+  (unless entry-id
+    (setq entry-id (org-id-get-closest)))
+  (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
+  (save-excursion
+    (org-id-goto entry-id)
+    (org-entry-put-multivalued-property (point) okm-parent-property-name (--map (format "%s:%s" okm-parent-id-type-name it) parents))))
+
+(defun okm-get-parents (&optional entry-id)
+  "Get the parent IDs for entry with id entry-id or in current entry."
+  (unless entry-id
+    (setq entry-id (org-id-get-closest)))
+  (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
+  (save-excursion
+    (org-id-goto entry-id)
+    (--map (s-replace (concat okm-parent-id-type-name ":") "" it) (org-entry-get-multivalued-property (point) okm-parent-property-name))))  
+
+(defun okm-add-parent-topic (&optional parents entry)
+  "PARENTS should be a list of IDs. ENTRY should be an ID."
   (interactive)
   ;; forgoing interactive args to allow this to be called interactively.
   (unless parents
-    (setq parents (org-brain-choose-entries "Add parent topic: " 'all))) ;;(lambda (entry)
+    (setq parents (--map (org-roam-node-id it) (org-roam-node-read-multiple))))
   ;; (or (s-starts-with-p "People::" (car entry))
   ;;     (s-starts-with-p "research topics::" (car entry))
   ;;     (s-starts-with-p "misc_topics::" (car entry))
   ;;     (s-matches-p "work/projects::.*literature" (car entry))
   ;;     (s-starts-with-p "publication::" (car entry))))))
   (unless entry
-    (setq entry (org-brain-entry-at-pt)))
+    (setq entry (org-id-get-closest)))
   (let ((embark-quit-after-action nil))
-    (org-brain-add-parent entry parents)
-    (org-brain-print-parents entry)))
+    (okm-add-parents parents entry)
+    (okm-print-parents entry)))
 
-(defvar org-agenda-brain-add-parents--parents nil)
+(defvar org-agenda-okm-add-parents--parents nil)
 
-(defun org-agenda-brain-add-parents ()
+(defun org-agenda-okm-add-parents ()
   "To be used with the org-agenda-bulk-action."
-  (unless org-agenda-brain-add-parents--parents
-    (setq org-agenda-brain-add-parents--parents (org-brain-choose-entries "Add parent topic: " 'all)
+  (unless org-agenda-okm-add-parents--parents
+    (setq org-agenda-okm-add-parents--parents (org-roam-node-read-multiple "Add parents: ")
           org-agenda-bulk-action-post-execution-function (lambda ()
-                                                           (setq org-agenda-brain-add-parents--parents nil))))
+                                                           (setq org-agenda-okm-add-parents--parents nil))))
   (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
                          (org-agenda-error))
-    (org-brain-add-parent-topic org-agenda-brain-add-parents--parents (org-brain-entry-at-pt))))
+    (okm-add-parent-topic org-agenda-okm-add-parents--parents (org-id-get))))
 
 (defun org-brain-goto-button-at-pt ()
   "."
   (interactive)
   (org-brain-goto (car (org-brain-button-at-point))))
 
-(defun org-brain-parents-by-topics (&optional entry)
-  "."
+(defun okm-parents-by-topics (&optional entry-id)
+  "ENTRY-ID should be an ID."
   (interactive)
-  (when (null entry)
-    (setq entry (condition-case nil
-		    (car (org-brain-button-at-point))
-		  (user-error (org-brain-entry-at-pt)))))
-  (let ((parents (org-brain-parents entry))
+  (unless entry-id
+    (setq entry-id (org-id-get-closest)))
+  (let ((parents (--map (org-roam-node-from-id it) (okm-get-parents entry-id)))
+        (research-topics-file (file-truename (f-join okm-base-directory "research topics.org")))
         (topics '())
         (other-parents '()))
     (mapcar (lambda (entry)
-              (if (and (listp entry) (s-equals-p (car entry) "research topics"))
-                  (push (org-brain-vis-title entry) topics)            
-                (push (org-brain-vis-title entry) other-parents)))
+              (if (f-equal-p (file-truename (org-roam-node-file entry)) research-topics-file)
+                  (push (org-roam-node-title entry) topics)
+                (push (org-roam-node-title entry) other-parents)))
             parents)
     (cons topics other-parents)))
 
-(defun org-brain-print-parents (&optional topics other-parents)
+(defun okm-print-parents (&optional topics other-parents)
   "."
   (interactive)
   (when (and (null topics)
              (null other-parents))
-    (-setq (topics . other-parents) (org-brain-parents-by-topics)))
+    (-setq (topics . other-parents) (okm-parents-by-topics)))
   (message "%s \n********************************\n\t\t%s" (mapconcat 'identity (-list topics) "\n") (mapconcat 'identity (-list other-parents) "\n\t\t")))
 
-(defun org-brain-delete-interleve-entry ()
-  "Deletes the pdf entry of an org brain bib at point at point."
+(defun okm-delete-interleve-entry ()
+  "Deletes the pdf entry of an okm entry bib at point at point."
   (interactive)
   (when (y-or-n-p "Sure you want to delete the pdf file and the interleve entry here? ")
     (save-excursion
@@ -1643,9 +1720,9 @@ Currently written to work in org-ql butter."
 	  (lambda ()
 	    (define-key org-mode-map "\C-c!" 'org-time-stamp-inactive)
 	    (define-key org-mode-map "\C-coo" 'org-noter)
-	    (define-key org-mode-map "\C-cop" 'org-brain-add-parent-topic)
+	    (define-key org-mode-map "\C-cop" 'okm-add-parent-topic)
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
-            (define-key org-mode-map "\C-cos" 'org-brain-print-parents)
+            (define-key org-mode-map "\C-cos" 'okm-print-parents)
             (define-key org-mode-map "\C-coa" 'org-asana-hydra/body)
             (define-key org-mode-map (kbd "C-'") nil)
 	    (flyspell-mode t)))
