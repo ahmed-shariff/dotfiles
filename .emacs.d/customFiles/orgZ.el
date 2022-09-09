@@ -1138,11 +1138,13 @@
 NODES is a list of org-roam-nodes. TITLE is a title to associate with the view.
 See `org-roam-search' for details on SUPER-GROUPS."
   (let* ((results (--map (save-excursion
+                           ;; using this avoid org mode throwing
+                           ;; "too many files" errors
                            (org-roam-with-file (org-roam-node-file it) nil
-                             (org-roam-node-open it)
-                             (org-ql--add-markers (org-element-context))))
+                             (org-with-point-at (marker-position (org-roam-node-marker it))
+                               (org-ql--add-markers (org-element-context)))))
                          nodes))
-         (strings (em (-map #'org-ql-view--format-element (-non-nil results))))
+         (strings (-map #'org-ql-view--format-element results))
          (title (format "org-roam - %s" title))
          (buffer (format "%s %s*" org-ql-view-buffer-name-prefix title))
          (header (org-ql-view--header-line-format
