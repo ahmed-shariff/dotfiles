@@ -1287,18 +1287,33 @@ Either show all or filter based on a sprint."
                                                       (f-base (f-parent (f-parent it)))
                                                       (file-name-base it)) it) files)))
          (predicate '(and (todo "INPROGRESS" "TODO")))
-         (selection (assoc (completing-read "Project topic: " selection-list nil t) selection-list)))
-    (cond
-     ((s-contains-p "/project_boards::" (car selection))
-      (setq files (cdr selection)))
-     ((not (string= (car selection) "ALL"))
-      (setq predicate
-            (append predicate
-                    `((member ,(cdr selection)
-                              (org-entry-get-multivalued-property (point) okm-parent-property-name)))))))
+         (selection (--map (assoc it selection-list) (completing-read-multiple "Project topic: " selection-list nil t)))
+         (selection-car (--map (car it) selection)))
+    ;; (cond
+    ;;  ;; if ALL is in the list, we have nothing more to do
+    ;;  ((member "ALL" selection-car)
+    ;;   nil)
+    ;;  ((s-contains-p "/project_boards::" (car selection))
+    ;;   (setq files (cdr selection)))
+    ;;  ((not (string= (car selection) "ALL"))
+    ;;   (setq predicate
+    ;;         (append predicate
+    ;;                 `((member ,(cdr selection)
+    ;;                           (org-entry-get-multivalued-property (point) okm-parent-property-name)))))))
+    (unless (member "ALL" selection-car)
+      (let ((-files '()))
+        (--map (cond
+                ((s-contains-p "/project_boards::" (car it))
+                 (push (cadr it) -files))
+                ((not (string= (car it) "ALL"))
+                 (setq predicate (append predicate`((member ,(cdr it)
+                                                            (okm-org-get-parent-ids)))))))
+               selection)
+        (when -files
+          (setq files -files))))
     (org-ql-search files predicate
       :super-groups (mapcar (lambda (x) (list :file-path (car (s-match "[^/]*/[^/]*/[^/]*\\.org" x)))) files)
-      :title (car selection))))
+      :title (format "%s" selection))))
 
 (defun amsha/org-brain-children-topics (entry)
   "list parents of all the children of an ENTRY."
