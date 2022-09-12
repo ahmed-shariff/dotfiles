@@ -1137,14 +1137,13 @@
   "Basically what `org-ql-search does', but for org-roam-nodes.
 NODES is a list of org-roam-nodes. TITLE is a title to associate with the view.
 See `org-roam-search' for details on SUPER-GROUPS."
-  (let* ((results (--map (save-excursion
+  (let* ((strings (--map (save-excursion
                            ;; using this avoid org mode throwing
                            ;; "too many files" errors
                            (org-roam-with-file (org-roam-node-file it) nil
                              (org-with-point-at (marker-position (org-roam-node-marker it))
-                               (org-ql--add-markers (org-element-context)))))
+                               (org-ql-view--format-element (org-ql--add-markers (org-element-context))))))
                          nodes))
-         (strings (-map #'org-ql-view--format-element results))
          (title (format "org-roam - %s" title))
          (buffer (format "%s %s*" org-ql-view-buffer-name-prefix title))
          (header (org-ql-view--header-line-format
@@ -1234,7 +1233,50 @@ See `org-roam-search' for details on SUPER-GROUPS."
                                 (org-no-properties (org-get-heading t t t t)))
                         (org-id-get)))))
 
-(defun org-brain-query-boards ()
+(defun okm-org-roam-is-parent (parent-id &optional child-id)
+  "Return non-nil if PARENT-ID is in CHILD-ID's :brain-parent: property."
+  (unless child-id
+    (org-id-get-closest))
+  (org-roam-db-query
+   [:select :distinct [dest]
+            :from links
+            :where (= type $s1)
+            :and (= dest $s2)
+            :and (= source $s3)]
+   okm-parent-id-type-name parent-id child-id))
+
+(defun okm-org-get-parent-ids ()
+  "."
+  (--map (s-replace (format "%s:" okm-parent-id-type-name) "" it) (org-entry-get-multivalued-property (point) okm-parent-property-name)))
+
+;; copied from `org-roam-backlinks-get'
+(cl-defun okm-backlinks-get (node &key unique)
+  "Return the brain-parent backlinks for NODE.
+
+ When UNIQUE is nil, show all positions where references are found.
+ When UNIQUE is t, limit to unique sources."
+  (let* ((sql (if unique
+                  [:select :distinct [source dest pos properties]
+                   :from links
+                   :where (= dest $s1)
+                   :and (= type $s2)
+                   :group :by source
+                   :having (funcall min pos)]
+                [:select [source dest pos properties]
+                 :from links
+                 :where (= dest $s1)
+                 :and (= type $s2)]))
+         (backlinks (org-roam-db-query sql (org-roam-node-id node) okm-parent-id-type-name)))
+    (cl-loop for backlink in backlinks
+             collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
+                       (org-roam-populate
+                        (org-roam-backlink-create
+                         :source-node (org-roam-node-create :id source-id)
+                         :target-node (org-roam-node-create :id dest-id)
+                         :point pos
+                         :properties properties))))))
+
+(defun okm-query-boards ()
   "List the in progress items in the project boards directory.
 Either show all or filter based on a sprint."
   (interactive)
