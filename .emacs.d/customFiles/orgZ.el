@@ -800,7 +800,7 @@
          ("C-c ]" . org-ref-insert-link))
   ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
   :config
-  (setq bibtex-completion-notes-path "~/Documents/org/brain/research_papers/"
+  (setq bibtex-completion-notes-path (file-truename "~/Documents/org/brain/research_papers/")
 	bibtex-completion-bibliography '("~/Documents/org/bibliography/references.bib")
         bibtex-completion-library-path "~/Documents/org/bibliography/pdfs/"
         reftex-default-bibliography bibtex-completion-bibliography
@@ -1459,63 +1459,82 @@ Currently written to work in org-ql butter."
   (replace-regexp-in-string "^\\([a-z]:\\)?\\(/.*\\)/Documents" "~/Documents" file-name))
 
 (defun research-papers-configure ()
-  "."
+  "With one C-u, process all research-papers that have changed.
+With C-u C-u prefix, force run all research-papers."
   (interactive)
-  (delay-mode-hooks (org-mode))
-  (mapcar (lambda (f)
-            (org-roam-with-file f nil
-	      (let* ((link-string (org-entry-get (point) "LINK"))
-                     (link (if (string-empty-p link-string)
-                               nil
-                             link-string))
-		     (cite-key (org-entry-get (point) "Custom_ID"))
-		     (dir bibtex-completion-library-path)
-		     (tags (org-entry-get-multivalued-property (point) "RPC-TAGS"))
-		     (out-file-name (when cite-key (s-concat cite-key ".pdf")))
-		     (full-path (when out-file-name (amsha/rename-full-path (expand-file-name out-file-name dir)))))
-	        (org-entry-put (point) "ATTACH_DIR" dir)
-	        (org-id-get-create)
+  (let ((force-all-files (equalp (car current-prefix-arg) 16)))
+    (dolist-with-progress-reporter (f (if current-prefix-arg
+                                          (f-files bibtex-completion-notes-path (lambda (f) (not (s-starts-with-p "." (f-base f)))))
+                                        (--> (buffer-file-name)
+                                             (when (and it (okm-is-research-paper it))
+                                               (list it)))))
+        "Processing research papers ..."
+      (when (or force-all-files
+                (not (string= (org-roam-db--file-hash f)
+                              (caar (org-roam-db-query [:select hash :from files
+                                                                :where (= file $s1)]
+                                                       f)))))
+        (org-roam-with-file f nil
+	  (let* ((changes '())
+                 (pom (point))
+                 (link-string (org-entry-get pom "LINK"))
+                 (link (if (string-empty-p link-string)
+                           nil
+                         link-string))
+	         (cite-key (org-entry-get pom "Custom_ID"))
+	         (dir bibtex-completion-library-path)
+	         (tags (org-entry-get-multivalued-property pom "RPC-TAGS"))
+	         (out-file-name (when cite-key (s-concat cite-key ".pdf")))
+	         (full-path (when out-file-name (amsha/rename-full-path (expand-file-name out-file-name dir)))))
 
-                (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
-                (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))
+            (unless (org-entry-get pom "ATTACH_DIR")
+	      (org-entry-put pom "ATTACH_DIR" dir)
+              (push 'attach-dir changes))
+	    (unless (org-id-get)
+              (org-id-get-create)
+              (push 'org-id changes))
 
-	        (when (and (not (member "ATTACH" tags))
-                           full-path
-                           (or (file-exists-p full-path)
-                               (and link
-                                    cite-key
-                                    (condition-case nil
-                                        (amsha/downlad-raname-move-file link out-file-name dir)
-                                      (file-already-exists t)))))
+            (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
+            (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))
+
+	    (when (and (not (member "ATTACH" tags))
+                       full-path
+                       (or (file-exists-p full-path)
+                           (and link
+                                cite-key
+                                (condition-case nil
+                                    (amsha/downlad-raname-move-file link out-file-name dir)
+                                  (file-already-exists t)))))
+              (progn
+                (org-entry-put pom "Attachment" out-file-name)
+                (setq tags (append tags '("ATTACH")))
+                (org-entry-put pom "INTERLEAVE_PDF" full-path)
+                (push 'interleve-pdf changes)))
+
+            (when (and full-path (file-exists-p full-path))
+              (let ((text-file-name (expand-file-name (format "%s.txt" (file-name-base full-path)) (file-name-directory full-path))))
+                (unless (file-exists-p text-file-name)
+                  (condition-case nil
                       (progn
-                        (org-entry-put (point) "Attachment" out-file-name)
-                        (setq tags (append tags '("ATTACH")))
-                        (org-entry-put (point) "INTERLEAVE_PDF" full-path)))
-
-                (when (and full-path (file-exists-p full-path))
-                  (let ((text-file-name (expand-file-name (format "%s.txt" (file-name-base full-path)) (file-name-directory full-path))))
-                    (unless (file-exists-p text-file-name)
-                      (condition-case nil
-                          (progn
-                            (with-temp-buffer
-                              (insert (amsha/pdf-to-text full-path))
-                              (write-file text-file-name))
-                            (org-entry-put (point) "PDF_TEXT_FILE" (amsha/rename-full-path text-file-name)))
-                        (error (message "Error: failed to read pdf file: %s" full-path)
-                               (setq tags (append tags '("PDF_ERROR"))))))))
-	        (setq tags
-		      (if (org-entry-get (point) okm-parent-property-name)
-			  (delete "NO_PARENTS" tags)
-		        (append tags '("NO_PARENTS"))))
-	        (apply #'org-entry-put-multivalued-property (point) "RPC-TAGS" (delete "nosiblings" (delete-dups tags)))
-                (when (and cite-key (not (org-entry-get nil "ROAM_REFS")))
-                  (org-entry-put nil "ROAM_REFS" (format "cite:&%s" cite-key))))
-              (save-buffer)))
-          (if current-prefix-arg
-              (f-files bibtex-completion-notes-path (lambda (f) (not (s-starts-with-p "." (f-base f)))))
-            (--> (buffer-file-name)
-                 (when (and it (em (okm-is-research-paper it)))
-                   (list it)))))
+                        (with-temp-buffer
+                          (insert (amsha/pdf-to-text full-path))
+                          (write-file text-file-name))
+                        (org-entry-put pom "PDF_TEXT_FILE" (amsha/rename-full-path text-file-name)))
+                    (error (message "Error: failed to read pdf file: %s" full-path)
+                           (setq tags (append tags '("PDF_ERROR")))))
+                  (push 'txt-file changes))))
+            (setq tags
+		  (if (remove okm-research-papers-id (okm-get-parents))
+		      (delete "NO_PARENTS" tags)
+		    (append tags '("NO_PARENTS"))))
+            (when (cl-set-exclusive-or (org-entry-get-multivalued-property pom "RPC-TAGS") (delete-dups tags))
+	      (apply #'org-entry-put-multivalued-property pom "RPC-TAGS" (delete "nosiblings" (delete-dups tags)))
+              (push 'rpc-tags changes))
+            (when (and cite-key (not (org-entry-get nil "ROAM_REFS")))
+              (org-entry-put nil "ROAM_REFS" (format "cite:&%s" cite-key))
+              (push 'roam-ref changes))
+            (when changes
+              (save-buffer)))))))
   (projectile-save-project-buffers)
   (org-roam-db-sync))
 ;; (org-brain-update-id-locations)
