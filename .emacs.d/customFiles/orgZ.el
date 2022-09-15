@@ -1133,34 +1133,7 @@
 (defun okm-is-research-paper (path)
   (f-descendant-of-p (file-truename path) (file-truename (f-join okm-base-directory "research_papers"))))
 
-(defun org-ql-roam-view (nodes title &optional super-groups)
-  "Basically what `org-ql-search does', but for org-roam-nodes.
-NODES is a list of org-roam-nodes. TITLE is a title to associate with the view.
-See `org-roam-search' for details on SUPER-GROUPS."
-  (let* ((strings (--map (save-excursion
-                           ;; using this avoid org mode throwing
-                           ;; "too many files" errors
-                           (org-roam-with-file (org-roam-node-file it) nil
-                             (org-with-point-at (marker-position (org-roam-node-marker it))
-                               (org-ql-view--format-element (org-ql--add-markers (org-element-context))))))
-                         nodes))
-         (title (format "org-roam - %s" title))
-         (buffer (format "%s %s*" org-ql-view-buffer-name-prefix title))
-         (header (org-ql-view--header-line-format
-                  :title title))
-         ;; Bind variables for `org-ql-view--display' to set.
-         (org-ql-view-buffers-files nil)
-         (org-ql-view-query nil)
-         (org-ql-view-sort nil)
-         (org-ql-view-super-groups super-groups)
-         (org-ql-view-title title))
-    (when super-groups
-      (let ((org-super-agenda-groups (cl-etypecase super-groups
-                                       (symbol (symbol-value super-groups))
-                                       (list super-groups))))
-        (setf strings (org-super-agenda--group-items strings))))
-    (org-ql-view--display :buffer buffer :header header
-      :string (s-join "\n" strings))))
+(require 'okm-ql-view)
 
 (defun okm-query-papers-by-topics ()
   "Query papers based on topics."
@@ -1183,12 +1156,13 @@ See `org-roam-search' for details on SUPER-GROUPS."
       (lambda (node)
         (okm-is-research-paper (org-roam-node-file node)))
       (-map #'org-roam-node-from-id
-            (if (eq (length grouped-results) 1)
-                (car grouped-results)
-              (-reduce (pcase (completing-read "connector: " '(and or) nil t)
-                         ("or" #'-union)
-                         ("and" #'-intersection))
-                       grouped-results))))
+            (-uniq
+             (if (eq (length grouped-results) 1)
+                 (car grouped-results)
+               (-reduce (pcase (completing-read "connector: " '(and or) nil t)
+                          ("or" #'-union)
+                          ("and" #'-intersection))
+                        grouped-results)))))
      (format "(%s)" (s-join ", " (-map #'org-roam-node-title topics))))))
 
 ;; TODO: allow mulitiple combinations of brain-parent to be used (eg: (and (or ..) (or ..)))
