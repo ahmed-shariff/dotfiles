@@ -1682,7 +1682,9 @@ With C-u C-u prefix, force run all research-papers."
   (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
   (save-excursion
     (org-id-goto entry-id)
-    (org-entry-put-multivalued-property (point) okm-parent-property-name (--map (format "%s:%s" okm-parent-id-type-name it) parents))))
+    (apply #'org-entry-put-multivalued-property (point) okm-parent-property-name
+           (-uniq (append (org-entry-get-multivalued-property (point) okm-parent-property-name)
+                   (--map (format "%s:%s" okm-parent-id-type-name it) parents))))))
 
 (defun okm-get-parents (&optional entry-id)
   "Get the parent IDs for entry with id entry-id or in current entry."
