@@ -1151,7 +1151,7 @@
                                                                   :from links :inner :join nodes :on (= links:source nodes:id)
                                                                   :where (in links:dest $v1)]
                                                          (apply #'vector topic-ids))))))
-    (org-ql-roam-view
+    (org-roam-ql-view
      (-filter
       (lambda (node)
         (okm-is-research-paper (org-roam-node-file node)))
