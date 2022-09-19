@@ -1122,7 +1122,7 @@ Copied  from `org-roam-backlink-get'."
         nil)
        (lambda (parent) (member parent parents)) parent-ids))))
 
-(org-ql-defpred search-pdf-regexp (regexp)
+(org-ql-defpred pdf-regexp (regexp)
   ""
   :body
   (let ((text-file (org-entry-get (point) "PDF_TEXT_FILE")))
@@ -1192,8 +1192,21 @@ Copied  from `org-roam-backlink-get'."
 (defun okm-query-papers-by-pdf-string (regexp)
   "REGEXP."
   (interactive "sRegexp: ")
-  (let* ((query `(and (level <= 1) (search-pdf-regexp ,regexp))))
-      (org-ql-search '("~/Documents/org/brain/research_papers/")  query)))
+  (let* ((query `(and (level <= 1) (pdf-regexp ,regexp))))
+    (org-ql-search '("~/Documents/org/brain/research_papers/")  query)))
+
+(defun okm-search-papers-by-pdf-string (regexp)
+  "Search without opening org files."
+  (interactive "sRegexp: ")
+  (org-roam-ql-view
+   (--map
+    (org-roam-node-from-id (caar (org-roam-db-query [:select node-id :from refs :where (= ref $s1)] (f-base it))))
+    (-filter (lambda (f)
+               (with-temp-buffer
+                 (insert-file-contents f)
+                 (s-match-strings-all regexp (buffer-string))))
+             (f-glob "*.txt" bibtex-completion-library-path)))
+   regexp `(pdf-regexp ,regexp)))
 
 (defun amsha/get-sprints (states)
   "Return sprints based on STATUS."

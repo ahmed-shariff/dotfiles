@@ -32,7 +32,7 @@ SOURCE-OR-QUERY can be one of the following:
    ((functionp source-or-query) (funcall source-or-query))))
     
 
-(defun org-roam-ql-view (source-or-query title &optional super-groups)
+(defun org-roam-ql-view (source-or-query title &optional query super-groups)
   "Basically what `org-ql-search does', but for org-roam-nodes.
 See `org-roam-ql-view--get-nodes-from-querySOURCE-OR-QUERY' for what
 SOURCE-OR-QUERY can be. TITLE is a title to associate with the view.
@@ -44,7 +44,7 @@ See `org-roam-search' for details on SUPER-GROUPS."
          (header (org-ql-view--header-line-format
                   :title title))
          (org-ql-view-buffers-files (mapcar #'org-roam-node-file nodes))
-         (org-ql-view-query '(property "ID"))
+         (org-ql-view-query (if query `(and (property "ID") ,query) (property "ID")))
          (org-ql-view-sort nil)
          (org-ql-view-narrow nil)
          (org-ql-view-super-groups super-groups)
