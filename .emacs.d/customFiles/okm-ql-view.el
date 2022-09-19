@@ -146,11 +146,7 @@ If NODE is nil, return an empty string."
   (if (not node)
       ""
     (let* ((marker
-            (org-roam-with-file (org-roam-node-file node) t
-            ;; (with-current-buffer (find-file-noselect (org-roam-node-file node))
-            ;; (with-plain-file (org-roam-node-file node) t
-              (goto-char (org-roam-node-point node))
-              (point-marker)))
+            (org-roam-ql--get-file-marker node))
            (properties (list
                         'org-marker marker
                         'org-hd-marker marker))
@@ -185,10 +181,37 @@ If NODE is nil, return an empty string."
           )))))
 
 (defun org-roam-ql--get-file-marker (node)
-  ;; (org-roam-with-file (org-roam-node-file node) t
+  (org-roam-with-file (org-roam-node-file node) t
   ;; (with-current-buffer (find-file-noselect (org-roam-node-file node))
-  (with-plain-file (org-roam-node-file node) t
+  ;; (with-plain-file (org-roam-node-file node) t
     (goto-char (org-roam-node-point node))
     (point-marker)))
+
+(defun org-roam-ql-from-roam-buffer ()
+  "Convert a roam buffer to org-ql buffer."
+  (interactive)
+  (when (equalp (current-buffer) (get-buffer org-roam-buffer))
+    (if org-roam-buffer-current-node
+        (let (nodes)
+          (goto-char 0)
+          (while (condition-case err
+                     (progn
+                       (magit-section-forward)
+                       t ;; keep the while loop going
+                       )
+                   (user-error
+                    (if (equalp (error-message-string err) "No next section")
+                        nil ;; end while loop
+                      (signal (car err) (cdr err))))) ;; somthing else happened, re-throw
+            (let ((magit-section (plist-get (text-properties-at (point)) 'magit-section)))
+              (when (org-roam-node-section-p magit-section)
+                (push (slot-value magit-section 'node) nodes)))))
+      (error "`org-roam-buffer-current-node' is nil"))))
+
+(org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
+  :body
+  (let* ((backlink-destinations (apply #'vector (-map #'org-roam-node-id nodes)))
+         (id (org-id-get)))
+    (org-roam-db-query [:select * :from links :where (in dest $v1) :and (= source $s2)] backlink-destinations id) id))
 
 (provide 'okm-ql-view)
