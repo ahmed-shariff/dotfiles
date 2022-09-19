@@ -1111,7 +1111,7 @@ Copied  from `org-roam-backlink-get'."
   "args - (pred ...parent-ids).
 `pred' can be 'or or 'and."
   :body
-  (let ((parents (org-entry-get-multivalued-property (point) okm-parent-property-name))
+  (let ((parents (okm-get-parents));;(org-entry-get-multivalued-property (point) okm-parent-property-name))
         (pred (car args))
         (parent-ids (--map (if (consp it) (cdr it) it) (cdr args))))
     (when parents
@@ -1136,12 +1136,15 @@ Copied  from `org-roam-backlink-get'."
 
 (require 'okm-ql-view)
 
-(defun okm-query-papers-by-topics ()
+(defun okm-query-papers-by-topics (&optional topic-ids)
   "Query papers based on topics."
   (interactive)
-  (let* ((topics 
-          (org-roam-node-read-multiple "Query topics: "))
-         (topic-ids (--map (org-roam-node-id it) topics))
+  (let* ((topics (if topic-ids
+                     (-map #'org-roam-node-from-id topic-ids)
+                   (org-roam-node-read-multiple "Query topics: ")))
+         (topic-ids (if topic-ids
+                        topic-ids
+                      (--map (org-roam-node-id it) topics)))
          ;; (topic-ids '("02f57fb4-4d54-41ba-88a1-2a969e926100" "89edeac4-8d67-402c-ab83-5e45cd7b97e6"))
          (grouped-results (-map
                            (lambda (el)
