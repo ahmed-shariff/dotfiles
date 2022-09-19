@@ -1433,17 +1433,22 @@ Currently written to work in org-ql butter."
   (replace-regexp-in-string "^\\([a-z]:\\)?\\(/.*\\)/Documents" "~/Documents" file-name))
 
 (defun research-papers-configure ()
-  "With one C-u, process all research-papers that have changed.
-With C-u C-u prefix, force run all research-papers."
+  "With one C-u force process the file.
+With C-u C-u prefix process all research-papers that have changed.
+With C-u C-u C-u prefix, force run all research-papers."
   (interactive)
-  (let ((force-all-files (equalp (car current-prefix-arg) 16)))
-    (dolist-with-progress-reporter (f (if current-prefix-arg
+  (let ((force-files (member (car current-prefix-arg) `(4 ;; force just this file
+                                                        64))) ;; force all files
+        (files-processed 0))
+    (dolist-with-progress-reporter (f (if (and (not (null current-prefix-arg))
+                                               (listp current-prefix-arg)
+                                               (< 4 (car current-prefix-arg)))
                                           (f-files bibtex-completion-notes-path (lambda (f) (not (s-starts-with-p "." (f-base f)))))
                                         (--> (buffer-file-name)
                                              (when (and it (okm-is-research-paper it))
                                                (list it)))))
         "Processing research papers ..."
-      (when (or force-all-files
+      (when (or force-files
                 (not (string= (org-roam-db--file-hash f)
                               (caar (org-roam-db-query [:select hash :from files
                                                                 :where (= file $s1)]
@@ -1508,9 +1513,13 @@ With C-u C-u prefix, force run all research-papers."
               (org-entry-put nil "ROAM_REFS" (format "cite:&%s" cite-key))
               (push 'roam-ref changes))
             (when changes
-              (save-buffer)))))))
-  (projectile-save-project-buffers)
-  (org-roam-db-sync))
+              (cl-incf files-processed)
+              (save-buffer))))))
+    (when files-processed
+      (projectile-save-project-buffers))
+      ;; (org-roam-db-sync)
+    (message "Updated %s files" files-processed)
+  ))
 ;; (org-brain-update-id-locations)
 ;; (org-roam-db-sync))
 
@@ -1673,7 +1682,6 @@ With C-u C-u prefix, force run all research-papers."
 	    (goto-char (point-max))
 	    (org-set-property "LINK" arxiv-link)
 	    (research-papers-configure)))))))
-
 
 (defun okm-add-parents (parents &optional entry-id)
   "Add PARENTS, which are expected to be ids to the entry with ENTRY-ID or in entry at point."
