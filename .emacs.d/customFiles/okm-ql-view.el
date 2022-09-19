@@ -37,7 +37,7 @@ SOURCE-OR-QUERY can be one of the following:
 See `org-roam-ql-view--get-nodes-from-querySOURCE-OR-QUERY' for what
 SOURCE-OR-QUERY can be. TITLE is a title to associate with the view.
 See `org-roam-search' for details on SUPER-GROUPS."
-  (let* ((nodes (org-roam-view--get-nodes-from-query source-or-query))
+  (let* ((nodes (org-roam-ql-view--get-nodes-from-query source-or-query))
          (strings '())
          (title (format "org-roam - %s" title))
          (buffer (format "%s %s*" org-ql-view-buffer-name-prefix title))
@@ -58,7 +58,9 @@ See `org-roam-search' for details on SUPER-GROUPS."
                                        (list super-groups))))
         (setf strings (org-super-agenda--group-items strings))))
     (org-ql-view--display :buffer buffer :header header
-      :string (s-join "\n" strings))))
+      :string (s-join "\n" strings))
+    (with-current-buffer buffer
+      (org-ql-view-refresh))))
 
 
 ;; ;; modified version of org-ql-view--display
@@ -153,7 +155,23 @@ If NODE is nil, return an empty string."
                         'org-marker marker
                         'org-hd-marker marker))
            ;; (properties '())
-           (string (org-roam-node-title node))) ;;(org-roam-node--format-entry (org-roam-node--process-display-format org-roam-node-display-template) node)))
+           (string ;;(org-roam-node-title node))
+            (s-join " "
+                    (-non-nil
+                     (list
+                      (when-let (todo (org-roam-node-todo node))
+                        (org-ql-view--add-todo-face todo))
+                      (when-let (priority (org-roam-node-priority node))
+                        (org-ql-view--add-priority-face priority))
+                      (org-roam-node-title node)
+                      nil;;due-string
+                      (when-let (tags (org-roam-node-tags node))
+                         (--> tags
+                           (s-join ":" it)
+                           (s-wrap it ":")
+                           (org-add-props it nil 'face 'org-tag))))))
+                     ;;(org-roam-node--format-entry (org-roam-node--process-display-format org-roam-node-display-template) node)))
+                     ))
       (remove-list-of-text-properties 0 (length string) '(line-prefix) string)
       ;; Add all the necessary properties and faces to the whole string
       (--> string
@@ -174,4 +192,3 @@ If NODE is nil, return an empty string."
     (point-marker)))
 
 (provide 'okm-ql-view)
-
