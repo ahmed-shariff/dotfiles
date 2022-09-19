@@ -567,7 +567,7 @@
      :target (file+head "~/Documents/org/brain/roam-notes/${slug}-%<%Y%m%d%H%M%S>.org"
                         "#+title: ${title}\n")
      :unnarrowed t)))
-  (org-roam-node-display-template (concat (propertize " ${file:50}" 'face 'hl-line) (propertize "    ${title:90}   " 'face 'bold) (propertize "${tags:30}  " 'face 'org-tag)))
+  (org-roam-node-display-template "${title}")
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ;;("C-c n g" . org-roam-graph)
@@ -710,7 +710,20 @@ Copied  from `org-roam-backlink-get'."
               (insert ?\n))
             (run-hooks 'org-roam-buffer-postrender-functions)
             (goto-char 0))))
-      (display-buffer buffer))))
+      (display-buffer buffer)))
+
+  (defun org-roam-node-annotator (cand)
+    "Annotate org-roam-nodes in completions"
+    (when-let* ((node (condition-case err
+                          (org-roam-node-from-title-or-alias (org-no-properties cand))
+                        (error nil)))
+                (file (s-replace ".org" "" (f-relative (org-roam-node-file node) okm-base-directory))))
+      (marginalia--fields
+       (file :face 'shadow :truncate 1.0)
+       ((marginalia--time (org-roam-node-file-mtime node)) :face 'org-cite))))
+
+  (add-to-list 'marginalia-annotator-registry
+               '(org-roam-node org-roam-node-annotator marginalia-annotate-face builtin none)))
 
 (use-package consult-notes
   :straight (:type git :host github :repo "mclear-tools/consult-notes")
