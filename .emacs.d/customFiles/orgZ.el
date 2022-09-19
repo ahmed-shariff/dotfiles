@@ -615,20 +615,20 @@
 ;;                            :point pos
 ;;                            :properties properties))))))
 
-;;   (defun org-roam-brain-children-section (node)
-;;     "The brain children section for NODE.
-;; Copied  from `org-roam-backlink-get'."
-;;     (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (org-roam-backlinks-get-brain-relation org-brain-children node))))
-;;       (magit-insert-section (org-roam-backlinks)
-;;         (magit-insert-heading "Brain children:")
-;;         (dolist (backlink backlinks)
-;;           (org-roam-node-insert-section
-;;            :source-node (org-roam-backlink-source-node backlink)
-;;            :point (org-roam-backlink-point backlink)
-;;            :properties (org-roam-backlink-properties backlink)))
-;;         (insert ?\n))))
+  (defun org-roam-brain-children-section (node)
+    "The brain children section for NODE.
+Copied  from `org-roam-backlink-get'."
+    (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (okm-backlinks-get node))))
+      (magit-insert-section (org-roam-backlinks)
+        (magit-insert-heading "Brain children:")
+        (dolist (backlink backlinks)
+          (org-roam-node-insert-section
+           :source-node (org-roam-backlink-source-node backlink)
+           :point (org-roam-backlink-point backlink)
+           :properties (org-roam-backlink-properties backlink)))
+        (insert ?\n))))
 
-  ;; (push #'org-roam-brain-children-section org-roam-mode-sections)
+  (push #'org-roam-brain-children-section org-roam-mode-sections)
 
   (defun org-roam-subtree-aware-preview-function ()
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
@@ -815,12 +815,13 @@
 	doi-utils-open-pdf-after-download nil
         doi-utils-download-pdf nil)
 
-  (defun org-ref-get-bibtex-key-under-cursor-with-latex (old-func &rest)
-    (if (derived-mode-p 'latex-mode)
-        (bibtex-completion-get-key-latex)
-      (funcall old-func)))
+  ;; (defun org-ref-get-bibtex-key-under-cursor-with-latex (old-func &rest)
+  ;;   (if (derived-mode-p 'latex-mode)
+  ;;       (bibtex-completion-get-key-latex)
+  ;;     (funcall old-func)))
 
-  (advice-add 'org-ref-get-bibtex-key-under-cursor :around #'org-ref-get-bibtex-key-under-cursor-with-latex)
+  ;; (advice-add 'org-ref-get-bibtex-key-under-cursor :around #'org-ref-get-bibtex-key-under-cursor-with-latex)
+  ;; (advice-remove 'org-ref-get-bibtex-key-under-cursor #'org-ref-get-bibtex-key-under-cursor-with-latex)
 
   (defun org-ref-latex-click ()
     "Open bibtex hydra in latex buffer."
@@ -1305,12 +1306,12 @@ Either show all or filter based on a sprint."
 
 (defun org-ql-query-topics ()
   "List all parent topics of all results from QUERY.
-Currently written to work in org-ql butter."
+Currently written to work in org-ql buffer."
   (interactive)
   (when (and org-ql-view-query org-ql-view-buffers-files)
     (let* (topics other-parents)
       (org-ql-select org-ql-view-buffers-files org-ql-view-query
-        :action (lambda () (-let (((-topics . -other-parents) (okm-parents-by-topics (org-brain-entry-at-pt))))
+        :action (lambda () (-let (((-topics . -other-parents) (okm-parents-by-topics (org-id-get))))
                              (setq topics (append topics -topics)
                                    other-parents (append other-parents -other-parents)))))
       (setq topics (-uniq topics)
