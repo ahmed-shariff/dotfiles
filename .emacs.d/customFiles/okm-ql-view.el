@@ -158,7 +158,7 @@ If NODE is nil, return an empty string."
                       (when-let (todo (org-roam-node-todo node))
                         (org-ql-view--add-todo-face todo))
                       (when-let (priority (org-roam-node-priority node))
-                        (org-ql-view--add-priority-face priority))
+                        (org-ql-view--add-priority-face (byte-to-string priority)))
                       (org-roam-node-title node)
                       nil;;due-string
                       (when-let (tags (org-roam-node-tags node))
@@ -205,13 +205,14 @@ If NODE is nil, return an empty string."
                       (signal (car err) (cdr err))))) ;; somthing else happened, re-throw
             (let ((magit-section (plist-get (text-properties-at (point)) 'magit-section)))
               (when (org-roam-node-section-p magit-section)
-                (push (slot-value magit-section 'node) nodes)))))
+                (push (slot-value magit-section 'node) nodes))))
+          (org-roam-ql-view nodes (org-roam-node-title org-roam-buffer-current-node) `(org-roam-backlink ,org-roam-buffer-current-node)))
       (error "`org-roam-buffer-current-node' is nil"))))
 
 (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
   :body
   (let* ((backlink-destinations (apply #'vector (-map #'org-roam-node-id nodes)))
          (id (org-id-get)))
-    (org-roam-db-query [:select * :from links :where (in dest $v1) :and (= source $s2)] backlink-destinations id) id))
+    (org-roam-db-query [:select * :from links :where (in dest $v1) :and (= source $s2)] backlink-destinations id)))
 
 (provide 'okm-ql-view)
