@@ -43,7 +43,7 @@ See `org-roam-search' for details on SUPER-GROUPS."
          (buffer (format "%s %s*" org-ql-view-buffer-name-prefix title))
          (header (org-ql-view--header-line-format
                   :title title))
-         (org-ql-view-buffers-files (mapcar #'org-roam-node-file nodes))
+         (org-ql-view-buffers-files (-uniq (mapcar #'org-roam-node-file nodes)))
          (org-ql-view-query (if query `(and (property "ID") ,query) (property "ID")))
          (org-ql-view-sort nil)
          (org-ql-view-narrow nil)
