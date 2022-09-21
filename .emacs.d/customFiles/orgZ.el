@@ -717,7 +717,8 @@ Copied  from `org-roam-backlink-get'."
     (when-let* ((node (condition-case err
                           (org-roam-node-from-title-or-alias (org-no-properties cand))
                         (error nil)))
-                (file (s-replace ".org" "" (f-relative (org-roam-node-file node) okm-base-directory))))
+                (file (concat (s-replace ".org" "" (f-relative (org-roam-node-file node) okm-base-directory))
+                              (when (> (org-roam-node-level node) 1) (concat "::" (string-join (org-roam-node-olp node) " > "))))))
       (marginalia--fields
        (file :face 'shadow :truncate 1.0)
        ((marginalia--time (org-roam-node-file-mtime node)) :face 'org-cite))))
