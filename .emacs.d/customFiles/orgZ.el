@@ -735,7 +735,9 @@ Copied  from `org-roam-backlink-get'."
              consult-notes-org-roam-find-node
              consult-notes-org-roam-find-node-relation)
   :config
-  (setq consult-notes-sources `(("Org"  ?o  ,okm-base-directory))) ;; Set notes dir(s), see below
+  (setq consult-notes-sources `(("Org"  ?o  ,okm-base-directory)) ;; Set notes dir(s), see below
+        consult-notes-org-roam-template org-roam-node-display-template ;; To make sure I can use my marginalia approach.
+        consult-notes-org-roam-annotate-function nil)
   (consult-notes-org-roam-mode) ;; Set org-roam integration
 
   (defun consult-notes-visit-relation (node)
@@ -747,15 +749,11 @@ Copied  from `org-roam-backlink-get'."
                                       :narrow ?b
                                       :items (lambda () (--map (org-roam-node-title (org-roam-backlink-source-node it))
                                                                (org-roam-backlinks-get node :unique t))))
-                     ;; (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
-                     ;;                  :name (propertize "Brain Children" 'face 'consult-notes-sep)
-                     ;;                  :narrow ?c
-                     ;;                  :items (lambda () (--map (org-roam-node-title
-                     ;;                                            (org-roam-node-from-id
-                     ;;                                             (save-excursion
-                     ;;                                               (org-brain-goto it)
-                     ;;                                               (org-id-get))))
-                     ;;                                           (org-brain-children (org-brain-entry-from-id (org-roam-node-id node))))))
+                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                                      :name (propertize "Brain Children" 'face 'consult-notes-sep)
+                                      :narrow ?c
+                                      :items (lambda () (--map (org-roam-node-title (org-roam-node-from-id it))
+                                                               (okm-get-children (org-roam-node-id node)))))
                      (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
                                        :name (propertize "Forwardlink" 'face 'consult-notes-sep)
                                        :narrow ?f
@@ -764,15 +762,11 @@ Copied  from `org-roam-backlink-get'."
                                                                                :from links :inner :join nodes :on (= links:dest nodes:id)
                                                                                :where (in links:source $v1)]
                                                                       (vector (org-roam-node-id node))))))
-                     ;; (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
-                     ;;                  :name (propertize "Brain Parents" 'face 'consult-notes-sep)
-                     ;;                  :narrow ?p
-                     ;;                  :items (lambda () (--map (org-roam-node-title
-                     ;;                                            (org-roam-node-from-id
-                     ;;                                             (save-excursion
-                     ;;                                               (org-brain-goto it)
-                     ;;                                               (org-id-get))))
-                     ;;                                           (org-brain-parents (org-brain-entry-from-id (org-roam-node-id node))))))
+                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                                      :name (propertize "Brain Parents" 'face 'consult-notes-sep)
+                                      :narrow ?p
+                                      :items (lambda () (--map (org-roam-node-title (org-roam-node-from-id it))
+                                                               (okm-get-parents (org-roam-node-id node)))))
                      )
                     :require-match t
                     :prompt "Related nodes:")))
@@ -1729,13 +1723,22 @@ With C-u C-u C-u prefix, force run all research-papers."
                    (--map (format "%s:%s" okm-parent-id-type-name it) parents))))))
 
 (defun okm-get-parents (&optional entry-id)
-  "Get the parent IDs for entry with id entry-id or in current entry."
+  "Get the parent IDs for entry with id entry-id or in current entry.
+Parent-child relation is defined by the brain-parent links."
   (unless entry-id
     (setq entry-id (org-id-get-closest)))
   (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
   (save-excursion
     (org-id-goto entry-id)
-    (--map (s-replace (concat okm-parent-id-type-name ":") "" it) (org-entry-get-multivalued-property (point) okm-parent-property-name))))  
+    (--map (s-replace (concat okm-parent-id-type-name ":") "" it) (org-entry-get-multivalued-property (point) okm-parent-property-name))))
+
+(defun okm-get-children (&optional entry-id)
+  "Get the child IDs for entry with id entry-id or in the current entry.
+Parent-child relation is defined by the brain-parent links."
+  (unless entry-id
+    (setq entry-id (org-id-get-closest)))
+  (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
+  (--map (org-roam-node-id (org-roam-backlink-source-node it)) (okm-backlinks-get (org-roam-node-from-id entry-id) :unique t)))
 
 (defun okm-add-parent-topic (&optional parents entry)
   "PARENTS should be a list of IDs. ENTRY should be an ID."
