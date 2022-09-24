@@ -255,6 +255,11 @@
 (setq org-refile-targets '((org-agenda-files :maxlevel . 6)))
 			   ;(org-c-refile-targets :maxlevel . 6)))
 
+(use-package orglink
+  :config
+  (add-to-list 'orglink-activate-in-modes 'prog-mode)
+  (global-orglink-mode))
+
 (defun org-id-get-closest ()
   "move up the tree until an el with id is found"
   (ignore-error user-error (cl-do () ((org-id-get) (org-id-get)) (org-up-element))))
@@ -505,7 +510,18 @@
 
 ;; (add-hook 'org-capture-mode-hook 'amsha/org-capture-finalize)
 
-(require 'org-bullets)
+;;(require 'org-bullets)
+(use-package org-modern
+    :straight (:type git :host github :repo "minad/org-modern")
+    :custom (org-modern-star '("◉" " ○" "  ◈" "   ◇" "    •"))
+    :hook ((org-mode . org-modern-mode)
+           (org-agenda-finalize . org-modern-agenda))
+    :custom-face
+    (org-modern-label ((t :height 0.9
+                        (:box
+                         (:line-width
+                          (1 . -1)
+                          :color "#777c80" :style nil))))))
 
 (use-package org-transclusion
   :after org
