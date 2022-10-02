@@ -688,19 +688,11 @@ Copied  from `org-roam-backlink-get'."
                          (org-roam-node-list))
                  string
                  pred))))))
-  
-  (defun okm-org-roam-list-notes (entries)
-    "Filter based on the list of ids (FILTER) in the notes files."
-    ;; TODO: Lookinto useing marginalia instead of the template used with roam
-    (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
-                  (org-roam-node-read-multiple)))
-    (let* ((entries (--map (if (stringp it) (org-roam-node-from-title-or-alias it) it) entries))
-           (names (s-join "," (--map (org-roam-node-title it) entries)))
-           (title (format "(%s)" names))
-           (buffer (get-buffer-create (format "*notes: %s*" names)))
-           (ids (apply #'vector (--map (org-roam-node-id it) entries))))
-      ;; copied  from `org-roam-buffer-render-contents'
-      (with-current-buffer buffer
+
+  (defun okm-render-org-roam-buffer (sections title buffer-name)
+    "Render SECTIONS (list of functions) in an org-roam buffer."
+    ;; copied  from `org-roam-buffer-render-contents'
+    (with-current-buffer (get-buffer-create buffer-name)
         (let ((inhibit-read-only t)
               (org-roam-buffer-current-directory org-roam-directory))
           (setq-local default-directory org-roam-buffer-current-directory)
@@ -708,25 +700,64 @@ Copied  from `org-roam-backlink-get'."
           (erase-buffer)
           (org-roam-mode)
           (org-roam-buffer-set-header-line-format title)
-          (magit-insert-section (org-roam)
-            (magit-insert-heading)
-            (dolist (entry
-                     ;;(seq-uniq  ;; removing duplicates as the whole subtree will be getting displayed
-                      (org-roam-db-query
-                       [:select [links:source links:pos links:properties]
-                                :from links :inner :join nodes :on (= links:source nodes:id)
-                                :where (and (in links:dest $v1) (in nodes:file $v2))]
-                       ids
-                       (vector
-                        (file-truename "~/Documents/org/brain/personal/notes.org")
-                        (file-truename "~/Documents/org/brain/work/notes.org"))))
-                      ;;(lambda (e1 e2) (equal (car e1) (car e2)))))
-              (pcase-let ((`(,source ,pos ,properties) entry))
-                (org-roam-node-insert-section :source-node (org-roam-node-from-id source) :point pos :properties properties))
-              (insert ?\n))
-            (run-hooks 'org-roam-buffer-postrender-functions)
-            (goto-char 0))))
-      (display-buffer buffer)))
+          (dolist (section sections)
+            (funcall section))
+          (goto-char 0))
+        (display-buffer (current-buffer))))
+  
+  (defun okm-org-roam-list-notes (entries)
+    "Filter based on the list of ids (FILTER) in the notes files."
+    (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
+                  (org-roam-node-read-multiple)))
+    (let* ((entries (--map (if (stringp it) (org-roam-node-from-title-or-alias it) it) entries))
+           (names (s-join "," (--map (org-roam-node-title it) entries)))
+           (title (format "(%s)" names))
+           (buffer-name (format "*notes: %s*" names))
+           (ids (apply #'vector (--map (org-roam-node-id it) entries))))
+      (okm-render-org-roam-buffer
+       (list (lambda ()
+               (magit-insert-section (org-roam)
+                 (magit-insert-heading)
+                 (dolist (entry
+                          ;;(seq-uniq  ;; removing duplicates as the whole subtree will be getting displayed
+                          (org-roam-db-query
+                           [:select [links:source links:pos links:properties]
+                                    :from links :inner :join nodes :on (= links:source nodes:id)
+                                    :where (and (in links:dest $v1) (in nodes:file $v2))]
+                           ids
+                           (vector
+                            (file-truename "~/Documents/org/brain/personal/notes.org")
+                            (file-truename "~/Documents/org/brain/work/notes.org"))))
+                   ;;(lambda (e1 e2) (equal (car e1) (car e2)))))
+                   (pcase-let ((`(,source ,pos ,properties) entry))
+                     (org-roam-node-insert-section :source-node (org-roam-node-from-id source) :point pos :properties properties))
+                   (insert ?\n))
+                 (run-hooks 'org-roam-buffer-postrender-functions))))
+       title buffer-name)))
+
+  (defun okm-roam-buffer-from-ql-buffer ()
+    "Convert a org-ql reusult to a roam-buffer."
+    (interactive)
+    (unless org-ql-view-buffers-files
+      (user-error "Not an Org QL View buffer"))
+    ;; Copied from `org-agenda-finalize'
+    (let (mrk nodes)
+      (save-excursion
+	(goto-char (point-min))
+	(while (equal (forward-line) 0)
+	  (when (setq mrk (get-text-property (point) 'org-hd-marker))
+            (org-with-point-at mrk
+              ;; pick only nodes
+              (-if-let (id (org-id-get))
+                  (push (org-roam-node-from-id id) nodes)
+                (user-error "Non roam-node headings in query."))))))
+      (okm-render-org-roam-buffer
+       (list (lambda ()
+               (magit-insert-section (org-roam)
+                 (magit-insert-heading)
+                 (dolist (node nodes)
+                   (org-roam-node-insert-section :source-node node :point (org-roam-node-point node) :properties (org-roam-node-properties node))))))
+       org-ql-view-title (format "*From ql: %s*" org-ql-view-title))))
 
   (defun org-roam-node-annotator (cand)
     "Annotate org-roam-nodes in completions"
