@@ -34,7 +34,10 @@
 
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
-                                   :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame")))
+                                   :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame"))
+  :config
+  (setf (alist-get 'width ocpf-frame-parameters) 170)
+  (setf (alist-get 'height ocpf-frame-parameters) 50))
 
 (use-package org-protocol
   :ensure nil
