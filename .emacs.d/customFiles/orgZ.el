@@ -1257,13 +1257,14 @@ Copied  from `org-roam-backlink-get'."
   "Search without opening org files."
   (interactive "sRegexp: ")
   (org-roam-ql-view
-   (--map
-    (org-roam-node-from-id (caar (org-roam-db-query [:select node-id :from refs :where (= ref $s1)] (f-base it))))
-    (-filter (lambda (f)
-               (with-temp-buffer
-                 (insert-file-contents f)
-                 (s-match-strings-all regexp (buffer-string))))
-             (f-glob "*.txt" bibtex-completion-library-path)))
+   (-non-nil
+    (--map
+     (org-roam-node-from-id (caar (org-roam-db-query [:select node-id :from refs :where (= ref $s1)] (f-base it))))
+     (-filter (lambda (f)
+                (with-temp-buffer
+                  (insert-file-contents f)
+                  (s-match-strings-all regexp (buffer-string))))
+              (f-glob "*.txt" bibtex-completion-library-path))))
    regexp `(pdf-regexp ,regexp)))
 
 (defun amsha/get-sprints (states)
