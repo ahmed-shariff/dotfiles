@@ -1594,6 +1594,8 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   (set-face-foreground 'git-gutter:deleted "LightCoral"))
 
 (use-package magit-todos
+  :straight (magit-todos :type git :host github :repo "alphapapa/magit-todos"
+                         :fork (:host github :repo "ahmed-shariff/magit-todos"))
   :after (magit)
   :config
   (magit-todos-mode))
