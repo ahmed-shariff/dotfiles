@@ -147,7 +147,8 @@
  '(prolog-system 'swi)
  '(python-shell-interpreter "python3")
  '(safe-local-variable-values
-   '((org-download-image-dir . "figures/notes")
+   '((magit-todos-exclude-globs . "Assets/Oculus/")
+     (org-download-image-dir . "figures/notes")
      (eval font-lock-add-keywords nil
            '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
              ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-level-7 t)
@@ -203,6 +204,8 @@
 (global-hl-line-mode 1)
 
 (setq view-read-only t)
+
+(customize-set-value 'create-lockfiles nil "It's not being ignored propperly?")
 
 ;; (setq use-package-compute-statistics t)
 
