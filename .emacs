@@ -1776,7 +1776,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
   (defun dashboard-insert-tasks (list-size)
     "Add the list of LIST-SIZE items."
-    (let* ((files (f-glob "*/project_boards/*.org" okm-base-directory))
+    (let* ((files (org-agenda-files))
            (tasks (if files
                       (org-ql-select files '(todo "INPROGRESS")
                         :action (lambda () (cons
