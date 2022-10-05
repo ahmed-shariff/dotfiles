@@ -1530,6 +1530,17 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 (advice-add 'magit-process-environment
             :filter-return #'home-dir-magit-process-environment)
 
+(defun get-gitignore-from-github ()
+  "Get a gitignore file from github/gitignore repo."
+  (interactive)
+  (let ((gitignore-location (expand-file-name ".cache/gitignore" user-emacs-directory)))
+    (magit--with-safe-default-directory gitignore-location
+      (magit-run-git-with-editor "pull"))
+    (let* ((gitignore-files (--map (cons (f-base it) it) (f-files gitignore-location (lambda (f) (string= "gitignore" (f-ext f))))))
+           (target-gitignore-content (f-read-text (cdr (assoc (completing-read "Add gitignore for: " gitignore-files) gitignore-files)))))
+      (magit-with-toplevel
+        (magit--gitignore target-gitignore-content ".gitignore")))))
+
 (use-package git-gutter
   :straight git-gutter-fringe
   :diminish
