@@ -147,7 +147,8 @@
  '(prolog-system 'swi)
  '(python-shell-interpreter "python3")
  '(safe-local-variable-values
-   '((magit-todos-exclude-globs . "Assets/Oculus/")
+   '((magit-todos-exclude-globs "Assets/Oculus/")
+     (magit-todos-exclude-globs . "Assets/Oculus/")
      (org-download-image-dir . "figures/notes")
      (eval font-lock-add-keywords nil
            '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
@@ -1512,7 +1513,8 @@ T - tag prefix
 
 ;;magit******************************************************************
 (global-set-key (kbd "C-x g") 'magit-status)
-(setq magit-git-executable "git")
+(setq magit-git-executable "git"
+      transient-default-level 7)
 
 (defvar home-dir-magit-files '("~/" "~/.emacs.d/customFiles/"))
 
@@ -1533,6 +1535,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 (defun get-gitignore-from-github ()
   "Get a gitignore file from github/gitignore repo."
   (interactive)
+  ;; Expecting the repo (https://github.com/github/gitignore) to be cloned in ~/.emacs.d/.cache/gitignore
   (let ((gitignore-location (expand-file-name ".cache/gitignore" user-emacs-directory)))
     (magit--with-safe-default-directory gitignore-location
       (magit-run-git-with-editor "pull"))
