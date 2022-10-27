@@ -756,9 +756,24 @@ targets."
 
 
 ;;cycle at point *********************************************************************
-(use-package cycle-at-point
-  :commands cycle-at-point
-  :bind ("M-P" . cycle-at-point))
+;; (use-package cycle-at-point
+;;   :commands cycle-at-point
+;;   :bind ("M-P" . cycle-at-point))
+
+;;grugru (alternative to cycle-at-point)**********************************************
+(use-package grugru
+  :after hl-todo
+  :requires dash
+  :commands (grugru grugru-select grugru-edit)
+  :bind ("M-P" . grugru-select)
+  :config
+  (grugru-default-setup)
+  (grugru-highlight-mode)
+  (grugru-edit-load)
+
+  (grugru-define-multiple
+    (csharp-mode . ((symbol "private" "public" "internal" "protected")))
+    (word . (--map (propertize (car it) 'face (cdr it)) hl-todo-keyword-faces))))
 
 ;;rainbow delimeters******************************************************************
 (use-package rainbow-delimiters
