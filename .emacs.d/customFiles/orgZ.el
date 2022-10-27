@@ -76,7 +76,7 @@
                            (l (> (length link) 0)))
                     nil  ;; do nothing
                   (org-set-property "LINK" file-name))
-                (research-papers-configure))))
+                (research-papers-configure t))))
          ;; handle arxiv links
          ((string-match "arxiv\\.org.*pdf$" url)
           (arxiv-add-bibtex-entry-with-note url (car bibtex-completion-bibliography)))
@@ -598,7 +598,7 @@
          ;; org-roam-bibtex
          ("C-c n b" . orb-insert-link))
   :config
-  ;; (org-roam-db-autosync-mode)
+  (org-roam-db-autosync-mode)
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
 
@@ -638,7 +638,7 @@
     "The brain children section for NODE.
 Copied  from `org-roam-backlink-get'."
     (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (okm-backlinks-get node))))
-      (magit-insert-section (org-roam-backlinks)
+      (magit-insert-section (org-roam-brain-children)
         (magit-insert-heading "Brain children:")
         (dolist (backlink backlinks)
           (org-roam-node-insert-section
@@ -651,7 +651,8 @@ Copied  from `org-roam-backlink-get'."
 
   (defun org-roam-subtree-aware-preview-function ()
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
-    (if (--> (org-roam-node-file (org-roam-node-from-id (org-id-get-closest)))
+    (if (--> (org-roam-node-at-point)
+             (org-roam-node-file it)
              (or (member it
                          (list
                           (file-truename "~/Documents/org/brain/work/notes.org") (file-truename "~/Documents/org/brain/personal/notes.org")))
@@ -1209,9 +1210,10 @@ Copied  from `org-roam-backlink-get'."
                              (-map #'cadr (cdr el)))
                            ;; assuming the grouping will result in all individual ids from topics being there
                            (-group-by #'car
-                                      (org-roam-db-query [:select [ links:dest nodes:id]
+                                      (org-roam-db-query [:select [ links:dest nodes:id ]
                                                                   :from links :inner :join nodes :on (= links:source nodes:id)
-                                                                  :where (in links:dest $v1)]
+                                                                  :where (in links:dest $v1)
+                                                                  :and (= links:type "brain-parent")]
                                                          (apply #'vector topic-ids))))))
     (org-roam-ql-view
      (-filter
@@ -1518,13 +1520,14 @@ Currently written to work in org-ql buffer."
   "FILE-NAME."
   (replace-regexp-in-string "^\\([a-z]:\\)?\\(/.*\\)/Documents" "~/Documents" file-name))
 
-(defun research-papers-configure ()
+(defun research-papers-configure (&optional force-files)
   "With one C-u force process the file.
 With C-u C-u prefix process all research-papers that have changed.
 With C-u C-u C-u prefix, force run all research-papers."
   (interactive)
-  (let ((force-files (member (car current-prefix-arg) `(4 ;; force just this file
-                                                        64))) ;; force all files
+  (let ((force-files (or (member (car current-prefix-arg) `(4 ;; force just this file
+                                                            64)) ;; force all files
+                         force-files))
         (files-processed 0))
     (dolist-with-progress-reporter (f (if (and (not (null current-prefix-arg))
                                                (listp current-prefix-arg)
@@ -1820,9 +1823,9 @@ Parent-child relation is defined by the brain-parent links."
 (defun org-agenda-okm-add-parents ()
   "To be used with the org-agenda-bulk-action."
   (unless org-agenda-okm-add-parents--parents
-    (setq org-agenda-okm-add-parents--parents (org-roam-node-read-multiple "Add parents: ")
+    (setq org-agenda-okm-add-parents--parents (-map #'org-roam-node-id (org-roam-node-read-multiple "Add parents: ")))
           org-agenda-bulk-action-post-execution-function (lambda ()
-                                                           (setq org-agenda-okm-add-parents--parents nil))))
+                                                           (setq org-agenda-okm-add-parents--parents nil)))
   (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
                          (org-agenda-error))
     (okm-add-parent-topic org-agenda-okm-add-parents--parents (org-id-get))))
