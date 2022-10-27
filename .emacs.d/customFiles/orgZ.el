@@ -1280,17 +1280,20 @@ Copied  from `org-roam-backlink-get'."
   "Return sprints based on STATUS."
   (org-ql-select (expand-file-name "work/projects.org" okm-base-directory)
     `(and (level 2) (todo ,@states) (h* "Sprint"))
-    :action (lambda () (cons
-                        (format "%-10s - %-40s: %s"
-                                (let ((todo-state (org-entry-get (point) "TODO")))
-                                  (propertize todo-state 'face (org-get-todo-face todo-state)))
-                                (save-excursion
-                                  (org-up-heading-safe)
-                                  (s-replace-regexp
-                                   "^<<[0-9]+>> " ""
-                                   (org-no-properties (org-get-heading t t t t))))
-                                (org-no-properties (org-get-heading t t t t)))
-                        (org-id-get)))))
+    :action (lambda () (let ((todo-state (org-entry-get (point) "TODO")))
+                         (cons
+                          (format "%s %-10s - %-40s: %s"
+                                  (--> "‣"
+                                       (propertize it 'face (org-get-todo-face "INPROGRESS")))
+                                  (propertize todo-state 'face (org-get-todo-face todo-state))
+                                  (save-excursion
+                                    (org-up-heading-safe)
+                                    (s-replace-regexp
+                                     "^<<[0-9]+>> " ""
+                                     (--> (org-no-properties (org-get-heading t t t t))
+                                          (propertize it 'face 'shadow))))
+                                  (org-no-properties (org-get-heading t t t t)))
+                          (org-id-get))))))
 
 (defun okm-org-roam-is-parent (parent-id &optional child-id)
   "Return non-nil if PARENT-ID is in CHILD-ID's :brain-parent: property."
