@@ -1301,9 +1301,15 @@ T - tag prefix
 ;;  '(sml/global ((t (:foreground "gray50" :inverse-video nil :height 0.9 :width normal)))))
 
 ;;projectile mode********************************************************
-(projectile-mode +1)
-(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+(use-package projectile
+  :demand t
+  :bind (:map projectile-mode-map
+         ("C-c p" . projectile-command-map))
+  :config
+  (projectile-mode +1)
+  (setq projectile-git-command "git ls-files --recurse-submodules -zc"))
+;; (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+;; (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
 ;;consult-projectile****************************************************************************
 (use-package consult-projectile
