@@ -147,7 +147,8 @@
  '(prolog-system 'swi)
  '(python-shell-interpreter "python3")
  '(safe-local-variable-values
-   '((magit-todos-exclude-globs "Assets/Oculus/")
+   '((dired-omit-files . "\\`[.]?#\\|\\`[.][.]?\\'\\|\\.log$")
+     (magit-todos-exclude-globs "Assets/Oculus/")
      (magit-todos-exclude-globs . "Assets/Oculus/")
      (org-download-image-dir . "figures/notes")
      (eval font-lock-add-keywords nil
