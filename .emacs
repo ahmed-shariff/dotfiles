@@ -951,6 +951,8 @@ targets."
   :defer 5
   :config
   (when (gethash 'use-pdf-tools configurations t)
+    (when (equalp system-type 'gnu/linux)
+      (setq pdf-tools-directory "/home/amsha/.emacs.d/straight/repos/pdf-tools/"))
     (pdf-tools-install t)
     (add-hook 'pdf-view-mode-hook '(lambda ()
 				     (pdf-misc-size-indication-minor-mode)))))
