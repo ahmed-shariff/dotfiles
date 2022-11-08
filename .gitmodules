@@ -4,3 +4,9 @@
 [submodule "packages_external/stumpwm"]
 	path = packages_external/stumpwm
 	url = https://github.com/stumpwm/stumpwm.git
+[submodule "quicklisp/local-projects/clast-code"]
+	path = quicklisp/local-projects/clast-code
+	url = /home/amsha/quicklisp/local-projects/clast-code
+[submodule "quicklisp/local-projects/clx-truetype"]
+	path = quicklisp/local-projects/clx-truetype
+	url = /home/amsha/quicklisp/local-projects/clx-truetype

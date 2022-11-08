@@ -3,6 +3,8 @@
 # This script creates:
 # - The post-install pacman hook that will run every time sbcl is updated
 
+# in Arch use stumpwm-git instead!!
+
 
 hook_pacman="/etc/pacman.d/hooks/stumpwm-post.hook"
 hook_script="$HOME/.stumpwm.d/pacman_hook.sh"
