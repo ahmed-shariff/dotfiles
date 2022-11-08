@@ -1814,7 +1814,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
     "Add the list of LIST-SIZE items."
     (let* ((files (org-agenda-files))
            (tasks (if files
-                      (org-ql-select files '(todo "INPROGRESS")
+                      (org-ql-select files '(and (property "ID") (todo "INPROGRESS"))
                         :action (lambda () (cons
                                             (format "%s %-40s: %s"
                                                     (--> "‣";;(subseq (org-entry-get (point) "TODO") 0 2)
