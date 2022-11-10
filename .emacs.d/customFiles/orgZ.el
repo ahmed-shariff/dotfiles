@@ -32,6 +32,19 @@
 (defvar okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
 (defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
+(defun org-git-message ()
+  (format "[%s] Updates %s"
+          (gethash 'system-name configurations "Check system-name in configurations.el")
+          (format-time-string "%Y-%m-%dT%H:%M:%S%:z")))
+
+(defun sync-org ()
+  "Sync the org directory"
+  (magit--with-safe-default-directory "~/Documents/org"
+    (magit-run-git-with-editor "pull")
+    (magit-stage-1 "-u")
+    (magit-run-git-with-editor "commit" "-m" (org-git-message))
+    (magit-run-git-with-editor "push")))
+
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
                                    :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame"))
