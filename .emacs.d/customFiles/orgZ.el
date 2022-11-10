@@ -39,11 +39,24 @@
 
 (defun sync-org ()
   "Sync the org directory"
+  (interactive)
   (magit--with-safe-default-directory "~/Documents/org"
-    (magit-run-git-with-editor "pull")
-    (magit-stage-1 "-u")
-    (magit-run-git-with-editor "commit" "-m" (org-git-message))
-    (magit-run-git-with-editor "push")))
+    (message "sync-org: %s"
+             (-if-let* ((_1 (progn (message "sync-org: Pulling")
+                                   (magit-stash-both "sync-pulling")
+                                   (let ((res (magit-with-editor
+                                                (magit-git-string-ng "pull"))))
+                                     (magit-stash-pop "stash@{0}") ;; FIXME: Better way to get this?
+                                     res)))
+                        (_2 (magit-with-toplevel
+                              (message "sync-org: commiting")
+                              (magit-stage-1 "-u")
+                              (magit-git-string-p "add" "brain/research_papers")
+                              (magit-run-git-with-editor "commit" "-m" (org-git-message))))
+                        (_3 (progn (message "sync-org: Pushing")
+                                   (magit-run-git-with-editor "push"))))
+                 "success"
+               "failed"))))
 
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
