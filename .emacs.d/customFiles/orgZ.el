@@ -703,21 +703,22 @@ Copied  from `org-roam-backlink-get'."
 
   (defun org-roam-node-read-multiple (&optional prompt)
     "Like org-roam-node-read, but with mulitiple read excluding the template used by roam."
-    (--map (org-roam-node-from-title-or-alias it)
-           (completing-read-multiple
-            (or prompt "Node(s):")
-            (lambda (string pred action)
-              (if (eq action 'metadata)
-                  '(metadata
-                    ;; (annotation-function . consult-notes-org-roam-annotate)
-                    (category . org-roam-node))
-                (complete-with-action
-                 action
-                 (mapcar (lambda (node)
-                           (cons (org-roam-node-title node) node))
-                         (org-roam-node-list))
-                 string
-                 pred))))))
+    (-non-nil
+     (--map (org-roam-node-from-title-or-alias it)
+            (completing-read-multiple
+             (or prompt "Node(s):")
+             (lambda (string pred action)
+               (if (eq action 'metadata)
+                   '(metadata
+                     ;; (annotation-function . consult-notes-org-roam-annotate)
+                     (category . org-roam-node))
+                 (complete-with-action
+                  action
+                  (mapcar (lambda (node)
+                            (cons (org-roam-node-title node) node))
+                          (org-roam-node-list))
+                  string
+                  pred)))))))
 
   (defun okm-render-org-roam-buffer (sections title buffer-name)
     "Render SECTIONS (list of functions) in an org-roam buffer."
