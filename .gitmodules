@@ -10,3 +10,6 @@
 [submodule "quicklisp/local-projects/clx-truetype"]
 	path = quicklisp/local-projects/clx-truetype
 	url = /home/amsha/quicklisp/local-projects/clx-truetype
+[submodule ".emacs.d/python-type-stubs"]
+	path = .emacs.d/python-type-stubs
+	url = c:/Users/amsha/.emacs.d/python-type-stubs
