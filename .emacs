@@ -834,7 +834,7 @@ targets."
 ;; With the tsserver for web-mode, may have to manually install the tsserver using npm (https://github.com/typescript-language-server/typescript-language-server/issues/336)
 
 (use-package lsp-mode
-  :hook (;;(python-mode . lsp)
+  :hook ((python-mode . lsp)
          (csharp-mode . lsp)
          ;; (csharp-tree-sitter-mode . lsp)
 	 (java-mode . lsp)
@@ -871,6 +871,7 @@ targets."
    ;; lsp-csharp-server-path (if (eq system-type 'windows-nt)
    ;;      		      (file-truename "~/packages_external/omnisharp-win-x64/OmniSharp.exe")
    ;;      		    nil)
+   lsp-pylsp-plugins-flake8-max-line-length 110
    )
   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
@@ -882,16 +883,16 @@ targets."
 ;;     ;; (add-to-list 'lsp-enabled-clients 'jedi)
 ;;     ))
 
-(use-package lsp-pyright
-  :defer t
-  :hook (python-mode . (lambda ()
-                          (require 'lsp-pyright)
-                          (lsp)))
-  :config
-  (with-eval-after-load "lsp-mode"
-    (add-to-list 'lsp-disabled-clients 'pyls))
-  (setq lsp-pyright-use-library-code-for-types t ;; set this to nil if getting too many false positive type errors
-        lsp-pyright-stub-path "~/.emacs.d/python-type-stubs")) ;; example
+;; (use-package lsp-pyright
+;;   :defer t
+;;   :hook (python-mode . (lambda ()
+;;                           (require 'lsp-pyright)
+;;                           (lsp)))
+;;   :config
+;;   (with-eval-after-load "lsp-mode"
+;;     (add-to-list 'lsp-disabled-clients 'pyls))
+;;   (setq lsp-pyright-use-library-code-for-types t ;; set this to nil if getting too many false positive type errors
+;;         lsp-pyright-stub-path (file-truename "~/.emacs.d/python-type-stubs"))) ;; example
 
 (use-package lsp-java
   :defer t)
@@ -1197,8 +1198,17 @@ T - tag prefix
 (pyvenv-mode)
 
 (use-package poetry
+  :straight (poetry :type git :host github :repo "cybniv/poetry.el"
+                    :fork (:host github :repo "ahmed-shariff/poetry.el"))
   :init
-  (poetry-tracking-mode))
+  (poetry-tracking-mode)
+  :config
+  (defun pyright-find-venv-with-poetry ()
+    "lsp-pyright use poetry to get the venv."
+    poetry-project-venv)
+
+  ;;(advice-add #'lsp-pyright-locate-venv :override 'pyright-find-venv-with-poetry))
+  (advice-add #'lsp-pylsp-get-pyenv-environment :override 'pyright-find-venv-with-poetry))
 
 ;; from https://emacs.stackexchange.com/questions/32140/python-mode-indentation
 (defun how-many-region (begin end regexp &optional interactive)
