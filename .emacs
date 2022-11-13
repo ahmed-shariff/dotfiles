@@ -911,8 +911,39 @@ targets."
 
 (use-package dap-mode
   :after lsp-mode
-  :config (dap-auto-configure-mode)
-  :hook (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra))))
+  :bind (:map lsp-command-map
+         ("d" . dap-hydra))
+  :hook ((dap-stopped . (lambda (arg) (call-interactively #'dap-hydra)))
+         (python-mode . dap-ui-mode)
+         (python-mode . dap-mode))
+  :config
+  (dap-auto-configure-mode)
+  (dap-mode 1)
+  (dap-ui-mode 1)
+  (dap-ui-controls-mode -1))
+
+(use-package dap-python
+  :straight nil
+  :config
+  (setq dap-python-debugger 'debugpy)
+
+  (dap-register-debug-template
+   "Python :: Run pytest - from anywhere"
+   (list :type "python"
+         ;; in place of running the whole test, a specific test can be set here
+         ;; eg: :args "test/test_process_config.py::test_process_toml"
+         :args nil
+         :cwd "${workspaceFolder}"
+         ;; if this is nil it will append the buffer file name, which stops pytest from running all tests
+         :program ""
+         :module "pytest"
+         :request "launch"
+         ;; https://code.visualstudio.com/docs/python/testing#_pytest-configuration-settings for more info
+         :environment-variables '(("PYTEST_ADDOPTS" . "--no-cov"))
+         :name "Python :: Run pytest - from anywhere")))
+
+(use-package dap-unity
+  :straight nil)
 
 (use-package dap-java :straight nil
   :after (lsp-java))
@@ -1197,18 +1228,24 @@ T - tag prefix
 (pyvenv-activate "~/virtualenv/pytorch")
 (pyvenv-mode)
 
+(use-package with-venv
+  :config
+  (with-venv-advice-add 'lsp-pylsp-get-pyenv-environment)
+  (with-venv-advice-add 'dap-python--pyenv-executable-find))
+
 (use-package poetry
   :straight (poetry :type git :host github :repo "cybniv/poetry.el"
                     :fork (:host github :repo "ahmed-shariff/poetry.el"))
   :init
   (poetry-tracking-mode)
   :config
-  (defun pyright-find-venv-with-poetry ()
-    "lsp-pyright use poetry to get the venv."
-    poetry-project-venv)
+  ;; (defun pyright-find-venv-with-poetry ()
+  ;;   "lsp-pyright use poetry to get the venv."
+  ;;   poetry-project-venv)
 
-  ;;(advice-add #'lsp-pyright-locate-venv :override 'pyright-find-venv-with-poetry))
-  (advice-add #'lsp-pylsp-get-pyenv-environment :override 'pyright-find-venv-with-poetry))
+  ;; ;;(advice-add #'lsp-pyright-locate-venv :override 'pyright-find-venv-with-poetry))
+  ;; (advice-add #'lsp-pylsp-get-pyenv-environment :override 'pyright-find-venv-with-poetry))
+  )
 
 ;; from https://emacs.stackexchange.com/questions/32140/python-mode-indentation
 (defun how-many-region (begin end regexp &optional interactive)
