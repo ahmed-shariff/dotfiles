@@ -51,7 +51,9 @@
                         (_2 (magit-with-toplevel
                               (message "sync-org: commiting")
                               (magit-stage-1 "-u")
+                              ;; Anything in the following dir's not in gitignore should be added
                               (magit-git-string-p "add" "brain/research_papers")
+                              (magit-git-string-p "add" "brain/roam-notes")
                               (magit-run-git-with-editor "commit" "-m" (org-git-message))))
                         (_3 (progn (message "sync-org: Pushing")
                                    (magit-run-git-with-editor "push"))))
