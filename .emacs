@@ -840,6 +840,8 @@ targets."
 	 (java-mode . lsp)
          (js2-mode . lsp)
          (web-mode . lsp)
+         (tex-mode . lsp)
+         (latex-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
   
   :init
@@ -1569,6 +1571,10 @@ T - tag prefix
         TeX-PDF-from-DVI "Dvips")
   (TeX-global-PDF-mode t)
   (setq outline-minor-mode-prefix "\C-c \C-o"))
+
+(use-package lsp-latex
+  :config
+  (setq lsp-latex-texlab-executable "~/.emacs.d/var/texlab.exe"))
 
 ;; (defun activate-preview-mode ()
 ;;   (load "preview-latex.el" nil t t))
