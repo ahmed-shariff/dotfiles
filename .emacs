@@ -93,7 +93,7 @@
 					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
 					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
-					   exec-path-from-shell smart-mode-line-powerline-theme slime-company slime
+					   exec-path-from-shell slime-company slime
 					   slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
 
 (mapcar #'straight-use-package
@@ -174,19 +174,8 @@
  '(company-tooltip-common ((t (:inherit font-lock-constant-face))))
  '(company-tooltip-selection ((t (:inherit highlight))))
  '(markdown-code-face ((t (:inherit consolas))))
- '(micgoline-pl-active-green ((t (:inherit mode-line :background "light sky blue" :foreground "#FFFFFF"))))
- '(micgoline-pl-active-red ((t (:inherit mode-line :background "deep sky blue" :foreground "#FFFFFF"))))
- '(micgoline-pl-active-yellow ((t (:inherit mode-line :background "tomato1" :foreground "white"))))
- '(micgoline-pl-inactive-green ((t (:inherit mode-line-inactive :background "slate gray" :foreground "#000000"))))
- '(micgoline-pl-inactive-red ((t (:inherit mode-line-inactive :background "DeepSkyBlue3" :foreground "#FFFFFF"))))
- '(micgoline-pl-inactive-yellow ((t (:inherit mode-line-inactive :background "rosy brown" :foreground "#FFFFFF"))))
- '(mode-line ((t (:inherit mode-line :background "DodgerBlue4" :foreground "#FFFFFF"))))
  '(org-level-1 ((t (:inherit outline-1 :foreground "dark turquoise"))))
- '(org-special-keyword ((t (:inherit outline-1 :foreground "sienna"))))
- '(powerline-active0 ((t (:inherit mode-line :background "medium blue" :foreground "#FFFFFF"))))
- '(powerline-active1 ((t (:inherit mode-line :background "tomato1" :foreground "#FFFFFF"))))
- '(powerline-active2 ((t (:inherit mode-line :background "light sky blue" :foreground "white")))))
-
+ '(org-special-keyword ((t (:inherit outline-1 :foreground "sienna")))))
 
 (setq-default indent-tabs-mode nil)
 
@@ -1059,7 +1048,10 @@ targets."
   ;; Global settings (defaults)
   (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
         doom-themes-enable-italic t) ; if nil, italics is universally disabled
-  (load-theme 'doom-city-lights t)
+  (load-theme 'doom-peacock t)
+  (custom-set-faces
+   `(org-block-begin-line ((t (:background "#112424"))))
+   `(org-block-end-line ((t (:background "#112424")))))
 
   ;; Enable flashing mode-line on errors
   (doom-themes-visual-bell-config)
@@ -1339,8 +1331,8 @@ T - tag prefix
 ;;set transparency********************************************
 ;;(set-frame-parameter (selected-frame) 'alpha '(<active> . <inactive>))
  ;;(set-frame-parameter (selected-frame) 'alpha <both>)
-(set-frame-parameter (selected-frame) 'alpha '(98 . 89))
-(add-to-list 'default-frame-alist '(alpha . (98 . 89)))
+(set-frame-parameter (selected-frame) 'alpha '(98 . 92))
+(add-to-list 'default-frame-alist '(alpha . (98 . 92)))
 
 
 ;; (custom-set-faces
