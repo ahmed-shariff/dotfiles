@@ -4,12 +4,12 @@
 [submodule "packages_external/stumpwm"]
 	path = packages_external/stumpwm
 	url = https://github.com/stumpwm/stumpwm.git
-[submodule "quicklisp/local-projects/clast-code"]
-	path = quicklisp/local-projects/clast-code
-	url = /home/amsha/quicklisp/local-projects/clast-code
 [submodule "quicklisp/local-projects/clx-truetype"]
 	path = quicklisp/local-projects/clx-truetype
-	url = /home/amsha/quicklisp/local-projects/clx-truetype
+	url = https://github.com/ahmed-shariff/clx-truetype
 [submodule ".emacs.d/python-type-stubs"]
 	path = .emacs.d/python-type-stubs
-	url = c:/Users/amsha/.emacs.d/python-type-stubs
+	url = https://github.com/microsoft/python-type-stubs
+[submodule "packages_external/paru"]
+	path = packages_external/paru
+	url = https://aur.archlinux.org/paru.git

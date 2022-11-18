@@ -3,7 +3,7 @@ export TERM="xterm-256color"
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
-export ZSH=$HOME/.oh-my-zsh
+export ZSH=/usr/share/oh-my-zsh
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
@@ -108,8 +108,8 @@ source $ZSH/oh-my-zsh.sh
 
 # Lines configured by zsh-newuser-install
 HISTFILE=~/.histfile
-HISTSIZE=1000
-SAVEHIST=1000
+HISTSIZE=5000
+SAVEHIST=5000
 setopt appendhistory autocd extendedglob nomatch notify
 unsetopt beep
 bindkey -e
@@ -305,6 +305,6 @@ fi
 neofetch
 
 # rclone----------------------------------------------------------------------
-source .sh_functions/rclone.sh 
+# source .sh_functions/rclone.sh 
 
 export PATH="$HOME/.poetry/bin:$PATH"

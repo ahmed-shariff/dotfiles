@@ -219,6 +219,8 @@
 (defcommand make-current-window-transparent () ()
   (make-window-transparent (current-window)))
 
+(setf cpu::*cpu-modeline-fmt* "%c")
+
 (setf *screen-mode-line-format*
       (list (format nil "^(:fg \"white\")^[^(:bg \"#DD0000\") %d    [%n]    ^]^[^(:bg \"#3333AA\") Net: %I %l ^]^[^(:fg \"#339900\") Power: %B ^]|^[^(:fg \"#770077\") %C ^]|^[^(:fg \"#009999\") %M ^]")))
 ;;`(:eval (battery-status)))))
