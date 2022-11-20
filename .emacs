@@ -281,10 +281,6 @@ advice, files on WSL can not be saved."
   (advice-add 'file-acl :around 'fp/ignore-wsl-acls))
 
 
-;;stumpwm setup*****************************************************
-(when (not (eq system-type 'windows-nt))
-  (setq stumpwm-shell-program "/home/amsha/.stumpwm.d/modules/util/stumpish/stumpish"))
-
 ;;selectrum  *******************************************************
 ;; (use-package prescient
 ;;   :config
@@ -404,7 +400,7 @@ advice, files on WSL can not be saved."
   :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
 
 (use-package vertico-quick
-  :after vertico
+  :after (vertico doom-themes)
   :ensure nil
   :bind (:map vertico-map
               ("\C-q" . vertico-quick-insert)
