@@ -1,0 +1,102 @@
+- To setup the dot files:
+#+begin_src sh
+  git clone --bare <git-repo-url> $HOME/.dotfiles
+  alias config-git='git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+  config-git checkout
+  config-git submodule update --init
+  config-git config --local status.showUntrackedFiles no
+  cd ~/package_external/paru
+  git pull
+  mackepkg -isc
+#+end_src
+- Install paru (in file:~/package_external/paru)
+- Have quicklisp load on startup of sbcl
+- nmcli add polkit permissions: https://wiki.archlinux.org/title/NetworkManager#Set_up_PolicyKit_permissions
+- Packages installed (first install paru):
+#+begin_src sh
+  alsa-utils
+  asp
+  autoconf
+  automake
+  base
+  bat
+  bison
+  cl-alexandria-git
+  cl-ppcre
+  clx-git
+  debugedit
+  devtools
+  emacs
+  emacs-pdf-tools-git
+  exo
+  fakeroot
+  feh
+  flex
+  garcon
+  gcc
+  git
+  grub
+  hunspell-ca
+  imagemagick
+  libcaca
+  lightdm
+  lightdm-gtk-greeter
+  linux
+  linux-firmware
+  m4
+  make
+  man-db
+  man-pages
+  neofetch
+  network-manager-applet
+  networkmanager
+  oh-my-zsh-git
+  openssh
+  opera
+  opera-ffmpeg-codecs
+  pandoc
+  pandoc-crossref
+  paru
+  patch
+  pkgconf
+  polkit
+  poppler-data
+  python
+  quicklisp
+  rlwrap
+  sbcl
+  stumpwm-git
+  sudo
+  texinfo
+  texlive-core
+  thunar
+  thunar-volman
+  tilix
+  ttf-dejavu
+  ttf-fira-code
+  ttf-iosevka-aile
+  tumbler
+  which
+  xfce4-appfinder
+  xfce4-panel
+  xfce4-power-manager
+  xfce4-session
+  xfce4-settings
+  xfce4-terminal
+  xfconf
+  xfdesktop
+  xfwm4
+  xfwm4-themes
+  xorg-xprop
+  zsh
+  zsh-completions
+  zip
+  unzip
+  tint2
+#+end_src
+- Setting up notifications (add the following in ~/usr/share/dbus-1/services/org.freedesktop.Notifications.service~): https://wiki.archlinux.org/title/Desktop_notifications#Standalone
+#+begin_src sh
+  [D-BUS Service]
+  Name=org.freedesktop.Notifications
+  Exec=/usr/lib/xfce4/notifyd/xfce4-notifyd
+#+end_src

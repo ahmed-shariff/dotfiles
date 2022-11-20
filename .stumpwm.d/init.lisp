@@ -14,6 +14,7 @@
 (run-shell-command "conky -c .conky/custom/conky.conf &")
 (run-shell-command "xbingkeys")
 (run-shell-command "xset dpms 3600 3600 3600")
+(run-shell-command "tint2")
 
 (define-key *root-map* (kbd "c") "exec tilix --window-style=disable-csd-hide-toolbar");xfce4-terminal --hide-menubar")
 (define-key *root-map* (kbd "e") "exec (unset SBCL_HOME;emacs &)")
@@ -46,7 +47,7 @@
 (defcommand toggle () ()
   (toggle-quake-window));;;restart-hard
 
-(run-commands "mode-line")
+;; (run-commands "mode-line")
 (load-module "stumptray")
 (load-module "wifi")
 (load-module "mem")
@@ -54,7 +55,7 @@
 (load-module "cpu")
 (load-module "battery-portable")
 (load-module "ttf-fonts")
-;(stumptray::stumptray)
+;; (stumptray::stumptray)
 (setf *message-window-padding* 150)
 (setf *message-window-gravity* :top)
 (setf *input-window-gravity* :top)
