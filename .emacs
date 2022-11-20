@@ -230,7 +230,11 @@ Used for debugging."
 
 (setq backup-directory-alist `(("." . "~/.backups_emacs"))
       backup-by-copying t
-      delete-old-versions t)
+      delete-old-versions t
+      ;; Following vertico readme
+      read-extended-command-predicate #'command-completion-default-include-p
+      enable-recursive-minibuffers t)
+
 
 ;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
 (defun amsha/visual-fill ()
@@ -361,11 +365,65 @@ advice, files on WSL can not be saved."
   ;; (advice-remove #'completion-all-completions #'cq-completion-all-completions-on-annotations)
 )
 
-(use-package selectrum
-  :init (selectrum-mode +1)
-  :config
-  (setq orderless-skip-highlighting (lambda () selectrum-is-active)
-        selectrum-highlight-candidates-function #'orderless-highlight-matches))
+(use-package vertico
+  :straight (vertico :includes (vertico-directory vertico-quick vertico-indexed)
+                     :files (:defaults "extensions/*.el"))
+  :init
+  (vertico-mode)
+
+  ;; Different scroll margin
+  ;; (setq vertico-scroll-margin 0)
+
+  ;; Show more candidates
+  ;; (setq vertico-count 20)
+
+  ;; Grow and shrink the Vertico minibuffer
+  (setq vertico-resize t
+        ;; Optionally enable cycling for `vertico-next' and `vertico-previous'.
+        vertico-cycle t
+        completion-in-region-function (lambda (&rest args)
+                                        (apply (if vertico-mode
+                                                   #'consult-completion-in-region
+                                                 #'completion--in-region)
+                                               args))))
+
+(use-package savehist
+  :init
+  (savehist-mode))
+
+;; Configure directory extension.
+(use-package vertico-directory
+  :after vertico
+  :ensure nil
+  ;; More convenient directory navigation commands
+  :bind (:map vertico-map
+              ("RET" . vertico-directory-enter)
+              ("DEL" . vertico-directory-delete-char)
+              ("M-DEL" . vertico-directory-delete-word))
+  ;; Tidy shadowed file names
+  :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+
+(use-package vertico-quick
+  :after vertico
+  :ensure nil
+  :bind (:map vertico-map
+              ("\C-q" . vertico-quick-insert)
+              ("\M-q" . vertico-quick-exit))
+  :custom-face
+  (vertico-quick1 ((t :background ,(doom-color 'base1)
+                      :height 0.8
+                      :box (:line-width 3
+                            :color ,(doom-color 'base1)))))
+  (vertico-quick2 ((t :background ,(doom-color 'base1)
+                      :height 0.8
+                      :box (:line-width 3
+                                        :color ,(doom-color 'base1))))))
+
+;; (use-package vertico-indexed
+;;   :after vertico
+;;   :ensure nil
+;;   :config
+;;   (vertico-indexed-mode))
 
 ;; Enable richer annotations using the Marginalia package
 (use-package marginalia
