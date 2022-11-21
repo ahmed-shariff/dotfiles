@@ -904,13 +904,21 @@ Copied  from `org-roam-backlink-get'."
 	doi-utils-open-pdf-after-download nil
         doi-utils-download-pdf nil)
 
-  ;; (defun org-ref-get-bibtex-key-under-cursor-with-latex (old-func &rest)
-  ;;   (if (derived-mode-p 'latex-mode)
-  ;;       (bibtex-completion-get-key-latex)
-  ;;     (funcall old-func)))
+  (defun org-ref-get-bibtex-key-under-cursor-with-latex (old-func)
+    (if (derived-mode-p 'latex-mode)
+        (bibtex-completion-get-key-latex)
+      (funcall old-func)))
 
-  ;; (advice-add 'org-ref-get-bibtex-key-under-cursor :around #'org-ref-get-bibtex-key-under-cursor-with-latex)
+  (advice-add 'org-ref-get-bibtex-key-under-cursor :around #'org-ref-get-bibtex-key-under-cursor-with-latex)
   ;; (advice-remove 'org-ref-get-bibtex-key-under-cursor #'org-ref-get-bibtex-key-under-cursor-with-latex)
+
+  (require 'org-ref-latex)
+
+  (defun org-ref-latex-get-bibliography-or-default (return-val)
+    "Use `bibtex-completion-bibliography' if `org-ref-latex-get-bibliography' returns nil."
+    (or return-val bibtex-completion-bibliography))
+
+  (advice-add 'org-ref-latex-get-bibliography :filter-return #'org-ref-latex-get-bibliography-or-default)
 
   (defun org-ref-latex-click ()
     "Open bibtex hydra in latex buffer."
