@@ -2137,6 +2137,7 @@ Parent-child relation is defined by the brain-parent links."
       org-agenda-span 10
       org-agenda-start-on-weekday nil
       org-agenda-start-day "-3d"
+      org-image-actual-width (list 650)
       org-agenda-files (flatten-tree (list (--map (f-files it (lambda (f)
                                                                 (and (f-ext-p f "org")
                                                                      (with-temp-buffer
