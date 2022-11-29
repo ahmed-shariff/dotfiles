@@ -24,6 +24,7 @@
 ;;; Code:
 (require 'org)
 (require 'org-capture)
+(require 'org-tempo)
 ;; (require 'org-capture-pop-frame)
 ;(ido-mode)
 

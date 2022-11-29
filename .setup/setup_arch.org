@@ -93,6 +93,9 @@
   zip
   unzip
   tint2
+  thunar-volman
+  udisks2
+  gvfs
 #+end_src
 - Setting up notifications (add the following in ~/usr/share/dbus-1/services/org.freedesktop.Notifications.service~): https://wiki.archlinux.org/title/Desktop_notifications#Standalone
 #+begin_src sh
