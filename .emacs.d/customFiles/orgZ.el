@@ -1907,14 +1907,21 @@ Parent-child relation is defined by the brain-parent links."
   (when (y-or-n-p "Sure you want to delete the pdf file and the interleve entry here? ")
     (save-excursion
       (goto-char (org-entry-beginning-position))
-      (delete-file (org-entry-get (point) "INTERLEAVE_PDF") nil)
+      (when-let* ((pdf-file (org-entry-get (point) "INTERLEAVE_PDF"))
+                  (pdf-exists (file-exists-p pdf-file)))
+        (delete-file pdf-file nil))
       (when-let* ((pdf-text-file (org-entry-get (point) "PDF_TEXT_FILE"))
                   (pdf-text-file-exists (file-exists-p pdf-text-file)))
         (delete-file pdf-text-file nil))
       (org-entry-delete (point) "Attachment")
       (org-entry-delete (point) "INTERLEAVE_PDF")
       (org-entry-delete (point) "PDF_TEXT_FILE")
-      (org-set-tags (delete "PDF_ERROR" (delete "nosiblings" (delete "ATTACH" (org-get-tags))))))))
+      (org-entry-put-multivalued-property
+       pom "RPC-TAGS"
+       (delete "PDF_ERROR"
+               (delete "nosiblings"
+                       (delete "ATTACH"
+                               (delete-dups (org-entry-get-multivalued-property pom "RPC-TAGS")))))))))
 
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
