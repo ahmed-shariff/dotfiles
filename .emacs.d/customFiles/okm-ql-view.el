@@ -209,7 +209,10 @@ If NODE is nil, return an empty string."
             (let ((magit-section (plist-get (text-properties-at (point)) 'magit-section)))
               (when (org-roam-node-section-p magit-section)
                 (push (slot-value magit-section 'node) nodes))))
-          (org-roam-ql-view nodes (org-roam-node-title org-roam-buffer-current-node) `(org-roam-backlink ,org-roam-buffer-current-node)))
+          ;; This allows any set of nodes to be displayed
+          (org-roam-ql-view nodes (--if-let header-line-format it "")
+                            ;;`(org-roam-backlink ,org-roam-buffer-current-node)))
+                            `(member (org-id-get) (list ,@(-map #'org-roam-node-id nodes)))))
       (error "`org-roam-buffer-current-node' is nil"))))
 
 (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."

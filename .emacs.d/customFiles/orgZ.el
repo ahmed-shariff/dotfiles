@@ -740,6 +740,21 @@ Copied  from `org-roam-backlink-get'."
             (funcall section))
           (goto-char 0))
         (display-buffer (current-buffer))))
+
+  (defmacro okm-magit-section-for-nodes (nodes)
+    "Returns a function that can be passed as a section for `okm-render-org-roam-buffer' with the NODES.
+Each node is a 3 elements list: (source-node-id point properties)."
+    `(lambda ()
+       (magit-insert-section (org-roam)
+         (magit-insert-heading)
+         (dolist (entry
+                  ;;(seq-uniq  ;; removing duplicates as the whole subtree will be getting displayed
+                  ,nodes)
+           ;;(lambda (e1 e2) (equal (car e1) (car e2)))))
+           (pcase-let ((`(,source ,pos ,properties) entry))
+             (org-roam-node-insert-section :source-node (org-roam-node-from-id source) :point pos :properties properties))
+           (insert ?\n))
+         (run-hooks 'org-roam-buffer-postrender-functions))))
   
   (defun okm-org-roam-list-notes (entries)
     "Filter based on the list of ids (FILTER) in the notes files."
@@ -751,25 +766,26 @@ Copied  from `org-roam-backlink-get'."
            (buffer-name (format "*notes: %s*" names))
            (ids (apply #'vector (--map (org-roam-node-id it) entries))))
       (okm-render-org-roam-buffer
-       (list (lambda ()
-               (magit-insert-section (org-roam)
-                 (magit-insert-heading)
-                 (dolist (entry
-                          ;;(seq-uniq  ;; removing duplicates as the whole subtree will be getting displayed
-                          (org-roam-db-query
-                           [:select [links:source links:pos links:properties]
-                                    :from links :inner :join nodes :on (= links:source nodes:id)
-                                    :where (and (in links:dest $v1) (in nodes:file $v2))]
-                           ids
-                           (vector
-                            (file-truename "~/Documents/org/brain/personal/notes.org")
-                            (file-truename "~/Documents/org/brain/work/notes.org"))))
-                   ;;(lambda (e1 e2) (equal (car e1) (car e2)))))
-                   (pcase-let ((`(,source ,pos ,properties) entry))
-                     (org-roam-node-insert-section :source-node (org-roam-node-from-id source) :point pos :properties properties))
-                   (insert ?\n))
-                 (run-hooks 'org-roam-buffer-postrender-functions))))
+       (list (okm-magit-section-for-nodes (org-roam-db-query
+                                           [:select [links:source links:pos links:properties]
+                                                    :from links :inner :join nodes :on (= links:source nodes:id)
+                                                    :where (and (in links:dest $v1) (in nodes:file $v2))]
+                                           ids
+                                           (vector
+                                            (file-truename "~/Documents/org/brain/personal/notes.org")
+                                            (file-truename "~/Documents/org/brain/work/notes.org")))))
        title buffer-name)))
+
+  (defun okm-org-roam-buffer-nodes (nodes)
+    "convert nodes to list of nodes compatible for `okm-magit-section-for-nodes'."
+    (--map (list (org-roam-node-id it) (org-roam-node-point it) (org-roam-node-properties it)) nodes))
+
+  (defun okm-org-roam-buffer-for-nodes (nodes title buffer-name)
+    "View nodes in org-roam buffer"
+    (okm-render-org-roam-buffer
+       (list
+        (okm-magit-section-for-nodes (okm-org-roam-buffer-nodes nodes)))
+       title buffer-name))
 
   (defun okm-roam-buffer-from-ql-buffer ()
     "Convert a org-ql reusult to a roam-buffer."
@@ -787,13 +803,9 @@ Copied  from `org-roam-backlink-get'."
               (-if-let (id (org-id-get))
                   (push (org-roam-node-from-id id) nodes)
                 (user-error "Non roam-node headings in query."))))))
-      (okm-render-org-roam-buffer
-       (list (lambda ()
-               (magit-insert-section (org-roam)
-                 (magit-insert-heading)
-                 (dolist (node nodes)
-                   (org-roam-node-insert-section :source-node node :point (org-roam-node-point node) :properties (org-roam-node-properties node))))))
-       org-ql-view-title (format "*From ql: %s*" org-ql-view-title))))
+      (okm-org-roam-buffer-for-nodes nodes
+                                     org-ql-view-title
+                                     (format "*From ql: %s*" org-ql-view-title))))
 
   (defun org-roam-node-annotator (cand)
     "Annotate org-roam-nodes in completions"
@@ -1235,6 +1247,14 @@ Copied  from `org-roam-backlink-get'."
 
 (require 'okm-ql-view)
 
+(defun okm-view-ql-or-roam-prompt (nodes title &optional query choice)
+  "View nodes, in one of (org-ql-buffer org-roam-buffer). Prompt which if not specified."
+  (unless choice
+    (setq choice (intern-soft (completing-read "Choice: " '(org-roam org-ql) nil t))))
+  (pcase choice
+    ('org-ql (org-roam-ql-view nodes title query))
+    ('org-roam (okm-org-roam-buffer-for-nodes nodes title (format "*%s*" title)))))
+
 (defun okm-query-papers-by-topics (&optional topic-ids)
   "Query papers based on topics."
   (interactive)
@@ -1255,7 +1275,7 @@ Copied  from `org-roam-backlink-get'."
                                                                   :where (in links:dest $v1)
                                                                   :and (= links:type "brain-parent")]
                                                          (apply #'vector topic-ids))))))
-    (org-roam-ql-view
+    (okm-view-ql-or-roam-prompt
      (-filter
       (lambda (node)
         (okm-is-research-paper (org-roam-node-file node)))
@@ -1289,16 +1309,16 @@ Copied  from `org-roam-backlink-get'."
          (after-change-major-mode-hook nil))
     (org-ql-search (f-glob "*.org" (f-join okm-base-directory "research_papers"))  query)))
 
-(defun okm-query-papers-by-pdf-string (regexp)
-  "query with org-ql REGEXP."
-  (interactive "sRegexp: ")
-  (let* ((query `(and (level <= 1) (pdf-regexp ,regexp))))
-    (org-ql-search '("~/Documents/org/brain/research_papers/")  query)))
+;; (defun okm-query-papers-by-pdf-string (regexp)
+;;   "query with org-ql REGEXP."
+;;   (interactive "sRegexp: ")
+;;   (let* ((query `(and (level <= 1) (pdf-regexp ,regexp))))
+;;     (org-ql-search '("~/Documents/org/brain/research_papers/")  query)))
 
 (defun okm-search-papers-by-pdf-string (regexp)
   "Search without opening org files."
   (interactive "xRegexp: ")
-  (org-roam-ql-view
+  (okm-view-ql-or-roam-prompt
    (-non-nil
     (--map
      (org-roam-node-from-id (caar (org-roam-db-query [:select node-id :from refs :where (= ref $s1)] (f-base it))))
