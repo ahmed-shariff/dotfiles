@@ -281,6 +281,9 @@ advice, files on WSL can not be saved."
   (advice-add 'file-acl :around 'fp/ignore-wsl-acls))
 
 
+(use-package powershell)
+
+
 ;;selectrum  *******************************************************
 ;; (use-package prescient
 ;;   :config
