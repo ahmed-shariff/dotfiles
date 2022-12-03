@@ -974,7 +974,7 @@ targets."
   :ensure t
   :hook (text-mode . (lambda ()
                        (require 'lsp-grammarly)
-                       (lsp))))  ; or lsp-deferred
+                       (lsp-deferred))))  ; or lsp-deferred
 
 (use-package dap-python
   :straight nil
@@ -1666,8 +1666,10 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
 (defun get-gitignore-from-github ()
   "Get a gitignore file from github/gitignore repo."
-  (interactive)
   ;; Expecting the repo (https://github.com/github/gitignore) to be cloned in ~/.emacs.d/.cache/gitignore
+  (interactive)
+  (unless (featurep 'magit-gitignore)
+    (require 'magit-gitignore))
   (let ((gitignore-location (expand-file-name ".cache/gitignore" user-emacs-directory)))
     (magit--with-safe-default-directory gitignore-location
       (magit-run-git-with-editor "pull"))

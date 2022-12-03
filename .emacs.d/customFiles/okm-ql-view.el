@@ -1,3 +1,6 @@
+(require 'org-ql-view)
+(require 'org-ql)
+
 ;; TODO: The input can be
 ;; - A valid query to pass to `org-roam-db-query'
 ;; - If just a :where syntax, append the [:select * :from nodes] to begining and run the query
