@@ -970,6 +970,12 @@ targets."
   (dap-ui-mode 1)
   (dap-ui-controls-mode -1))
 
+(use-package lsp-grammarly
+  :ensure t
+  :hook (text-mode . (lambda ()
+                       (require 'lsp-grammarly)
+                       (lsp))))  ; or lsp-deferred
+
 (use-package dap-python
   :straight nil
   :config
