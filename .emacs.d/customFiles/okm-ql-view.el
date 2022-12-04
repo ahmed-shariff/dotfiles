@@ -194,26 +194,26 @@ If NODE is nil, return an empty string."
   "Convert a roam buffer to org-ql buffer."
   (interactive)
   (when (derived-mode-p 'org-roam-mode)
-    (if org-roam-buffer-current-node
-        (let (nodes)
-          (goto-char 0)
-          (while (condition-case err
-                     (progn
-                       (magit-section-forward)
-                       t ;; keep the while loop going
-                       )
-                   (user-error
-                    (if (equalp (error-message-string err) "No next section")
-                        nil ;; end while loop
-                      (signal (car err) (cdr err))))) ;; somthing else happened, re-throw
-            (let ((magit-section (plist-get (text-properties-at (point)) 'magit-section)))
-              (when (org-roam-node-section-p magit-section)
-                (push (slot-value magit-section 'node) nodes))))
-          ;; This allows any set of nodes to be displayed
-          (org-roam-ql-view nodes (--if-let header-line-format it "")
-                            ;;`(org-roam-backlink ,org-roam-buffer-current-node)))
-                            `(member (org-id-get) (list ,@(-map #'org-roam-node-id nodes)))))
-      (error "`org-roam-buffer-current-node' is nil"))))
+    ;;(if org-roam-buffer-current-node
+    (let (nodes)
+      (goto-char 0)
+      (while (condition-case err
+                 (progn
+                   (magit-section-forward)
+                   t ;; keep the while loop going
+                   )
+               (user-error
+                (if (equalp (error-message-string err) "No next section")
+                    nil ;; end while loop
+                  (signal (car err) (cdr err))))) ;; somthing else happened, re-throw
+        (let ((magit-section (plist-get (text-properties-at (point)) 'magit-section)))
+          (when (org-roam-node-section-p magit-section)
+            (push (slot-value magit-section 'node) nodes))))
+      ;; This allows any set of nodes to be displayed
+      (org-roam-ql-view nodes (--if-let header-line-format it "")
+                        ;;`(org-roam-backlink ,org-roam-buffer-current-node)))
+                        `(member (org-id-get) (list ,@(-map #'org-roam-node-id nodes)))))))
+      ;;(error "`org-roam-buffer-current-node' is nil"))))
 
 (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
   :body
