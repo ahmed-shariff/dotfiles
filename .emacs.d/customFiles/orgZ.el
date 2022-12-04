@@ -787,6 +787,11 @@ Each node is a 3 elements list: (source-node-id point properties)."
         (okm-magit-section-for-nodes (okm-org-roam-buffer-nodes nodes)))
        title buffer-name))
 
+  (defun okm-roam-view-query (source-or-query)
+    "View source or query in org-roam buffer."
+    (interactive "xQuery: ")
+    (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
+
   (defun okm-roam-buffer-from-ql-buffer ()
     "Convert a org-ql reusult to a roam-buffer."
     (interactive)
