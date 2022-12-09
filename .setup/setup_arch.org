@@ -74,8 +74,10 @@
   tilix
   ttf-dejavu
   ttf-fira-code
+  ttf-firacode-nerd
   ttf-iosevka-aile
   tumbler
+  wget
   which
   xfce4-appfinder
   xfce4-panel

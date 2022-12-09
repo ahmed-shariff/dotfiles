@@ -128,6 +128,8 @@ if [ -f "$HOME/.rc_platform_setup" ]; then
     source "$HOME/.rc_platform_setup"
 fi
 
+eval "$(oh-my-posh init zsh --config .config/oh-my-posh/config.json)"
+
 alias ls='ls --color=auto'
 
 function proxy_on() {
