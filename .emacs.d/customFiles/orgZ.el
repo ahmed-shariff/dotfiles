@@ -736,6 +736,7 @@ Copied  from `org-roam-backlink-get'."
           (erase-buffer)
           (org-roam-mode)
           (org-roam-buffer-set-header-line-format title)
+          (insert ?\n)
           (dolist (section sections)
             (funcall section))
           (goto-char 0))
@@ -1943,11 +1944,11 @@ Parent-child relation is defined by the brain-parent links."
       (org-entry-delete (point) "INTERLEAVE_PDF")
       (org-entry-delete (point) "PDF_TEXT_FILE")
       (org-entry-put-multivalued-property
-       pom "RPC-TAGS"
+       (point) "RPC-TAGS"
        (delete "PDF_ERROR"
                (delete "nosiblings"
                        (delete "ATTACH"
-                               (delete-dups (org-entry-get-multivalued-property pom "RPC-TAGS")))))))))
+                               (delete-dups (org-entry-get-multivalued-property (point) "RPC-TAGS")))))))))
 
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
