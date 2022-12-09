@@ -13,3 +13,6 @@
 [submodule "packages_external/paru"]
 	path = packages_external/paru
 	url = https://aur.archlinux.org/paru.git
+[submodule ".emacs.d/.cache/gitignore"]
+	path = .emacs.d/.cache/gitignore
+	url = https://github.com/github/gitignore
