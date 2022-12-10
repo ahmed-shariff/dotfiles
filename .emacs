@@ -242,6 +242,11 @@ Used for debugging."
         visual-fill-column-center-text t)
   (visual-fill-column-mode 1))
 
+(defun git-message ()
+  (format "[%s] %s"
+          (gethash 'system-name configurations "Check system-name in configurations.el")
+          (format-time-string "%Y-%m-%dT%H:%M:%S%:z")))
+
 (use-package visual-fill-column
   :defer 
   :hook ((org-mode LaTeX-mode latex-mode markdown-mode org-roam-mode) . amsha/visual-fill))

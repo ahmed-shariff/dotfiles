@@ -33,11 +33,6 @@
 (defvar okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
 (defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
-(defun org-git-message ()
-  (format "[%s] Updates %s"
-          (gethash 'system-name configurations "Check system-name in configurations.el")
-          (format-time-string "%Y-%m-%dT%H:%M:%S%:z")))
-
 (defun sync-org ()
   "Sync the org directory"
   (interactive)
@@ -56,7 +51,7 @@
                               (magit-git-string-p "add" "brain/research_papers")
                               (magit-git-string-p "add" "brain/roam-notes")
                               (magit-git-string-p "add" "brain/work/figures")
-                              (magit-run-git-with-editor "commit" "-m" (org-git-message))))
+                              (magit-run-git-with-editor "commit" "-m" (git-message))))
                         (_3 (progn (message "sync-org: Pushing")
                                    (magit-run-git-with-editor "push"))))
                  "success"

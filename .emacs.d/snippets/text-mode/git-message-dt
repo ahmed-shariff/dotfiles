@@ -2,4 +2,4 @@
 # name: git-message-dt
 # key: gm
 # --
-`(org-git-message)`
+`(git-message)`
