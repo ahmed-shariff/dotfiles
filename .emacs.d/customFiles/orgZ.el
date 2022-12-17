@@ -39,7 +39,7 @@
   (magit--with-safe-default-directory "~/Documents/org"
     (message "sync-org: %s"
              (-if-let* ((_1 (progn (message "sync-org: Pulling")
-                                   (magit-stash-both "sync-pulling")
+                                   (magit-stash-both (format "sync-pulling %s" (git-message)))
                                    (let ((res (magit-with-editor
                                                 (magit-git-string-ng "pull"))))
                                      (magit-stash-pop "stash@{0}") ;; FIXME: Better way to get this?
