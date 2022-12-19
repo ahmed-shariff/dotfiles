@@ -289,6 +289,33 @@ advice, files on WSL can not be saved."
 (use-package powershell)
 
 
+;;evil *************************************************************
+(use-package evil
+  :config
+  (setq evil-toggle-key "C-S-z"
+        evil-shift-width 4
+        ;;evil-want-integration t
+        evil-want-C-u-scroll t
+        evil-want-keybinding nil)
+
+  (evil-mode 1)
+
+  ;; Use visual line motions even outside of visual-line-mode buffers
+  (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+  (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
+
+  (evil-set-initial-state 'dired-mode 'emacs)
+  (evil-set-initial-state 'pdf-view-mode 'emacs)
+  (evil-set-initial-state 'messages-buffer-mode 'emacs)
+  (evil-set-initial-state 'special-mode 'emacs)
+  (evil-set-initial-state 'view-mode 'emacs)
+  (evil-set-initial-state 'deft-mode 'emacs)
+  )
+
+(use-package evil-easymotion
+  :config
+  (evilem-default-keybindings "SPC"))
+
 ;;selectrum  *******************************************************
 ;; (use-package prescient
 ;;   :config
