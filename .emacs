@@ -89,7 +89,7 @@
 					   use-package spaceline-all-the-icons
 					   org-bullets latex-math-preview csproj-mode csharp-mode plantuml-mode
 					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
-					   avy lsp-ui lsp-mode expand-region diminish amx flx
+					   avy expand-region diminish amx flx
 					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar magit stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
 					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
@@ -884,6 +884,8 @@ targets."
 
 ;; With the tsserver for web-mode, may have to manually install the tsserver using npm (https://github.com/typescript-language-server/typescript-language-server/issues/336)
 
+(setq lsp-use-plists t)
+
 (use-package lsp-mode
   :hook ((python-mode . lsp)
          (csharp-mode . lsp)
@@ -925,6 +927,10 @@ targets."
    ;;      		      (file-truename "~/packages_external/omnisharp-win-x64/OmniSharp.exe")
    ;;      		    nil)
    lsp-pylsp-plugins-flake8-max-line-length 110
+   lsp-pylsp-plugins-flake8-enabled nil
+   lsp-pylsp-plugins-autopep8-enabled nil
+   lsp-pylsp-plugins-yapf-enabled t
+   lsp-pylsp-plugins-pylint-enabled nil
    )
   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
