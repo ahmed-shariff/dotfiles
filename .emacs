@@ -291,12 +291,16 @@ advice, files on WSL can not be saved."
 
 ;;evil *************************************************************
 (use-package evil
+  :init
+  (setq evil-want-integration t ;; This is optional since it's already set to t by default.
+        evil-want-keybinding nil)
   :config
   (setq evil-toggle-key "C-S-z"
         evil-shift-width 4
         ;;evil-want-integration t
         evil-want-C-u-scroll t
-        evil-want-keybinding nil)
+        evil-want-keybinding nil
+        evil-cross-lines t)
 
   (evil-mode 1)
 
@@ -311,6 +315,11 @@ advice, files on WSL can not be saved."
   (evil-set-initial-state 'view-mode 'emacs)
   (evil-set-initial-state 'deft-mode 'emacs)
   )
+
+(use-package evil-collection
+  :after evil
+  :config
+  (evil-collection-init))
 
 (use-package evil-easymotion
   :config
