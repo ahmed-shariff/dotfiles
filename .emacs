@@ -307,6 +307,12 @@ advice, files on WSL can not be saved."
   ;; Use visual line motions even outside of visual-line-mode buffers
   (evil-global-set-key 'motion "j" 'evil-next-visual-line)
   (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
+  (evil-global-set-key 'motion "\C-e" 'evil-end-of-line)
+  (evil-global-set-key 'motion "\C-a" 'evil-first-non-blank)
+  (evil-global-set-key 'motion (kbd "TAB") nil)
+  (evil-global-set-key 'motion (kbd "RET") nil)
+  (evil-global-set-key 'normal "\C-t" nil)
+  (evil-global-set-key 'insert "\M-q" 'evil-force-normal-state)
 
   (evil-set-initial-state 'dired-mode 'emacs)
   (evil-set-initial-state 'pdf-view-mode 'emacs)
