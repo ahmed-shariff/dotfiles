@@ -1821,9 +1821,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   (blamer-face ((t :foreground "#7a88cf"
                     :background nil
                     :height 100  ;; TODO: find a way to get this from font attribute
-                    :italic t)))
-  :config
-  (global-blamer-mode 1))
+                    :italic t))))
 
 ;;ibuffer****************************************************************
 (global-set-key (kbd "C-x C-b") 'ibuffer)
