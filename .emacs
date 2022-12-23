@@ -300,6 +300,7 @@ advice, files on WSL can not be saved."
         ;;evil-want-integration t
         evil-want-C-u-scroll t
         evil-want-keybinding nil
+        evil-kill-on-visual-paste nil
         evil-cross-lines t)
 
   (evil-mode 1)
@@ -1383,10 +1384,16 @@ T - tag prefix
     (if (> tab-count space-count) (setq indent-tabs-mode t))))
 (add-hook 'prog-mode-hook
     (lambda ()
-        (setq indent-tabs-mode nil)
-        (infer-indentation-style)
-        (linum-mode 1)
-        (hl-todo-mode 1)))
+      ;; (linum-on)
+      (setq indent-tabs-mode nil)
+      (infer-indentation-style)
+      ;; (display-line-numbers-mode 1)
+      (hl-todo-mode 1)))
+
+(use-package linum-relative
+  :hook ((prog-mode . linum-relative-mode))
+  :custom
+  (linum-relative-backend 'display-line-numbers-mode))
 
 
 ;; (highlight-indentation-mode t)
