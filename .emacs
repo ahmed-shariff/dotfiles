@@ -314,6 +314,8 @@ advice, files on WSL can not be saved."
   (evil-global-set-key 'motion (kbd "RET") nil)
   (evil-global-set-key 'normal "\C-t" nil)
   (evil-global-set-key 'insert "\M-q" 'evil-force-normal-state)
+  (evil-global-set-key 'visual "\M-q" 'evil-force-normal-state)
+  (evil-global-set-key 'normal "\M-q" 'evil-force-normal-state)
 
   (evil-set-initial-state 'dired-mode 'emacs)
   (evil-set-initial-state 'pdf-view-mode 'emacs)
@@ -1391,9 +1393,12 @@ T - tag prefix
       (hl-todo-mode 1)))
 
 (use-package linum-relative
-  :hook ((prog-mode . linum-relative-mode))
+  :demand
+  ;; :hook ((prog-mode . linum-relative-mode))
   :custom
-  (linum-relative-backend 'display-line-numbers-mode))
+  (linum-relative-backend 'display-line-numbers-mode)
+  :config
+  (linum-relative-global-mode))
 
 
 ;; (highlight-indentation-mode t)
