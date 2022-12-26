@@ -929,7 +929,7 @@ targets."
 
 ;; With the tsserver for web-mode, may have to manually install the tsserver using npm (https://github.com/typescript-language-server/typescript-language-server/issues/336)
 
-(setq lsp-use-plists t)
+;; (setq lsp-use-plists t)
 
 (use-package lsp-mode
   :hook ((python-mode . lsp)
@@ -987,16 +987,17 @@ targets."
 ;;     ;; (add-to-list 'lsp-enabled-clients 'jedi)
 ;;     ))
 
-;; (use-package lsp-pyright
-;;   :defer t
-;;   :hook (python-mode . (lambda ()
-;;                           (require 'lsp-pyright)
-;;                           (lsp)))
-;;   :config
-;;   (with-eval-after-load "lsp-mode"
-;;     (add-to-list 'lsp-disabled-clients 'pyls))
-;;   (setq lsp-pyright-use-library-code-for-types t ;; set this to nil if getting too many false positive type errors
-;;         lsp-pyright-stub-path (file-truename "~/.emacs.d/python-type-stubs"))) ;; example
+(use-package lsp-pyright
+  :defer t
+  :hook (python-mode . (lambda ()
+                          (require 'lsp-pyright)
+                          (lsp)))
+  :config
+  (with-eval-after-load "lsp-mode"
+    (add-to-list 'lsp-disabled-clients 'pyls)
+    (add-to-list 'lsp-disabled-clients 'pylsp))
+  (setq lsp-pyright-use-library-code-for-types t ;; set this to nil if getting too many false positive type errors
+        lsp-pyright-stub-path (file-truename "~/.emacs.d/python-type-stubs"))) ;; example
 
 (use-package lsp-java
   :defer t)
@@ -1342,7 +1343,9 @@ T - tag prefix
 (pyvenv-mode)
 
 (use-package with-venv
+  :after (lsp lsp-pyright)
   :config
+  (with-venv-advice-add 'lsp-pyright-locate-venv)
   (with-venv-advice-add 'lsp-pylsp-get-pyenv-environment)
   (with-venv-advice-add 'dap-python--pyenv-executable-find))
 
