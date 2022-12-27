@@ -1028,10 +1028,12 @@ targets."
   (dap-ui-controls-mode -1))
 
 (use-package lsp-grammarly
+  :after (lsp)
   :ensure t
-  :hook (text-mode . (lambda ()
-                       (require 'lsp-grammarly)
-                       (lsp-deferred))))  ; or lsp-deferred
+  ;; :hook (text-mode . (lambda ()
+  ;;                      (require 'lsp-grammarly)
+  ;;                      (lsp-deferred))))  ; or lsp-deferred
+  )
 
 (use-package dap-python
   :straight nil
