@@ -301,6 +301,11 @@ advice, files on WSL can not be saved."
         evil-want-C-u-scroll t
         evil-want-keybinding nil
         evil-kill-on-visual-paste nil
+        ;; Moving the xref funtion to the top
+        evil-goto-definition-functions '(evil-goto-definition-xref
+                                         evil-goto-definition-imenu
+                                         evil-goto-definition-semantic
+                                         evil-goto-definition-search)
         evil-cross-lines t)
 
   (evil-mode 1)
@@ -333,6 +338,12 @@ advice, files on WSL can not be saved."
 (use-package evil-easymotion
   :config
   (evilem-default-keybindings "SPC"))
+
+(use-package evil-embrace
+  :after evil
+  :config
+  (global-evil-surround-mode 1)
+  (evil-embrace-enable-evil-surround-integration))
 
 ;;selectrum  *******************************************************
 ;; (use-package prescient
@@ -1399,11 +1410,13 @@ T - tag prefix
 
 (use-package linum-relative
   :demand
-  ;; :hook ((prog-mode . linum-relative-mode))
+  :hook (prog-mode text-mode)
   :custom
   (linum-relative-backend 'display-line-numbers-mode)
   :config
-  (linum-relative-global-mode))
+  ;; (linum-relative-global-mode))
+  )
+
 
 (use-package ess)
 
