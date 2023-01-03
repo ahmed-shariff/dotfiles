@@ -1405,6 +1405,7 @@ T - tag prefix
   :config
   (linum-relative-global-mode))
 
+(use-package ess)
 
 ;; (highlight-indentation-mode t)
 ;; (highlight-indentation-current-column t)
