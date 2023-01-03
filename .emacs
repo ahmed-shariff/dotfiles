@@ -1271,6 +1271,12 @@ T - tag prefix
   ;; it's not loaded yet, so add our bindings to the load-hook
   (add-hook 'dired-load-hook 'my-dired-init))
 
+(use-package ranger
+  :custom
+  (ranger-override-dired 'ranger)
+  :config
+  (ranger-override-dired-mode t))
+
 ;; ;;org mode*******************************************************
 ;; ;;rest in ~/.emacs.d/CustomLoadFiles/orgZ.el
 (require 'orgZ)
