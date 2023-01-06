@@ -1414,15 +1414,19 @@ T - tag prefix
       ;; (display-line-numbers-mode 1)
       (hl-todo-mode 1)))
 
-(use-package linum-relative
-  :demand
+;; (use-package linum-relative
+;;   :demand
+;;   :hook (prog-mode text-mode)
+;;   :custom
+;;   (linum-relative-backend 'display-line-numbers-mode)
+;;   :config
+;;   ;; (linum-relative-global-mode))
+;;   )
+
+(use-package display-line-numbers
   :hook (prog-mode text-mode)
   :custom
-  (linum-relative-backend 'display-line-numbers-mode)
-  :config
-  ;; (linum-relative-global-mode))
-  )
-
+  (display-line-numbers-type 'visual))
 
 (use-package ess)
 
