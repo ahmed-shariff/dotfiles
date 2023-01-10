@@ -951,6 +951,7 @@ targets."
          (web-mode . lsp)
          (tex-mode . lsp)
          (latex-mode . lsp)
+         (rust-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
   
   :init
@@ -1071,6 +1072,8 @@ targets."
 
 (use-package dap-java :straight nil
   :after (lsp-java))
+
+(use-package rustic)
 
 ;;avy *******************************************************************************
 ;; see https://karthinks.com/software/avy-can-do-anything/#kill-a-candidate-word-sexp-or-line for more cool stuff
