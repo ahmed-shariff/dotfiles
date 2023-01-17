@@ -47,6 +47,7 @@
                                      (when has-diff
                                        (magit-stash-pop "stash@{0}")) ;; FIXME: Better way to get this?
                                      (and res
+					  ;; Checking for status copied from `magit-discard-hunk'
                                           (--any it (--map (not (equal '(?U ?U) (cddar (magit-file-status it)))) (magit-modified-files)))))))
                         (_2 (magit-with-toplevel
                               (if has-diff
