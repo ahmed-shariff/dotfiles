@@ -1964,9 +1964,10 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 (use-package visual-fill-column)
 
 (use-package web-search
+  :bind ("\C-c/" . web-search)
   :config
-  (setq web-search-default-provider "DuckDuckGo")
-  (setq web-search-providers (mapcar (lambda (provider)
+  (setq web-search-default-provider "Google"
+        web-search-providers (mapcar (lambda (provider)
                                        (if (string-equal "DuckDuckGo" (car provider))
                                            (-replace-at 1 "https://duckduckgo.com/?q=%s" provider)
                                          provider))

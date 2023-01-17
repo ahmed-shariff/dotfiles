@@ -1979,6 +1979,7 @@ Parent-child relation is defined by the brain-parent links."
             (define-key org-mode-map "\C-cos" 'okm-print-parents)
             (define-key org-mode-map "\C-coa" 'org-asana-hydra/body)
             (define-key org-mode-map (kbd "C-'") nil)
+            (define-key org-mode-map "\C-c/" nil)
 	    (flyspell-mode t)))
 (add-hook 'org-mode-hook 'visual-line-mode)
 
