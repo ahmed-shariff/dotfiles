@@ -2160,6 +2160,9 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   (setq unity-vcvarsall-file (gethash 'unity-vcvarsall-file configurations))
   (unity-setup))
 
+;; matlab setup#################################################################
+(use-package matlab-mode)
+
 ;;Docker
 (use-package docker
   :bind ("C-c d" . docker))
