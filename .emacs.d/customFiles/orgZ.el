@@ -155,6 +155,8 @@
  'org-src-lang-modes '("plantuml" . plantuml))
 (setq org-src-tab-acts-natively t)
 
+(repeatize 'org-babel-map)
+
 (setq org-babel-load-languages
       (append org-babel-load-languages '((ruby . t)
 				         (plantuml . t)

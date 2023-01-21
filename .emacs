@@ -196,6 +196,16 @@
 
 (setq view-read-only t)
 
+(repeat-mode 1)
+;; from https://karthinks.com/software/it-bears-repeating/
+(defun repeatize (keymap)
+  "Add `repeat-mode' support to a KEYMAP."
+  (map-keymap
+   (lambda (_key cmd)
+     (when (symbolp cmd)
+       (put cmd 'repeat-map keymap)))
+   (symbol-value keymap)))
+
 (customize-set-value 'create-lockfiles nil "It's not being ignored propperly?")
 
 ;; (setq use-package-compute-statistics t)
