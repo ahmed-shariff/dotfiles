@@ -331,6 +331,7 @@ advice, files on WSL can not be saved."
   (evil-global-set-key 'insert "\M-q" 'evil-force-normal-state)
   (evil-global-set-key 'visual "\M-q" 'evil-force-normal-state)
   (evil-global-set-key 'normal "\M-q" 'evil-force-normal-state)
+  (evil-global-set-key 'replace "\M-q" 'evil-force-normal-state)
 
   (evil-set-initial-state 'dired-mode 'emacs)
   (evil-set-initial-state 'pdf-view-mode 'emacs)
