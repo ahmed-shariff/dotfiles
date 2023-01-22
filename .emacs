@@ -228,6 +228,56 @@ Used for debugging."
        ,@(nreverse list)
        ,plist-sym)))
 
+(defmacro magit-sync-repo (name git-directory git-message &optional add-directories)
+  "Creats an interactive function with name `sync-<NAME>'.
+Calling the function will execute pull inside the GIT-DIRECORY, commit any changes
+with the GIT-MESSAGE and push from the directory.
+
+If ADD-DIRECTORIES are provided, before commit the changes in those directories
+would be added.
+
+GIT-MESSAGE can be string, a symbol that evaluates to a string or a function
+that returns a string."
+  (let* ((func-name (format "sync-%s" name))
+         (message-prefix (concat func-name ": %s")))
+    `(defun ,(intern func-name) ()
+       ,(format "Sync content in %s with git." git-directory)
+       (interactive)
+       (magit--with-safe-default-directory ,git-directory
+         (message ,(concat "sync-" name ": %s")
+                  (-if-let* ((_f (progn (message ,message-prefix "pulling")
+                                        (magit-git-string-ng "pull" "--autostash" "--rebase")
+                                        ;; fail if there are unmerged files
+                                        (not (magit-git-string-ng "diff" "--diff-filter=U"))))
+                             (_c (magit-with-toplevel
+                                   (message ,message-prefix "commiting")
+                                   (magit-stage-1 "-u")
+                                   ;; anything in the following dir's not in gitignore should be added
+                                   ,@(when (and add-directories
+                                                (or (listp add-directories)
+                                                    (user-error "`add-directories' is not a list")))
+                                       (mapcar (lambda (d) `(magit-git-string-p "add" ,d)) add-directories))
+                                   ;; (magit-git-string-p "add" "brain/research_papers")
+                                   ;; (magit-git-string-p "add" "brain/roam-notes")
+                                   ;; (magit-git-string-p "add" "brain/work/figures")
+                                   ;; commit only if there is anything being staged
+                                   (if (not (magit-git-string-ng "diff" "--cached"))
+                                       (message ,message-prefix "nothing to commit")
+                                     (magit-git-string-ng "commit" "-m"
+                                                          ,(pcase git-message
+                                                             ((pred functionp) `(funcall ',git-message))
+                                                             ((or (pred stringp)
+                                                                  (pred symbolp)) git-message)
+                                                             (t (user-error "`git-message' is not a function, string or symbol."))))
+                                     'has-diff)))
+                             (_f (if (eq _c 'has-diff)
+                                     (progn
+                                       (message ,message-prefix "pushing")
+                                       (magit-run-git-with-editor "push"))
+                                   t)))
+                      "success"
+                    "failed"))))))
+
 (use-package beacon
   :demand
   :custom

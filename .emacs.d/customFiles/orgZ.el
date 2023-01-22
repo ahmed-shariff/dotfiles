@@ -33,41 +33,7 @@
 (defvar okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
 (defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
-(defun sync-org ()
-  "Sync the org directory"
-  (interactive)
-  (magit--with-safe-default-directory "~/Documents/org"
-    (let ((has-diff (magit-git-string "diff" "--exit-code")))
-      (message "sync-org: %s"
-             (-if-let* ((_1 (progn (message "sync-org: Pulling")
-                                   (when has-diff
-                                       (magit-stash-save (format "sync-pulling %s" (git-message)) 'index 'worktree nil 'refresh nil 'noerror))
-                                   (let ((res (magit-with-editor
-                                                (magit-git-string-ng "pull"))))
-                                     (when has-diff
-                                       (magit-stash-pop "stash@{0}")) ;; FIXME: Better way to get this?
-                                     (and res
-					  ;; Checking for status copied from `magit-discard-hunk'
-                                          (--any it (--map (not (equal '(?U ?U) (cddar (magit-file-status it)))) (magit-modified-files)))))))
-                        (_2 (magit-with-toplevel
-                              (if has-diff
-                                  (progn 
-                                    (message "sync-org: commiting")
-                                    (magit-stage-1 "-u")
-                                    ;; Anything in the following dir's not in gitignore should be added
-                                    (magit-git-string-p "add" "brain/research_papers")
-                                    (magit-git-string-p "add" "brain/roam-notes")
-                                    (magit-git-string-p "add" "brain/work/figures")
-                                    (magit-git-string-ng "commit" "-m" (git-message)))
-                                (message "sync-org: Nothing to commit")
-                                'no-diff)))
-                        (_3 (if has-diff
-                                (progn
-                                  (message "sync-org: Pushing")
-                                  (magit-run-git-with-editor "push"))
-                              t)))
-                 "success"
-               "failed")))))
+(magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures"))
 
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
