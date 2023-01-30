@@ -1175,7 +1175,10 @@ targets."
       (setq pdf-tools-directory "/home/amsha/.emacs.d/straight/repos/pdf-tools/"))
     (pdf-tools-install t)
     (add-hook 'pdf-view-mode-hook '(lambda ()
-				     (pdf-misc-size-indication-minor-mode)))))
+				     (pdf-misc-size-indication-minor-mode)
+                                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+                                     (set (make-local-variable 'evil-emacs-state-cursor) (list nil))
+                                     (evil-emacs-state)))))
 
 ;;delete-selection-mode
 (delete-selection-mode t)
