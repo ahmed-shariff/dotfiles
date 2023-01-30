@@ -1575,9 +1575,23 @@ T - tag prefix
          ("C-c p" . projectile-command-map))
   :config
   (projectile-mode +1)
-  (setq projectile-git-command "git ls-files --recurse-submodules -zc"))
+  (setq projectile-git-command "git ls-files --recurse-submodules -zc")
 ;; (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
 ;; (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+
+  (defun projectile-set-buffer-directory (&optional arg)
+    "Set the default directory to the root of a project if the current buffer is not a file buffer.
+Used with atomic-chrome."
+    (interactive "P")
+    (if (buffer-file-name (current-buffer))
+        (user-error "This is a file buffer.")
+      (let ((projects (projectile-relevant-known-projects)))
+        (if projects
+            (projectile-completing-read
+             "Switch to project: " projects
+             :action (lambda (project)
+                       (setq default-directory project))))))))
+
 
 ;;consult-projectile****************************************************************************
 (use-package consult-projectile
@@ -1751,12 +1765,20 @@ T - tag prefix
 
 ;;atomic-chrome*********************************************************************************
 (use-package atomic-chrome
+  :after projectile
   :init (atomic-chrome-start-server)
   :config
   (setq atomic-chrome-url-major-mode-alist '(("overleaf\\.com" . latex-mode))
         atomic-chrome-extension-type-list '(ghost-text)
         atomic-chrome-buffer-open-style 'frame
-        atomic-chrome-default-major-mode 'markdown-mode))
+        atomic-chrome-default-major-mode 'markdown-mode)
+
+  (defun atomic-chrome-set-default-buffer (socket url title text)
+    (with-current-buffer (atomic-chrome-get-buffer-by-socket socket)
+      (projectile-set-buffer-directory)))
+
+  (advice-add 'atomic-chrome-create-buffer :after #'atomic-chrome-set-default-buffer))
+
 
 ;;latex setup***********************************************************************************
 (defun turn-on-outline-minor-mode ()
