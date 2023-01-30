@@ -567,6 +567,7 @@
 
 
 ;; On windows when the `cygwin1.dll mismatch issue` issue happens, This is solved by manually running the command seen in the *compilation* buffer
+;; Would have to try that on the msys2 console
 (use-package org-roam
   :after org
   :defer 2
