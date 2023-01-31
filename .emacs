@@ -1339,8 +1339,12 @@ T - tag prefix
   (add-hook 'dired-load-hook 'my-dired-init))
 
 (use-package ranger
+  :hook
+  ((dired-mode ranger-mode) . (lambda () (visual-line-mode -1)))
   :custom
   (ranger-override-dired 'ranger)
+  (ranger-preview-delay 0.5)
+  (ranger-width-preview 0.4)
   :config
   (ranger-override-dired-mode t))
 
