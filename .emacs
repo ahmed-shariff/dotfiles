@@ -2154,7 +2154,15 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
         dashboard-agenda-sort-strategy '(time-up)
         dashboard-week-agenda t
         dashboard-agenda-prefix-format " %-12s %-20:c")
-  (dashboard-setup-startup-hook))
+  (dashboard-setup-startup-hook)
+
+  (defun open-dashboard ()
+    "Jump to the dashboard buffer, if doesn't exists create one."
+    (interactive)
+    (switch-to-buffer dashboard-buffer-name)
+    (dashboard-mode)
+    (dashboard-insert-startupify-lists)
+    (dashboard-refresh-buffer)))
 
 ;; (require 'web-mode)
 ;; (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
