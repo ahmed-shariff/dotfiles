@@ -79,6 +79,7 @@
                            (l (> (length link) 0)))
                     nil  ;; do nothing
                   (org-set-property "LINK" file-name))
+                (save-buffer)
                 (research-papers-configure t))))
          ;; handle arxiv links
          ((string-match "arxiv\\.org.*pdf$" url)
