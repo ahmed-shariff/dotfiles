@@ -713,89 +713,6 @@ Copied  from `org-roam-backlink-get'."
                     string
                     pred))))))))
 
-  (defun okm-render-org-roam-buffer (sections title buffer-name)
-    "Render SECTIONS (list of functions) in an org-roam buffer."
-    ;; copied  from `org-roam-buffer-render-contents'
-    (with-current-buffer (get-buffer-create buffer-name)
-        (let ((inhibit-read-only t)
-              (org-roam-buffer-current-directory org-roam-directory))
-          (setq-local default-directory org-roam-buffer-current-directory)
-          (setq-local org-roam-directory org-roam-buffer-current-directory)
-          (erase-buffer)
-          (org-roam-mode)
-          (org-roam-buffer-set-header-line-format title)
-          (insert ?\n)
-          (dolist (section sections)
-            (funcall section))
-          (goto-char 0))
-        (display-buffer (current-buffer))))
-
-  (defmacro okm-magit-section-for-nodes (nodes)
-    "Returns a function that can be passed as a section for `okm-render-org-roam-buffer' with the NODES.
-Each node is a 3 elements list: (source-node-id point properties)."
-    `(lambda ()
-       (magit-insert-section (org-roam)
-         (magit-insert-heading)
-         (dolist (entry
-                  ;;(seq-uniq  ;; removing duplicates as the whole subtree will be getting displayed
-                  ,nodes)
-           ;;(lambda (e1 e2) (equal (car e1) (car e2)))))
-           (pcase-let ((`(,source ,pos ,properties) entry))
-             (org-roam-node-insert-section :source-node (org-roam-node-from-id source) :point pos :properties properties))
-           (insert ?\n))
-         (run-hooks 'org-roam-buffer-postrender-functions))))
-  
-  (defun okm-org-roam-list-notes (entries)
-    "Filter based on the list of ids (FILTER) in the notes files."
-    (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
-                  (org-roam-node-read-multiple)))
-    (let* ((entries (--map (if (stringp it) (org-roam-node-from-title-or-alias it) it) entries))
-           (names (s-join "," (--map (org-roam-node-title it) entries)))
-           (title (format "(%s)" names))
-           (buffer-name (format "*notes: %s*" names))
-           (ids (apply #'vector (--map (org-roam-node-id it) entries))))
-      (okm-render-org-roam-buffer
-       (list (okm-magit-section-for-nodes (org-roam-db-query
-                                           [:select [links:source links:pos links:properties]
-                                                    :from links :inner :join nodes :on (= links:source nodes:id)
-                                                    :where (and (in links:dest $v1) (in nodes:file $v2))]
-                                           ids
-                                           (vector
-                                            (file-truename "~/Documents/org/brain/personal/notes.org")
-                                            (file-truename "~/Documents/org/brain/work/notes.org")))))
-       title buffer-name)))
-
-  (defun okm-org-roam-buffer-nodes (nodes)
-    "convert nodes to list of nodes compatible for `okm-magit-section-for-nodes'."
-    (--map (list (org-roam-node-id it) (org-roam-node-point it) (org-roam-node-properties it)) nodes))
-
-  (defun okm-org-roam-buffer-for-nodes (nodes title buffer-name)
-    "View nodes in org-roam buffer"
-    (okm-render-org-roam-buffer
-       (list
-        (okm-magit-section-for-nodes (okm-org-roam-buffer-nodes nodes)))
-       title buffer-name))
-
-  (defun okm-roam-buffer-from-ql-buffer ()
-    "Convert a org-ql reusult to a roam-buffer."
-    (interactive)
-    (unless org-ql-view-buffers-files
-      (user-error "Not an Org QL View buffer"))
-    ;; Copied from `org-agenda-finalize'
-    (let (mrk nodes)
-      (save-excursion
-	(goto-char (point-min))
-	(while (equal (forward-line) 0)
-	  (when (setq mrk (get-text-property (point) 'org-hd-marker))
-            (org-with-point-at mrk
-              ;; pick only nodes
-              (-if-let (id (org-id-get))
-                  (push (org-roam-node-from-id id) nodes)
-                (user-error "Non roam-node headings in query."))))))
-      (okm-org-roam-buffer-for-nodes nodes
-                                     org-ql-view-title
-                                     (format "*From ql: %s*" org-ql-view-title))))
-
   (defun org-roam-node-annotator (cand)
     "Annotate org-roam-nodes in completions"
     (when-let* ((node (condition-case err
@@ -1242,7 +1159,34 @@ Each node is a 3 elements list: (source-node-id point properties)."
   (defun okm-roam-view-query (source-or-query)
     "View source or query in org-roam buffer."
     (interactive "xQuery: ")
-    (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*")))
+    (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
+
+  (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
+    :body
+    (let* ((backlink-destinations (apply #'vector (-map #'org-roam-node-id nodes)))
+           (id (org-id-get)))
+      (org-roam-db-query [:select * :from links :where (in dest $v1) :and (= source $s2)] backlink-destinations id)))
+
+    (defun okm-org-roam-list-notes (entries)
+    "Filter based on the list of ids (FILTER) in the notes files."
+    (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
+                  (org-roam-node-read-multiple)))
+    (let* ((entries (--map (if (stringp it) (org-roam-node-from-title-or-alias it) it) entries))
+           (names (s-join "," (--map (org-roam-node-title it) entries)))
+           (title (format "(%s)" names))
+           (buffer-name (format "*notes: %s*" names))
+           (ids (apply #'vector (--map (org-roam-node-id it) entries))))
+      (org-roam-ql--render-buffer
+       (list (org-roam-ql--nodes-section (--map (org-roam-node-from-id (car it))
+                                                (org-roam-db-query
+                                                 [:select [links:source]
+                                                          :from links :inner :join nodes :on (= links:source nodes:id)
+                                                          :where (and (in links:dest $v1) (in nodes:file $v2))]
+                                                 ids
+                                                 (vector
+                                                  (file-truename "~/Documents/org/brain/personal/notes.org")
+                                                  (file-truename "~/Documents/org/brain/work/notes.org"))))))
+       title buffer-name))))
 
 (defun okm-view-ql-or-roam-prompt (nodes title &optional query choice)
   "View nodes, in one of (org-ql-buffer org-roam-buffer). Prompt which if not specified."
