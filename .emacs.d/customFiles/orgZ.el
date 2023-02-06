@@ -1203,9 +1203,10 @@ Each node is a 3 elements list: (source-node-id point properties)."
             (buffer (marker-buffer marker))
             (pos (marker-position marker)))
        (when (okm-is-research-paper (buffer-file-name buffer))
-         (with-current-buffer buffer
-           (goto-char pos)
-           ,@body)))))
+         (save-window-excursion
+           (with-current-buffer buffer
+             (goto-char pos)
+             ,@body))))))
 
 (org-ql-defpred okm-parent (&rest args)
   "args - (pred ...parent-ids).
