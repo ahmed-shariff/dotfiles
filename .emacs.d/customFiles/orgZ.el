@@ -776,11 +776,6 @@ Each node is a 3 elements list: (source-node-id point properties)."
         (okm-magit-section-for-nodes (okm-org-roam-buffer-nodes nodes)))
        title buffer-name))
 
-  (defun okm-roam-view-query (source-or-query)
-    "View source or query in org-roam buffer."
-    (interactive "xQuery: ")
-    (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
-
   (defun okm-roam-buffer-from-ql-buffer ()
     "Convert a org-ql reusult to a roam-buffer."
     (interactive)
@@ -1239,7 +1234,14 @@ Each node is a 3 elements list: (source-node-id point properties)."
 (defun okm-is-research-paper (path)
   (f-descendant-of-p (file-truename path) (file-truename (f-join okm-base-directory "research_papers"))))
 
-(require 'okm-ql-view)
+(use-package org-roam-ql
+  :straight (org-roam-ql :type git :host github :repo "ahmed-shariff/org-roam-ql")
+  :after (org-roam org-ql)
+  :config
+  (defun okm-roam-view-query (source-or-query)
+    "View source or query in org-roam buffer."
+    (interactive "xQuery: ")
+    (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*")))
 
 (defun okm-view-ql-or-roam-prompt (nodes title &optional query choice)
   "View nodes, in one of (org-ql-buffer org-roam-buffer). Prompt which if not specified."
