@@ -2145,6 +2145,22 @@ Parent-child relation is defined by the brain-parent links."
       org-agenda-start-on-weekday nil
       org-agenda-start-day "-3d"
       org-image-actual-width (list 650)
+      org-agenda-files (flatten-tree (list (--map (f-files it (lambda (f)
+                                                                (and (f-ext-p f "org")
+                                                                     (with-temp-buffer
+                                                                       (insert-file f)
+                                                                       (if-let (kwds (org-collect-keywords '("filetags")))
+                                                                           (not (member "agendauntrack" (split-string (cadar kwds) ":" 'omit-nulls)))
+                                                                         t)))))
+                                                           (f-glob "~/Documents/org/brain/*/project_boards"))
+                                           (f-files "~/Documents/org/brain/roam-notes"
+                                                    (lambda (f)
+                                                      (and (f-ext-p f "org")
+                                                           (with-temp-buffer
+                                                             (insert-file f)
+                                                             (when-let (kwds (org-collect-keywords '("filetags")))
+                                                               (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))
+                                           (f-glob "~/Documents/org/brain/personal/**/*.org")))
       org-export-with-broken-links t)
 
 (provide 'orgZ)
