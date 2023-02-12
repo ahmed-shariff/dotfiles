@@ -906,7 +906,17 @@ Copied  from `org-roam-backlink-get'."
                        :fork (:host github :repo "ahmed-shariff/org-noter"))
   :config
   (setq org-noter-property-doc-file "INTERLEAVE_PDF"
-        org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"))
+        org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
+  ;; The evil related functions seems to be adding a binding to "q" for `quit-window' in the normal mode
+  ;; Its there in the `evil-collection-eldoc-doc-buffer-mode-map' `special-mode-map' and another one?
+  ;; For now advicing the `quit-window' to let me kill session when quitting without interuppting the function of "q"
+  ;; bound by other maps.
+  (defun org-noter-quit-window-kill-session (oldfun &rest rest)
+    (if org-noter--session
+        (org-noter-kill-session org-noter--session)
+      (apply oldfun rest)))
+
+  (advice-add 'quit-window :around #'org-noter-quit-window-kill-session))
 
 (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
   :straight (org-brain :type git :host github :repo "Kungsgeten/org-brain"

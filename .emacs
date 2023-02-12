@@ -394,7 +394,14 @@ advice, files on WSL can not be saved."
 (use-package evil-collection
   :after evil
   :config
-  (evil-collection-init))
+  (evil-collection-init)
+  ;; Allow org-noter to bind q
+  ;; (evil-collection-define-key 'normal 'evil-collection-eldoc-doc-buffer-mode-map "q" nil)
+  ;; (evil-collection-define-key 'normal 'special-mode-map "q" nil)
+  ;; (define-key special-mode-map "q" nil)
+  )
+
+  
 
 (use-package evil-easymotion
   :config
