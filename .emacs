@@ -1355,6 +1355,7 @@ T - tag prefix
   (ranger-override-dired 'ranger)
   (ranger-preview-delay 0.5)
   (ranger-width-preview 0.4)
+  (ranger-return-to-ranger t)
   :config
   (ranger-override-dired-mode t))
 
