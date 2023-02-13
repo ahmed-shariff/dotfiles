@@ -2100,9 +2100,30 @@ Parent-child relation is defined by the brain-parent links."
 
 (advice-add 'org-archive--compute-location :filter-return #'org-archive--compute-location-to-dir)
 
+(defun update-org-agenda-files ()
+  "Updates the org-agenda-files"
+  (interactive)
+  (setq org-agenda-files (flatten-tree (list (--map (f-files it (lambda (f)
+                                                                  (and (f-ext-p f "org")
+                                                                       (with-temp-buffer
+                                                                         (insert-file f)
+                                                                         (if-let (kwds (org-collect-keywords '("filetags")))
+                                                                             (not (member "agenda-untrack" (split-string (cadar kwds) ":" 'omit-nulls)))
+                                                                           t)))))
+                                                    (f-glob "~/Documents/org/brain/*/project_boards"))
+                                             (f-files "~/Documents/org/brain/roam-notes"
+                                                      (lambda (f)
+                                                        (and (f-ext-p f "org")
+                                                             (with-temp-buffer
+                                                               (insert-file f)
+                                                               (when-let (kwds (org-collect-keywords '("filetags")))
+                                                                 (member "agenda-track" (split-string (cadar kwds) ":" 'omit-nulls)))))))))))
+
+
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
+(update-org-agenda-files)
 (setq org-log-done 'note
       org-log-into-drawer t
       org-deadline-warning-days 2
@@ -2119,21 +2140,6 @@ Parent-child relation is defined by the brain-parent links."
       org-agenda-start-on-weekday nil
       org-agenda-start-day "-3d"
       org-image-actual-width (list 650)
-      org-agenda-files (flatten-tree (list (--map (f-files it (lambda (f)
-                                                                (and (f-ext-p f "org")
-                                                                     (with-temp-buffer
-                                                                       (insert-file f)
-                                                                       (if-let (kwds (org-collect-keywords '("filetags")))
-                                                                           (not (member "agenda-untrack" (split-string (cadar kwds) ":" 'omit-nulls)))
-                                                                         t)))))
-                                                           (f-glob "~/Documents/org/brain/*/project_boards"))
-                                           (f-files "~/Documents/org/brain/roam-notes"
-                                                    (lambda (f)
-                                                      (and (f-ext-p f "org")
-                                                           (with-temp-buffer
-                                                             (insert-file f)
-                                                             (when-let (kwds (org-collect-keywords '("filetags")))
-                                                               (member "agenda-track" (split-string (cadar kwds) ":" 'omit-nulls)))))))))
       org-export-with-broken-links t)
 
 (provide 'orgZ)
