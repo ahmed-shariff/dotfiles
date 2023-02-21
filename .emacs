@@ -413,6 +413,45 @@ advice, files on WSL can not be saved."
   (global-evil-surround-mode 1)
   (evil-embrace-enable-evil-surround-integration))
 
+(use-package evil-multiedit
+  :config
+  (evil-define-key 'normal 'global
+    (kbd "M-d")   #'evil-multiedit-match-symbol-and-next
+    (kbd "M-D")   #'evil-multiedit-match-symbol-and-prev)
+  (evil-define-key 'visual 'global
+    "R"           #'evil-multiedit-match-all
+    (kbd "M-d")   #'evil-multiedit-match-and-next
+    (kbd "M-D")   #'evil-multiedit-match-and-prev)
+  (evil-define-key '(visual normal) 'global
+    (kbd "C-M-d") #'evil-multiedit-restore)
+
+  (with-eval-after-load 'evil-mutliedit
+    (evil-define-key 'multiedit 'global
+      (kbd "M-d")   #'evil-multiedit-match-and-next
+      (kbd "M-S-d") #'evil-multiedit-match-and-prev
+      (kbd "RET")   #'evil-multiedit-toggle-or-restrict-region)
+    (evil-define-key '(multiedit multiedit-insert) 'global
+      (kbd "C-n")   #'evil-multiedit-next
+      (kbd "C-p")   #'evil-multiedit-prev)))
+
+(use-package evil-mc
+  :config
+  (evil-define-key '(normal visual) 'global
+    "gzm" #'evil-mc-make-all-cursors
+    "gzu" #'evil-mc-undo-all-cursors
+    "gzz" #'+evil/mc-toggle-cursors
+    "gzc" #'+evil/mc-make-cursor-here
+    "gzn" #'evil-mc-make-and-goto-next-cursor
+    "gzp" #'evil-mc-make-and-goto-prev-cursor
+    "gzN" #'evil-mc-make-and-goto-last-cursor
+    "gzP" #'evil-mc-make-and-goto-first-cursor)
+
+  (with-eval-after-load 'evil-mc
+    (evil-define-key '(normal visual) evil-mc-key-map
+      (kbd "C-n") #'evil-mc-make-and-goto-next-cursor
+      (kbd "C-N") #'evil-mc-make-and-goto-last-cursor
+      (kbd "C-p") #'evil-mc-make-and-goto-prev-cursor
+      (kbd "C-P") #'evil-mc-make-and-goto-first-cursor)))
 ;;selectrum  *******************************************************
 ;; (use-package prescient
 ;;   :config
@@ -1118,6 +1157,9 @@ targets."
   ;;                      (lsp-deferred))))  ; or lsp-deferred
   )
 
+(use-package lsp-origami
+  :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
+
 (use-package dap-python
   :straight nil
   :config
@@ -1788,11 +1830,12 @@ Used with atomic-chrome."
         atomic-chrome-buffer-open-style 'frame
         atomic-chrome-default-major-mode 'markdown-mode)
 
-  (defun atomic-chrome-set-default-buffer (socket url title text)
+  (defun atomic-chrome-setup (socket url title text)
     (with-current-buffer (atomic-chrome-get-buffer-by-socket socket)
       (projectile-set-buffer-directory)))
+      ;; (write-file ".temp-atomic-chrome-file.tex")))
 
-  (advice-add 'atomic-chrome-create-buffer :after #'atomic-chrome-set-default-buffer))
+  (advice-add 'atomic-chrome-create-buffer :after #'atomic-chrome-setup))
 
 
 ;;latex setup***********************************************************************************
