@@ -2108,7 +2108,7 @@ Parent-child relation is defined by the brain-parent links."
                                                                        (with-temp-buffer
                                                                          (insert-file f)
                                                                          (if-let (kwds (org-collect-keywords '("filetags")))
-                                                                             (not (member "agenda-untrack" (split-string (cadar kwds) ":" 'omit-nulls)))
+                                                                             (not (member "agendauntrack" (split-string (cadar kwds) ":" 'omit-nulls)))
                                                                            t)))))
                                                     (f-glob "~/Documents/org/brain/*/project_boards"))
                                              (f-files "~/Documents/org/brain/roam-notes"
@@ -2117,7 +2117,7 @@ Parent-child relation is defined by the brain-parent links."
                                                              (with-temp-buffer
                                                                (insert-file f)
                                                                (when-let (kwds (org-collect-keywords '("filetags")))
-                                                                 (member "agenda-track" (split-string (cadar kwds) ":" 'omit-nulls)))))))))))
+                                                                 (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))))))
 
 
 (define-key global-map "\C-cl" 'org-store-link)
