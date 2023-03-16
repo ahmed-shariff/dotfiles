@@ -824,12 +824,16 @@ Copied  from `org-roam-backlink-get'."
 	doi-utils-open-pdf-after-download nil
         doi-utils-download-pdf nil)
 
-  (defun org-ref-get-bibtex-key-under-cursor-with-latex (old-func)
-    (if (derived-mode-p 'latex-mode)
-        (bibtex-completion-get-key-latex)
-      (funcall old-func)))
+  (defun org-ref-get-bibtex-key-under-cursor-with-latex-and-okm (old-func)
+    (cond
+     ((derived-mode-p 'latex-mode)
+      (bibtex-completion-get-key-latex))
+     ((and (derived-mode-p 'org-mode) (org-entry-get (point) "Custom_ID"))
+      (org-entry-get (point) "Custom_ID"))
+     (t
+      (funcall old-func))))
 
-  (advice-add 'org-ref-get-bibtex-key-under-cursor :around #'org-ref-get-bibtex-key-under-cursor-with-latex)
+  (advice-add 'org-ref-get-bibtex-key-under-cursor :around #'org-ref-get-bibtex-key-under-cursor-with-latex-and-okm)
   ;; (advice-remove 'org-ref-get-bibtex-key-under-cursor #'org-ref-get-bibtex-key-under-cursor-with-latex)
 
   (require 'org-ref-latex)
@@ -1904,6 +1908,7 @@ Parent-child relation is defined by the brain-parent links."
 	    (define-key org-mode-map "\C-cop" 'okm-add-parent-topic)
 	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
             (define-key org-mode-map "\C-cos" 'okm-print-parents)
+            (define-key org-mode-map "\C-cor" 'org-ref-citation-hydra/body)
             (define-key org-mode-map "\C-coa" 'org-asana-hydra/body)
             (define-key org-mode-map (kbd "C-'") nil)
             (define-key org-mode-map "\C-c/" nil)
