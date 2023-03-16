@@ -2366,6 +2366,8 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 ;; (setq elcord-client-id (gethash 'elcord-client-id configurations))
 
 
+(use-package buttercup)
+
 ;; processing-mode*******************************************************
 (use-package processing-mode
   :mode "\\.pde\\'"
