@@ -1750,6 +1750,36 @@ With C-u C-u C-u prefix, force run all research-papers."
                          (org-agenda-error))
     (funcall org-agenda-copy-query-notes-and-bib-func)))
 
+(defun okm-insert-entries ()
+  "To be used with reading lists."
+  (let* ((nodes-of-interest (save-excursion
+                              (goto-char 0)
+                              (org-next-visible-heading 1)
+                              (let ((beg (progn (org-roam-end-of-meta-data t)
+                                                (point)))
+                                    (end (progn (org-previous-visible-heading 1)
+                                                (org-end-of-subtree)
+                                                (point))))
+                                (--filter (not (string-empty-p it))
+                                          (--map (cadr it)
+                                                 (s-match-strings-all "id:\\([a-z0-9-]*\\)"  (buffer-substring-no-properties beg end)))))))
+         (nodes (-uniq (-flatten (--map (okm-get-children it) nodes-of-interest))))
+         (nodes-in-file (org-map-entries (lambda () (org-entry-get (point) "NODE_ID")) "LEVEL=1"))
+         (new-nodes (-difference nodes nodes-in-file)))
+    ;; (list nodes nodes-in-file))
+    (when new-nodes
+      (goto-char (point-max))
+      (save-excursion
+        (dolist (node new-nodes)
+          (goto-char (point-max))
+          (org-insert-todo-heading t)
+          (insert (org-roam-node-title (org-roam-node-from-id node)))
+          (org-entry-put (point) "NODE_ID" node)
+          (goto-char (point-max))
+          (insert (format "#+transclude: [[id:%s]] :only-contents :exclude-elements \"drawer keyword\"\ncite:&%s\n"
+                          node
+                          (car (org-roam-node-refs (org-roam-node-from-id node))))))))))
+
 (require 'org-ref-arxiv)
 (defun arxiv-add-bibtex-entry-with-note (arxiv-link bibfile)
   "Add bibtex entry for ARXIV-LINK to BIBFILE."
