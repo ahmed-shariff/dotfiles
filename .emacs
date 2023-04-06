@@ -134,6 +134,7 @@
  '(ede-project-directories '("/media/Files/Research/FoodClassification/deployment"))
  '(elpy-rpc-python-command "python3")
  '(explicit-shell-file-name "/bin/zsh")
+ '(helm-minibuffer-history-key "M-p")
  '(ledger-post-amount-alignment-at :decimal)
  '(ledger-reconcile-default-commodity nil)
  '(ledger-reports
@@ -147,15 +148,15 @@
  '(prolog-system 'swi)
  '(python-shell-interpreter "python3")
  '(safe-local-variable-values
-   '((dired-omit-files . "\\`[.]?#\\|\\`[.][.]?\\'\\|\\.log$")
+   '((eval font-lock-add-keywords nil
+           '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
+             ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-tag t)
+             ("`\\([a-zA-Z].*[a-zA-Z\\.]\\)`" 1 'org-quote t))
+           'append)
+     (dired-omit-files . "\\`[.]?#\\|\\`[.][.]?\\'\\|\\.log$")
      (magit-todos-exclude-globs "Assets/Oculus/")
      (magit-todos-exclude-globs . "Assets/Oculus/")
      (org-download-image-dir . "figures/notes")
-     (eval font-lock-add-keywords nil
-           '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
-             ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-level-7 t)
-             ("`\\([a-zA-Z].*[a-zA-Z\\.]\\)`" 1 'org-quote t))
-           'append)
      (org-download-image-dir . "figures")))
  '(sml/mode-width 15)
  '(sml/shorten-modes t)
@@ -167,13 +168,15 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(company-scrollbar-bg ((t (:background "#000000"))))
- '(company-scrollbar-fg ((t (:background "#555555"))))
+ '(company-scrollbar-bg ((t (:background "#000000"))) t)
+ '(company-scrollbar-fg ((t (:background "#555555"))) t)
  '(company-tooltip ((t (:inherit default :background "#000000"))))
  '(company-tooltip-annotation ((t (:inherit font-lock-builtin-face))))
  '(company-tooltip-common ((t (:inherit font-lock-constant-face))))
  '(company-tooltip-selection ((t (:inherit highlight))))
  '(markdown-code-face ((t (:inherit consolas))))
+ '(org-block-begin-line ((t (:background "#112424"))))
+ '(org-block-end-line ((t (:background "#112424"))))
  '(org-level-1 ((t (:inherit outline-1 :foreground "dark turquoise"))))
  '(org-special-keyword ((t (:inherit outline-1 :foreground "sienna")))))
 
