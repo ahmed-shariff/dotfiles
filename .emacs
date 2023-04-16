@@ -676,7 +676,7 @@ targets."
 (use-package consult
   ;; Replace bindings. Lazily loaded due by `use-package'.
   :bind (;; C-c bindings (mode-specific-map)
-         ("C-c h" . consult-history)
+         ;; ("C-c h" . consult-history)
          ;; ("C-c m" . consult-mode-command)
          ("C-c b" . consult-bookmark)
          ("C-c k" . consult-kmacro)
@@ -1701,6 +1701,20 @@ Used with atomic-chrome."
 
   (add-hook 'persp-switch-hook #'amsha/launch-lsp-mode-after-switch))
   
+;;harpoon ****************************************************************************************************************
+(use-package harpoon
+  :bind
+  (("C-c h h" . harpoon-toggle-quick-menu)
+   ("C-c h H" . harpoon-quick-menu-hydra)
+   ("C-c h <return>" . harpoon-add-file)
+   ("C-c h c" . harpoon-clear)
+   ("C-c h 1" . harpoon-go-to-1)
+   ("C-c h 2" . harpoon-go-to-2)
+   ("C-c h 3" . harpoon-go-to-3)
+   ("C-c h 4" . harpoon-go-to-4)
+   ("C-c h 5" . harpoon-go-to-5)
+   ("C-c h 6" . harpoon-go-to-6)
+   ("C-c h 7" . harpoon-go-to-7)))
 
 ;;treemacs setup**********************************************************************************************************
 (use-package treemacs
