@@ -1875,9 +1875,10 @@ Parent-child relation is defined by the brain-parent links."
 (defun org-agenda-okm-add-parents ()
   "To be used with the org-agenda-bulk-action."
   (unless org-agenda-okm-add-parents--parents
-    (setq org-agenda-okm-add-parents--parents (-map #'org-roam-node-id (org-roam-node-read-multiple "Add parents: ")))
+    (setq org-agenda-okm-add-parents--parents (-map #'org-roam-node-id (org-roam-node-read-multiple "Add parents: "))
           org-agenda-bulk-action-post-execution-function (lambda ()
-                                                           (setq org-agenda-okm-add-parents--parents nil)))
+                                                           (em "Cleared org-agenda-okm-add-parents--parents")
+                                                           (setq org-agenda-okm-add-parents--parents nil))))
   (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
                          (org-agenda-error))
     (okm-add-parent-topic org-agenda-okm-add-parents--parents (org-id-get))))
