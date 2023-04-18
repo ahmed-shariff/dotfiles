@@ -580,6 +580,7 @@
   (setq org-roam-v2-ack t)
   :custom
   (org-roam-directory (file-truename okm-base-directory))
+  (org-roam-file-extensions '("org" "org_archive"))
   (org-roam-dailies-directory "dailies")
   (org-roam-dailies-capture-templates
    '(("d" "default" entry "%(okm-board-task-location)"
@@ -1896,9 +1897,11 @@ Parent-child relation is defined by the brain-parent links."
         (topics '())
         (other-parents '()))
     (mapcar (lambda (entry)
-              (if (f-equal-p (file-truename (org-roam-node-file entry)) research-topics-file)
-                  (push (org-roam-node-title entry) topics)
-                (push (org-roam-node-title entry) other-parents)))
+              (if entry
+                  (if (f-equal-p (file-truename (org-roam-node-file entry)) research-topics-file)
+                      (push (org-roam-node-title entry) topics)
+                    (push (org-roam-node-title entry) other-parents))
+                (push "<missing entry>" other-parents)))
             parents)
     (cons topics other-parents)))
 
