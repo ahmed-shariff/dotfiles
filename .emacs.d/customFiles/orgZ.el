@@ -609,6 +609,9 @@
                         "#+title: ${title}\n")
      :unnarrowed t)))
   (org-roam-node-display-template "${title}")
+  (org-roam-mode-sections (list #'org-roam-mode-sections
+                                '(org-roam-backlinks-section :unique t)
+                                #'org-roam-reflinks-section))
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ;;("C-c n g" . org-roam-graph)
@@ -668,8 +671,6 @@ Copied  from `org-roam-backlink-get'."
            :point (org-roam-backlink-point backlink)
            :properties (org-roam-backlink-properties backlink)))
         (insert ?\n))))
-
-  (push #'org-roam-brain-children-section org-roam-mode-sections)
 
   (defun org-roam-subtree-aware-preview-function ()
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
@@ -1185,7 +1186,7 @@ Copied  from `org-roam-backlink-get'."
            (id (org-id-get)))
       (org-roam-db-query [:select * :from links :where (in dest $v1) :and (= source $s2)] backlink-destinations id)))
 
-    (defun okm-org-roam-list-notes (entries)
+  (defun okm-org-roam-list-notes (entries)
     "Filter based on the list of ids (FILTER) in the notes files."
     (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
                   (org-roam-node-read-multiple)))
@@ -1197,7 +1198,7 @@ Copied  from `org-roam-backlink-get'."
       (org-roam-ql--render-buffer
        (list (org-roam-ql--nodes-section (--map (org-roam-node-from-id (car it))
                                                 (org-roam-db-query
-                                                 [:select [links:source]
+                                                 [:select :distinct [links:source]
                                                           :from links :inner :join nodes :on (= links:source nodes:id)
                                                           :where (and (in links:dest $v1) (in nodes:file $v2))]
                                                  ids
