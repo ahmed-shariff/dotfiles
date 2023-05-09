@@ -402,6 +402,7 @@ advice, files on WSL can not be saved."
   ;; (evil-collection-define-key 'normal 'evil-collection-eldoc-doc-buffer-mode-map "q" nil)
   ;; (evil-collection-define-key 'normal 'special-mode-map "q" nil)
   ;; (define-key special-mode-map "q" nil)
+  (evil-collection-define-key 'normal 'pdf-view-mode-map "\C-u" nil)
   )
 
   
