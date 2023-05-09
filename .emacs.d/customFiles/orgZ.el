@@ -609,7 +609,7 @@
                         "#+title: ${title}\n")
      :unnarrowed t)))
   (org-roam-node-display-template "${title}")
-  (org-roam-mode-sections (list #'org-roam-mode-sections
+  (org-roam-mode-sections (list #'org-roam-brain-children-section
                                 '(org-roam-backlinks-section :unique t)
                                 #'org-roam-reflinks-section))
   :bind (("C-c n l" . org-roam-buffer-toggle)
