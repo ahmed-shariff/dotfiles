@@ -1628,6 +1628,18 @@ T - tag prefix
 ;;  '(mode-line-inactive ((t (:background "#666666" :foreground "#f9f9f9" :box nil :height 0.9))))
 ;;  '(sml/global ((t (:foreground "gray50" :inverse-video nil :height 0.9 :width normal)))))
 
+
+;;arduino-mode***********************************************************
+(use-package arduino-mode)
+
+(use-package arduino-cli-mode
+  :ensure t
+  :hook arduino-mode
+  :mode "\\.ino\\'"
+  :custom
+  (arduino-cli-warnings 'all)
+  (arduino-cli-verify t))
+
 ;;projectile mode********************************************************
 (use-package projectile
   :demand t
