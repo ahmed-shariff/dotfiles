@@ -2448,6 +2448,7 @@ ARG : the arg"
                                          (("n" "{"))
                                          (:foreground "IndianRed")
                                          command)
+                                        ("rev" (("rev" "{")) (:background "blue") command)
                                         ("autoref" (("autoref" "{")) 'font-lock-constant-face command)
                                         ("red" (("red" "{")) (:background "red") command)
                                         ("green" (("green" "{")) (:background "Springgreen4") command)
