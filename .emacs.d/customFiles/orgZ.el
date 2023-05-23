@@ -1930,12 +1930,13 @@ Parent-child relation is defined by the brain-parent links."
       (org-entry-delete (point) "Attachment")
       (org-entry-delete (point) "INTERLEAVE_PDF")
       (org-entry-delete (point) "PDF_TEXT_FILE")
-      (org-entry-put-multivalued-property
-       (point) "RPC-TAGS"
-       (delete "PDF_ERROR"
-               (delete "nosiblings"
-                       (delete "ATTACH"
-                               (delete-dups (org-entry-get-multivalued-property (point) "RPC-TAGS")))))))))
+      ;; NOTE: This is done to avoid the resulting tags being nil triggering an error
+      (apply #'org-entry-put-multivalued-property
+             (point) "RPC-TAGS"
+             (delete "PDF_ERROR"
+                     (delete "nosiblings"
+                             (delete "ATTACH"
+                                     (delete-dups (org-entry-get-multivalued-property (point) "RPC-TAGS")))))))))
 
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
