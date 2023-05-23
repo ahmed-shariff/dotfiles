@@ -392,6 +392,8 @@ advice, files on WSL can not be saved."
   (evil-set-initial-state 'special-mode 'emacs)
   (evil-set-initial-state 'view-mode 'emacs)
   (evil-set-initial-state 'deft-mode 'emacs)
+
+  (add-hook 'before-save-hook (lambda (&rest _) "Switch to normal mode before saving buffer" (evil-force-normal-state)))
   )
 
 (use-package evil-collection
