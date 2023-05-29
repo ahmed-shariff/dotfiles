@@ -610,7 +610,7 @@
      :unnarrowed t)))
   (org-roam-node-display-template "${title}")
   (org-roam-mode-sections (list #'org-roam-brain-children-section
-                                '(org-roam-backlinks-section :unique t)
+                                '(org-roam-backlinks-section :unique nil) ;; Setting to nil becuase when t it doesn't work too well with notes
                                 #'org-roam-reflinks-section))
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
@@ -809,6 +809,7 @@ Copied  from `org-roam-backlink-get'."
 
 (use-package org-ref
   :after ox-pandoc
+  :requires org-keys
   :demand
   :bind (:map org-mode-map
          ("C-c ]" . org-ref-insert-link))
