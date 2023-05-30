@@ -1197,15 +1197,29 @@ Copied  from `org-roam-backlink-get'."
            (buffer-name (format "*notes: %s*" names))
            (ids (apply #'vector (--map (org-roam-node-id it) entries))))
       (org-roam-ql--render-buffer
-       (list (org-roam-ql--nodes-section (--map (org-roam-node-from-id (car it))
-                                                (org-roam-db-query
-                                                 [:select :distinct [links:source]
-                                                          :from links :inner :join nodes :on (= links:source nodes:id)
-                                                          :where (and (in links:dest $v1) (in nodes:file $v2))]
-                                                 ids
-                                                 (vector
-                                                  (file-truename "~/Documents/org/brain/personal/notes.org")
-                                                  (file-truename "~/Documents/org/brain/work/notes.org"))))))
+       (list (--> (org-roam-db-query
+                   [:select :distinct [links:source links:pos links:properties]
+                            :from links :inner :join nodes :on (= links:source nodes:id)
+                            :where (and (in links:dest $v1) (in nodes:file $v2))]
+                   ids
+                   (vector
+                    (file-truename "~/Documents/org/brain/personal/notes.org")
+                    (file-truename "~/Documents/org/brain/work/notes.org")))
+                  (lambda ()
+                    (magit-insert-section (org-roam)
+                      (magit-insert-heading "Notes:")
+                      (dolist (entry
+                               ;; removing duplicates as the whole subtree will be getting displayed
+                               ;;(seq-uniq
+                               it)
+                        (let* ((source-node (org-roam-node-from-id (car entry)))
+                               (pos (cadr entry))
+                               (properties (caddr entry)))
+                          (org-roam-node-insert-section :source-node source-node
+                                                        :point pos
+                                                        :properties properties))
+                        (insert ?\n))
+                      (run-hooks 'org-roam-buffer-postrender-functions)))))
        title buffer-name))))
 
 (defun okm-view-ql-or-roam-prompt (nodes title &optional query choice)
