@@ -621,11 +621,39 @@
          ;; Dailies
          ("C-c n j" . org-roam-dailies-capture-today)
          ;; org-roam-bibtex
-         ("C-c n b" . orb-insert-link))
+         ("C-c n b" . orb-insert-link)
+         :map org-roam-node-map
+         ("C-c o s" . org-roam-node-view-topics)
+         ("C-c o o" . org-roam-node-view-noter)
+         ("C-c o p" . org-roam-node-add-parents)
+         :map org-roam-preview-map
+         ("C-c o s" . org-roam-node-view-topics)
+         ("C-c o o" . org-roam-node-view-noter)
+         ("C-c o p" . org-roam-node-add-parents))
   :config
   (org-roam-db-autosync-mode)
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
+
+  (defmacro org-roam-node-action (name &rest body)
+    (declare (indent defun))
+    `(defun ,name ()
+       (interactive)
+       (when-let* ((node (org-roam-node-at-point))
+                   (buffer (find-file-noselect (org-roam-node-file node)))
+                   (pos (org-roam-node-point node)))
+           (when (okm-is-research-paper (buffer-file-name buffer))
+             (save-window-excursion
+               (with-current-buffer buffer
+                 (goto-char pos)
+                 ,@body))))))
+
+  (org-roam-node-action org-roam-node-view-noter
+    (org-noter))
+  (org-roam-node-action org-roam-node-view-topics
+    (okm-print-parents))
+  (org-roam-node-action org-roam-node-add-parents
+    (okm-add-parent-topic))
 
 ;;   (defmacro org-roam-backlinks-get-brain-relation (relation-function node)
 ;;     "Use `relation-function' to get the relations as backlinks for the given org-roam `node'.
