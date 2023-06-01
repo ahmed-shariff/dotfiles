@@ -405,6 +405,7 @@ advice, files on WSL can not be saved."
   ;; (evil-collection-define-key 'normal 'special-mode-map "q" nil)
   ;; (define-key special-mode-map "q" nil)
   (evil-collection-define-key 'normal 'pdf-view-mode-map "\C-u" nil)
+  (evil-collection-define-key 'normal 'pdf-view-mode-map "B" 'pdf-history-backward)
   )
 
   
