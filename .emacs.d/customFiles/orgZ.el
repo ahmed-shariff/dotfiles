@@ -690,7 +690,7 @@
   (defun org-roam-brain-children-section (node)
     "The brain children section for NODE.
 Copied  from `org-roam-backlink-get'."
-    (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (okm-backlinks-get node))))
+    (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (okm-links-get node))))
       (magit-insert-section (org-roam-brain-children)
         (magit-insert-heading "Brain children:")
         (dolist (backlink backlinks)
@@ -1204,14 +1204,26 @@ Copied  from `org-roam-backlink-get'."
   :straight (org-roam-ql :type git :host github :repo "ahmed-shariff/org-roam-ql")
   :after (org-roam org-ql)
   :config
-  (defun okm-roam-view-query (source-or-query)
-    "View source or query in org-roam buffer."
-    (interactive "xQuery: ")
-    (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
+  ;; (defun okm-roam-view-query (source-or-query)
+  ;;   "View source or query in org-roam buffer."
+  ;;   (interactive "xQuery: ")
+  ;;   (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
+  (org-roam-ql-defpred 'child-of
+                       (lambda (node)
+                         (--map (org-roam-node-id (org-roam-backlink-target-node it))
+                                (okm-links-get node 'is-forwardlinks)))
+                       #'org-roam-ql--predicate-backlinked-to)
 
   (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
     :body
-    (let* ((backlink-destinations (apply #'vector (-map #'org-roam-node-id nodes)))
+    (let* ((backlink-destinations (apply #'vector (-non-nil
+                                                   (--map (cond
+                                                          ((org-roam-node-p it) (org-roam-node-id it))
+                                                          ((stringp it) (or (org-roam-node-from-id it)
+                                                                            (ignore-errors
+                                                                              (org-roam-node-id (org-roam-node-from-title-or-alias it)))))
+                                                          (t nil))
+                                                         nodes))))
            (id (org-id-get)))
       (org-roam-db-query [:select * :from links :where (in dest $v1) :and (= source $s2)] backlink-destinations id)))
 
@@ -1256,7 +1268,8 @@ Copied  from `org-roam-backlink-get'."
     (setq choice (intern-soft (completing-read "Choice: " '(org-roam org-ql) nil t))))
   (pcase choice
     ('org-ql (org-roam-ql-view nodes title query))
-    ('org-roam (okm-org-roam-buffer-for-nodes nodes title (format "*%s*" title)))))
+    ('org-roam (org-roam-ql--render-buffer (list (org-roam-ql--nodes-section nodes))
+                                           (format "%s" title) (format "*%s*" title)))))
 
 (defun okm-query-papers-by-topics (&optional topic-ids)
   "Query papers based on topics."
@@ -1375,22 +1388,25 @@ Copied  from `org-roam-backlink-get'."
   (--map (s-replace (format "%s:" okm-parent-id-type-name) "" it) (org-entry-get-multivalued-property (point) okm-parent-property-name)))
 
 ;; copied from `org-roam-backlinks-get'
-(cl-defun okm-backlinks-get (node &key unique)
-  "Return the brain-parent backlinks for NODE.
+(cl-defun okm-links-get (node &optional is-forwardlink &key unique)
+  "Return the brain-parent link for NODE.
+ If IS-FORWARDLINK is non-nil, get backlink, else get forwardlinks.
 
  When UNIQUE is nil, show all positions where references are found.
  When UNIQUE is t, limit to unique sources."
-  (let* ((sql (if unique
-                  [:select :distinct [source dest pos properties]
-                   :from links
-                   :where (= dest $s1)
-                   :and (= type $s2)
-                   :group :by source
-                   :having (funcall min pos)]
-                [:select [source dest pos properties]
-                 :from links
-                 :where (= dest $s1)
-                 :and (= type $s2)]))
+  (let* ((where-clause (if is-forwardlink 'source 'dest))
+         (group-by-clause (if is-forwardlink 'source 'dest))
+         (sql (if unique
+                  (vector :select :distinct [source dest pos properties]
+                          :from 'links
+                          :where `(= ,where-clause $s1)
+                          :and '(= type $s2)
+                          :group :by group-by-clause
+                          :having '(funcall min pos))
+                (vector :select [source dest pos properties]
+                        :from 'links
+                        :where `(= ,where-clause $s1)
+                        :and '(= type $s2))))
          (backlinks (org-roam-db-query sql (org-roam-node-id node) okm-parent-id-type-name)))
     (cl-loop for backlink in backlinks
              collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
@@ -1895,7 +1911,7 @@ Parent-child relation is defined by the brain-parent links."
   (unless entry-id
     (setq entry-id (org-id-get-closest)))
   (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
-  (--map (org-roam-node-id (org-roam-backlink-source-node it)) (okm-backlinks-get (org-roam-node-from-id entry-id) :unique t)))
+  (--map (org-roam-node-id (org-roam-backlink-source-node it)) (okm-links-get (org-roam-node-from-id entry-id) :unique t)))
 
 (defun okm-add-parent-topic (&optional parents entry)
   "PARENTS should be a list of IDs. ENTRY should be an ID."
