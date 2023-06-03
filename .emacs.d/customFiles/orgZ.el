@@ -1509,7 +1509,7 @@ Either show all or filter based on a sprint."
     (okm-print-parents topics other-parents)
     (cons topics other-parents)))
 
-(defun org-ql-query-topics ()
+(defun okm-org-ql-query-topics ()
   "List all parent topics of all results from QUERY.
 Currently written to work in org-ql buffer."
   (interactive)
@@ -1519,8 +1519,8 @@ Currently written to work in org-ql buffer."
         :action (lambda () (-let (((-topics . -other-parents) (okm-parents-by-topics (org-id-get))))
                              (setq topics (append topics -topics)
                                    other-parents (append other-parents -other-parents)))))
-      (setq topics (-map #'org-roam-node-from-title-or-alias (-uniq topics))
-            other-parents (-map #'org-roam-node-from-title-or-alias (-uniq other-parents)))
+      (setq topics (-map #'org-roam-node-from-title-or-alias (--filter (not (string-empty-p it)) (-uniq topics)))
+            other-parents (-map #'org-roam-node-from-title-or-alias (--filter (not (string-empty-p it)) (-uniq other-parents))))
       ;;(okm-print-parents topics other-parents))))
       (let ((all-topics (append topics other-parents)))
         (org-roam-ql-view (-uniq all-topics) "Query parents" `(member (org-id-get) (list ,@(-map #'org-roam-node-id all-topics)))
