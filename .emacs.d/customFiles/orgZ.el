@@ -1663,7 +1663,7 @@ With C-u C-u C-u prefix, force run all research-papers."
 
             (when (and full-path (file-exists-p full-path))
               (let ((text-file-name (expand-file-name (format "%s.txt" (file-name-base full-path)) (file-name-directory full-path))))
-                (unless (file-exists-p text-file-name)
+                (unless (and (file-exists-p text-file-name) (org-entry-get pom "PDF_TEXT_FILE"))
                   (condition-case nil
                       (progn
                         (with-temp-buffer
@@ -1911,7 +1911,7 @@ Parent-child relation is defined by the brain-parent links."
   (unless entry-id
     (setq entry-id (org-id-get-closest)))
   (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
-  (--map (org-roam-node-id (org-roam-backlink-source-node it)) (okm-links-get (org-roam-node-from-id entry-id) :unique t)))
+  (--map (org-roam-node-id (org-roam-backlink-source-node it)) (okm-links-get (org-roam-node-from-id entry-id) nil :unique t)))
 
 (defun okm-add-parent-topic (&optional parents entry)
   "PARENTS should be a list of IDs. ENTRY should be an ID."

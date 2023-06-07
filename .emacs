@@ -768,7 +768,7 @@ targets."
    consult-ripgrep consult-git-grep consult-grep
    consult-bookmark consult-recent-file consult-xref
    consult--source-recent-file consult--source-project-recent-file
-   consult--source-bookmark :preview-key (kbd "M-.")
+   consult--source-bookmark :preview-key "M-."
    consult--source-buffer :hidden t :default nil)
 
   (defvar consult--source-perspective
@@ -2346,7 +2346,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   (unity-setup))
 
 ;; matlab setup#################################################################
-(use-package matlab-mode)
+;; (use-package matlab-mode)
 
 ;;Docker
 (use-package docker
