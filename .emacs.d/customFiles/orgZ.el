@@ -1213,6 +1213,10 @@ Copied  from `org-roam-backlink-get'."
                          (--map (org-roam-node-id (org-roam-backlink-target-node it))
                                 (okm-links-get node 'is-forwardlinks)))
                        #'org-roam-ql--predicate-backlinked-to)
+  (org-roam-ql-defpred 'pdf-string
+                       (lambda (node)
+                         (cdr (assoc "PDF_TEXT_FILE" (org-roam-node-properties node))))
+                       #'okm--test-regexp-on-file)
 
   (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
     :body
@@ -1268,7 +1272,7 @@ Copied  from `org-roam-backlink-get'."
     (setq choice (intern-soft (completing-read "Choice: " '(org-roam org-ql) nil t))))
   (pcase choice
     ('org-ql (org-roam-ql-view nodes title query))
-    ('org-roam (org-roam-ql--render-buffer (list (org-roam-ql--nodes-section nodes))
+    ('org-roam (org-roam-ql--render-buffer (list (org-roam-ql--nodes-section nodes "Nodes:"))
                                            (format "%s" title) (format "*%s*" title)))))
 
 (defun okm-query-papers-by-topics (&optional topic-ids)
@@ -1331,26 +1335,39 @@ Copied  from `org-roam-backlink-get'."
 ;;   (let* ((query `(and (level <= 1) (pdf-regexp ,regexp))))
 ;;     (org-ql-search '("~/Documents/org/brain/research_papers/")  query)))
 
+(defun okm--test-regexp-on-file (f regexp)
+  (with-temp-buffer
+    (insert-file-contents f)
+    (cl-typecase regexp
+      (string
+       (s-match-strings-all regexp (buffer-string)))
+      (symbol
+       (s-match-strings-all (symbol-name regexp) (buffer-string)))
+      (list
+       (--all-p (s-match-strings-all it (buffer-string)) regexp))
+      (t (error "Unknown type?")))))
+
 (defun okm-search-papers-by-pdf-string (regexp)
   "Search without opening org files."
   (interactive "xRegexp: ")
-  (okm-view-ql-or-roam-prompt
-   (-non-nil
-    (--map
-     (org-roam-node-from-id (caar (org-roam-db-query [:select node-id :from refs :where (= ref $s1)] (f-base it))))
-     (-filter (lambda (f)
-                (with-temp-buffer
-                  (insert-file-contents f)
-                  (cl-typecase regexp
-                    (string 
-                     (s-match-strings-all regexp (buffer-string)))
-                    (symbol
-                     (s-match-strings-all (symbol-name regexp) (buffer-string)))
-                    (list
-                     (--all-p (s-match-strings-all it (buffer-string)) regexp))
-                    (t (error "Unknown type?")))))
-              (f-glob "*.txt" bibtex-completion-library-path))))
-   regexp `(pdf-regexp ,regexp)))
+  (let ((results (--filter
+                  (cdr it)
+                  (-map (lambda (f)
+                          (cons (f-base f)
+                                (okm--test-regexp-on-file f regexp)))
+                        (f-glob "*.txt" bibtex-completion-library-path)))))
+    (cl-letf (((symbol-function 'org-roam-preview-get-contents)
+               (lambda (f point)
+                 (propertize (s-join "\n" (--map (format " - %s" it) (assoc (f-base f) results))) 'face 'org-tag))))
+      (okm-view-ql-or-roam-prompt
+       (-non-nil
+        (--map
+         (let ((node (org-roam-node-from-id (caar (org-roam-db-query [:select node-id :from refs :where (= ref $s1)] (car it))))))
+           (unless node
+             (em (format "Error with %s" (car it))))
+           node)
+         results))
+       regexp `(pdf-regexp ,regexp)))))
 
 (defun amsha/get-sprints (states)
   "Return sprints based on STATUS."
