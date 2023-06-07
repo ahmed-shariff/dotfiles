@@ -786,7 +786,25 @@ targets."
                                               (lambda (it)
                                                 (member (buffer-name it) current-persp-buffers)))))))
 
+  (defvar consult--source-harpoon
+    (list :name     "Harpoon"
+          :narrow   ?h
+          :category 'buffer
+          :state    #'consult--buffer-state
+          :action   #'consult--buffer-action
+          :default  t
+          :items    (lambda ()
+                      (let ((harpoon-buffer-names (delete "" (split-string (harpoon--get-file-text) "\n"))))
+                        (consult--buffer-query :sort 'visibility
+                                               :as #'buffer-name
+                                               :predicate
+                                               (lambda (it)
+                                                 (when-let (-buffer-name (buffer-file-name it))
+                                                   (member -buffer-name harpoon-buffer-names))))))))
+
+
   (push consult--source-perspective consult-buffer-sources)
+  (push consult--source-harpoon consult-buffer-sources)
 
   (defvar consult--source-dogears
     (list :name     "Dogears"
@@ -1719,6 +1737,7 @@ Used with atomic-chrome."
   
 ;;harpoon ****************************************************************************************************************
 (use-package harpoon
+  :demand t
   :bind
   (("C-c h h" . harpoon-toggle-quick-menu)
    ("C-c h H" . harpoon-quick-menu-hydra)
