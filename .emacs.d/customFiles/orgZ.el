@@ -1203,6 +1203,8 @@ Copied  from `org-roam-backlink-get'."
 (use-package org-roam-ql
   :straight (org-roam-ql :type git :host github :repo "ahmed-shariff/org-roam-ql")
   :after (org-roam org-ql)
+  :bind (:map minibuffer-mode-map
+         ("C-c n i" . org-roam-ql-insert-node-title))
   :config
   ;; (defun okm-roam-view-query (source-or-query)
   ;;   "View source or query in org-roam buffer."
@@ -1231,11 +1233,20 @@ Copied  from `org-roam-backlink-get'."
            (id (org-id-get)))
       (org-roam-db-query [:select * :from links :where (in dest $v1) :and (= source $s2)] backlink-destinations id)))
 
+  (defun okm-get-all-roam-nodes-in-file (f)
+    (org-roam-ql-nodes (list [:select [id] :from nodes :where (= file $s1)] f)))
+
   (defun okm-org-roam-list-notes (entries)
     "Filter based on the list of ids (FILTER) in the notes files."
     (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
                   (org-roam-node-read-multiple)))
-    (let* ((entries (--map (if (stringp it) (org-roam-node-from-title-or-alias it) it) entries))
+    (let* ((entries (-uniq
+                     (-flatten
+                      (--map (let ((node (if (stringp it) (org-roam-node-from-title-or-alias it) it)))
+                               (if (equal (org-roam-node-level node) 0)
+                                   (list node (okm-get-all-roam-nodes-in-file (org-roam-node-file node)))
+                                 node))
+                             entries))))
            (names (s-join "," (--map (org-roam-node-title it) entries)))
            (title (format "(%s)" names))
            (buffer-name (format "*notes: %s*" names))
@@ -1258,7 +1269,13 @@ Copied  from `org-roam-backlink-get'."
                                it)
                         (let* ((source-node (org-roam-node-from-id (car entry)))
                                (pos (cadr entry))
-                               (properties (caddr entry)))
+                               (properties (caddr entry))
+                               (outline (plist-get properties :outline)))
+                          (when outline
+                            (setq properties (plist-put properties :outline
+                                                        (cl-subseq outline
+                                                                   0
+                                                                   (1- (length outline))))))
                           (org-roam-node-insert-section :source-node source-node
                                                         :point pos
                                                         :properties properties))
@@ -1270,10 +1287,11 @@ Copied  from `org-roam-backlink-get'."
   "View nodes, in one of (org-ql-buffer org-roam-buffer). Prompt which if not specified."
   (unless choice
     (setq choice (intern-soft (completing-read "Choice: " '(org-roam org-ql) nil t))))
-  (pcase choice
-    ('org-ql (org-roam-ql-view nodes title query))
-    ('org-roam (org-roam-ql--render-buffer (list (org-roam-ql--nodes-section nodes "Nodes:"))
-                                           (format "%s" title) (format "*%s*" title)))))
+  (org-roam-ql-search nodes choice))
+  ;; (pcase choice
+  ;;   ('org-ql (org-roam-ql-view nodes title query))
+  ;;   ('org-roam (org-roam-ql--render-buffer (list (org-roam-ql--nodes-section nodes "Nodes:"))
+  ;;                                          (format "%s" title) (format "*%s*" title)))))
 
 (defun okm-query-papers-by-topics (&optional topic-ids)
   "Query papers based on topics."
@@ -1412,7 +1430,7 @@ Copied  from `org-roam-backlink-get'."
  When UNIQUE is nil, show all positions where references are found.
  When UNIQUE is t, limit to unique sources."
   (let* ((where-clause (if is-forwardlink 'source 'dest))
-         (group-by-clause (if is-forwardlink 'source 'dest))
+         (group-by-clause (if is-forwardlink 'dest 'source))
          (sql (if unique
                   (vector :select :distinct [source dest pos properties]
                           :from 'links
@@ -1845,7 +1863,7 @@ With C-u C-u C-u prefix, force run all research-papers."
                                           (--map (cadr it)
                                                  (s-match-strings-all "id:\\([a-z0-9-]*\\)"  (buffer-substring-no-properties beg end)))))))
          (nodes (-uniq (-flatten (--map (okm-get-children it) nodes-of-interest))))
-         (nodes-in-file (org-map-entries (lambda () (org-entry-get (point) "NODE_ID")) "LEVEL=1"))
+         (nodes-in-file (-non-nil (org-map-entries (lambda () (org-entry-get (point) "NODE_ID")) "LEVEL=1")))
          (new-nodes (-difference nodes nodes-in-file)))
     ;; (list nodes nodes-in-file))
     (when new-nodes
