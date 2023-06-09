@@ -708,9 +708,13 @@ Copied  from `org-roam-backlink-get'."
                          (list
                           (file-truename "~/Documents/org/brain/work/notes.org") (file-truename "~/Documents/org/brain/personal/notes.org")))
                  (f-ancestor-of-p bibtex-completion-notes-path it)))
-        (let ((beg (progn (org-roam-end-of-meta-data t)
+        (let ((beg (progn (if (org-id-get)
+                              (org-roam-end-of-meta-data t)
+                            (org-beginning-of-line))
                           (point)))
-              (end (progn (org-previous-visible-heading 1)
+              (end (progn (when (org-id-get)
+                            (org-previous-visible-heading 1)
+                            (org-beginning-of-line))
                           (org-end-of-subtree)
                           (point))))
           (-reduce 
