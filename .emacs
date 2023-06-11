@@ -794,17 +794,10 @@ targets."
           :action   #'consult--buffer-action
           :default  t
           :items    (lambda ()
-                      (let ((harpoon-buffer-names (delete "" (split-string (harpoon--get-file-text) "\n"))))
-                        (consult--buffer-query :sort 'visibility
-                                               :as #'buffer-name
-                                               :predicate
-                                               (lambda (it)
-                                                 (when-let (-buffer-name (buffer-file-name it))
-                                                   (member -buffer-name harpoon-buffer-names))))))))
+                      (amsha/harpoon--get-file-buffers))))
 
-
-  (push consult--source-perspective consult-buffer-sources)
-  (push consult--source-harpoon consult-buffer-sources)
+  (push 'consult--source-perspective consult-buffer-sources)
+  (push 'consult--source-harpoon consult-buffer-sources)
 
   (defvar consult--source-dogears
     (list :name     "Dogears"
@@ -1749,7 +1742,11 @@ Used with atomic-chrome."
    ("C-c h 4" . harpoon-go-to-4)
    ("C-c h 5" . harpoon-go-to-5)
    ("C-c h 6" . harpoon-go-to-6)
-   ("C-c h 7" . harpoon-go-to-7)))
+   ("C-c h 7" . harpoon-go-to-7))
+  :config
+  (defun amsha/harpoon--get-file-buffers ()
+    "Get the file buffers from harpoon."
+    (--map (buffer-name (find-file-noselect it)) (delete "" (split-string (harpoon--get-file-text) "\n")))))
 
 ;;treemacs setup**********************************************************************************************************
 (use-package treemacs
