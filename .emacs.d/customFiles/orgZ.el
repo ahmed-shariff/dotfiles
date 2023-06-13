@@ -1285,7 +1285,7 @@ Copied  from `org-roam-backlink-get'."
                                                         :properties properties))
                         (insert ?\n))
                       (run-hooks 'org-roam-buffer-postrender-functions)))))
-       title buffer-name))))
+       title buffer-name nil))))
 
 (defun okm-view-ql-or-roam-prompt (nodes title &optional query choice)
   "View nodes, in one of (org-ql-buffer org-roam-buffer). Prompt which if not specified."
@@ -1523,7 +1523,7 @@ Currently written to work in org-ql buffer."
             other-parents (-map #'org-roam-node-from-title-or-alias (--filter (not (string-empty-p it)) (-uniq other-parents))))
       ;;(okm-print-parents topics other-parents))))
       (let ((all-topics (append topics other-parents)))
-        (org-roam-ql-view (-uniq all-topics) "Query parents" `(member (org-id-get) (list ,@(-map #'org-roam-node-id all-topics)))
+        (org-roam-ql-search (-uniq all-topics) 'org-ql "Query parents" `(member (org-id-get) (list ,@(-map #'org-roam-node-id all-topics)))
                           (--map (list :file-path it) (list "research topics.org" "People.org" "Projects.org")))))))
 
 (require 'ox-extra)
