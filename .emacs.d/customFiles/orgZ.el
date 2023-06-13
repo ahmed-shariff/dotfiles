@@ -1853,7 +1853,7 @@ With C-u C-u C-u prefix, force run all research-papers."
                          (org-agenda-error))
     (funcall org-agenda-copy-query-notes-and-bib-func)))
 
-(defun okm-insert-entries ()
+(defun okm-insert-reading-list-entries ()
   "To be used with reading lists."
   (let* ((nodes-of-interest (save-excursion
                               (goto-char 0)
@@ -1882,6 +1882,18 @@ With C-u C-u C-u prefix, force run all research-papers."
           (insert (format "#+transclude: [[id:%s]] :only-contents :exclude-elements \"drawer keyword\"\ncite:&%s\n"
                           node
                           (car (org-roam-node-refs (org-roam-node-from-id node))))))))))
+
+(defun okm-roam-buffer-from-reading-list ()
+  "Run a roam query on the readinglist genreated."
+  (interactive)
+  (org-roam-ql-search (list [(in id $v1)]
+                            (apply #'vector
+                                   (org-ql-select
+                                     (buffer-name)
+                                     (read (read-string "org-ql query: "))
+                                     :action (lambda ()
+                                               (org-entry-get (point) "NODE_ID")))))
+                      'org-roam))
 
 (require 'org-ref-arxiv)
 (defun arxiv-add-bibtex-entry-with-note (arxiv-link bibfile)
