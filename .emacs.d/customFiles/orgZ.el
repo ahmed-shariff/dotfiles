@@ -556,11 +556,24 @@
   (org-transclusion-source-fringe ((t (:background "Brown" :weight ultra-bold :width extra-expanded))))
   (org-transclusion ((t (:background "Brown" :weight ultra-bold :width extra-expanded))))
   :config
+  (defun org-transclusion-content-filter-org-only-contents-exclude-id-headline (old-func data)
+    "only-contents only excludes the id headlines."
+    (if (and (eq (org-element-type data) 'headline)
+             (org-element-property :ID data))
+        nil
+      data))
+
+  (advice-add 'org-transclusion-content-filter-org-only-contents
+              :around
+              #'org-transclusion-content-filter-org-only-contents-exclude-id-headline)
+
   (defhydra org-transclusion-hydra (:color blue)
     "Transclusion functions"
     ("m" org-transclusion-make-from-link "Make link")
     ("a" org-transclusion-add "Add")
     ("A" org-transclusion-add-all "Add all")
+    ("d" org-transclusion-remove "Remove")
+    ("D" org-transclusion-remove-all "Remove all")
     ("t" org-transclusion-mode "org-transclusion-mode")))
 
 (use-package bibtex-completion
