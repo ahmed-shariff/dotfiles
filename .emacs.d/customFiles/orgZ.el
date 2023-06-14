@@ -1227,11 +1227,9 @@ Copied  from `org-roam-backlink-get'."
   ;;   "View source or query in org-roam buffer."
   ;;   (interactive "xQuery: ")
   ;;   (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
-  (org-roam-ql-defpred 'child-of
-                       (lambda (node)
-                         (--map (org-roam-node-id (org-roam-backlink-target-node it))
-                                (okm-links-get node 'is-forwardlinks)))
-                       #'org-roam-ql--predicate-backlinked-to)
+  (org-roam-ql-defexpansion 'child-of
+                            (lambda (title)
+                              (org-roam-ql--expand-backlinks `(title ,title t) :type "brain-parent")))
   (org-roam-ql-defpred 'pdf-string
                        (lambda (node)
                          (cdr (assoc "PDF_TEXT_FILE" (org-roam-node-properties node))))
@@ -1304,7 +1302,7 @@ Copied  from `org-roam-backlink-get'."
   "View nodes, in one of (org-ql-buffer org-roam-buffer). Prompt which if not specified."
   (unless choice
     (setq choice (intern-soft (completing-read "Choice: " '(org-roam org-ql) nil t))))
-  (org-roam-ql-search nodes choice))
+  (org-roam-ql-search nodes choice title))
   ;; (pcase choice
   ;;   ('org-ql (org-roam-ql-view nodes title query))
   ;;   ('org-roam (org-roam-ql--render-buffer (list (org-roam-ql--nodes-section nodes "Nodes:"))
@@ -1316,32 +1314,15 @@ Copied  from `org-roam-backlink-get'."
   (let* ((topics (if topic-ids
                      (-map #'org-roam-node-from-id topic-ids)
                    (org-roam-node-read-multiple "Query topics: ")))
-         (topic-ids (if topic-ids
-                        topic-ids
-                      (--map (org-roam-node-id it) topics)))
-         ;; (topic-ids '("02f57fb4-4d54-41ba-88a1-2a969e926100" "89edeac4-8d67-402c-ab83-5e45cd7b97e6"))
-         (grouped-results (-map
-                           (lambda (el)
-                             (-map #'cadr (cdr el)))
-                           ;; assuming the grouping will result in all individual ids from topics being there
-                           (-group-by #'car
-                                      (org-roam-db-query [:select [ links:dest nodes:id ]
-                                                                  :from links :inner :join nodes :on (= links:source nodes:id)
-                                                                  :where (in links:dest $v1)
-                                                                  :and (= links:type "brain-parent")]
-                                                         (apply #'vector topic-ids))))))
+         (topic-queries (--map `(child-of ,(org-roam-node-title it)) topics)))
     (okm-view-ql-or-roam-prompt
-     (-filter
-      (lambda (node)
-        (okm-is-research-paper (org-roam-node-file node)))
-      (-map #'org-roam-node-from-id
-            (-uniq
-             (if (eq (length grouped-results) 1)
-                 (car grouped-results)
-               (-reduce (pcase (completing-read "connector: " '(and or) nil t)
-                          ("or" #'-union)
-                          ("and" #'-intersection))
-                        grouped-results)))))
+     `(and (file "research_papers")
+           ,(if (eq 1 (length topic-queries))
+               (car topic-queries)
+              `(,(pcase (completing-read "connector: " '(and or) nil t)
+                   ("or" 'or)
+                   ("and" 'and))
+            ,@topic-queries)))
      (format "(%s)" (s-join ", " (-map #'org-roam-node-title topics))))))
 
 ;; TODO: allow mulitiple combinations of brain-parent to be used (eg: (and (or ..) (or ..)))
