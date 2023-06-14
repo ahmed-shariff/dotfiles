@@ -1376,14 +1376,8 @@ Copied  from `org-roam-backlink-get'."
                (lambda (f point)
                  (propertize (s-join "\n" (--map (format " - %s" it) (assoc (f-base f) results))) 'face 'org-tag))))
       (okm-view-ql-or-roam-prompt
-       (-non-nil
-        (--map
-         (let ((node (org-roam-node-from-id (caar (org-roam-db-query [:select node-id :from refs :where (= ref $s1)] (car it))))))
-           (unless node
-             (em (format "Error with %s" (car it))))
-           node)
-         results))
-       regexp `(pdf-regexp ,regexp)))))
+       `(pdf-string ,regexp)
+       regexp))))
 
 (defun amsha/get-sprints (states)
   "Return sprints based on STATUS."
