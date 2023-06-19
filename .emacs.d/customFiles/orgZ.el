@@ -1840,7 +1840,7 @@ With C-u C-u C-u prefix, force run all research-papers."
 
 (defvar org-agenda-copy-query-notes-and-bib-func nil)
 
-(defun org-agenda-copy-query-notes-and-bib ()
+(defun org-agenda-okm-copy-query-notes-and-bib ()
   "To be used with the org-agenda-bulk-action."
   (unless org-agenda-copy-query-notes-and-bib-func
     (setq org-agenda-copy-query-notes-and-bib-func (copy-notes-and-bib-function))
