@@ -1566,9 +1566,11 @@ T - tag prefix
 ;;   )
 
 (use-package display-line-numbers
-  :hook (prog-mode text-mode)
+  ;; :hook (prog-mode text-mode)
   :custom
-  (display-line-numbers-type 'visual))
+  (display-line-numbers-type 'visual)
+  :config
+  (global-display-line-numbers-mode))
 
 (use-package ess)
 
