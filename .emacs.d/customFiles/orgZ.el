@@ -1765,28 +1765,33 @@ With C-u C-u C-u prefix, force run all research-papers."
 							  out-dir)))))))
     (dired out-dir)))
 
+(defvar okm-org-agenda-copy-research-papers-directory nil)
 
-(defun copy-related-research-papers-org-ql (query)
-  "QUERY."
-  (interactive "xQuery: ")
-  (let ((out-dir (expand-file-name (secure-hash 'md5 (format "%s" (current-time))) "~/Downloads")))
+(defun org-agenda-okm-copy-research-papers ()
+  "Copy research papers from org-ql buffer to a directory."
+  (unless okm-org-agenda-copy-research-papers-directory
+    (setq okm-org-agenda-copy-research-papers-directory
+          (file-truename (expand-file-name (secure-hash 'md5 (format "%s" (current-time))) "~/Downloads"))
+          org-agenda-bulk-action-post-execution-function
+          (lambda ()
+            (em (format "Copied files to %s" okm-org-agenda-copy-research-papers-directory))
+            ;; ranger looks for a file, not a directory
+            (ranger (expand-file-name "something.pdf" okm-org-agenda-copy-research-papers-directory))
+            (setq okm-org-agenda-copy-research-papers-directory nil)))
     (condition-case nil
-	(make-directory out-dir)
+	(make-directory okm-org-agenda-copy-research-papers-directory)
       (file-already-exists
        (progn
 	 (message "Deleting directory and creating anew: %s" out-dir) 
 	 (delete-directory out-dir t)
-	 (make-directory out-dir))))
-    (message "Copying files to %s" out-dir)
-    (org-ql-select (buffer-file-name (marker-buffer (org-brain-entry-marker "research_papers")))
-      query
-      :action (lambda ()
-		(when-let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
-		  (message "Copied %s" (file-name-nondirectory file-path)) 
-		  (copy-file file-path
-			     (expand-file-name (file-name-nondirectory file-path)
-					       out-dir)))))
-    (dired out-dir)))
+	 (make-directory out-dir)))))
+  (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
+                         (org-agenda-error))
+    (when-let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
+      (message "Copied %s" (file-name-nondirectory file-path))
+      (copy-file file-path
+        	 (expand-file-name (file-name-nondirectory file-path)
+        			   okm-org-agenda-copy-research-papers-directory)))))
 
 
 (defvar copy-notes-and-bib-function-org-buffer nil)
