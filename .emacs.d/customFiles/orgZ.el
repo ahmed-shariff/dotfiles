@@ -874,6 +874,10 @@ Copied  from `org-roam-backlink-get'."
         ;;":PROPERTIES:\n:Custom_ID: ${=key=}\n:Keywords: ${keywords}\n:LINK: ${pdf}\n:YEAR: ${year}\n:RPC-TAGS: :NO_LINK NO_PARENTS NO_CITE_KEY\n:END:\n\n#+TITLE: (${year}) ${title} [${author}]\n\n"
 	doi-utils-open-pdf-after-download nil
         doi-utils-download-pdf nil)
+  ;; (setf (alist-get 'title doi-utils-json-metadata-extract) '((concat (plist-get results :title)
+  ;;                                                                    (-if-let (subtitle (plist-get results :subtitle))
+  ;;                                                                        (format ": %s" subtitle)
+  ;;                                                                      ""))))
 
   (defun org-ref-get-bibtex-key-under-cursor-with-latex-and-okm (old-func)
     (cond
@@ -1652,6 +1656,7 @@ With C-u C-u C-u prefix, force run all research-papers."
                                                                 :where (= file $s1)]
                                                        f)))))
         (org-roam-with-file f nil
+          (save-buffer)
 	  (let* ((changes '())
                  (pom (point))
                  (link-string (org-entry-get pom "LINK"))
@@ -1904,6 +1909,7 @@ With C-u C-u C-u prefix, force run all research-papers."
 	  (goto-char (point-max))
 	  (when (not (looking-at "^")) (insert "\n"))
 	  (insert (arxiv-get-bibtex-entry-via-arxiv-api arxiv-number))
+          (save-buffer)
 	  (org-ref-clean-bibtex-entry)
 	  (save-excursion
 	    (when (f-file? bibtex-completion-notes-path)
