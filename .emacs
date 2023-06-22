@@ -281,6 +281,15 @@ that returns a string."
                       "success"
                     "failed"))))))
 
+(defun amsha/get-project-root-overlooking-submodules (&optional filename)
+  "Get the project root by looking for the root directory by running
+git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
+  (unless (featurep 'magit)
+    (require 'magit))
+  (let ((default-directory (magit--safe-default-directory (or filename default-directory))))
+    (when-let (project-root (magit-git-string "rev-parse" "--show-superproject-working-tree" "--show-toplevel"))
+      (format "%s/" project-root))))
+
 (use-package beacon
   :demand
   :custom
@@ -1667,7 +1676,13 @@ T - tag prefix
          ("C-c p" . projectile-command-map))
   :config
   (projectile-mode +1)
-  (setq projectile-git-command "git ls-files --recurse-submodules -zc")
+  (setq projectile-git-command "git ls-files --recurse-submodules -zc"
+        projectile-project-root-functions '(projectile-root-local
+                                            projectile-root-marked
+                                            amsha/get-project-root-overlooking-submodules
+                                            projectile-root-bottom-up
+                                            projectile-root-top-down
+                                            projectile-root-top-down-recurring))
 ;; (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
 ;; (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
