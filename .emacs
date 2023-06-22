@@ -795,18 +795,17 @@ targets."
                                               (lambda (it)
                                                 (member (buffer-name it) current-persp-buffers)))))))
 
-  (defvar consult--source-harpoon
-    (list :name     "Harpoon"
+  (defvar consult--source-persp-harpoon
+    (list :name     "Persp Harpoon"
           :narrow   ?h
           :category 'buffer
           :state    #'consult--buffer-state
           :action   #'consult--buffer-action
-          :default  t
           :items    (lambda ()
-                      (amsha/harpoon--get-file-buffers))))
+                      (--map (buffer-name (find-file-noselect it)) persp-harpoon-buffers))))
 
+  (push 'consult--source-persp-harpoon consult-buffer-sources)
   (push 'consult--source-perspective consult-buffer-sources)
-  (push 'consult--source-harpoon consult-buffer-sources)
 
   (defvar consult--source-dogears
     (list :name     "Dogears"
@@ -1751,7 +1750,13 @@ Used with atomic-chrome."
 (use-package perspective
   :after consult-projectile
   :custom (persp-mode-prefix-key (kbd "C-c w"))
-  :bind (("C-x k" . persp-kill-buffer*))
+  :bind (("C-x k" . persp-kill-buffer*)
+         ("C-c h <return>" . persp-harpoon-add-buffer)
+         ("C-c h r" . persp-harpoon-remove-buffer)
+         ("C-c h c" . persp-harpoon-clear-buffers)
+         ("C-c h o" . persp-harpoon-switch-other)
+         ("C-c h k" . persp-harpoon-kill-non-harpoon-buffers)
+         ("C-c h h" . persp-harpoon-switch-to))
   :hook (kill-emacs-hook . persp-state-save)
   :init (persp-mode 1)
   (setq persp-state-default-file "~/.emacs.d/.cache/perspective-state-default-file")
@@ -1769,6 +1774,113 @@ Used with atomic-chrome."
   (advice-add 'consult-projectile-recentf :before 'consult-projectile--switch-persp)
   (advice-add 'consult-projectile-switch-to-buffer :before 'consult-projectile--switch-persp)
 
+  (defvar persp-harpoon-cache-file "~/.emacs.d/.cache/perspective-harpoon.json")
+  (defvar persp-harpoon-buffers nil)
+
+  (persp-make-variable-persp-local 'persp-harpoon-buffers)
+
+  (defun persp-harpoon-save (&optional persp-name buffer-list)
+    "Save the current state of the harpoons.
+HASHTABLEs keys are names of perspectives. values are lists of file-names."
+    (let ((hashtable (persp-harpoon-load)))
+      (puthash (or persp-name
+                   (persp-current-name))
+               (coerce (or buffer-list
+                           persp-harpoon-buffers)
+                       'vector)
+               hashtable)
+      (with-temp-buffer
+        (json-insert hashtable)
+        (set-visited-file-name persp-harpoon-cache-file t)
+        (let (message-log-max)
+          (save-buffer)))))
+
+  (defun persp-harpoon-load (&optional persp-name)
+    "Get the stored persp-harpoon state as a hashtable."
+    (unless (file-exists-p persp-harpoon-cache-file)
+      (with-temp-buffer
+        (set-visited-file-name persp-harpoon-cache-file t)
+        (let (message-log-max)
+          (save-buffer))))
+    (let ((hashtable (or (ignore-error 'json-error
+                           (with-temp-buffer
+                             (insert-file-literally persp-harpoon-cache-file)
+                             (json-parse-string (buffer-string))))
+                         (make-hash-table))))
+      (if persp-name
+          (coerce (gethash persp-name hashtable) 'list)
+        hashtable)))
+
+  (defun persp-harpoon-add-buffer ()
+    (interactive)
+    (if-let (b (buffer-file-name))
+        (let ((buffer-full-name (file-truename b)))
+          (setq persp-harpoon-buffers (delete buffer-full-name persp-harpoon-buffers))
+          (push buffer-full-name persp-harpoon-buffers)
+          (persp-harpoon-save))
+      (user-error "buffer not a file")))
+
+  (defun persp-harpoon-remove-buffer ()
+    (interactive)
+    (if-let (b (buffer-file-name))
+        (let ((buffer-full-name (file-truename b)))
+          (setq persp-harpoon-buffers (delete buffer-full-name persp-harpoon-buffers))
+          (persp-harpoon-save))
+      (user-error "buffer not a file")))
+
+  (defun persp-harpoon-clear-buffers ()
+    (interactive)
+    (when (y-or-n-p (format "Clear harpoon (%s)?" (persp-current-name)))
+      (setq persp-harpoon-buffers nil)
+      (persp-harpoon-save)))
+
+  (defun persp-harpoon-on-buffer-switch (&rest _)
+    (when-let* ((b (buffer-file-name))
+                (buffer-full-name (file-truename b))
+                (_ (memq buffer-full-name persp-harpoon-buffers)))
+      (persp-harpoon-add-file)))
+
+  (defun persp-harpoon-on-switch (&rest _)
+    (setq persp-harpoon-buffers (persp-harpoon-load (persp-current-name))))
+
+  (defun persp-harpoon-switch-to ()
+    (interactive)
+    (consult--read
+     (mapcar (lambda (b)
+               (buffer-name (find-file-noselect b)))
+             persp-harpoon-buffers)
+     :prompt (format "Switch to harpoon (%s):" (persp-current-name))
+     :require-match t
+     :category 'buffer))
+
+  (defun persp-harpoon-switch-other ()
+    (interactive)
+    (let ((current-buffer-name (buffer-file-name)))
+      (if (and current-buffer-name
+               (member (file-truename current-buffer-name) persp-harpoon-buffers))
+        (if (> 2 (length persp-harpoon-buffers))
+            (user-error (format "Only %s buffer(s) in harpoon" (length persp-harpoon-buffers)))
+          (switch-to-buffer (find-file-noselect (cadr persp-harpoon-buffers)))
+          (persp-harpoon-add-buffer))
+      (switch-to-buffer (find-file-noselect (car persp-harpoon-buffers))))))
+
+  (defun persp-harpoon-kill-non-harpoon-buffers ()
+    (interactive)
+    (when (y-or-n-p "Kill buffers not in harpoon? ")
+      (let ((killed 0))
+        (dolist (b (persp-current-buffers))
+          (let ((-buffer-file-name (buffer-file-name b)))
+            (when (or (null -buffer-file-name)
+                      (not (member (file-truename -buffer-file-name) persp-harpoon-buffers)))
+              (incf killed)
+              (kill-buffer b))))
+        (message (format "Killed %s buffer(s)." killed)))))
+
+  (add-hook 'buffer-list-update-hook #'persp-harpoon-on-buffer-switch)
+  (add-hook 'persp-switch-hook #'persp-harpoon-on-switch)
+  (add-hook 'persp-mode-hook #'persp-harpoon-on-switch)
+
+
   ;; (defun amsha/launch-lsp-mode-after-switch ()
   ;;   (when (and (derived-mode-p 'prog-mode)
   ;;              (member (s-replace "-mode" "" (symbol-name major-mode))
@@ -1779,24 +1891,24 @@ Used with atomic-chrome."
   )
   
 ;;harpoon ****************************************************************************************************************
-(use-package harpoon
-  :demand t
-  :bind
-  (("C-c h h" . harpoon-toggle-quick-menu)
-   ("C-c h H" . harpoon-quick-menu-hydra)
-   ("C-c h <return>" . harpoon-add-file)
-   ("C-c h c" . harpoon-clear)
-   ("C-c h 1" . harpoon-go-to-1)
-   ("C-c h 2" . harpoon-go-to-2)
-   ("C-c h 3" . harpoon-go-to-3)
-   ("C-c h 4" . harpoon-go-to-4)
-   ("C-c h 5" . harpoon-go-to-5)
-   ("C-c h 6" . harpoon-go-to-6)
-   ("C-c h 7" . harpoon-go-to-7))
-  :config
-  (defun amsha/harpoon--get-file-buffers ()
-    "Get the file buffers from harpoon."
-    (--map (buffer-name (find-file-noselect it)) (delete "" (split-string (harpoon--get-file-text) "\n")))))
+;; (use-package harpoon
+;;   :demand t
+;;   :bind
+;;   (("C-c h h" . harpoon-toggle-quick-menu)
+;;    ("C-c h H" . harpoon-quick-menu-hydra)
+;;    ("C-c h <return>" . harpoon-add-file)
+;;    ("C-c h c" . harpoon-clear)
+;;    ("C-c h 1" . harpoon-go-to-1)
+;;    ("C-c h 2" . harpoon-go-to-2)
+;;    ("C-c h 3" . harpoon-go-to-3)
+;;    ("C-c h 4" . harpoon-go-to-4)
+;;    ("C-c h 5" . harpoon-go-to-5)
+;;    ("C-c h 6" . harpoon-go-to-6)
+;;    ("C-c h 7" . harpoon-go-to-7))
+;;   :config
+;;   (defun amsha/harpoon--get-file-buffers ()
+;;     "Get the file buffers from harpoon."
+;;     (--map (buffer-name (find-file-noselect it)) (delete "" (split-string (harpoon--get-file-text) "\n")))))
 
 ;;treemacs setup**********************************************************************************************************
 (use-package treemacs
