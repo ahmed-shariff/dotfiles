@@ -1058,6 +1058,20 @@ targets."
          ("C-h F" . helpful-function)
          ("C-h C" . helpful-command)))
 
+;; ;;lsp-bridge *************************************************************************
+;; (use-package lsp-bridge
+;;   :straight (lsp-bridge :host github :repo "manateelazycat/lsp-bridge"
+;;                         ;; :files (:defaults "acm/*.el" "acm/**" "*.el" "langserver" "multiserver" "core"))
+;;                         :files ("acm" "core" "langserver" "multiserver" "test" "*.py" "*.el"))
+;;   ;; :hook (csharp-mode . lsp-bridge-mode)
+;;   :custom
+;;   (lsp-bridge-enable-log t)
+;;   (lsp-bridge-csharp-lsp-server "omnisharp-mono")
+;;   (lsp-bridge-get-project-path-by-filepath #'amsha/get-project-root-overlooking-submodules)
+;;   (lsp-bridge-user-langserver-dir (expand-file-name "langserver" user-emacs-directory))
+;;   :config
+;;   (global-lsp-bridge-mode))
+
 ;;lsp-mode ***************************************************************************
 ;; (use-package lsp-ui
 ;;   :after (lsp-mode)
