@@ -1,3 +1,4 @@
+# In an admin console:
 # run: powershell -executionpolicy bypass -File .\window_setup.ps1
 git clone --bare https://github.com/ahmed-shariff/dotfiles.git $env:HOME/.dotfiles
 git --git-dir=$env:HOME/.dotfiles --work-tree=$env:HOME checkout

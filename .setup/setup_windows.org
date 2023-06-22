@@ -1,6 +1,7 @@
 - Configure environment variable $env:HOME=%USERPROFILE%
 - Run the setup script from github
 - install msys2
+- Set EMACS_HOME to the bin of the emacs installation, it's needed by the add_org_procol
 - in msys2 pacman -Sy base-devel gcc
 - add msys64/usr/bin to path
 ~winget install emacs~
