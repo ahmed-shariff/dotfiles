@@ -801,8 +801,7 @@ targets."
           :category 'buffer
           :state    #'consult--buffer-state
           :action   #'consult--buffer-action
-          :items    (lambda ()
-                      (--map (buffer-name (find-file-noselect it)) persp-harpoon-buffers))))
+          :items    #'persp-harpoon--get-buffers-for-completion))
 
   (push 'consult--source-persp-harpoon consult-buffer-sources)
   (push 'consult--source-perspective consult-buffer-sources)
@@ -1808,12 +1807,15 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
           (coerce (gethash persp-name hashtable) 'list)
         hashtable)))
 
+  (defun persp-harpoon--add-file-to-top (buffer-full-name)
+    (setq persp-harpoon-buffers (delete buffer-full-name persp-harpoon-buffers))
+    (push buffer-full-name persp-harpoon-buffers))
+
   (defun persp-harpoon-add-buffer ()
     (interactive)
     (if-let (b (buffer-file-name))
         (let ((buffer-full-name (file-truename b)))
-          (setq persp-harpoon-buffers (delete buffer-full-name persp-harpoon-buffers))
-          (push buffer-full-name persp-harpoon-buffers)
+          (persp-harpoon--add-file-to-top (buffer-file-name))
           (persp-harpoon-save))
       (user-error "buffer not a file")))
 
@@ -1834,21 +1836,38 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
   (defun persp-harpoon-on-buffer-switch (&rest _)
     (when-let* ((b (buffer-file-name))
                 (buffer-full-name (file-truename b))
-                (_ (memq buffer-full-name persp-harpoon-buffers)))
-      (persp-harpoon-add-file)))
+                (_ (member buffer-full-name persp-harpoon-buffers)))
+      (persp-harpoon--add-file-to-top (buffer-file-name))))
 
   (defun persp-harpoon-on-switch (&rest _)
     (setq persp-harpoon-buffers (persp-harpoon-load (persp-current-name))))
 
   (defun persp-harpoon-switch-to ()
     (interactive)
-    (consult--read
-     (mapcar (lambda (b)
-               (buffer-name (find-file-noselect b)))
-             persp-harpoon-buffers)
-     :prompt (format "Switch to harpoon (%s):" (persp-current-name))
-     :require-match t
-     :category 'buffer))
+    (let ((buffers (persp-harpoon--get-buffers-for-completion)))
+      (switch-to-buffer
+       (completing-read
+        (format "Switch to harpoon (%s):" (persp-current-name))
+        (lambda (string pred action)
+          (if (eq action 'metadata)
+              `(metadata .
+                         ((category . buffer)
+                          (display-sort-function . ,#'identity)))
+            (complete-with-action
+             action
+             buffers
+             string
+             pred)))
+        nil 'require-match))))
+
+  (defun persp-harpoon--get-buffers-for-completion ()
+    (let ((buffers (mapcar (lambda (b)
+                             (buffer-name (find-file-noselect b)))
+                           persp-harpoon-buffers))
+          (-buffer-name (buffer-name)))
+      (if (and (> (length buffers) 2) (member -buffer-name buffers))
+          (append (delete -buffer-name buffers) (list -buffer-name))
+        buffers)))
 
   (defun persp-harpoon-switch-other ()
     (interactive)
@@ -1857,8 +1876,8 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
                (member (file-truename current-buffer-name) persp-harpoon-buffers))
         (if (> 2 (length persp-harpoon-buffers))
             (user-error (format "Only %s buffer(s) in harpoon" (length persp-harpoon-buffers)))
-          (switch-to-buffer (find-file-noselect (cadr persp-harpoon-buffers)))
-          (persp-harpoon-add-buffer))
+          (persp-harpoon--add-file-to-top (cadr persp-harpoon-buffers))
+          (switch-to-buffer (find-file-noselect (cadr persp-harpoon-buffers))))
       (switch-to-buffer (find-file-noselect (car persp-harpoon-buffers))))))
 
   (defun persp-harpoon-kill-non-harpoon-buffers ()
@@ -1869,7 +1888,7 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
           (let ((-buffer-file-name (buffer-file-name b)))
             (when (or (null -buffer-file-name)
                       (not (member (file-truename -buffer-file-name) persp-harpoon-buffers)))
-              (incf killed)
+              (cl-incf killed)
               (kill-buffer b))))
         (message (format "Killed %s buffer(s)." killed)))))
 
