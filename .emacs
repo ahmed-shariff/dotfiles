@@ -1087,159 +1087,159 @@ targets."
   (advice-add 'lsp-bridge-start-process :around #'amsha/start-lsp-server-in-project-root))
 
 ;;lsp-mode ***************************************************************************
-;; (use-package lsp-ui
-;;   :after (lsp-mode)
-;;   :init
-;;   (add-hook 'python-mode-hook #'lsp-ui-mode)
-;;   :config
-;;   (setq lsp-ui-sideline-show-hover t
-;; 	lsp-ui-sideline-delay 1))
+(use-package lsp-ui
+  :after (lsp-mode)
+  :init
+  (add-hook 'python-mode-hook #'lsp-ui-mode)
+  :config
+  (setq lsp-ui-sideline-show-hover t
+	lsp-ui-sideline-delay 1))
 
 
-;; (use-package company-box
-;;   :hook (company-mode . company-box-mode))
+(use-package company-box
+  :hook (company-mode . company-box-mode))
 
 
-;; ;; about using lsp-csharp for unity, just make sure you have installed latest omnisharp-roslyn and have mono >= 6 installed on your machine
-;; ;; the omnisharp-roslyn that lsp-mode install does not work for unity projects because it needs a recent mono version installed and the mono built-in on omnisharp-roslyn doesn't have msbuild, some libs that unity require
+;; about using lsp-csharp for unity, just make sure you have installed latest omnisharp-roslyn and have mono >= 6 installed on your machine
+;; the omnisharp-roslyn that lsp-mode install does not work for unity projects because it needs a recent mono version installed and the mono built-in on omnisharp-roslyn doesn't have msbuild, some libs that unity require
 
-;; ;; With the tsserver for web-mode, may have to manually install the tsserver using npm (https://github.com/typescript-language-server/typescript-language-server/issues/336)
+;; With the tsserver for web-mode, may have to manually install the tsserver using npm (https://github.com/typescript-language-server/typescript-language-server/issues/336)
 
-;; ;; (setq lsp-use-plists t)
+;; (setq lsp-use-plists t)
 
-;; (use-package lsp-mode
-;;   :hook ((python-mode . lsp)
-;;          (csharp-mode . lsp)
-;;          ;; (csharp-tree-sitter-mode . lsp)
-;; 	 (java-mode . lsp)
-;;          (js2-mode . lsp)
-;;          (web-mode . lsp)
-;;          (tex-mode . lsp)
-;;          (latex-mode . lsp)
-;;          (rust-mode . lsp)
-;; 	 (lsp-mode . lsp-enable-which-key-integration))
+(use-package lsp-mode
+  :hook ((python-mode . lsp)
+         (csharp-mode . lsp)
+         ;; (csharp-tree-sitter-mode . lsp)
+	 (java-mode . lsp)
+         (js2-mode . lsp)
+         (web-mode . lsp)
+         (tex-mode . lsp)
+         (latex-mode . lsp)
+         (rust-mode . lsp)
+	 (lsp-mode . lsp-enable-which-key-integration))
   
-;;   :init
-;;   (setq lsp-keymap-prefix "C-x l")
-;;   ;; (add-hook 'prog-mode-hook #'lsp)
-;;   ;; (setq lsp-auto-guess-root t)
-;;   ;; (setq lsp-log-io t)
-;;   :config
-;;   ;; (lsp-register-client
+  :init
+  (setq lsp-keymap-prefix "C-x l")
+  ;; (add-hook 'prog-mode-hook #'lsp)
+  ;; (setq lsp-auto-guess-root t)
+  ;; (setq lsp-log-io t)
+  :config
+  ;; (lsp-register-client
   
-;;   ;;  (make-lsp-client :new-connection (lsp-tramp-connection "pyls")
-;;   ;;                   :major-modes '(python-mode)
-;;   ;;                   :remote? t
-;;   ;;                   :server-id 'pyls))
-;;   (setq 
-;;    ;; lsp-pyls-configuration-sources ["flake8"]
-;;    ;; lsp-pyls-plugins-jedi-completion-enabled nil
-;;    ;; lsp-pyls-plugins-pydocstyle-enabled t
-;;    ;; lsp-pyls-plugins-pyflakes-enabled nil
-;;    ;; lsp-pyls-plugins-pycodestyle-max-line-length 110
-;;    ;; lsp-pyls-plugins-rope-completion-enabled nil
-;;    ;; lsp-pyls-plugins-pycodestyle-enabled nil
-;;    ;; lsp-pyls-plugins-yapf-enabled nil
-;;    ;;lsp--delay-timer 1
-;;    gc-cons-threshold 200000000
-;;    read-process-output-max (* 1024 1024 4) ;; 4mb
-;;    lsp-idle-delay 0.500
-;;    lsp-enable-file-watchers nil
-;;    ;; lsp-csharp-server-path (if (eq system-type 'windows-nt)
-;;    ;;      		      (file-truename "~/packages_external/omnisharp-win-x64/OmniSharp.exe")
-;;    ;;      		    nil)
-;;    lsp-pylsp-plugins-flake8-max-line-length 110
-;;    lsp-pylsp-plugins-flake8-enabled nil
-;;    lsp-pylsp-plugins-autopep8-enabled nil
-;;    lsp-pylsp-plugins-yapf-enabled t
-;;    lsp-pylsp-plugins-pylint-enabled nil
-;;    )
-;;   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
+  ;;  (make-lsp-client :new-connection (lsp-tramp-connection "pyls")
+  ;;                   :major-modes '(python-mode)
+  ;;                   :remote? t
+  ;;                   :server-id 'pyls))
+  (setq 
+   ;; lsp-pyls-configuration-sources ["flake8"]
+   ;; lsp-pyls-plugins-jedi-completion-enabled nil
+   ;; lsp-pyls-plugins-pydocstyle-enabled t
+   ;; lsp-pyls-plugins-pyflakes-enabled nil
+   ;; lsp-pyls-plugins-pycodestyle-max-line-length 110
+   ;; lsp-pyls-plugins-rope-completion-enabled nil
+   ;; lsp-pyls-plugins-pycodestyle-enabled nil
+   ;; lsp-pyls-plugins-yapf-enabled nil
+   ;;lsp--delay-timer 1
+   gc-cons-threshold 200000000
+   read-process-output-max (* 1024 1024 4) ;; 4mb
+   lsp-idle-delay 0.500
+   lsp-enable-file-watchers nil
+   ;; lsp-csharp-server-path (if (eq system-type 'windows-nt)
+   ;;      		      (file-truename "~/packages_external/omnisharp-win-x64/OmniSharp.exe")
+   ;;      		    nil)
+   lsp-pylsp-plugins-flake8-max-line-length 110
+   lsp-pylsp-plugins-flake8-enabled nil
+   lsp-pylsp-plugins-autopep8-enabled nil
+   lsp-pylsp-plugins-yapf-enabled t
+   lsp-pylsp-plugins-pylint-enabled nil
+   )
+  (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
-;; ;; (use-package lsp-jedi
-;; ;;   :straight t
-;; ;;   :config
-;; ;;   (with-eval-after-load "lsp-mode"
-;; ;;     (add-to-list 'lsp-disabled-clients 'pyls)
-;; ;;     ;; (add-to-list 'lsp-enabled-clients 'jedi)
-;; ;;     ))
-
-;; (use-package lsp-pyright
-;;   :defer t
-;;   :hook (python-mode . (lambda ()
-;;                           (require 'lsp-pyright)
-;;                           (lsp)))
+;; (use-package lsp-jedi
+;;   :straight t
 ;;   :config
 ;;   (with-eval-after-load "lsp-mode"
 ;;     (add-to-list 'lsp-disabled-clients 'pyls)
-;;     (add-to-list 'lsp-disabled-clients 'pylsp))
-;;   (setq lsp-pyright-use-library-code-for-types t ;; set this to nil if getting too many false positive type errors
-;;         lsp-pyright-stub-path (file-truename "~/.emacs.d/python-type-stubs"))) ;; example
+;;     ;; (add-to-list 'lsp-enabled-clients 'jedi)
+;;     ))
 
-;; (use-package lsp-java
-;;   :defer t)
+(use-package lsp-pyright
+  :defer t
+  :hook (python-mode . (lambda ()
+                          (require 'lsp-pyright)
+                          (lsp)))
+  :config
+  (with-eval-after-load "lsp-mode"
+    (add-to-list 'lsp-disabled-clients 'pyls)
+    (add-to-list 'lsp-disabled-clients 'pylsp))
+  (setq lsp-pyright-use-library-code-for-types t ;; set this to nil if getting too many false positive type errors
+        lsp-pyright-stub-path (file-truename "~/.emacs.d/python-type-stubs"))) ;; example
 
-;; ;; (use-package lsp-python-ms
-;; ;;   :straight t
-;; ;;   :init (setq lsp-python-ms-auto-install-server t)
-;; ;;   :hook (python-mode . (lambda ()
-;; ;;                           (require 'lsp-python-ms)
-;; ;;                           (lsp))))  ; or lsp-deferred
+(use-package lsp-java
+  :defer t)
 
-;; (use-package lsp-treemacs
-;;   :after (lsp-mode)
-;;   :config
-;;   (lsp-treemacs-sync-mode 1))
+;; (use-package lsp-python-ms
+;;   :straight t
+;;   :init (setq lsp-python-ms-auto-install-server t)
+;;   :hook (python-mode . (lambda ()
+;;                           (require 'lsp-python-ms)
+;;                           (lsp))))  ; or lsp-deferred
 
-;; (use-package dap-mode
-;;   :after lsp-mode
-;;   :bind (:map lsp-command-map
-;;          ("d" . dap-hydra))
-;;   :hook ((dap-stopped . (lambda (arg) (call-interactively #'dap-hydra)))
-;;          (python-mode . dap-ui-mode)
-;;          (python-mode . dap-mode))
-;;   :config
-;;   (dap-auto-configure-mode)
-;;   (dap-mode 1)
-;;   (dap-ui-mode 1)
-;;   (dap-ui-controls-mode -1))
+(use-package lsp-treemacs
+  :after (lsp-mode)
+  :config
+  (lsp-treemacs-sync-mode 1))
 
-;; (use-package lsp-grammarly
-;;   :after (lsp)
-;;   :ensure t
-;;   ;; :hook (text-mode . (lambda ()
-;;   ;;                      (require 'lsp-grammarly)
-;;   ;;                      (lsp-deferred))))  ; or lsp-deferred
-;;   )
+(use-package dap-mode
+  :after lsp-mode
+  :bind (:map lsp-command-map
+         ("d" . dap-hydra))
+  :hook ((dap-stopped . (lambda (arg) (call-interactively #'dap-hydra)))
+         (python-mode . dap-ui-mode)
+         (python-mode . dap-mode))
+  :config
+  (dap-auto-configure-mode)
+  (dap-mode 1)
+  (dap-ui-mode 1)
+  (dap-ui-controls-mode -1))
 
-;; (use-package lsp-origami
-;;   :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
+(use-package lsp-grammarly
+  :after (lsp)
+  :ensure t
+  ;; :hook (text-mode . (lambda ()
+  ;;                      (require 'lsp-grammarly)
+  ;;                      (lsp-deferred))))  ; or lsp-deferred
+  )
 
-;; (use-package dap-python
-;;   :straight nil
-;;   :config
-;;   (setq dap-python-debugger 'debugpy)
+(use-package lsp-origami
+  :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
 
-;;   (dap-register-debug-template
-;;    "Python :: Run pytest - from anywhere"
-;;    (list :type "python"
-;;          ;; in place of running the whole test, a specific test can be set here
-;;          ;; eg: :args "test/test_process_config.py::test_process_toml"
-;;          :args nil
-;;          :cwd "${workspaceFolder}"
-;;          ;; if this is nil it will append the buffer file name, which stops pytest from running all tests
-;;          :program ""
-;;          :module "pytest"
-;;          :request "launch"
-;;          ;; https://code.visualstudio.com/docs/python/testing#_pytest-configuration-settings for more info
-;;          :environment-variables '(("PYTEST_ADDOPTS" . "--no-cov"))
-;;          :name "Python :: Run pytest - from anywhere")))
+(use-package dap-python
+  :straight nil
+  :config
+  (setq dap-python-debugger 'debugpy)
 
-;; (use-package dap-unity
-;;   :straight nil)
+  (dap-register-debug-template
+   "Python :: Run pytest - from anywhere"
+   (list :type "python"
+         ;; in place of running the whole test, a specific test can be set here
+         ;; eg: :args "test/test_process_config.py::test_process_toml"
+         :args nil
+         :cwd "${workspaceFolder}"
+         ;; if this is nil it will append the buffer file name, which stops pytest from running all tests
+         :program ""
+         :module "pytest"
+         :request "launch"
+         ;; https://code.visualstudio.com/docs/python/testing#_pytest-configuration-settings for more info
+         :environment-variables '(("PYTEST_ADDOPTS" . "--no-cov"))
+         :name "Python :: Run pytest - from anywhere")))
 
-;; (use-package dap-java :straight nil
-;;   :after (lsp-java))
+(use-package dap-unity
+  :straight nil)
+
+(use-package dap-java :straight nil
+  :after (lsp-java))
 
 (use-package rustic)
 
@@ -1294,7 +1294,7 @@ targets."
 ;; Flycheck: On the fly syntax checking
 (use-package flycheck
   :defer t
-  ;; :hook (lsp-mode . flycheck-mode)
+  :hook (lsp-mode . flycheck-mode)
   :config
   ;; stronger error display
   (defface flycheck-error
@@ -1461,16 +1461,16 @@ T - tag prefix
 (require 'orgZ)
 
 ;; ;;enabling company***********************************************
-;; (add-hook 'after-init-hook 'global-company-mode)
-;; ;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
-;; (setq company-minimum-prefix-length 1)
-;; (setq company-idle-delay 0.1)
-;; ;;;; GC issue
-;; ;; (add-hook 'after-init-hook (lambda () (setq gc-cons-threshold 100000000))) ;; This is set in lsp-mode
-;; (add-hook 'focus-out-hook 'garbage-collect)
-;; ;; ;; ;;company quickhelp gives docstring info
-;; (company-quickhelp-mode 1)
-;; (setq company-quickhelp-delay nil)
+(add-hook 'after-init-hook 'global-company-mode)
+;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
+(setq company-minimum-prefix-length 1)
+(setq company-idle-delay 0.1)
+;;;; GC issue
+;; (add-hook 'after-init-hook (lambda () (setq gc-cons-threshold 100000000))) ;; This is set in lsp-mode
+(add-hook 'focus-out-hook 'garbage-collect)
+;; ;; ;;company quickhelp gives docstring info
+(company-quickhelp-mode 1)
+(setq company-quickhelp-delay nil)
 
 ;; ;;yasnippet setup************************************************
 (use-package yasnippet
@@ -1518,9 +1518,7 @@ T - tag prefix
 (setq slime-net-coding-system 'utf-8-unix)
 (require  'slime)
 (slime-setup
- '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser
-               ;; slime-company
-               ))
+ '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser slime-company))
 ;; (unless package-archive-contents 
 ;;   (package-refresh-contents))
 (setq tab-always-indent 'complete)
@@ -1537,18 +1535,17 @@ T - tag prefix
 ;;   :straight t
 ;;   :init
 ;;   (elpy-enable))
-					;(setenv "ipy_test_simple_prompt" "1")
+					;(setenv "IPY_TEST_SIMPLE_PROMPT" "1")
 (setq python-shell-interpreter "python" python-shell-interpreter-args "-i")
 (pyvenv-activate "~/virtualenv/pytorch")
 (pyvenv-mode)
 
 (use-package with-venv
-  ;; :after (lsp lsp-pyright)
+  :after (lsp lsp-pyright)
   :config
-  ;; (with-venv-advice-add 'lsp-pyright-locate-venv)
-  ;; (with-venv-advice-add 'lsp-pylsp-get-pyenv-environment)
-  ;; (with-venv-advice-add 'dap-python--pyenv-executable-find)
-  )
+  (with-venv-advice-add 'lsp-pyright-locate-venv)
+  (with-venv-advice-add 'lsp-pylsp-get-pyenv-environment)
+  (with-venv-advice-add 'dap-python--pyenv-executable-find))
 
 (use-package poetry
   :straight (poetry :type git :host github :repo "cybniv/poetry.el"
@@ -1566,9 +1563,9 @@ T - tag prefix
 
 ;; from https://emacs.stackexchange.com/questions/32140/python-mode-indentation
 (defun how-many-region (begin end regexp &optional interactive)
-  "print number of non-trivial matches for regexp in region.
-   non-interactive arguments are begin end regexp"
-  (interactive "r\nshow many matches for (regexp): \np")
+  "Print number of non-trivial matches for REGEXP in region.
+   Non-interactive arguments are Begin End Regexp"
+  (interactive "r\nsHow many matches for (regexp): \np")
   (let ((count 0) opoint)
     (save-excursion
       (setq end (or end (point-max)))
@@ -1621,7 +1618,7 @@ T - tag prefix
 ;; (diminish 'highlight-indentation-current-column-mode)
 ;; (diminish 'elpy)
 ;; (diminish 'hs-minor-mode)
-;; (diminish 'projectile "projectile")
+;; (diminish 'Projectile "Projectile")
 
 ;;prolog*******************************************************
 ;; (setq auto-mode-alist
@@ -1637,7 +1634,7 @@ T - tag prefix
 
 (semantic-mode 1)
 
-;; (add-to-list 'company-backends 'company-c-headers)
+(add-to-list 'company-backends 'company-c-headers)
 ; (semantic-add-system-include "/usr/lib/gcc/x86_64-pc-linux-gnu/6.4.1/" 'c++-mode)
 					;(add-to-list 'company-c-headers-path-system "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1")
 (defun my-c-mode-common-hook ()
@@ -1880,15 +1877,13 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
   (add-hook 'persp-switch-hook #'persp-harpoon-on-switch)
   (add-hook 'persp-mode-hook #'persp-harpoon-on-switch)
 
+  (defun amsha/launch-lsp-mode-after-switch ()
+    (when (and (derived-mode-p 'prog-mode)
+               (member (s-replace "-mode" "" (symbol-name major-mode))
+                       (--map (cdr it) lsp-language-id-configuration)))
+      (lsp)))
 
-  ;; (defun amsha/launch-lsp-mode-after-switch ()
-  ;;   (when (and (derived-mode-p 'prog-mode)
-  ;;              (member (s-replace "-mode" "" (symbol-name major-mode))
-  ;;                      (--map (cdr it) lsp-language-id-configuration)))
-  ;;     (lsp)))
-
-  ;; (add-hook 'persp-switch-hook #'amsha/launch-lsp-mode-after-switch)
-  )
+  (add-hook 'persp-switch-hook #'amsha/launch-lsp-mode-after-switch))
   
 ;;harpoon ****************************************************************************************************************
 ;; (use-package harpoon
@@ -2054,10 +2049,10 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
   "."
   (outline-minor-mode 1))
 
-;; (use-package company-auctex
-;;   :after (auctex)
-;;   :config
-;;   (company-auctex-init))
+(use-package company-auctex
+  :after (auctex)
+  :config
+  (company-auctex-init))
 
 (use-package latex
   :straight auctex
@@ -2079,9 +2074,9 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
   (TeX-global-PDF-mode t)
   (setq outline-minor-mode-prefix "\C-c \C-o"))
 
-;; (use-package lsp-latex
-;;   :config
-;;   (setq lsp-latex-texlab-executable "~/.emacs.d/var/texlab.exe"))
+(use-package lsp-latex
+  :config
+  (setq lsp-latex-texlab-executable "~/.emacs.d/var/texlab.exe"))
 
 ;; (defun activate-preview-mode ()
 ;;   (load "preview-latex.el" nil t t))
@@ -2551,22 +2546,22 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
 ;; company-tabnin********************************************************
 
-;; (use-package company-tabnine
-;;   :config
-;;   (when (gethash 'use-tabnine configurations t)
-;;     (push 'company-tabnine company-backends))
-;;   (defun tabnine-toggle ()
-;;     "Toggle tabnine."
-;;     (interactive)
-;;     (--> '(company-tabnine :with company-yasnippet)
-;;          (if (member it company-backends)
-;;              (progn
-;;                (company-tabnine-kill-process)
-;;                (message "Started")
-;;                (setq company-backends
-;;                      (delete it company-backends)))
-;;            (message "Stopped")
-;;            (add-to-list 'company-backends it)))))
+(use-package company-tabnine
+  :config
+  (when (gethash 'use-tabnine configurations t)
+    (push 'company-tabnine company-backends))
+  (defun tabnine-toggle ()
+    "Toggle tabnine."
+    (interactive)
+    (--> '(company-tabnine :with company-yasnippet)
+         (if (member it company-backends)
+             (progn
+               (company-tabnine-kill-process)
+               (message "Started")
+               (setq company-backends
+                     (delete it company-backends)))
+           (message "Stopped")
+           (add-to-list 'company-backends it)))))
 
 
 ;; emacs discrod plugin
@@ -2594,15 +2589,15 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
 ;;code to run at the end!************************************************
 
-;; (defun company-mode/backend-with-yas (backend)
-;; "Adding yasnippet after company-mode.
-;; BACKEND: the backend"
-;;   (if (and (listp backend) (member 'company-yasnippet backend))
-;;       backend
-;;     (append (if (consp backend) backend (list backend))
-;;             '(:with company-yasnippet))))
+(defun company-mode/backend-with-yas (backend)
+"Adding yasnippet after company-mode.
+BACKEND: the backend"
+  (if (and (listp backend) (member 'company-yasnippet backend))
+      backend
+    (append (if (consp backend) backend (list backend))
+            '(:with company-yasnippet))))
 
-;; (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
+(setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
 
 ;;yasnippets company conflict resolution
 ;(provide .emacs)
