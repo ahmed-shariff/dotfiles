@@ -1058,33 +1058,33 @@ targets."
          ("C-h C" . helpful-command)))
 
 ;; ;;lsp-bridge *************************************************************************
-(use-package lsp-bridge
-  :bind-keymap ("C-x l" . lsp-bridge-keymap)
-  :straight (lsp-bridge :host github :repo "manateelazycat/lsp-bridge"
-                        ;; :files (:defaults "acm/*.el" "acm/**" "*.el" "langserver" "multiserver" "core"))
-                        :files ("acm" "core" "langserver" "multiserver" "test" "*.py" "*.el"))
-  ;; :hook (csharp-mode . lsp-bridge-mode)
-  :custom
-  (lsp-bridge-enable-log nil) ;; enable when debugging
-  (lsp-bridge-csharp-lsp-server "omnisharp-mono")
-  (lsp-bridge-get-project-path-by-filepath #'amsha/get-project-root-overlooking-submodules)
-  (lsp-bridge-get-workspace-folder #'amsha/get-project-root-overlooking-submodules)
-  (lsp-bridge-user-langserver-dir (expand-file-name "langserver" user-emacs-directory))
-  :config
-  (global-lsp-bridge-mode)
-  (setq lsp-bridge-keymap (let ((m (make-sparse-keymap)))
-                            (define-key m (kbd "w r") #'lsp-bridge-restart-process)
-                            (define-key m (kbd "r r") #'lsp-bridge-rename)
-                            (define-key m (kbd "g d") #'lsp-bridge-find-def)
-                            (define-key m (kbd "g r") #'lsp-bridge-find-references)
-                            (define-key m (kbd "a a") #'lsp-bridge-code-action)
-                            m))
+;; (use-package lsp-bridge
+;;   :bind-keymap ("C-x l" . lsp-bridge-keymap)
+;;   :straight (lsp-bridge :host github :repo "manateelazycat/lsp-bridge"
+;;                         ;; :files (:defaults "acm/*.el" "acm/**" "*.el" "langserver" "multiserver" "core"))
+;;                         :files ("acm" "core" "langserver" "multiserver" "test" "*.py" "*.el"))
+;;   ;; :hook (csharp-mode . lsp-bridge-mode)
+;;   :custom
+;;   (lsp-bridge-enable-log nil) ;; enable when debugging
+;;   (lsp-bridge-csharp-lsp-server "omnisharp-mono")
+;;   (lsp-bridge-get-project-path-by-filepath #'amsha/get-project-root-overlooking-submodules)
+;;   (lsp-bridge-get-workspace-folder #'amsha/get-project-root-overlooking-submodules)
+;;   (lsp-bridge-user-langserver-dir (expand-file-name "langserver" user-emacs-directory))
+;;   :config
+;;   (global-lsp-bridge-mode)
+;;   (setq lsp-bridge-keymap (let ((m (make-sparse-keymap)))
+;;                             (define-key m (kbd "w r") #'lsp-bridge-restart-process)
+;;                             (define-key m (kbd "r r") #'lsp-bridge-rename)
+;;                             (define-key m (kbd "g d") #'lsp-bridge-find-def)
+;;                             (define-key m (kbd "g r") #'lsp-bridge-find-references)
+;;                             (define-key m (kbd "a a") #'lsp-bridge-code-action)
+;;                             m))
 
-  (defun amsha/start-lsp-server-in-project-root (old-func &rest r)
-    (let ((default-directory (amsha/get-project-root-overlooking-submodules)))
-      (apply old-func r)))
+;;   (defun amsha/start-lsp-server-in-project-root (old-func &rest r)
+;;     (let ((default-directory (amsha/get-project-root-overlooking-submodules)))
+;;       (apply old-func r)))
 
-  (advice-add 'lsp-bridge-start-process :around #'amsha/start-lsp-server-in-project-root))
+;;   (advice-add 'lsp-bridge-start-process :around #'amsha/start-lsp-server-in-project-root))
 
 ;;lsp-mode ***************************************************************************
 (use-package lsp-ui
