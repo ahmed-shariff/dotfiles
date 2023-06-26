@@ -1877,7 +1877,7 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
         (if (> 2 (length persp-harpoon-buffers))
             (user-error (format "Only %s buffer(s) in harpoon" (length persp-harpoon-buffers)))
           (persp-harpoon--add-file-to-top (cadr persp-harpoon-buffers))
-          (switch-to-buffer (find-file-noselect (cadr persp-harpoon-buffers))))
+          (switch-to-buffer (find-file-noselect (car persp-harpoon-buffers))))
       (switch-to-buffer (find-file-noselect (car persp-harpoon-buffers))))))
 
   (defun persp-harpoon-kill-non-harpoon-buffers ()
