@@ -1844,20 +1844,45 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
 
   (defun persp-harpoon-switch-to ()
     (interactive)
-    (let ((buffers (persp-harpoon--get-buffers-for-completion)))
+    (let* ((buffers (persp-harpoon--get-buffers-for-completion))
+           (val 0)
+           (annotated-buffers (mapcar (lambda (el)
+                                        (cl-incf val)
+                                        (cons (format "%s - %s" val el) el))
+                                      buffers))
+           (buffer-annotation-function
+            (completion-metadata-get '((category . buffer)) 'annotation-function))
+           (buffer-affixation-function
+            (completion-metadata-get '((category . buffer)) 'affixation-function)))
+
       (switch-to-buffer
        (completing-read
         (format "Switch to harpoon (%s):" (persp-current-name))
         (lambda (string pred action)
-          (if (eq action 'metadata)
-              `(metadata .
-                         ((category . buffer)
-                          (display-sort-function . ,#'identity)))
+          (cond
+           ((eq action 'metadata)
+            (cons
+             'metadata
+             `(;; (category . buffer)
+               (annotation-function . ,(lambda (str)
+                                         (funcall buffer-annotation-function
+                                                  (substring str 4))))
+               (affixation-function . ,(lambda (collection)
+                                         (cl-loop for original-el in collection
+                                                  for affixed in (funcall buffer-affixation-function
+                                                                          (--map
+                                                                           (cdr
+                                                                            (assoc it annotated-buffers))
+                                                                           collection))
+                                                  collect
+                                                  (cons original-el (cdr affixed)))))
+               (display-sort-function . ,#'identity))))
+           (t
             (complete-with-action
              action
-             buffers
+             annotated-buffers
              string
-             pred)))
+             pred))))
         nil 'require-match))))
 
   (defun persp-harpoon--get-buffers-for-completion ()
