@@ -1222,7 +1222,8 @@ Copied  from `org-roam-backlink-get'."
   (f-descendant-of-p (file-truename path) (file-truename (f-join okm-base-directory "research_papers"))))
 
 (use-package org-roam-ql
-  :straight (org-roam-ql :type git :host github :repo "ahmed-shariff/org-roam-ql")
+  :straight (org-roam-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
+                         :includes (org-roam-ql-ql))
   :after (org-roam org-ql)
   :bind (:map minibuffer-mode-map
          ("C-c n i" . org-roam-ql-insert-node-title))
