@@ -1819,9 +1819,9 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
           (persp-harpoon-save))
       (user-error "buffer not a file")))
 
-  (defun persp-harpoon-remove-buffer ()
+  (defun persp-harpoon-remove-buffer (&optional buffer)
     (interactive)
-    (if-let (b (buffer-file-name))
+    (if-let (b (or buffer (buffer-file-name)))
         (let ((buffer-full-name (file-truename b)))
           (setq persp-harpoon-buffers (delete buffer-full-name persp-harpoon-buffers))
           (persp-harpoon-save))
@@ -1848,42 +1848,53 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
            (val 0)
            (annotated-buffers (mapcar (lambda (el)
                                         (cl-incf val)
-                                        (cons (format "%s - %s" val el) el))
+                                        (cons (format "%s %s" val el) el))
                                       buffers))
            (buffer-annotation-function
             (completion-metadata-get '((category . buffer)) 'annotation-function))
            (buffer-affixation-function
             (completion-metadata-get '((category . buffer)) 'affixation-function)))
-
       (switch-to-buffer
-       (completing-read
-        (format "Switch to harpoon (%s):" (persp-current-name))
-        (lambda (string pred action)
-          (cond
-           ((eq action 'metadata)
-            (cons
-             'metadata
-             `(;; (category . buffer)
-               (annotation-function . ,(lambda (str)
-                                         (funcall buffer-annotation-function
-                                                  (substring str 4))))
-               (affixation-function . ,(lambda (collection)
-                                         (cl-loop for original-el in collection
-                                                  for affixed in (funcall buffer-affixation-function
-                                                                          (--map
-                                                                           (cdr
-                                                                            (assoc it annotated-buffers))
-                                                                           collection))
-                                                  collect
-                                                  (cons original-el (cdr affixed)))))
-               (display-sort-function . ,#'identity))))
-           (t
-            (complete-with-action
-             action
-             annotated-buffers
-             string
-             pred))))
-        nil 'require-match))))
+       (cdr
+        (assoc
+         (completing-read
+          (format "Switch to harpoon (%s):" (persp-current-name))
+          (lambda (string pred action)
+            (cond
+             ((eq action 'metadata)
+              (cons
+               'metadata
+               `(;; (category . buffer)
+                 (annotation-function . ,(lambda (str)
+                                           (funcall buffer-annotation-function
+                                                    (substring str 2))))
+                 (affixation-function . ,(lambda (collection)
+                                           (cl-loop for original-el in collection
+                                                    for affixed in (funcall buffer-affixation-function
+                                                                            (--map
+                                                                             (cdr
+                                                                              (assoc it annotated-buffers))
+                                                                             collection))
+                                                    collect
+                                                    (let ((buffer (substring original-el 2))
+                                                          (index (substring original-el 0 1))
+                                                          (prefix (cadr affixed))
+                                                          (suffix (caddr affixed)))
+                                                      (list
+                                                       buffer
+                                                       (if prefix
+                                                           (format "%s %s" index prefix)
+                                                         prefix)
+                                                       suffix)))))
+                 (display-sort-function . ,#'identity))))
+             (t
+              (complete-with-action
+               action
+               annotated-buffers
+               string
+               pred))))
+          nil 'require-match)
+         annotated-buffers)))))
 
   (defun persp-harpoon--get-buffers-for-completion ()
     (let ((buffers (mapcar (lambda (b)
