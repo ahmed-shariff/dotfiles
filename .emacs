@@ -1772,18 +1772,18 @@ Used with atomic-chrome."
 
   (defvar persp-harpoon-cache-file "~/.emacs.d/.cache/perspective-harpoon.json")
   (defvar persp-harpoon-buffers nil)
+  (defvar persp-harpoon-buffers-list nil)
 
   (persp-make-variable-persp-local 'persp-harpoon-buffers)
 
-  (defun persp-harpoon-save (&optional persp-name buffer-list)
+  (defun persp-harpoon-save (&optional persp-name buffer-table)
     "Save the current state of the harpoons.
 HASHTABLEs keys are names of perspectives. values are lists of file-names."
     (let ((hashtable (persp-harpoon-load)))
       (puthash (or persp-name
                    (persp-current-name))
-               (coerce (or buffer-list
-                           persp-harpoon-buffers)
-                       'vector)
+               (or buffer-table
+                   persp-harpoon-buffers)
                hashtable)
       (with-temp-buffer
         (json-insert hashtable)
@@ -1804,12 +1804,16 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
                              (json-parse-string (buffer-string))))
                          (make-hash-table))))
       (if persp-name
-          (coerce (gethash persp-name hashtable) 'list)
+          (gethash persp-name hashtable)
         hashtable)))
 
   (defun persp-harpoon--add-file-to-top (buffer-full-name)
-    (setq persp-harpoon-buffers (delete buffer-full-name persp-harpoon-buffers))
-    (push buffer-full-name persp-harpoon-buffers))
+    (unless persp-harpoon-buffers
+      (setq persp-harpoon-buffers (make-hash-table)))
+    (unless (gethash buffer-full-name persp-harpoon-buffers)
+      (puthash buffer-full-name 1 persp-harpoon-buffers))
+    (setq persp-harpoon-buffers-list (delete buffer-full-name persp-harpoon-buffers-list))
+    (push buffer-full-name persp-harpoon-buffers-list))
 
   (defun persp-harpoon-add-buffer ()
     (interactive)
@@ -1823,24 +1827,28 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
     (interactive)
     (if-let (b (or buffer (buffer-file-name)))
         (let ((buffer-full-name (file-truename b)))
-          (setq persp-harpoon-buffers (delete buffer-full-name persp-harpoon-buffers))
+          (setq persp-harpoon-buffers (remhash buffer-full-name persp-harpoon-buffers))
+          (setq persp-harpoon-buffers-list (delete buffer-full-name persp-harpoon-buffers-list))
           (persp-harpoon-save))
       (user-error "buffer not a file")))
 
   (defun persp-harpoon-clear-buffers ()
     (interactive)
     (when (y-or-n-p (format "Clear harpoon (%s)?" (persp-current-name)))
-      (setq persp-harpoon-buffers nil)
+      (setq persp-harpoon-buffers (clrhash persp-harpoon-buffers))
+      (setq persp-harpoon-buffers-list nil)
       (persp-harpoon-save)))
 
   (defun persp-harpoon-on-buffer-switch (&rest _)
     (when-let* ((b (buffer-file-name))
                 (buffer-full-name (file-truename b))
-                (_ (member buffer-full-name persp-harpoon-buffers)))
+                (_ (member buffer-full-name persp-harpoon-buffers-list)))
       (persp-harpoon--add-file-to-top (buffer-file-name))))
 
   (defun persp-harpoon-on-switch (&rest _)
-    (setq persp-harpoon-buffers (persp-harpoon-load (persp-current-name))))
+    (setq persp-harpoon-buffers (or (persp-harpoon-load (persp-current-name))
+                                    (make-hash-table)))
+    (setq persp-harpoon-buffers-list (hash-table-keys persp-harpoon-buffers)))
 
   (defun persp-harpoon-switch-to ()
     (interactive)
@@ -1899,22 +1907,22 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
   (defun persp-harpoon--get-buffers-for-completion ()
     (let ((buffers (mapcar (lambda (b)
                              (buffer-name (find-file-noselect b)))
-                           persp-harpoon-buffers))
-          (-buffer-name (buffer-name)))
+                           persp-harpoon-buffers-list))
+          (-buffer-name (file-truename (buffer-name))))
       (if (and (> (length buffers) 2) (member -buffer-name buffers))
           (append (delete -buffer-name buffers) (list -buffer-name))
         buffers)))
 
   (defun persp-harpoon-switch-other ()
     (interactive)
-    (let ((current-buffer-name (buffer-file-name)))
+    (let ((current-buffer-name (file-truename (buffer-file-name))))
       (if (and current-buffer-name
-               (member (file-truename current-buffer-name) persp-harpoon-buffers))
-        (if (> 2 (length persp-harpoon-buffers))
-            (user-error (format "Only %s buffer(s) in harpoon" (length persp-harpoon-buffers)))
-          (persp-harpoon--add-file-to-top (cadr persp-harpoon-buffers))
-          (switch-to-buffer (find-file-noselect (car persp-harpoon-buffers))))
-      (switch-to-buffer (find-file-noselect (car persp-harpoon-buffers))))))
+               (member (file-truename current-buffer-name) persp-harpoon-buffers-list))
+        (if (> 2 (length persp-harpoon-buffers-list))
+            (user-error (format "Only %s buffer(s) in harpoon" (length persp-harpoon-buffers-list)))
+          (persp-harpoon--add-file-to-top (cadr persp-harpoon-buffers-list))
+          (switch-to-buffer (find-file-noselect (car persp-harpoon-buffers-list))))
+      (switch-to-buffer (find-file-noselect (car persp-harpoon-buffers-list))))))
 
   (defun persp-harpoon-kill-non-harpoon-buffers ()
     (interactive)
@@ -1923,7 +1931,7 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
         (dolist (b (persp-current-buffers))
           (let ((-buffer-file-name (buffer-file-name b)))
             (when (or (null -buffer-file-name)
-                      (not (member (file-truename -buffer-file-name) persp-harpoon-buffers)))
+                      (not (member (file-truename -buffer-file-name) persp-harpoon-buffers-list)))
               (cl-incf killed)
               (kill-buffer b))))
         (message (format "Killed %s buffer(s)." killed)))))
