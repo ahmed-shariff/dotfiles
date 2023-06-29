@@ -942,13 +942,45 @@ Copied  from `org-roam-backlink-get'."
                                        bib-url))))))
       (switch-to-buffer buffer)))
 
+  ;; Modifying the `org-ref-open-url-at-point'.
+  (defun org-ref-get-url-at-point ()
+    "Get the url for bibtex key under point."
+    (interactive)
+    (let* ((bibtex-completion-bibliography (org-ref-find-bibliography))
+	   (results (org-ref-get-bibtex-key-and-file))
+           (key (car results))
+           (bibfile (cdr results)))
+      (save-excursion
+        (with-temp-buffer
+          (insert-file-contents bibfile)
+          (bibtex-set-dialect (parsebib-find-bibtex-dialect) t)
+          (bibtex-search-entry key)
+          ;; I like this better than bibtex-url which does not always find
+          ;; the urls
+          (or
+            (let ((url (s-trim (bibtex-autokey-get-field "url"))))
+              (unless (s-blank? url)
+                url))
+
+            (let ((doi (s-trim (bibtex-autokey-get-field "doi"))))
+              (unless (s-blank? doi)
+                (if (string-match "^http" doi)
+                    doi
+                  (format "http://dx.doi.org/%s" doi)))))))))
+
   (defhydra+ org-ref-citation-hydra ()
     ("t" (lambda ()
            (interactive)
            (save-excursion
              (org-ref-open-notes-at-point)
              (org-noter)))
-     "open noter" :column "Open")))
+     "open noter" :column "Open")
+    ("l" (lambda ()
+           (interactive)
+           (-if-let (url (org-ref-get-url-at-point))
+               (kill-new url)
+             (user-error "No url copied")))
+     "Copy url" :column "Copy")))
 
 (defun doi-add-bibtex-entry-with-note ()
   "."
