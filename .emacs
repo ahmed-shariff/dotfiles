@@ -1668,9 +1668,18 @@ T - tag prefix
 ;;set transparency********************************************
 ;;(set-frame-parameter (selected-frame) 'alpha '(<active> . <inactive>))
  ;;(set-frame-parameter (selected-frame) 'alpha <both>)
-(set-frame-parameter (selected-frame) 'alpha '(98 . 92))
-(add-to-list 'default-frame-alist '(alpha . (98 . 92)))
+;; (set-frame-parameter (selected-frame) 'alpha '(98 . 92))
+;; (add-to-list 'default-frame-alist '(alpha . (98 . 92)))
 
+(defvar made-transparent nil)
+
+(defun toggle-frame-alpha ()
+  "Toggle frame transparency."
+  (interactive)
+  (set-frame-parameter (selected-frame) 'alpha (if made-transparent '(100 . 100) '(98 . 92)))
+  (setq made-transparent (not made-transparent)))
+
+(toggle-frame-alpha)
 
 ;; (custom-set-faces
 ;;  ;; custom-set-faces was added by Custom.
