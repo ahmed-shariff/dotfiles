@@ -1546,6 +1546,45 @@ Currently written to work in org-ql buffer."
         (org-roam-ql-search (-uniq all-topics) 'org-ql "Query parents" `(member (org-id-get) (list ,@(-map #'org-roam-node-id all-topics)))
                           (--map (list :file-path it) (list "research topics.org" "People.org" "Projects.org")))))))
 
+
+(defun okm-org-roam-query-topics ()
+  "List all parent topics of results in buffer."
+  (interactive)
+  (when (derived-mode-p 'org-roam-mode)
+    (let ((nodes (org-roam-ql--nodes-from-roam-buffer (current-buffer)))
+          (original-format-function (symbol-function 'org-roam-ql-view--format-node))
+          topics
+          topic-nodes)
+      (dolist (node nodes)
+        (-let (((-topics . -other-parents) (okm-parents-by-topics (org-roam-node-id node))))
+          (setq topics (append topics -topics -other-parents))))
+      (setq topics (--map (cons (car it) (length (cdr it)))
+                               (--group-by it
+                                           (--filter (not (string-empty-p it))
+                                                     topics)))
+            topic-nodes (--map (org-roam-node-from-title-or-alias (car it)) topics))
+      (cl-letf (((symbol-function 'org-roam-ql-view--format-node)
+                 ;; Copied from `org-roam-ql-view--format-node'
+                 (lambda (node)
+                   (let* ((marker
+                           (org-roam-ql--get-file-marker node))
+                          (properties (list
+                                       'org-marker marker
+                                       'org-hd-marker marker))
+                          (string (format "(%s) %s"
+                                          (cdr (assoc (org-roam-node-title node)
+                                                      topics))
+                                          (org-roam-node-title node))))
+                     (remove-list-of-text-properties 0 (length string) '(line-prefix) string)
+                     (--> string
+                          (concat "  " it)
+                          (org-add-props it properties
+                            'org-agenda-type 'search
+                            'todo-state (org-roam-node-todo node)))))))
+        (org-roam-ql--org-ql-search '(id "asdf") topic-nodes "Topics"
+                                    (--map (list :file-path it) (list "research topics.org" "People.org" "Projects.org")))))))
+
+
 (require 'ox-extra)
 (ox-extras-activate '(ignore-headlines))
 
@@ -1979,9 +2018,7 @@ Parent-child relation is defined by the brain-parent links."
   (unless entry-id
     (setq entry-id (org-id-get-closest)))
   (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
-  (save-excursion
-    (org-id-goto entry-id)
-    (--map (s-replace (concat okm-parent-id-type-name ":") "" it) (org-entry-get-multivalued-property (point) okm-parent-property-name))))
+  (--map (org-roam-node-id (org-roam-backlink-target-node it)) (okm-links-get (org-roam-node-from-id entry-id) t :unique t)))
 
 (defun okm-get-children (&optional entry-id)
   "Get the child IDs for entry with id entry-id or in the current entry.
