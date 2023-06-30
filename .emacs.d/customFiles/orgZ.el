@@ -496,8 +496,17 @@
 
 (defun org-summary-todo (n-done n-not-done)
   "Switch entry to DONE when all subentries are done, to TODO otherwise."
-  (let (org-log-done org-log-states)   ; turn off logging
-    (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
+  (let* (org-log-done
+         org-log-states
+         (inprogress 0)
+         (level (1+ (org-outline-level)))
+         (target-state (cond
+                        ((= n-not-done 0) "DONE")
+                        ((> n-done 0) "INPROGRESS")
+                        (t "TODO"))))
+    (unless (string= (org-get-todo-state) target-state)
+      (org-todo target-state))))
+
 
 ;; ;; from https://stackoverflow.com/questions/13967876/how-to-restrict-a-function-to-a-subtree-in-emacs-org-mode
 ;; (defun my-ido-find-org-attach ()
