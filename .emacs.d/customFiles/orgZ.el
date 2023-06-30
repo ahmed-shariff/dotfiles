@@ -1255,8 +1255,8 @@ Copied  from `org-roam-backlink-get'."
 
 (use-package org-roam-ql
   :straight (org-roam-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
-                         :includes (org-roam-ql-ql))
-  :after (org-roam org-ql)
+                         :files (:defaults (:exclude "org-roam-ql-ql.el")))
+  :after (org-roam)
   :bind (:map minibuffer-mode-map
          ("C-c n i" . org-roam-ql-insert-node-title))
   :config
@@ -1335,15 +1335,10 @@ Copied  from `org-roam-backlink-get'."
                       (run-hooks 'org-roam-buffer-postrender-functions)))))
        title buffer-name nil))))
 
-(defun okm-view-ql-or-roam-prompt (nodes title &optional query choice)
-  "View nodes, in one of (org-ql-buffer org-roam-buffer). Prompt which if not specified."
-  (unless choice
-    (setq choice (intern-soft (completing-read "Choice: " '(org-roam org-ql) nil t))))
-  (org-roam-ql-search nodes choice title))
-  ;; (pcase choice
-  ;;   ('org-ql (org-roam-ql-view nodes title query))
-  ;;   ('org-roam (org-roam-ql--render-buffer (list (org-roam-ql--nodes-section nodes "Nodes:"))
-  ;;                                          (format "%s" title) (format "*%s*" title)))))
+(use-package org-roam-ql-ql
+  :straight (org-roam-q-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
+                           :files (:defaults (:exclude "org-roam-ql.el")))
+  :after (org-roam org-ql org-roam-ql))
 
 (defun okm-query-papers-by-topics (&optional topic-ids)
   "Query papers based on topics."
@@ -1352,7 +1347,7 @@ Copied  from `org-roam-backlink-get'."
                      (-map #'org-roam-node-from-id topic-ids)
                    (org-roam-node-read-multiple "Query topics: ")))
          (topic-queries (--map `(child-of ,(org-roam-node-title it)) topics)))
-    (okm-view-ql-or-roam-prompt
+    (org-roam-ql-search
      `(and (file "research_papers")
            ,(if (eq 1 (length topic-queries))
                (car topic-queries)
@@ -1412,7 +1407,7 @@ Copied  from `org-roam-backlink-get'."
     (cl-letf (((symbol-function 'org-roam-preview-get-contents)
                (lambda (f point)
                  (propertize (s-join "\n" (--map (format " - %s" it) (assoc (f-base f) results))) 'face 'org-tag))))
-      (okm-view-ql-or-roam-prompt
+      (org-roam-ql-search
        `(pdf-string ,regexp)
        regexp))))
 
