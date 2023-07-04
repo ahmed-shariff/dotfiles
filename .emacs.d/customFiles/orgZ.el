@@ -1312,7 +1312,7 @@ Copied  from `org-roam-backlink-get'."
            (title (format "(%s)" names))
            (buffer-name (format "*notes: %s*" names))
            (ids (apply #'vector (--map (org-roam-node-id it) entries))))
-      (org-roam-ql--render-buffer
+      (org-roam-ql--render-roam-buffer
        (list (--> (org-roam-db-query
                    [:select :distinct [links:source links:pos links:properties]
                             :from links :inner :join nodes :on (= links:source nodes:id)
