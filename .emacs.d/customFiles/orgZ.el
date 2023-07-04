@@ -600,6 +600,7 @@
   :ensure t
   :init
   (setq org-roam-v2-ack t)
+  :hook (kill-emacs-hook . amsha/backup-org-roam-db)
   :custom
   (org-roam-directory (file-truename okm-base-directory))
   (org-roam-file-extensions '("org" "org_archive"))
@@ -676,6 +677,10 @@
     (okm-print-parents))
   (org-roam-node-action org-roam-node-add-parents
     (okm-add-parent-topic))
+
+  (defun amsha/backup-org-roam-db ()
+    (interactive)
+    (copy-file org-roam-db-location (format "%s-backup" org-roam-db-location) t))
 
 ;;   (defmacro org-roam-backlinks-get-brain-relation (relation-function node)
 ;;     "Use `relation-function' to get the relations as backlinks for the given org-roam `node'.
