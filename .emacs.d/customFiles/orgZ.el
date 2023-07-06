@@ -1439,8 +1439,12 @@ Copied  from `org-roam-backlink-get'."
                                     (org-up-heading-safe)
                                     (s-replace-regexp
                                      "^<<[0-9]+>> " ""
-                                     (--> (org-no-properties (org-get-heading t t t t))
-                                          (propertize it 'face 'shadow))))
+                                     (-as-> (--> (org-no-properties (org-get-heading t t t t))
+                                                 (propertize it 'face 'shadow))
+                                            it
+                                            (if (> (length it) 40)
+                                                (format "%s..." (substring it 0 37))
+                                              it))))
                                   (org-no-properties (org-get-heading t t t t)))
                           (org-id-get))))))
 
