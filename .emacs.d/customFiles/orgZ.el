@@ -1423,7 +1423,7 @@ Copied  from `org-roam-backlink-get'."
                  (propertize (s-join "\n" (--map (format " - %s" it) (assoc (f-base f) results))) 'face 'org-tag))))
       (org-roam-ql-search
        `(pdf-string ,regexp)
-       regexp))))
+       (prin1-to-string regexp)))))
 
 (defun amsha/get-sprints (states)
   "Return sprints based on STATUS."
@@ -1595,8 +1595,14 @@ Currently written to work in org-ql buffer."
                           (org-add-props it properties
                             'org-agenda-type 'search
                             'todo-state (org-roam-node-todo node)))))))
-        (org-roam-ql--org-ql-search '(id "asdf") topic-nodes "Topics"
-                                    (--map (list :file-path it) (list "research topics.org" "People.org" "Projects.org")))))))
+        (org-roam-ql--agenda-buffer-for-nodes topic-nodes "Topics"
+                                              (org-roam-ql--get-formatted-buffer-name
+                                               (org-roam-ql--get-formatted-title
+                                                (format "Topics - %s" (prin1-to-string org-roam-ql-buffer-title)) nil))
+                                              `(backlinks-to ,org-roam-ql-buffer-query :type "brain-parent")
+                                              (--map
+                                               (list :file-path it)
+                                               (list "research topics.org" "People.org" "Projects.org")))))))
 
 
 (require 'ox-extra)
