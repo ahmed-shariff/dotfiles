@@ -347,7 +347,7 @@
     (apply #'max
            (org-ql-select
              (expand-file-name "work/projects.org" okm-base-directory)
-             `(parent ,(s-replace-regexp "/$" "" (car org-refile-history)))
+             `(parent (heading ,(s-replace-regexp "/$" "" (car org-refile-history))))
              :action  (lambda ()
                         (condition-case nil
                             (string-to-number (cadr (s-match "Sprint \\([0-9]+\\):"
