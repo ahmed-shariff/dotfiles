@@ -450,24 +450,10 @@ advice, files on WSL can not be saved."
       (kbd "C-n")   #'evil-multiedit-next
       (kbd "C-p")   #'evil-multiedit-prev)))
 
+;; Keybindings set in evil-collections
 (use-package evil-mc
   :config
-  (evil-define-key '(normal visual) 'global
-    "gzm" #'evil-mc-make-all-cursors
-    "gzu" #'evil-mc-undo-all-cursors
-    "gzz" #'+evil/mc-toggle-cursors
-    "gzc" #'+evil/mc-make-cursor-here
-    "gzn" #'evil-mc-make-and-goto-next-cursor
-    "gzp" #'evil-mc-make-and-goto-prev-cursor
-    "gzN" #'evil-mc-make-and-goto-last-cursor
-    "gzP" #'evil-mc-make-and-goto-first-cursor)
-
-  (with-eval-after-load 'evil-mc
-    (evil-define-key '(normal visual) evil-mc-key-map
-      (kbd "C-n") #'evil-mc-make-and-goto-next-cursor
-      (kbd "C-N") #'evil-mc-make-and-goto-last-cursor
-      (kbd "C-p") #'evil-mc-make-and-goto-prev-cursor
-      (kbd "C-P") #'evil-mc-make-and-goto-first-cursor)))
+  (global-evil-mc-mode  1))
 ;;selectrum  *******************************************************
 ;; (use-package prescient
 ;;   :config
