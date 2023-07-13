@@ -2119,24 +2119,37 @@ Parent-child relation is defined by the brain-parent links."
   "Deletes the pdf entry of an okm entry bib at point at point."
   (interactive)
   (when (y-or-n-p "Sure you want to delete the pdf file and the interleve entry here? ")
+    (delete-interleve-entry)))
+
+(defun delete-interleve-entry ()
+  "Delete the interleave entries"
+  (save-excursion
+    (goto-char (org-entry-beginning-position))
+    (when-let* ((pdf-file (org-entry-get (point) "INTERLEAVE_PDF"))
+                (pdf-exists (file-exists-p pdf-file)))
+      (delete-file pdf-file nil))
+    (when-let* ((pdf-text-file (org-entry-get (point) "PDF_TEXT_FILE"))
+                (pdf-text-file-exists (file-exists-p pdf-text-file)))
+      (delete-file pdf-text-file nil))
+    (org-entry-delete (point) "Attachment")
+    (org-entry-delete (point) "INTERLEAVE_PDF")
+    (org-entry-delete (point) "PDF_TEXT_FILE")
+    ;; NOTE: This is done to avoid the resulting tags being nil triggering an error
+    (apply #'org-entry-put-multivalued-property
+           (point) "RPC-TAGS"
+           (delete "PDF_ERROR"
+                   (delete "nosiblings"
+                           (delete "ATTACH"
+                                   (delete-dups (org-entry-get-multivalued-property (point) "RPC-TAGS"))))))))
+
+(defun okm-delete-node-and-files ()
+  "Deletes this note and the pdf/txt files associated with it."
+  (interactive)
+  (when (y-or-n-p "Sure you want to delete the entry and it's associated pdf file? ")
+    (delete-interleve-entry)
     (save-excursion
-      (goto-char (org-entry-beginning-position))
-      (when-let* ((pdf-file (org-entry-get (point) "INTERLEAVE_PDF"))
-                  (pdf-exists (file-exists-p pdf-file)))
-        (delete-file pdf-file nil))
-      (when-let* ((pdf-text-file (org-entry-get (point) "PDF_TEXT_FILE"))
-                  (pdf-text-file-exists (file-exists-p pdf-text-file)))
-        (delete-file pdf-text-file nil))
-      (org-entry-delete (point) "Attachment")
-      (org-entry-delete (point) "INTERLEAVE_PDF")
-      (org-entry-delete (point) "PDF_TEXT_FILE")
-      ;; NOTE: This is done to avoid the resulting tags being nil triggering an error
-      (apply #'org-entry-put-multivalued-property
-             (point) "RPC-TAGS"
-             (delete "PDF_ERROR"
-                     (delete "nosiblings"
-                             (delete "ATTACH"
-                                     (delete-dups (org-entry-get-multivalued-property (point) "RPC-TAGS")))))))))
+      (delete-file (buffer-file-name))
+      (kill-buffer))))
 
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
