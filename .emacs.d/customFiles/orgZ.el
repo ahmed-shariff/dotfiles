@@ -1398,16 +1398,18 @@ Copied  from `org-roam-backlink-get'."
 ;;     (org-ql-search '("~/Documents/org/brain/research_papers/")  query)))
 
 (defun okm--test-regexp-on-file (f regexp)
-  (with-temp-buffer
-    (insert-file-contents f)
-    (cl-typecase regexp
-      (string
-       (s-match-strings-all regexp (buffer-string)))
-      (symbol
-       (s-match-strings-all (symbol-name regexp) (buffer-string)))
-      (list
-       (--all-p (s-match-strings-all it (buffer-string)) regexp))
-      (t (error "Unknown type?")))))
+  (if (f-exists-p f)
+      (with-temp-buffer
+        (insert-file-contents f)
+        (cl-typecase regexp
+          (string
+           (s-match-strings-all regexp (buffer-string)))
+          (symbol
+           (s-match-strings-all (symbol-name regexp) (buffer-string)))
+          (list
+           (--all-p (s-match-strings-all it (buffer-string)) regexp))
+          (t (error "Unknown type?"))))
+    (message "ERROR: Missing %s" f)))
 
 (defun okm-search-papers-by-pdf-string (regexp)
   "Search without opening org files."
