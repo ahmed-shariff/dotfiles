@@ -1266,11 +1266,15 @@ targets."
     (when (eq system-type 'gnu/linux)
       (setq pdf-tools-directory "/home/amsha/.emacs.d/straight/repos/pdf-tools/"))
     (pdf-tools-install t)
-    (add-hook 'pdf-view-mode-hook '(lambda ()
-				     (pdf-misc-size-indication-minor-mode)
-                                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
-                                     (set (make-local-variable 'evil-emacs-state-cursor) (list nil))
-                                     (evil-emacs-state)))))
+
+    (add-to-list 'pdf-view-incompatible-modes 'display-line-numbers-mode)
+
+    (defun amsha/pdf-view-mode-hook ()
+      (pdf-misc-size-indication-minor-mode)
+      (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+      (set (make-local-variable 'evil-emacs-state-cursor) (list nil))
+      (evil-emacs-state))
+    (add-hook 'pdf-view-mode-hook #'amsha/pdf-view-mode-hook)))
 
 ;;delete-selection-mode
 (delete-selection-mode t)
@@ -1588,11 +1592,9 @@ T - tag prefix
 ;;   )
 
 (use-package display-line-numbers
-  ;; :hook (prog-mode text-mode)
+  :hook (prog-mode text-mode)
   :custom
-  (display-line-numbers-type 'visual)
-  :config
-  (global-display-line-numbers-mode))
+  (display-line-numbers-type 'visual))
 
 (use-package ess)
 
