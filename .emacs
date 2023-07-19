@@ -465,6 +465,13 @@ advice, files on WSL can not be saved."
 ;;   (selectrum-prescient-mode +1)
 ;;   (setq selectrum-prescient-enable-filtering nil))
 
+(use-package evil-numbers
+  :config
+  (evil-define-key 'normal 'global (kbd "C-c +") #'evil-numbers/inc-at-pt)
+  (evil-define-key 'normal 'global (kbd "C-c -") #'evil-numbers/dec-at-pt)
+  (evil-define-key 'normal 'global (kbd "<kp-add>") #'evil-numbers/inc-at-pt)
+  (evil-define-key 'normal 'global (kbd "<kp-substract>") #'evil-numbers/dec-at-pt))
+
 (use-package orderless
   :custom (completion-styles '(orderless))
   :config
