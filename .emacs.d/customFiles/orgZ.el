@@ -134,6 +134,12 @@
 
 (when (gethash 'use-jupyter configurations t)
   (use-package jupyter
+    :straight (jupyter :includes (jupyter-org-client)
+                       :files (:defaults "*.el"))
+    :requires (jupyter-org-client)
+    :init 
+    (add-to-list 'org-babel-load-languages '(jupyter . t))
+    (amsha/reload-org-babel-langs)
     :bind (:map org-mode-map
                 ("C-c o j" . jupyter-org-hydra/body))
     :custom
@@ -144,9 +150,7 @@
 						         (:kernel . "python3")
 						         (:tangle . "jupyter-python/tangled.py")
 						         (:exports . "both")))
-    (push '(jupyter . t) org-babel-load-languages)
-    (define-key jupyter-org-interaction-mode-map (kbd "C-c h") nil)
-    (amsha/reload-org-babel-langs))
+    (define-key jupyter-org-interaction-mode-map (kbd "C-c h") nil))
       
   (use-package ox-ipynb
     :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb")))
