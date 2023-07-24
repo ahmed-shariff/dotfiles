@@ -1351,7 +1351,33 @@ Copied  from `org-roam-backlink-get'."
                                                         :properties properties))
                         (insert ?\n))
                       (run-hooks 'org-roam-buffer-postrender-functions)))))
-       title buffer-name nil))))
+       title buffer-name nil)))
+
+  (defvar okm-org-roam-preview-kills '())
+
+  (defun okm-org-roam-ql-copy-preview ()
+    (interactive)
+    (let* ((section (plist-get (text-properties-at (point))
+                               'magit-section))
+           (node (oref (oref section parent) node))
+           (content (format "[[id:%s][link]] %s"
+                            (org-roam-node-id node)
+                            (org-roam-fontify-like-in-org-mode
+                             (org-roam-preview-get-contents
+                              (oref section file)
+                              (oref section point))))))
+      (setq okm-org-roam-preview-kills (append okm-org-roam-preview-kills `(,content)))
+      (kill-new content)))
+
+  (defun okm-org-roam-preview-kills-yank ()
+    (interactive)
+    (em okm-org-roam-preview-kills)
+    (dolist (content okm-org-roam-preview-kills)
+      (em content)
+      (insert content "\n\n"))
+    (setq okm-org-roam-preview-kills nil))
+
+  (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview))
 
 (use-package org-roam-ql-ql
   :straight (org-roam-q-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
