@@ -140,12 +140,13 @@
     (org-babel-jupyter-resource-directory "jupyter-output")
     :config
     (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
-						    (:session . "py")
-						    (:kernel . "python3")
-						    (:tangle . "jupyter-python/tangled.py")
-						    (:exports . "both")))
+						         (:session . "py")
+						         (:kernel . "python3")
+						         (:tangle . "jupyter-python/tangled.py")
+						         (:exports . "both")))
     (push '(jupyter . t) org-babel-load-languages)
-    (define-key jupyter-org-interaction-mode-map (kbd "C-c h") nil))
+    (define-key jupyter-org-interaction-mode-map (kbd "C-c h") nil)
+    (amsha/reload-org-babel-langs))
       
   (use-package ox-ipynb
     :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb")))
@@ -259,8 +260,11 @@
 
 ;; (advice-add 'org-md-link :override #'org-md-link-github-syntax)
 
-(with-eval-after-load 'org
+(defun amsha/reload-org-babel-langs ()
   (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
+
+(with-eval-after-load 'org
+  (amsha/reload-org-babel-langs))
 
 ;; (defun my-org-confirm-babel-evaluate (lang bdy)
 ;;   "Function to eval plantuml blocks.
