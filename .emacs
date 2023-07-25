@@ -2424,9 +2424,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
     (let ((sprints (condition-case nil (amsha/get-sprints '("INPROGRESS")) ((user-error))))
           (dashboard-set-file-icons nil))
       (dashboard-insert-section
-       (concat (all-the-icons-octicon "globe"
-                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading)
-               " Active Sprints")
+       "Active Sprints:"
        sprints
        list-size
        'sprints
@@ -2452,9 +2450,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                     nil))
            (dashboard-set-file-icons nil))
       (dashboard-insert-section
-       (concat (all-the-icons-octicon "checklist"
-                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading)
-               " Active Tasks")
+       "Active Tasks:"
        tasks
        list-size
        'tasks
@@ -2463,15 +2459,70 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
           (org-id-goto (cdr (quote ,el))))
        (format "%s" (car el)))))
 
+  (defun dashboard-insert-links (list-size)
+    "Add the list of LIST-SIZE items."
+    (let ((dashboard-set-file-icons nil)
+          (links (list (cons (concat (all-the-icons-octicon
+                                      "logo-github"
+                                      :height 1 :v-adjust 0.0 :face 'magit-hash)
+                                     " Github")
+                             "https://github.com/ahmed-shariff")
+                       (cons (concat (all-the-icons-octicon
+                                      "pulse"
+                                      :height 1 :v-adjust 0.0 :face 'magit-hash)
+                                     " gists")
+                             "https://gist.github.com/ahmed-shariff")
+                       (cons (concat (all-the-icons-octicon
+                                      "home"
+                                      :height 1 :v-adjust 0.0 :face 'magit-hash)
+                                     " homepage")
+                             "https://shariff-faleel.com"))))
+      (dashboard-insert-section
+       "Quick links:"
+       links
+       list-size
+       'quick-links
+       (dashboard-get-shortcut 'quick-links)
+       `(lambda (&rest ignore)
+          (browse-url ,(cdr el)))
+       (format "%s" (car el)))))
+
   (add-to-list 'dashboard-item-generators  '(sprints . dashboard-insert-sprints))
   (add-to-list 'dashboard-item-generators  '(tasks . dashboard-insert-tasks))
+  (add-to-list 'dashboard-item-generators  '(quick-links . dashboard-insert-links))
   (add-to-list 'dashboard-item-shortcuts '(sprints . "s"))
   (add-to-list 'dashboard-item-shortcuts '(tasks . "t"))
-  (dashboard-modify-heading-icons '((sprints . "milestone") (tasks . "check-circle-fill")))
+  (add-to-list 'dashboard-item-shortcuts '(quick-links . "l"))
+  (dashboard-modify-heading-icons '((sprints . "globe")
+                                    (tasks . "checklist")
+                                    (quick-links . "info")))
+
+  (defun amsha/dashboard-insert-heading (old-func heading &optional shortcut)
+    (insert (pcase heading
+              ("Quick links:"
+               (all-the-icons-octicon (cdr (assoc 'quick-links dashboard-heading-icons))
+                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading))
+              ("Active Sprints:"
+               (all-the-icons-octicon (cdr (assoc 'sprints dashboard-heading-icons))
+                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading))
+              ("Active Tasks:"
+               (all-the-icons-octicon (cdr (assoc 'tasks dashboard-heading-icons))
+                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading))
+              (_ "")))
+    (funcall old-func heading shortcut))
+
+  (advice-add 'dashboard-insert-heading :around #'amsha/dashboard-insert-heading)
+
+  (defun amsha/dashboard-due-date-for-agenda-n-days () ;; 20 days
+    (time-add (current-time) (* 86400 20)))
+
+  (advice-add 'dashboard-due-date-for-agenda :override #'amsha/dashboard-due-date-for-agenda-n-days)
   
   (setq dashboard-startup-banner "~/.emacs.d/customFiles/banner.png"
+        dashboard-banner-logo-title nil
         dashboard-image-banner-max-height 200
-        dashboard-items '((recents  . 5)
+        dashboard-items '((quick-links . 5)
+                          (recents  . 5)
                           (projects . 5)
                           (tasks . 50)
                           (sprints . 50)
