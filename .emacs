@@ -341,6 +341,9 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
 
 (use-package diminish)
 
+(use-package flycheck-package)
+(use-package package-build)
+
 (use-package persistent-scratch
   :init (persistent-scratch-setup-default))
 

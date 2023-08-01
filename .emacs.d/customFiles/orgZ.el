@@ -1279,8 +1279,10 @@ Copied  from `org-roam-backlink-get'."
   :straight (org-roam-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
                          :files (:defaults (:exclude "org-roam-ql-ql.el")))
   :after (org-roam)
-  :bind (:map minibuffer-mode-map
-         ("C-c n i" . org-roam-ql-insert-node-title))
+  :bind ((:map org-roam-mode-map
+          ("v" . org-roam-ql-buffer-dispatch)
+          :map minibuffer-mode-map
+          ("C-c n i" . org-roam-ql-insert-node-title)))
   :config
   ;; (defun okm-roam-view-query (source-or-query)
   ;;   "View source or query in org-roam buffer."
@@ -1386,7 +1388,9 @@ Copied  from `org-roam-backlink-get'."
 (use-package org-roam-ql-ql
   :straight (org-roam-q-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
                            :files (:defaults (:exclude "org-roam-ql.el")))
-  :after (org-roam org-ql org-roam-ql))
+  :after (org-roam org-ql org-roam-ql)
+  :config
+  (org-roam-ql-ql-init))
 
 (defun okm-query-papers-by-topics (&optional topic-ids)
   "Query papers based on topics."
