@@ -2538,7 +2538,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
         dashboard-center-content t
         dashboard-agenda-sort-strategy '(time-up)
         dashboard-week-agenda t
-        dashboard-agenda-prefix-format " %-12s %-20:c")
+        dashboard-agenda-prefix-format " %-11s %-25:c")
   (dashboard-setup-startup-hook)
 
   (defun open-dashboard ()
