@@ -2420,6 +2420,15 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   :init
   (setq alert-default-style 'notifier))
 
+;;biome mode************************************************************
+(use-package biome
+  :straight (:host github :repo "SqrtMinusOne/biome")
+  :custom
+  (biome-query-coords
+   '(("Kelowna"	49.88307 -119.48568)
+     ("Kandy" 7.2906 80.6336))))
+
+;;dashboard*************************************************************
 (use-package dashboard
   :config
   (defun dashboard-insert-sprints (list-size)
