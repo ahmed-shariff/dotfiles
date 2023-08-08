@@ -412,6 +412,21 @@
             (nth 2 target)
             (nth 1 target))))
     
+(defun okm-add-repository ()
+:PROPERTIES:
+:END:
+  "Take a repo link and add that to the file as a node."
+  (let* ((link (read-string "Repository url: "))
+         (title (cond
+                 ((s-match "github" link)
+                  (format "github/%s"
+                          (s-replace ".git" "" (car (last (s-split "/" link))))))
+                 (t (read-string "Title: " link)))))
+    (format "%s
+  :PROPERTIES:
+  :ID:      %s
+  :END:
+- %s" title (org-id-new) link)))
           
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading) 
@@ -500,6 +515,10 @@
 	 entry (function (lambda () (org-id-goto okm-research-papers-id)));(file "~/Documents/org/brain/research_papers.org")
 	 "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :LINK: %^{LINK\}n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
   \n  - %^{LINK}"
+	 :jump-to-captured t)
+        ("er" "Add repository"
+	 entry (file "~/Documents/org/brain/repositories.org")
+	 "* %(okm-add-repository)"
 	 :jump-to-captured t)))
 
 (defun org-summary-todo (n-done n-not-done)
