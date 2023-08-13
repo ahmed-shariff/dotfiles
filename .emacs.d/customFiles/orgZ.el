@@ -1478,8 +1478,8 @@ If prefix arg used, search whole db."
   (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview))
 
 (use-package org-roam-ql-ql
-  :straight (org-roam-q-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
-                           :files (:defaults (:exclude "org-roam-ql.el")))
+  :straight (org-roam-ql-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
+                            :files (:defaults (:exclude "org-roam-ql.el")))
   :after (org-roam org-ql org-roam-ql)
   :config
   (org-roam-ql-ql-init))
