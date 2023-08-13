@@ -1033,12 +1033,17 @@ Copied  from `org-roam-backlink-get'."
                                                                    (car kill-ring))))
   (research-papers-configure))
 
-(use-package org-noter ;;:quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
-  :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
-                       :fork (:host github :repo "ahmed-shariff/org-noter"))
+;; (use-package org-noter ;;:quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
+;;   :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
+;;                        :fork (:host github :repo "ahmed-shariff/org-noter"))
+(use-package org-noter
+  :straight (org-noter :host github :type git :repo "org-noter/org-noter"
+                       :files ("*.el" "modules/*.el"))
   :config
   (setq org-noter-property-doc-file "INTERLEAVE_PDF"
-        org-noter-property-note-location "INTERLEAVE_PAGE_NOTE")
+        org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"
+        org-noter-highlight-selected-text t)
+
   ;; The evil related functions seems to be adding a binding to "q" for `quit-window' in the normal mode
   ;; Its there in the `evil-collection-eldoc-doc-buffer-mode-map' `special-mode-map' and another one?
   ;; For now advicing the `quit-window' to let me kill session when quitting without interuppting the function of "q"
@@ -1048,7 +1053,13 @@ Copied  from `org-roam-backlink-get'."
         (org-noter-kill-session org-noter--session)
       (apply oldfun rest)))
 
-  (advice-add 'quit-window :around #'org-noter-quit-window-kill-session))
+  (advice-add 'quit-window :around #'org-noter-quit-window-kill-session)
+
+  (defun org-noter-pdf--get-selected-text-single-linified (vals)
+    "Single linyfy the returned text."
+    (format "`%s`" (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" vals))))
+
+  (advice-add 'org-noter-pdf--get-selected-text :filter-return #'org-noter-pdf--get-selected-text-single-linified))
 
 (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
   :straight (org-brain :type git :host github :repo "Kungsgeten/org-brain"
@@ -1739,30 +1750,7 @@ Currently written to work in org-ql buffer."
   (interactive)
   (insert (amsha/format-multiline-from-kill-ring)))
   
-
-(defun amsha/org-noter-copy-text-as-note ()
-  "While in org noter, copy a highlighted text in as a heading with some minor additional formatting."
-  (interactive)
-  (let ((precise-info (org-noter--get-precise-info)))
-    (pdf-view-kill-ring-save)
-    (let ((org-noter-default-heading-title (amsha/format-multiline-from-kill-ring)))
-      (let ((org-noter-insert-note-no-questions t))
-	(org-noter-insert-note precise-info))
-      ;; sometime the replace doesn't seem to work, so redoing it?
-      (org-map-entries (lambda ()
-			 (let (beg end)
-			   (org-back-to-heading)
-			   (setq beg (point))
-			   (outline-end-of-heading)
-			   (setq end (point))
-			   (save-excursion
-			     (kill-region beg end)
-			     (insert (replace-regexp-in-string "- " "" (car kill-ring))))))
-		       "LEVEL=2")
-      (message "%s" (current-buffer)))))
-
 (when (gethash 'use-pdf-tools configurations t)
-  (define-key pdf-view-mode-map (kbd "C-c i") 'amsha/org-noter-copy-text-as-note)
   (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
   (define-key pdf-view-mode-map [C-M-S-down-mouse-1] 'pdf-crop-image-and-save))
 
