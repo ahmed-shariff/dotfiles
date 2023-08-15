@@ -652,11 +652,13 @@
   :config
   (setf (alist-get 'org-mode bibtex-completion-format-citation-functions) (lambda (keys) (s-join "," (--map (format "cite:&%s" it) keys)))))
 
+(use-package emacsql-sqlite
+  :ensure t)
 
 ;; On windows when the `cygwin1.dll mismatch issue` issue happens, This is solved by manually running the command seen in the *compilation* buffer
 ;; Would have to try that on the msys2 console
 (use-package org-roam
-  :after org
+  :after (org emacsql-sqlite)
   :defer 2
   :ensure t
   :init
@@ -928,7 +930,7 @@ Copied  from `org-roam-backlink-get'."
   :straight '(consult-bibtex :host github
                              :repo "mohkale/consult-bibtex")
   ;; (use-package ivy-bibtex
-  ;;   :after (org-ref)
+  :after (org-ref)
   :defer 2
   :config
   ;; (require 'org-ref-ivy)
@@ -966,6 +968,10 @@ Copied  from `org-roam-backlink-get'."
   ;;                                                                    (-if-let (subtitle (plist-get results :subtitle))
   ;;                                                                        (format ": %s" subtitle)
   ;;                                                                      ""))))
+  (defun org-ref-latex-click ()
+    "Open bibtex hydra in latex buffer."
+    (interactive)
+    (org-ref-citation-hydra/body))
 
   (defun org-ref-get-bibtex-key-under-cursor-with-latex-and-okm (old-func)
     (cond
@@ -986,11 +992,6 @@ Copied  from `org-roam-backlink-get'."
     (or return-val bibtex-completion-bibliography))
 
   (advice-add 'org-ref-latex-get-bibliography :filter-return #'org-ref-latex-get-bibliography-or-default)
-
-  (defun org-ref-latex-click ()
-    "Open bibtex hydra in latex buffer."
-    (interactive)
-    (org-ref-citation-hydra/body))
 
   (defun org-ref-copy-formated-from-query (query)
     "QUERY."
@@ -1054,8 +1055,10 @@ Copied  from `org-roam-backlink-get'."
               (unless (s-blank? doi)
                 (if (string-match "^http" doi)
                     doi
-                  (format "http://dx.doi.org/%s" doi)))))))))
+                  (format "http://dx.doi.org/%s" doi))))))))))
 
+;; Moved out of use-pacakge to avoid errors with loading
+(with-eval-after-load 'org-ref-citation-links
   (defhydra+ org-ref-citation-hydra ()
     ("t" (lambda ()
            (interactive)
