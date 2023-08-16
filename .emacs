@@ -155,6 +155,7 @@
              ("`\\([a-zA-Z].*[a-zA-Z\\.]\\)`" 1 'org-quote t))
            'append)
      (dired-omit-files . "\\`[.]?#\\|\\`[.][.]?\\'\\|\\.log$")
+     (magit-todos-exclude-globs "Assets/Oculus/" "Assets/TextMesh Pro/")
      (magit-todos-exclude-globs "Assets/Oculus/")
      (magit-todos-exclude-globs . "Assets/Oculus/")
      (org-download-image-dir . "figures/notes")
@@ -2439,13 +2440,18 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   :init
   (setq alert-default-style 'notifier))
 
-;;biome mode************************************************************
+;;weather data**********************************************************
 (use-package biome
   :straight (:host github :repo "SqrtMinusOne/biome")
   :custom
   (biome-query-coords
    '(("Kelowna"	49.88307 -119.48568)
      ("Kandy" 7.2906 80.6336))))
+
+(use-package wttrin
+  :straight (:host github :repo "ahmed-shariff/emacs-wttrin")
+  :custom
+  (wttrin-default-cities '("Kelowna" "Kandy")))
 
 ;;dashboard*************************************************************
 (use-package dashboard
