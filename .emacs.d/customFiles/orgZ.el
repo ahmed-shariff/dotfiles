@@ -1350,7 +1350,8 @@ Copied  from `org-roam-backlink-get'."
     (org-roam-ql-nodes (list [:select [id] :from nodes :where (= file $s1)] f)))
 
   (defun okm-org-roam-list-notes (entries)
-    "Filter based on the list of ids (FILTER) in the notes files."
+    "Filter based on the list of ids (FILTER) in the notes files.
+If prefix arg used, search whole db."
     (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
                   (org-roam-node-read-multiple)))
     (let* ((entries (-uniq
@@ -1364,15 +1365,20 @@ Copied  from `org-roam-backlink-get'."
            (title (format "(%s)" names))
            (buffer-name (format "*notes: %s*" names))
            (ids (apply #'vector (--map (org-roam-node-id it) entries))))
+      ;; NOTE: Not using org-roam-ql-search because it works on nodes, we need it to work on links here.
+      ;; i.e., it will show just the first node....
       (org-roam-ql--render-roam-buffer
        (list (--> (org-roam-db-query
-                   [:select :distinct [links:source links:pos links:properties]
-                            :from links :inner :join nodes :on (= links:source nodes:id)
-                            :where (and (in links:dest $v1) (in nodes:file $v2))]
+                   (vector :select :distinct [links:source links:pos links:properties]
+                           :from 'links :inner :join 'nodes :on '(= links:source nodes:id)
+                           :where (if current-prefix-arg
+                                      '(in links:dest $v1)
+                                    '(and (in links:dest $v1) (in nodes:file $v2))))
                    ids
-                   (vector
-                    (file-truename "~/Documents/org/brain/personal/notes.org")
-                    (file-truename "~/Documents/org/brain/work/notes.org")))
+                   (unless current-prefix-arg
+                     (vector
+                      (file-truename "~/Documents/org/brain/personal/notes.org")
+                      (file-truename "~/Documents/org/brain/work/notes.org"))))
                   (lambda ()
                     (magit-insert-section (org-roam)
                       (magit-insert-heading "Notes:")
