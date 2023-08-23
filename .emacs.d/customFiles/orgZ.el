@@ -95,7 +95,11 @@
       org-hide-emphasis-markers t
       org-src-fontify-natively t
       org-src-tab-acts-natively t
-      org-startup-folded 'content)
+      org-startup-folded 'content
+      org-id-track-globally t
+      org-id-locations-file "~/.emacs.d/.org-id-locations"
+      org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+
 
 (setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)" "IDEA(i)" "|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
 			  (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" )))
@@ -684,6 +688,8 @@
   (org-roam-db-autosync-mode)
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
+  (org-link-set-parameters okm-parent-id-type-name
+                           :follow 'org-roam-id-open)
 
   (defmacro org-roam-node-action (name &rest body)
     (declare (indent defun))
@@ -1061,38 +1067,38 @@ Copied  from `org-roam-backlink-get'."
 
   (advice-add 'org-noter-pdf--get-selected-text :filter-return #'org-noter-pdf--get-selected-text-single-linified))
 
-(use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
-  :straight (org-brain :type git :host github :repo "Kungsgeten/org-brain"
-                       :fork (:host github :repo "ahmed-shariff/org-brain"))
-  :demand
-  :init
-  (setq org-brain-path (file-truename "~/Documents/org/brain"))
-  :bind (("C-c v" . org-brain-visualize)
-	 :map org-brain-visualize-mode-map
-	 ("\C-coo" . org-brain-open-org-noter)
-	 ("\C-cop" . okm-add-parent-topic)
-         ("\C-cob" . org-brain-goto-button-at-pt)
-         ("\C-cos". okm-print-parents))
-  :config
-  ;;(define-key org-brain-visualize-mode-map "")
-  (defmacro org-brain-function-on-entry (fn)
-  "Macro that generates a function which takes an entry and executes the fn while on a file entry."
-  `(lambda (entry)
-     (if (org-brain-filep entry)
-         ""
-       (org-with-point-at (org-brain-entry-marker entry)
-         (or (funcall ,fn entry)
-	     "")))))
+;; (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
+;;   :straight (org-brain :type git :host github :repo "Kungsgeten/org-brain"
+;;                        :fork (:host github :repo "ahmed-shariff/org-brain"))
+;;   :demand
+;;   :init
+;;   (setq org-brain-path (file-truename "~/Documents/org/brain"))
+;;   :bind (("C-c v" . org-brain-visualize)
+;; 	 :map org-brain-visualize-mode-map
+;; 	 ("\C-coo" . org-brain-open-org-noter)
+;; 	 ("\C-cop" . okm-add-parent-topic)
+;;          ("\C-cob" . org-brain-goto-button-at-pt)
+;;          ("\C-cos". okm-print-parents))
+;;   :config
+;;   ;;(define-key org-brain-visualize-mode-map "")
+;;   (defmacro org-brain-function-on-entry (fn)
+;;   "Macro that generates a function which takes an entry and executes the fn while on a file entry."
+;;   `(lambda (entry)
+;;      (if (org-brain-filep entry)
+;;          ""
+;;        (org-with-point-at (org-brain-entry-marker entry)
+;;          (or (funcall ,fn entry)
+;; 	     "")))))
 
-  (setq org-id-track-globally t
-        org-id-locations-file "~/.emacs.d/.org-id-locations"
-        org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id
-        org-brain-completion-system (lambda (&rest args) (s-join org-brain-entry-separator (apply #'completing-read-multiple args))))
-  (push '("b" "Brain" plain (function org-brain-goto-end)
-          "* %i%?" :empty-lines 1)
-        org-capture-templates)
-  (setq org-brain-visualize-default-choices 'all)
-  (setq org-brain-title-max-length 50)
+;;   (setq org-id-track-globally t
+;;         org-id-locations-file "~/.emacs.d/.org-id-locations"
+;;         org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id
+;;         org-brain-completion-system (lambda (&rest args) (s-join org-brain-entry-separator (apply #'completing-read-multiple args))))
+;;   (push '("b" "Brain" plain (function org-brain-goto-end)
+;;           "* %i%?" :empty-lines 1)
+;;         org-capture-templates)
+;;   (setq org-brain-visualize-default-choices 'all)
+;;   (setq org-brain-title-max-length 50)
   ;; (setq org-brain-vis-title-prepend-functions (list
   ;;                                              (org-brain-function-on-entry 'org-brain-entry-todo-state-colored)
   ;;                                              (org-brain-function-on-entry 'org-brain-entry-priority)))
@@ -1143,19 +1149,18 @@ Copied  from `org-roam-backlink-get'."
   ;;     (ignore-errors (aa2u (point-min) (point-max)))))  
   ;; (with-eval-after-load 'org-brain
   ;;   (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer))
-  )
 
-(defun org-brain-open-org-noter ()
-  (interactive)
-  (let ((entry (condition-case nil
-		   (car (org-brain-button-at-point))
-		 (user-error (org-brain-entry-at-pt)))))
-    (if (org-brain-filep entry)
-	(user-error "Noter cannot be opened for file entry")
-      (org-with-point-at (org-brain-entry-marker entry)
-	(if (string= "research_papers" (file-name-base (org-entry-get (point) "FILE")))
-	    (org-noter)
-	  (user-error "Noter only for the entries in research_paper"))))))
+;; (defun org-brain-open-org-noter ()
+;;   (interactive)
+;;   (let ((entry (condition-case nil
+;; 		   (car (org-brain-button-at-point))
+;; 		 (user-error (org-brain-entry-at-pt)))))
+;;     (if (org-brain-filep entry)
+;; 	(user-error "Noter cannot be opened for file entry")
+;;       (org-with-point-at (org-brain-entry-marker entry)
+;; 	(if (string= "research_papers" (file-name-base (org-entry-get (point) "FILE")))
+;; 	    (org-noter)
+;; 	  (user-error "Noter only for the entries in research_paper"))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet begin
 ;; (defun org-brain-insert-visualize-button-tags (old-func &rest args)
@@ -1320,7 +1325,7 @@ Copied  from `org-roam-backlink-get'."
   ;;   (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
   (org-roam-ql-defexpansion 'child-of
                             (lambda (title)
-                              (org-roam-ql--expand-backlinks `(title ,title t) :type "brain-parent")))
+                              (org-roam-ql--expand-backlinks `(title ,title t) :type ,okm-parent-id-type-name)))
   (org-roam-ql-defpred 'pdf-string
                        (lambda (node)
                          (cdr (assoc "PDF_TEXT_FILE" (org-roam-node-properties node))))
@@ -1673,7 +1678,7 @@ Currently written to work in org-ql buffer."
                                               (org-roam-ql--get-formatted-buffer-name
                                                (org-roam-ql--get-formatted-title
                                                 (format "Topics - %s" (prin1-to-string org-roam-ql-buffer-title)) nil))
-                                              `(backlinks-to ,org-roam-ql-buffer-query :type "brain-parent")
+                                              `(backlinks-to ,org-roam-ql-buffer-query :type ,okm-parent-id-type-name)
                                               (--map
                                                (list :file-path it)
                                                (list "research topics.org" "People.org" "Projects.org")))))))
