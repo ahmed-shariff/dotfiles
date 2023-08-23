@@ -1324,9 +1324,11 @@ Copied  from `org-roam-backlink-get'."
   ;;   (interactive "xQuery: ")
   ;;   (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
   (org-roam-ql-defexpansion 'child-of
+                            "Child of node with a specific title"
                             (lambda (title)
                               (org-roam-ql--expand-backlinks `(title ,title t) :type ,okm-parent-id-type-name)))
   (org-roam-ql-defpred 'pdf-string
+                       "Attached PDF has string"
                        (lambda (node)
                          (cdr (assoc "PDF_TEXT_FILE" (org-roam-node-properties node))))
                        #'okm--test-regexp-on-file)
