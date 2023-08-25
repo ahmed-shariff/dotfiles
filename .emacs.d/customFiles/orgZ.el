@@ -824,10 +824,12 @@ Copied  from `org-roam-backlink-get'."
 (use-package consult-notes
   :straight (:type git :host github :repo "mclear-tools/consult-notes")
   :bind (("C-c n n" . consult-notes-search-in-all-notes)
+         ("C-c n N" . consult-ripgrep-roam-notes)
          ("C-c n v" . consult-notes-visit-relation))
   :commands (consult-notes
              consult-notes-search-in-all-notes
              consult-notes-org-roam-find-node
+             consult-ripgrep-roam-notes
              consult-notes-org-roam-find-node-relation)
   :config
   (setq consult-notes-sources `(("Org"  ?o  ,okm-base-directory)) ;; Set notes dir(s), see below
@@ -864,7 +866,19 @@ Copied  from `org-roam-backlink-get'."
                                                                (okm-get-parents (org-roam-node-id node)))))
                      )
                     :require-match t
-                    :prompt "Related nodes:")))
+                    :prompt "Related nodes:"))
+  ;; From https://github.com/minad/consult/issues/597
+  (defun consult-ripgrep-roam-notes ()
+    "search notes files."
+    (interactive)
+    (let ((consult-ripgrep-args
+           (string-replace
+            "."
+            (format "%s %s" ;; Absolute paths!
+                    (file-truename "~/Documents/org/brain/personal/notes")
+                    (file-truename "~/Documents/org/brain/work/notes"))
+            consult-ripgrep-args)))
+      (consult-ripgrep))))
 
 
 (use-package org-roam-bibtex
