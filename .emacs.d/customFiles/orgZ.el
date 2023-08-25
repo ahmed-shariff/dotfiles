@@ -638,13 +638,11 @@
   (org-roam-dailies-directory "dailies")
   (org-roam-dailies-capture-templates
    '(("d" "default" entry "%(okm-board-task-location)"
-      :target (file+datetree
-               "~/Documents/org/brain/work/notes.org"
-               "day"))
+      :target (file+head
+               "~/Documents/org/brain/work/notes/%<%Y-%m-%d-%A>.org" "#+title: %<%Y-%m-%d-%A>\n\n"))
      ("p" "personal" entry "%(okm-board-task-location)"
-      :target (file+datetree
-               "~/Documents/org/brain/personal/notes.org"
-               "day"))))
+      :target (file+head
+               "~/Documents/org/brain/personal/notes/%<%Y-%m-%d-%A>.org" "#+title: %<%Y-%m-%d-%A>\n\n"))))
   (org-roam-capture-templates
    '(("d" "default" entry "* ${title}%?
   :PROPERTIES:
@@ -764,9 +762,8 @@ Copied  from `org-roam-backlink-get'."
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
     (if (--> (org-roam-node-at-point)
              (org-roam-node-file it)
-             (or (member it
-                         (list
-                          (file-truename "~/Documents/org/brain/work/notes.org") (file-truename "~/Documents/org/brain/personal/notes.org")))
+             (or (s-matches-p "brain/work/notes" it)
+                 (s-matches-p "brain/personal/notes" it)
                  (f-ancestor-of-p bibtex-completion-notes-path it)))
         (let ((beg (progn (if (org-id-get)
                               (org-roam-end-of-meta-data t)
@@ -1368,17 +1365,18 @@ If prefix arg used, search whole db."
       ;; NOTE: Not using org-roam-ql-search because it works on nodes, we need it to work on links here.
       ;; i.e., it will show just the first node....
       (org-roam-ql--render-roam-buffer
-       (list (--> (org-roam-db-query
-                   (vector :select :distinct [links:source links:pos links:properties]
-                           :from 'links :inner :join 'nodes :on '(= links:source nodes:id)
-                           :where (if current-prefix-arg
-                                      '(in links:dest $v1)
-                                    '(and (in links:dest $v1) (in nodes:file $v2))))
-                   ids
-                   (unless current-prefix-arg
-                     (vector
-                      (file-truename "~/Documents/org/brain/personal/notes.org")
-                      (file-truename "~/Documents/org/brain/work/notes.org"))))
+       (list (--> (apply #'org-roam-db-query
+                         (append (list (vector :select :distinct [links:source links:pos links:properties]
+                                               :from 'links :inner :join 'nodes :on '(= links:source nodes:id)
+                                               :where (if current-prefix-arg
+                                                          '(in links:dest $v1)
+                                                        '(and (in links:dest $v1)
+                                                              (or (like nodes:file $s2)
+                                                                  (like nodes:file $s3)))))
+                                       ids)
+                                 (unless current-prefix-arg
+                                   (list "%brain/personal/notes%"
+                                         "%brain/work/notes%"))))
                   (lambda ()
                     (magit-insert-section (org-roam)
                       (magit-insert-heading "Notes:")
