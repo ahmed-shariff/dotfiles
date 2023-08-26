@@ -592,10 +592,12 @@
   :bind (:map org-mode-map
               ("C-c o t" . org-transclusion-hydra/body))
   :custom-face
-  (org-transclusion-fringe ((t (:background "Brown" :weight ultra-bold :width extra-expanded))))
+  (org-transclusion-fringe ((t (:background "Turquoise" :weight ultra-bold :width extra-expanded))))
   (org-transclusion-source-fringe ((t (:background "Brown" :weight ultra-bold :width extra-expanded))))
-  (org-transclusion ((t (:background "Brown" :weight ultra-bold :width extra-expanded))))
+  (org-transclusion ((t (:background "#222222"))))
   :config
+  (add-to-list 'org-transclusion-extensions 'org-transclusion-indent-mode)
+
   (defun org-transclusion-content-filter-org-only-contents-exclude-id-headline (old-func data)
     "only-contents only excludes the id headlines."
     (if (and (eq (org-element-type data) 'headline)
@@ -606,6 +608,17 @@
   (advice-add 'org-transclusion-content-filter-org-only-contents
               :around
               #'org-transclusion-content-filter-org-only-contents-exclude-id-headline)
+
+  (defun org-transclusion-content-insert-add-overlay (beg end)
+    "Add fringe after transclusion."
+    (overlay-put (text-clone-make-overlay beg end (current-buffer))
+                 'line-prefix
+                 (org-transclusion-propertize-transclusion))
+    (overlay-put (text-clone-make-overlay beg end (current-buffer))
+                 'wrap-prefix
+                 (org-transclusion-propertize-transclusion)))
+
+  (add-hook 'org-transclusion-after-add-functions #'org-transclusion-content-insert-add-overlay)
 
   (defun org-transclusion-add-from-org-roam ()
     "Add transclusion from org-roam."
