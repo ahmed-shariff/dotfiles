@@ -607,6 +607,18 @@
               :around
               #'org-transclusion-content-filter-org-only-contents-exclude-id-headline)
 
+  (defun org-transclusion-add-from-org-roam ()
+    "Add transclusion from org-roam."
+    (interactive)
+    (unwind-protect
+        (atomic-change-group
+          (--> (org-roam-node-read nil nil nil t "Transclud node")
+               (insert "#+transclude: "
+                       (org-link-make-string
+                        (concat "id:" (org-roam-node-id it))
+                        (org-roam-node-formatted it))
+                       " :only-contents :exclude-elements \"drawer keyword\"")))))
+
   (defhydra org-transclusion-hydra (:color blue)
     "Transclusion functions"
     ("m" org-transclusion-make-from-link "Make link")
@@ -614,7 +626,9 @@
     ("A" org-transclusion-add-all "Add all")
     ("d" org-transclusion-remove "Remove")
     ("D" org-transclusion-remove-all "Remove all")
-    ("t" org-transclusion-mode "org-transclusion-mode")))
+    ("t" org-transclusion-mode "org-transclusion-mode")
+    ("L" org-transclusion-make-from-link "make from link")
+    ("R" org-transclusion-add-from-org-roam "from roam")))
 
 (use-package bibtex-completion
   :custom
@@ -1040,6 +1054,10 @@ Copied  from `org-roam-backlink-get'."
              (user-error "No url copied")))
      "Copy url" :column "Copy")))
 
+
+(use-package org-fragtog
+  :hook (org-mode . org-fragtog))
+
 (defun doi-add-bibtex-entry-with-note ()
   "."
   (interactive)
@@ -1074,7 +1092,7 @@ Copied  from `org-roam-backlink-get'."
 
   (defun org-noter-pdf--get-selected-text-single-linified (vals)
     "Single linyfy the returned text."
-    (format "`%s`" (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" vals))))
+    (when vals (format "`%s`" (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" vals)))))
 
   (advice-add 'org-noter-pdf--get-selected-text :filter-return #'org-noter-pdf--get-selected-text-single-linified))
 
