@@ -319,6 +319,14 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
         visual-fill-column-center-text t)
   (visual-fill-column-mode 1))
 
+(defun visual-fill-set-width-buffer-local (width)
+  "Set visual fill column width for this buffer."
+  (interactive (list (read (read-string (format "Width [%s]: " visual-fill-column-width) nil nil
+                                        (format "%s" visual-fill-column-width)))))
+  (if (numberp width)
+      (setq-local visual-fill-column-width width)
+    (user-error "%s is not a number" width)))
+
 (defun git-message ()
   (format "[%s] %s"
           (gethash 'system-name configurations "Check system-name in configurations.el")
