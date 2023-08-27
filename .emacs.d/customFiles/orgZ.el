@@ -33,7 +33,7 @@
 (defvar okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
 (defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
-(magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures"))
+(magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures" "brain/work/notes" "brain/personl/work"))
 
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
@@ -1368,7 +1368,7 @@ Copied  from `org-roam-backlink-get'."
   (org-roam-ql-defexpansion 'child-of
                             "Child of node with a specific title"
                             (lambda (title)
-                              (org-roam-ql--expand-backlinks `(title ,title t) :type ,okm-parent-id-type-name)))
+                              (org-roam-ql--expand-backlinks `(title ,title t) :type okm-parent-id-type-name)))
   (org-roam-ql-defpred 'pdf-string
                        "Attached PDF has string"
                        (lambda (node)
