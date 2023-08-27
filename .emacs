@@ -176,8 +176,8 @@
  '(company-tooltip-common ((t (:inherit font-lock-constant-face))))
  '(company-tooltip-selection ((t (:inherit highlight))))
  '(markdown-code-face ((t (:inherit consolas))))
- '(org-block-begin-line ((t (:background "#112424"))))
- '(org-block-end-line ((t (:background "#112424"))))
+ '(org-block-begin-line ((t (:background "#112424" :overline t))))
+ '(org-block-end-line ((t (:background "#112424" :overline nil :underline t))))
  '(org-level-1 ((t (:inherit outline-1 :foreground "dark turquoise"))))
  '(org-special-keyword ((t (:inherit outline-1 :foreground "sienna")))))
 

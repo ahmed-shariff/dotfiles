@@ -586,6 +586,11 @@
                           (1 . -1)
                           :color "#777c80" :style nil))))))
 
+(use-package org-modern-indent
+  :straight (org-modern-indent :type git :host github :repo "jdtsmith/org-modern-indent")
+  :config ; add late to hook
+  (add-hook 'org-mode-hook #'org-modern-indent-mode 90))
+
 (use-package org-transclusion
   :after org
   :defer 2
@@ -2485,6 +2490,7 @@ Parent-child relation is defined by the brain-parent links."
 (setq org-log-done 'note
       org-log-into-drawer t
       org-deadline-warning-days 2
+      org-startup-indented t
       org-clock-idle-time 10
       org-return-follows-link t
       org-return-follows-link t
