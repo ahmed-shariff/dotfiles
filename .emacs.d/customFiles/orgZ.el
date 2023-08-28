@@ -140,15 +140,13 @@
   (use-package jupyter
     :straight (jupyter :includes (jupyter-org-client)
                        :files (:defaults "*.el"))
-    :requires (jupyter-org-client)
-    :init 
-    (add-to-list 'org-babel-load-languages '(jupyter . t))
-    (amsha/reload-org-babel-langs)
     :bind (:map org-mode-map
                 ("C-c o j" . jupyter-org-hydra/body))
     :custom
     (org-babel-jupyter-resource-directory "jupyter-output")
     :config
+    (add-to-list 'org-babel-load-languages '(jupyter . t))
+    (amsha/reload-org-babel-langs)
     (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
 						         (:session . "py")
 						         (:kernel . "python3")
@@ -1074,7 +1072,7 @@ Copied  from `org-roam-backlink-get'."
 
 
 (use-package org-fragtog
-  :hook (org-mode . org-fragtog))
+  :hook (org-mode . org-fragtog-mode))
 
 (defun doi-add-bibtex-entry-with-note ()
   "."
