@@ -868,6 +868,12 @@ targets."
 ;; (use-package embark-org
 ;;   :after embark)
 
+;; consult-todo***********************************************************************
+(use-package consult-todo
+  :straight (:host github :repo "liuyinz/consult-todo")
+  :commands (consult-todo consult-todo-all)
+  :after (hl-todo consult))
+
 ;;tramp settings ***************************************************
 ;; See https://stackoverflow.com/questions/6954479/emacs-tramp-doesnt-work for more details
 (setq tramp-terminal-type "dumb")
