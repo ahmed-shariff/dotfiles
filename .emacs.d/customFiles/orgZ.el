@@ -652,19 +652,22 @@
   :config
   (setf (alist-get 'org-mode bibtex-completion-format-citation-functions) (lambda (keys) (s-join "," (--map (format "cite:&%s" it) keys)))))
 
-(use-package emacsql-sqlite
+(use-package emacsql
+  :straight (emacsql :includes (emacsql-sqlite)
+                     :files (:defaults "*.el"))
   :ensure t)
 
 ;; On windows when the `cygwin1.dll mismatch issue` issue happens, This is solved by manually running the command seen in the *compilation* buffer
 ;; Would have to try that on the msys2 console
 (use-package org-roam
-  :after (org emacsql-sqlite)
+  :after (org emacsql)
   :defer 2
   :ensure t
   :init
   (setq org-roam-v2-ack t)
   :hook (kill-emacs-hook . amsha/backup-org-roam-db)
   :custom
+  (org-roam-database-connector 'sqlite)  ;;sqlite-builtin
   (org-roam-directory (file-truename okm-base-directory))
   (org-roam-file-extensions '("org" "org_archive"))
   (org-roam-dailies-directory "dailies")
