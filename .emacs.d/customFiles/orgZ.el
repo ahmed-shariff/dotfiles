@@ -395,22 +395,19 @@
 
 (defun okm-board-task-location ()
   "Return a org title with board task after prompting for it."
-  (let* ((project-boards (--keep (when (not (s-contains-p "#" it)) it)
-                                 (f-glob "*/project_boards/*.org" okm-base-directory)))
-         (targets
-          (org-ql-select project-boards `(level 1)
-            :action (lambda ()
-                      (let* ((headline-plist (cadr (org-element-headline-parser (point))))
-                             (title (org-entry-get (point) "ITEM"))
-                             (full-file-name (buffer-file-name))
-                             (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
-                             (todo-state (or (plist-get headline-plist :todo-keyword) "")))
-                        (list (format "%-10s  %-30s %s"
-                                      (propertize todo-state 'face (org-get-todo-face todo-state))
-                                      (propertize file-name 'face 'marginalia-documentation)
-                                      title)
-                              title
-                              (org-id-get-create))))))
+  (let* ((targets
+          (--map
+           (let* ((title (org-roam-node-title it))
+                  (full-file-name (org-roam-node-file it))
+                  (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
+                  (todo-state (or (org-roam-node-todo it) "")))
+             (list (format "%-10s  %-30s %s"
+                           (propertize todo-state 'face (org-get-todo-face todo-state))
+                           (propertize file-name 'face 'marginalia-documentation)
+                           title)
+                   title
+                   (org-roam-node-id it)))
+           (org-roam-ql-nodes '(and (level 1) (file "./project_boards/.")))))
          (target (progn
                    (assoc (completing-read "Select task: " targets nil t) targets))))
     (format "**** [[id:%s][%s]]  %%?"
