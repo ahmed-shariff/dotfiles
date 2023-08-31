@@ -33,6 +33,9 @@
 (defvar okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
 (defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
+(org-link-set-parameters okm-parent-id-type-name
+                           :follow 'org-roam-id-open)
+
 (magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures" "brain/work/notes" "brain/personl/work"))
 
 (use-package org-capture-pop-frame
@@ -667,7 +670,7 @@
   (setq org-roam-v2-ack t)
   :hook (kill-emacs-hook . amsha/backup-org-roam-db)
   :custom
-  (org-roam-database-connector 'sqlite)  ;;sqlite-builtin
+  (org-roam-database-connector 'sqlite-builtin)  ;;sqlite-builtin sqlite
   (org-roam-directory (file-truename okm-base-directory))
   (org-roam-file-extensions '("org" "org_archive"))
   (org-roam-dailies-directory "dailies")
@@ -721,8 +724,6 @@
   (org-roam-db-autosync-mode)
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
-  (org-link-set-parameters okm-parent-id-type-name
-                           :follow 'org-roam-id-open)
 
   (defmacro org-roam-node-action (name &rest body)
     (declare (indent defun))
@@ -2474,6 +2475,7 @@ Parent-child relation is defined by the brain-parent links."
                                                                   (and (f-ext-p f "org")
                                                                        (with-temp-buffer
                                                                          (insert-file f)
+                                                                         (org-mode)
                                                                          (if-let (kwds (org-collect-keywords '("filetags")))
                                                                              (not (member "agendauntrack" (split-string (cadar kwds) ":" 'omit-nulls)))
                                                                            t)))))
@@ -2483,6 +2485,7 @@ Parent-child relation is defined by the brain-parent links."
                                                         (and (f-ext-p f "org")
                                                              (with-temp-buffer
                                                                (insert-file f)
+                                                               (org-mode)
                                                                (when-let (kwds (org-collect-keywords '("filetags")))
                                                                  (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))))))
 
@@ -2512,6 +2515,7 @@ Parent-child relation is defined by the brain-parent links."
                                                                 (and (f-ext-p f "org")
                                                                      (with-temp-buffer
                                                                        (insert-file f)
+                                                                       (org-mode)
                                                                        (if-let (kwds (org-collect-keywords '("filetags")))
                                                                            (not (member "agendauntrack" (split-string (cadar kwds) ":" 'omit-nulls)))
                                                                          t)))))
@@ -2521,6 +2525,7 @@ Parent-child relation is defined by the brain-parent links."
                                                       (and (f-ext-p f "org")
                                                            (with-temp-buffer
                                                              (insert-file f)
+                                                             (org-mode)
                                                              (when-let (kwds (org-collect-keywords '("filetags")))
                                                                (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))
                                            (f-glob "~/Documents/org/brain/personal/**/*.org")))

@@ -22,6 +22,8 @@
 
 ;; (setq load-prefer-newer t) ;;mkaing sure older byte compiled files are not loaded
 
+(setq-default default-directory "~/")
+
 (let ((default-directory  "~/.emacs.d/customFiles/"))
   (normal-top-level-add-to-load-path `("."))
   (normal-top-level-add-subdirs-to-load-path))
@@ -87,7 +89,7 @@
 (defvar my-package-list '(org org-contrib elgrep dired+
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
-					   org-bullets latex-math-preview csproj-mode csharp-mode plantuml-mode
+					   org-bullets latex-math-preview csproj-mode plantuml-mode
 					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
 					   avy expand-region diminish amx flx
 					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
@@ -144,6 +146,7 @@
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
+ '(magit-todos-insert-after '(bottom) nil nil "Changed by setter of obsolete option `magit-todos-insert-at'")
  '(org-export-backends '(ascii html icalendar latex md))
  '(prolog-system 'swi)
  '(python-shell-interpreter "python3")
@@ -1622,7 +1625,7 @@ T - tag prefix
 ;;   )
 
 (use-package display-line-numbers
-  :hook (prog-mode text-mode)
+  :hook ((prog-mode text-mode) . display-line-numbers-mode)
   :custom
   (display-line-numbers-type 'visual))
 
@@ -2455,13 +2458,41 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
 ;;dashboard*************************************************************
 (use-package dashboard
+  :hook ((dashboard-mode . (lambda () (setq default-directory "~/"))))
+  :custom
+  (dashboard-set-heading-icons t)
   :config
+  (defmacro amsha/dashboard-insert-section
+      (section-name icon list list-size shortcut-id shortcut-char action &rest widget-params)
+    "Add a section with SECTION-NAME and LIST of LIST-SIZE items to the dashboard.
+
+SHORTCUT-CHAR is the keyboard shortcut used to access the section.
+ACTION is theaction taken when the user activates the widget button.
+WIDGET-PARAMS are passed to the \"widget-create\" function."
+    `(progn
+       (dashboard-insert-heading ,section-name
+                                 (if (and ,list ,shortcut-char dashboard-show-shortcuts) ,shortcut-char)
+                                 ,icon)
+       (if ,list
+           (when (and (dashboard-insert-section-list
+                       ,section-name
+                       (dashboard-subseq ,list ,list-size)
+                       ,action
+                       ,@widget-params)
+                      ,shortcut-id ,shortcut-char)
+             (dashboard-insert-shortcut ,shortcut-id ,shortcut-char ,section-name))
+         (insert (propertize "\n    --- No items ---" 'face 'dashboard-no-items-face)))))
+
   (defun dashboard-insert-sprints (list-size)
     "Add the list of LIST-SIZE items."
     (let ((sprints (condition-case nil (amsha/get-sprints '("INPROGRESS")) ((user-error))))
           (dashboard-set-file-icons nil))
-      (dashboard-insert-section
+      (amsha/dashboard-insert-section
        "Active Sprints:"
+       (all-the-icons-octicon "globe"
+                              :height 1.2
+                              :v-adjust 0.0
+                              :face 'dashboard-heading)
        sprints
        list-size
        'sprints
@@ -2486,8 +2517,12 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                                             (org-id-get))))
                     nil))
            (dashboard-set-file-icons nil))
-      (dashboard-insert-section
+      (amsha/dashboard-insert-section
        "Active Tasks:"
+       (all-the-icons-octicon "checklist"
+                              :height 1.2
+                              :v-adjust 0.0
+                              :face 'dashboard-heading)
        tasks
        list-size
        'tasks
@@ -2514,8 +2549,12 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                                       :height 1 :v-adjust 0.0 :face 'magit-hash)
                                      " homepage")
                              "https://shariff-faleel.com"))))
-      (dashboard-insert-section
+      (amsha/dashboard-insert-section
        "Quick links:"
+       (all-the-icons-octicon "info"
+                              :height 1.2
+                              :v-adjust 0.0
+                              :face 'dashboard-heading)
        links
        list-size
        'quick-links
@@ -2534,21 +2573,8 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                                     (tasks . "checklist")
                                     (quick-links . "info")))
 
-  (defun amsha/dashboard-insert-heading (old-func heading &optional shortcut)
-    (insert (pcase heading
-              ("Quick links:"
-               (all-the-icons-octicon (cdr (assoc 'quick-links dashboard-heading-icons))
-                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading))
-              ("Active Sprints:"
-               (all-the-icons-octicon (cdr (assoc 'sprints dashboard-heading-icons))
-                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading))
-              ("Active Tasks:"
-               (all-the-icons-octicon (cdr (assoc 'tasks dashboard-heading-icons))
-                                      :height 1.2 :v-adjust 0.0 :face 'dashboard-heading))
-              (_ "")))
-    (funcall old-func heading shortcut))
-
-  (advice-add 'dashboard-insert-heading :around #'amsha/dashboard-insert-heading)
+  ;; From https://github.com/emacs-dashboard/emacs-dashboard/issues/471
+  (advice-add #'dashboard-replace-displayable :override #'identity)
 
   (defun amsha/dashboard-due-date-for-agenda-n-days () ;; 20 days
     (time-add (current-time) (* 86400 20)))
@@ -2655,11 +2681,6 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 ;; csharp #####################################################################
 ;; (use-package tree-sitter)
 ;; (use-package tree-sitter-langs)
-
-(use-package csharp-mode
-  :config
-  (add-to-list 'auto-mode-alist '("\\.cs\\'" . csharp-mode)))
-
 
 ;; Unity setup#################################################################
 ;; To set up:
