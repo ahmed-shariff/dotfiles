@@ -96,7 +96,7 @@
 					   dired-sidebar stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
 					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
 					   exec-path-from-shell slime-company slime
-					   slim-mode python-mode flycheck company-quickhelp company-c-headers company-anaconda))
+					   slim-mode flycheck company-quickhelp company-c-headers company-anaconda))
 
 (mapcar #'straight-use-package
 	my-package-list)
@@ -1182,6 +1182,16 @@ targets."
 ;;     ;; (add-to-list 'lsp-enabled-clients 'jedi)
 ;;     ))
 
+(use-package python
+  :straight (:type built-in)
+  :ensure nil
+  :config
+  (setq
+   python-shell-interpreter "poetry"
+   python-shell-completion-setup-code ""
+   python-shell-interpreter-interactive-arg ""
+   python-shell-interpreter-args "run python -i"))
+
 (use-package lsp-pyright
   :defer t
   :hook (python-mode . (lambda ()
@@ -1558,16 +1568,12 @@ T - tag prefix
 ;;   :init
 ;;   (elpy-enable))
 					;(setenv "IPY_TEST_SIMPLE_PROMPT" "1")
-(setq python-shell-interpreter "python" python-shell-interpreter-args "-i")
-(pyvenv-activate "~/virtualenv/pytorch")
-(pyvenv-mode)
-
-(use-package with-venv
-  :after (lsp lsp-pyright)
-  :config
-  (with-venv-advice-add 'lsp-pyright-locate-venv)
-  (with-venv-advice-add 'lsp-pylsp-get-pyenv-environment)
-  (with-venv-advice-add 'dap-python--pyenv-executable-find))
+;; (use-package with-venv
+;;   :after (lsp lsp-pyright)
+;;   :config
+;;   (with-venv-advice-add 'lsp-pyright-locate-venv)
+;;   (with-venv-advice-add 'lsp-pylsp-get-pyenv-environment)
+;;   (with-venv-advice-add 'dap-python--pyenv-executable-find))
 
 (use-package poetry
   :straight (poetry :type git :host github :repo "cybniv/poetry.el"
