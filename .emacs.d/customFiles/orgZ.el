@@ -705,7 +705,8 @@
   (org-roam-mode-sections (list #'org-roam-brain-children-section
                                 '(org-roam-backlinks-section :unique nil) ;; Setting to nil becuase when t it doesn't work too well with notes
                                 #'org-roam-reflinks-section))
-  :bind (("C-c n l" . org-roam-buffer-toggle)
+  :bind (("C-c n l" . org-roam-buffer-for-node)
+         ("C-c n L" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ;;("C-c n g" . org-roam-graph)
          ("C-c n i" . org-roam-node-insert)
@@ -783,6 +784,20 @@
 ;;                            :target-node (org-roam-node-create :id dest-id)
 ;;                            :point pos
 ;;                            :properties properties))))))
+
+  (defun org-roam-buffer-for-node (node)
+    "Display org-roam-buffer for NODE."
+    (interactive (list (org-roam-node-read (when (derived-mode-p 'org-roam-mode)
+                                             (when-let (_node (org-roam-node-at-point))
+                                               (org-roam-node-title _node))))))
+    ;; copied from `org-roam-buffer-toggle' and `org-roam-buffer-persistent-redisplay'
+    (display-buffer (get-buffer-create org-roam-buffer))
+    (unless (equal node org-roam-buffer-current-node)
+      (setq org-roam-buffer-current-node node
+            org-roam-buffer-current-directory org-roam-directory)
+      (with-current-buffer (get-buffer-create org-roam-buffer)
+        (org-roam-buffer-render-contents)
+        (add-hook 'kill-buffer-hook #'org-roam-buffer--persistent-cleanup-h nil t))))
 
   (defun org-roam-brain-children-section (node)
     "The brain children section for NODE.
