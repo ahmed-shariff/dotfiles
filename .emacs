@@ -2381,6 +2381,17 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   (interactive)
   (copy-file-full-path (buffer-file-name (window-buffer (minibuffer-selected-window)))))
 
+(defun copy-current-directory ()
+  "Copy the current direcory. If prefix arg, copy project root."
+  (interactive)
+  (kill-new (-->
+             (file-truename
+              (buffer-file-name (window-buffer
+                                 (minibuffer-selected-window))))
+             (if current-prefix-arg
+                 (amsha/get-project-root-overlooking-submodules it)
+               (file-name-directory it)))))
+
 (defun single-linify (beg end)
   "Make a paragraph single-lined by replacing line break with space.
   BEG The begining of a region
