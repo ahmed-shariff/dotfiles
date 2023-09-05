@@ -155,8 +155,12 @@
 						         (:kernel . "python3")
 						         (:tangle . "jupyter-python/tangled.py")
 						         (:exports . "both")))
-    (define-key jupyter-org-interaction-mode-map (kbd "C-c h") nil))
-      
+    (define-key jupyter-org-interaction-mode-map (kbd "C-c h") nil)
+
+    (cl-defmethod jupyter-handle-execute-reply :around ((_client jupyter-org-client) (req jupyter-org-request) msg)
+      (org-with-point-at (jupyter-org-request-marker req)
+        (cl-call-next-method))))
+
   (use-package ox-ipynb
     :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb")))
 
@@ -574,7 +578,9 @@
 ;;(require 'org-bullets)
 (use-package org-modern
     :straight (:type git :host github :repo "minad/org-modern")
-    :custom (org-modern-star '("◉" " ○" "  ◈" "   ◇" "    •" "     ◦" "      ▸" "       ▹"))
+    :custom
+    (org-modern-star '("◉" " ○" "  ◈" "   ◇" "    •" "     ◦" "      ▸" "       ▹"))
+    (org-modern-block-fringe nil)
     :hook ((org-mode . org-modern-mode)
            (org-agenda-finalize . org-modern-agenda))
     :custom-face
@@ -612,16 +618,16 @@
               :around
               #'org-transclusion-content-filter-org-only-contents-exclude-id-headline)
 
-  (defun org-transclusion-content-insert-add-overlay (beg end)
-    "Add fringe after transclusion."
-    (overlay-put (text-clone-make-overlay beg end (current-buffer))
-                 'line-prefix
-                 (org-transclusion-propertize-transclusion))
-    (overlay-put (text-clone-make-overlay beg end (current-buffer))
-                 'wrap-prefix
-                 (org-transclusion-propertize-transclusion)))
+  ;; (defun org-transclusion-content-insert-add-overlay (beg end)
+  ;;   "Add fringe after transclusion."
+  ;;   (overlay-put (text-clone-make-overlay beg end (current-buffer))
+  ;;                'line-prefix
+  ;;                (org-transclusion-propertize-transclusion))
+  ;;   (overlay-put (text-clone-make-overlay beg end (current-buffer))
+  ;;                'wrap-prefix
+  ;;                (org-transclusion-propertize-transclusion)))
 
-  (add-hook 'org-transclusion-after-add-functions #'org-transclusion-content-insert-add-overlay)
+  ;; (add-hook 'org-transclusion-after-add-functions #'org-transclusion-content-insert-add-overlay)
 
   (defun org-transclusion-add-from-org-roam ()
     "Add transclusion from org-roam."
