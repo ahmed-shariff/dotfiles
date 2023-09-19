@@ -1849,7 +1849,8 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
                              (json-parse-string (buffer-string))))
                          (make-hash-table))))
       (if persp-name
-          (map-into (gethash persp-name hashtable) '(alist))
+          (when-let ((-persp-hashtable (gethash persp-name hashtable)))
+            (map-into -persp-hashtable 'alist))
         hashtable)))
 
   (defun persp-harpoon--add-file-to-top (buffer-full-name)
@@ -1896,7 +1897,7 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
   (defun persp-harpoon-on-switch (&rest _)
     (setq persp-harpoon-buffers (or (persp-harpoon-load (persp-current-name))
                                     '()))
-    (setq persp-harpoon-buffers-list (hash-table-keys persp-harpoon-buffers)))
+    (setq persp-harpoon-buffers-list (mapcar (lambda (el) (car el)) persp-harpoon-buffers)))
 
   (defun persp-harpoon-switch-to ()
     (interactive)
@@ -1951,7 +1952,11 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
     (let ((buffers (mapcar (lambda (b)
                              (let ((-b (buffer-name (find-file-noselect b))))
                                (if annotate-index
-                                   (cons (format "%s %s" (cdr (assoc b persp-harpoon-buffers)) -b) -b)
+                                   (cons (format "%s %s"
+                                                 (if-let ((idx (assoc b persp-harpoon-buffers)))
+                                                     (cdr idx) " ")
+                                                 -b)
+                                         -b)
                                  -b)))
                            persp-harpoon-buffers-list))
           (-buffer-name (file-truename (buffer-name))))
