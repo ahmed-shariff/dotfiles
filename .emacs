@@ -1847,7 +1847,10 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
     (unless persp-harpoon-buffers
       (setq persp-harpoon-buffers '()))
     (unless (assoc buffer-full-name persp-harpoon-buffers)
-      (push (cons buffer-full-name 1) persp-harpoon-buffers))
+      (push (cons buffer-full-name (--first
+                                    (not (rassoc it persp-harpoon-buffers))
+                                    (number-sequence 1 9)))
+            persp-harpoon-buffers))
     (setq persp-harpoon-buffers-list (delete buffer-full-name persp-harpoon-buffers-list))
     (push buffer-full-name persp-harpoon-buffers-list))
 
@@ -1888,12 +1891,7 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
 
   (defun persp-harpoon-switch-to ()
     (interactive)
-    (let* ((buffers (persp-harpoon--get-buffers-for-completion))
-           (val 0)
-           (annotated-buffers (mapcar (lambda (el)
-                                        (cl-incf val)
-                                        (cons (format "%s %s" val el) el))
-                                      buffers))
+    (let* ((annotated-buffers (persp-harpoon--get-buffers-for-completion t))
            (buffer-annotation-function
             (completion-metadata-get '((category . buffer)) 'annotation-function))
            (buffer-affixation-function
@@ -1940,14 +1938,18 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
           nil 'require-match)
          annotated-buffers)))))
 
-  (defun persp-harpoon--get-buffers-for-completion ()
+  (defun persp-harpoon--get-buffers-for-completion (&optional annotate-index)
     (let ((buffers (mapcar (lambda (b)
-                             (buffer-name (find-file-noselect b)))
+                             (let ((-b (buffer-name (find-file-noselect b))))
+                               (if annotate-index
+                                   (cons (format "%s %s" (cdr (assoc b persp-harpoon-buffers)) -b) -b)
+                                 -b)))
                            persp-harpoon-buffers-list))
           (-buffer-name (file-truename (buffer-name))))
-      (if (and (> (length buffers) 2) (member -buffer-name buffers))
-          (append (delete -buffer-name buffers) (list -buffer-name))
-        buffers)))
+      ;; (if (and (> (length buffers) 2) (member -buffer-name buffers))
+      ;;     (append (delete -buffer-name buffers) (list -buffer-name))
+      ;;   buffers)))
+      buffers))
 
   (defun persp-harpoon-switch-other ()
     (interactive)
