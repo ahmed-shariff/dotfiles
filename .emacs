@@ -1797,6 +1797,15 @@ Used with atomic-chrome."
          ("C-c h c" . persp-harpoon-clear-buffers)
          ("C-c h o" . persp-harpoon-switch-other)
          ("C-c h k" . persp-harpoon-kill-non-harpoon-buffers)
+         ("C-c h 1" . persp-harpoon-jump-to-1)
+         ("C-c h 2" . persp-harpoon-jump-to-2)
+         ("C-c h 3" . persp-harpoon-jump-to-3)
+         ("C-c h 4" . persp-harpoon-jump-to-4)
+         ("C-c h 5" . persp-harpoon-jump-to-5)
+         ("C-c h 6" . persp-harpoon-jump-to-6)
+         ("C-c h 7" . persp-harpoon-jump-to-7)
+         ("C-c h 8" . persp-harpoon-jump-to-8)
+         ("C-c h 9" . persp-harpoon-jump-to-9)
          ("C-c h h" . persp-harpoon-switch-to))
   :hook (kill-emacs-hook . persp-state-save)
   :init (persp-mode 1)
@@ -1893,6 +1902,19 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
                 (buffer-full-name (file-truename b))
                 (_ (member buffer-full-name persp-harpoon-buffers-list)))
       (persp-harpoon--add-file-to-top (buffer-file-name))))
+
+  (defun persp-harpoon-jump-to-index (index)
+    "Jump to the buffer with index INDEX."
+    (if-let ((-buffer (rassoc index persp-harpoon-buffers)))
+        (switch-to-buffer (find-file-noselect (car -buffer)))
+      (user-error "No buffer for index %s" index)))
+
+  (dolist (index (number-sequence 1 9))
+    (fset (intern (format "persp-harpoon-jump-to-%s" index))
+          `(lambda ()
+             ""
+             (interactive)
+             (persp-harpoon-jump-to-index ,index))))
 
   (defun persp-harpoon-on-switch (&rest _)
     (setq persp-harpoon-buffers (or (persp-harpoon-load (persp-current-name))
