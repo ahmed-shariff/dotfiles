@@ -218,11 +218,19 @@
 
 ;; (setq use-package-compute-statistics t)
 
+(defvar em-error nil "If non-nil the `em' macro will signal error")
+
+(defun toggle-em-error ()
+  "Toggle `em-error'."
+  (setf em-error (not em-error)))
+
 (defmacro em (&rest args)
   "Call `messaage' ARGS passed as args of `message' & retur the first argument passed.
 Used for debugging."
   ;; `(signal 'error ""))
   `(progn
+     (when em-error
+       (signal 'error "em is erroring"))
      (message ,(format ">>>>>    %s" (s-join "," (-repeat (length args) " %s"))) ,@args)
      ,(car args)))
 
@@ -1481,6 +1489,7 @@ T - tag prefix
   :hook
   ((dired-mode ranger-mode) . (lambda () (visual-line-mode -1)))
   :custom
+  (dired-mouse-drag-files t)
   (ranger-override-dired 'ranger)
   (ranger-preview-delay 0.5)
   (ranger-width-preview 0.4)
