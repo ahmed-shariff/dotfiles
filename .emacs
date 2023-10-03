@@ -2666,9 +2666,13 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   :mode	"\\.erb\\'"
   :mode "\\.html?\\'"
   :mode "\\.js[x]?\\'"
+  :mode "\\.svelte\\'"
   :bind ("C-c s" . switch-web-js2)
   :config
   (setq web-mode-content-types-alist '(("jsx" . ".*\\.js[x]?"))
+        web-mode-css-indent-offset 4
+        web-mode-attr-value-indent-offset 4
+        web-mode-indent-style 4
         web-mode-sql-indent-offset 4
         web-mode-code-indent-offset 4
         web-mode-attr-indent-offset 4
