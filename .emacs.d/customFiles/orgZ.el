@@ -1133,7 +1133,7 @@ Copied  from `org-roam-backlink-get'."
 
   (defun org-noter-pdf--get-selected-text-single-linified (vals)
     "Single linyfy the returned text."
-    (when vals (format "`%s`" (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" vals)))))
+    (when vals (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" vals))))
 
   (advice-add 'org-noter-pdf--get-selected-text :filter-return #'org-noter-pdf--get-selected-text-single-linified))
 
