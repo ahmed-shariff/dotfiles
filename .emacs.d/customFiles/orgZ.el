@@ -52,6 +52,9 @@
                            (s-replace "%2F" "/" (match-string 1 url))))))
           (progn
             (save-excursion
+                (with-current-buffer (car bibtex-completion-bibliography)
+                    (goto-char (point-max))
+                    (when (not (looking-at "^")) (insert "\n\n")))
                 (ignore-errors (doi-add-bibtex-entry doi (car bibtex-completion-bibliography)))
                 (doi-utils-open-bibtex doi)
                 (org-ref-open-bibtex-notes)
@@ -1907,6 +1910,8 @@ With C-u C-u C-u prefix, force run all research-papers."
                     (error (message "Error: failed to read pdf file: %s" full-path)
                            (setq tags (append tags '("PDF_ERROR")))))
                   (push 'txt-file changes))))
+            (when changes
+              (save-buffer))
             (setq tags
                   ;; If error, most likely node not created
 		  (if (ignore-errors (remove okm-research-papers-id (okm-get-parents)))
@@ -2116,8 +2121,8 @@ With C-u C-u C-u prefix, force run all research-papers."
 	    (goto-char search-point)
 	    (message "%s already exists in the database" arxiv-number))
 	(goto-char (point-max))
-	(when (not (looking-at "^")) (insert "\n"))
-	(insert (arxiv-get-bibtex-entry-via-arxiv-api arxiv-number))
+	(when (not (looking-at "^")) (insert "\n\n"))
+	(insert (arxiv-get-bibtex-entry-via-arxiv-api arxiv-number) "\n\n")
         (save-buffer)
 	(org-ref-clean-bibtex-entry)
         (save-buffer)
@@ -2132,7 +2137,7 @@ With C-u C-u C-u prefix, force run all research-papers."
           (save-buffer)
 	  (goto-char (point-min))
 	  (org-set-property "LINK" arxiv-link)
-	  (research-papers-configure t))))))
+	  (research-papers-configure 'force-file))))))
 
 (defun okm-add-parents (parents &optional entry-id)
   "Add PARENTS, which are expected to be ids to the entry with ENTRY-ID or in entry at point."
