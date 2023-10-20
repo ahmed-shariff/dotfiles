@@ -1779,7 +1779,8 @@ Currently written to work in org-ql buffer."
     (-if-let (id (save-excursion
                    (org-id-get-closest)))
         id
-      (funcall oldfun args)))
+      ;; args not used
+      (funcall oldfun)))
 
   (defun org-download--dir-1-get-relative-path (&rest args)
     "Get relative path to `org-download-image-dir'."
