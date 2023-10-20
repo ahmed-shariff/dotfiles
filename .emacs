@@ -2352,6 +2352,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
 ;;origami*****************************************************************************
 (use-package origami
+  :straight (origami :type git :host github :repo "elp-revive/origami.el")
   :bind ("C-+" . hydra-origami/body)
   :hook ((prog-mode . origami-mode))
   :hydra (hydra-origami (:color red)
