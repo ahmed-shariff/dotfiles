@@ -895,17 +895,17 @@ Copied  from `org-roam-backlink-get'."
     "Navigate to related node of `node'."
     (interactive (list (or (when (eq major-mode 'org-mode) (org-roam-node-at-point)) (org-roam-node-read nil nil nil t "Select node: "))))
     (consult--multi (list
-                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                     (plist-multi-put (copy-sequence consult-notes-org-roam--nodes)
                                       :name (propertize "Backlinks" 'face 'consult-notes-sep)
                                       :narrow ?b
                                       :items (lambda () (--map (org-roam-node-title (org-roam-backlink-source-node it))
                                                                (org-roam-backlinks-get node :unique t))))
-                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                     (plist-multi-put (copy-sequence consult-notes-org-roam--nodes)
                                       :name (propertize "Brain Children" 'face 'consult-notes-sep)
                                       :narrow ?c
                                       :items (lambda () (--map (org-roam-node-title (org-roam-node-from-id it))
                                                                (okm-get-children (org-roam-node-id node)))))
-                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                     (plist-multi-put (copy-sequence consult-notes-org-roam--nodes)
                                        :name (propertize "Forwardlink" 'face 'consult-notes-sep)
                                        :narrow ?f
                                        :items (lambda () (-map #'car (org-roam-db-query
@@ -913,7 +913,7 @@ Copied  from `org-roam-backlink-get'."
                                                                                :from links :inner :join nodes :on (= links:dest nodes:id)
                                                                                :where (in links:source $v1)]
                                                                       (vector (org-roam-node-id node))))))
-                     (plist-multi-put (copy-seq consult-notes-org-roam--nodes)
+                     (plist-multi-put (copy-sequence consult-notes-org-roam--nodes)
                                       :name (propertize "Brain Parents" 'face 'consult-notes-sep)
                                       :narrow ?p
                                       :items (lambda () (--map (org-roam-node-title (org-roam-node-from-id it))
