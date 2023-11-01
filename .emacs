@@ -482,6 +482,17 @@ advice, files on WSL can not be saved."
 (use-package evil-mc
   :config
   (global-evil-mc-mode  1))
+
+(use-package evil-org
+  :ensure t
+  :after org
+  :hook (org-mode . (lambda () evil-org-mode))
+  :config
+  (require 'evil-org-agenda)
+  (evil-org-agenda-set-keys)
+  (with-eval-after-load 'org-super-agenda
+    (setq org-super-agenda-header-map (copy-keymap org-agenda-mode-map))))
+
 ;;selectrum  *******************************************************
 ;; (use-package prescient
 ;;   :config
