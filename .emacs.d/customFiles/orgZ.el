@@ -1088,7 +1088,7 @@ Copied  from `org-roam-backlink-get'."
   (org-ref-open-bibtex-notes)
   (org-set-property "LINK" (completing-read "LINK: " nil nil nil (when (s-starts-with-p "file://" (car kill-ring))
                                                                    (car kill-ring))))
-  (research-papers-configure))
+  (research-papers-configure t))
 
 ;; (use-package org-noter ;;:quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
 ;;   :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
@@ -1908,7 +1908,8 @@ With C-u C-u C-u prefix, force run all research-papers."
                            (setq tags (append tags '("PDF_ERROR")))))
                   (push 'txt-file changes))))
             (setq tags
-		  (if (remove okm-research-papers-id (okm-get-parents))
+                  ;; If error, most likely node not created
+		  (if (ignore-errors (remove okm-research-papers-id (okm-get-parents)))
 		      (delete "NO_PARENTS" tags)
 		    (append tags '("NO_PARENTS"))))
             (when (cl-set-exclusive-or (org-entry-get-multivalued-property pom "RPC-TAGS") (delete-dups tags))
@@ -2107,34 +2108,31 @@ With C-u C-u C-u prefix, force run all research-papers."
   (save-window-excursion
     (find-file bibfile)
     (let* ((arxiv-number (s-chop-suffix ".pdf" (car (last (s-split "/" arxiv-link)))))
-	   (search-point (word-search-forward arxiv-number nil t)))
+	   (search-point (word-search-forward arxiv-number nil t))
+           (bibtex-completion-bibliography (list (buffer-file-name)))
+           keys)
       (if search-point
 	  (progn
 	    (goto-char search-point)
 	    (message "%s already exists in the database" arxiv-number))
-	(progn
-	  (goto-char (point-max))
-	  (when (not (looking-at "^")) (insert "\n"))
-	  (insert (arxiv-get-bibtex-entry-via-arxiv-api arxiv-number))
+	(goto-char (point-max))
+	(when (not (looking-at "^")) (insert "\n"))
+	(insert (arxiv-get-bibtex-entry-via-arxiv-api arxiv-number))
+        (save-buffer)
+	(org-ref-clean-bibtex-entry)
+        (save-buffer)
+	(setq keys (progn
+		     (bibtex-beginning-of-entry)
+		     (list (cdr (assoc "=key=" (bibtex-parse-entry))))))
+	(goto-char (point-max))
+	(when (not (looking-at "^")) (insert "\n"))
+	(save-buffer)
+	(save-excursion
+	  (bibtex-completion-edit-notes keys)
           (save-buffer)
-	  (org-ref-clean-bibtex-entry)
-	  (save-excursion
-	    (when (f-file? bibtex-completion-notes-path)
-	      (find-file-noselect bibtex-completion-notes-path)
-	      (save-buffer))
-	    (let ((bibtex-completion-bibliography (list (buffer-file-name)))
-		  (keys (progn		  
-			  (bibtex-beginning-of-entry)
-			  (list (cdr (assoc "=key=" (bibtex-parse-entry)))))))
-	      (bibtex-completion-edit-notes keys))
-	    (goto-char (point-max))
-	    (when (not (looking-at "^")) (insert "\n"))
-	    (save-buffer))
-	  (save-excursion
-	    (find-file-other-window bibtex-completion-notes-path)
-	    (goto-char (point-max))
-	    (org-set-property "LINK" arxiv-link)
-	    (research-papers-configure)))))))
+	  (goto-char (point-min))
+	  (org-set-property "LINK" arxiv-link)
+	  (research-papers-configure t))))))
 
 (defun okm-add-parents (parents &optional entry-id)
   "Add PARENTS, which are expected to be ids to the entry with ENTRY-ID or in entry at point."
