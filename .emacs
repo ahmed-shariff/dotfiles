@@ -248,6 +248,10 @@ Used for debugging."
   :custom
   (magit-clone-always-transient t)
   :config
+
+  (remove-hook 'server-switch-hook 'magit-commit-diff)
+  (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff)
+
   (defmacro magit-sync-repo (name git-directory git-message &optional add-directories)
     "Creats an interactive function with name `sync-<NAME>'.
 Calling the function will execute pull inside the GIT-DIRECORY, commit any changes
