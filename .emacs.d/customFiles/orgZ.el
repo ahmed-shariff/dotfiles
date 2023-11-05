@@ -52,22 +52,22 @@
                            (s-replace "%2F" "/" (match-string 1 url))))))
           (progn
             (save-excursion
-                (with-current-buffer (car bibtex-completion-bibliography)
-                    (goto-char (point-max))
-                    (when (not (looking-at "^")) (insert "\n\n")))
-                (ignore-errors (doi-add-bibtex-entry doi (car bibtex-completion-bibliography)))
-                (doi-utils-open-bibtex doi)
-                (org-ref-open-bibtex-notes)
-                ;; make sure at the top most level
-                (while (not (>= 1 (org-outline-level)))
-                  (org-up-element))
-                ;; add link if not already set
-                (-if-let* ((link (org-entry-get (point) "LINK"))
-                           (l (> (length link) 0)))
-                    nil  ;; do nothing
-                  (org-set-property "LINK" file-name))
-                (save-buffer)
-                (research-papers-configure t))))
+              (with-current-buffer (find-file-noselect (car bibtex-completion-bibliography))
+                (goto-char (point-max))
+                (when (not (looking-at "^")) (insert "\n\n")))
+              (ignore-errors (doi-add-bibtex-entry doi (car bibtex-completion-bibliography)))
+              (doi-utils-open-bibtex doi)
+              (org-ref-open-bibtex-notes)
+              ;; make sure at the top most level
+              (while (not (>= 1 (org-outline-level)))
+                (org-up-element))
+              ;; add link if not already set
+              (-if-let* ((link (org-entry-get (point) "LINK"))
+                         (l (> (length link) 0)))
+                  nil  ;; do nothing
+                (org-set-property "LINK" file-name))
+              (save-buffer)
+              (research-papers-configure t))))
          ;; handle arxiv links
          ((string-match "arxiv\\.org.*pdf$" url)
           (arxiv-add-bibtex-entry-with-note url (car bibtex-completion-bibliography)))
@@ -2512,6 +2512,7 @@ Parent-child relation is defined by the brain-parent links."
       org-agenda-start-on-weekday nil
       org-agenda-start-day "-3d"
       org-image-actual-width (list 650)
+      org-tag-alist '(("TEMP_BIB"))
       org-agenda-files (flatten-tree (list (--map (f-files it (lambda (f)
                                                                 (and (f-ext-p f "org")
                                                                      (with-temp-buffer
