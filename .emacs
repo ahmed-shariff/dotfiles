@@ -449,7 +449,10 @@ advice, files on WSL can not be saved."
   (evil-collection-define-key 'normal 'pdf-view-mode-map "B" 'pdf-history-backward)
   )
 
-  
+(use-package evil-lion
+  :ensure t
+  :config
+  (evil-lion-mode))
 
 (use-package evil-easymotion
   :config
