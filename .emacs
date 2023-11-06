@@ -2348,6 +2348,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                          :fork (:host github :repo "ahmed-shariff/magit-todos"))
   :after (magit)
   :config
+  (add-to-list 'magit-todos-exclude-globs "*.ipynb")
   (magit-todos-mode))
 
 (use-package blamer
@@ -2747,8 +2748,8 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   :init
   (add-to-list 'auto-mode-alist '("\\.plantuml\\'" . plantuml-mode))
   :config
-  (setq plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
-  (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml.jar")
+  (setq plantuml-jar-path "~/.emacs.d/customFiles/plantuml-mit-1.2023.12.jar")
+  (setq org-plantuml-jar-path "~/.emacs.d/customFiles/plantuml-mit-1.2023.12.jar")
   (setq plantuml-default-exec-mode 'jar))
   ;; (setq plantuml-exec-mode "jar")
   ;; (plantuml-set-exec-mode "jar"))
