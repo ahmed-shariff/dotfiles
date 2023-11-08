@@ -384,23 +384,27 @@
 (defun okm-board-task-location ()
   "Return a org title with board task after prompting for it."
   (let* ((targets
-          (--map
-           (let* ((title (org-roam-node-title it))
-                  (full-file-name (org-roam-node-file it))
-                  (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
-                  (todo-state (or (org-roam-node-todo it) "")))
-             (list (format "%-10s  %-30s %s"
-                           (propertize todo-state 'face (org-get-todo-face todo-state))
-                           (propertize file-name 'face 'marginalia-documentation)
-                           title)
-                   title
-                   (org-roam-node-id it)))
-           (org-roam-ql-nodes '(and (level 1) (file "./project_boards/.")))))
+          (append
+           '(("--None--"))
+           (--map
+            (let* ((title (org-roam-node-title it))
+                   (full-file-name (org-roam-node-file it))
+                   (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
+                   (todo-state (or (org-roam-node-todo it) "")))
+              (list (format "%-10s  %-30s %s"
+                            (propertize todo-state 'face (org-get-todo-face todo-state))
+                            (propertize file-name 'face 'marginalia-documentation)
+                            title)
+                    title
+                    (org-roam-node-id it)))
+            (org-roam-ql-nodes '(and (level 1) (file "./project_boards/."))))))
          (target (progn
                    (assoc (completing-read "Select task: " targets nil t) targets))))
-    (format "**** [[id:%s][%s]]  %%?"
-            (nth 2 target)
-            (nth 1 target))))
+    (if (cdr target)
+        (format "**** [[id:%s][%s]]  %%?"
+                (nth 2 target)
+                (nth 1 target))
+      "**** %?")))
     
 (defun okm-add-repository ()
 :PROPERTIES:
