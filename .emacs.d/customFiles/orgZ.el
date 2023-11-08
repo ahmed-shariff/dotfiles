@@ -1774,7 +1774,22 @@ Currently written to work in org-ql buffer."
           (f-relative org-download-image-dir))
         "."))
   (advice-add 'org-download--dir-1 :override #'org-download--dir-1-get-relative-path)
-  (advice-add 'org-download--dir-2 :around #'org-download--dir-2-use-id))
+  (advice-add 'org-download--dir-2 :around #'org-download--dir-2-use-id)
+
+  (defun download-screenshot (file-name)
+    "Capture screenshot and yank the resulting file name.
+The screenshot tool is determined by `org-download-screenshot-method'."
+    (interactive (list (file-truename (car (find-file-read-args "File to save in:" nil)))))
+    (let* ((screenshot-dir (file-name-directory file-name)))
+      (make-directory screenshot-dir t)
+      (if (functionp org-download-screenshot-method)
+          (funcall org-download-screenshot-method
+                   file-name)
+        (shell-command-to-string
+         (format org-download-screenshot-method
+                 file-name)))
+      (when (file-exists-p file-name)
+        (kill-new file-name)))))
  
   
 (defun pdf-crop-image (event &optional switch-back)
