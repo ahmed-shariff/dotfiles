@@ -324,6 +324,7 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
 (setq backup-directory-alist `(("." . "~/.backups_emacs"))
       backup-by-copying t
       delete-old-versions t
+      fill-column 80
       ;; Following vertico readme
       read-extended-command-predicate #'command-completion-default-include-p
       enable-recursive-minibuffers t)
