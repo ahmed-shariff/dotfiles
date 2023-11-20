@@ -1547,7 +1547,8 @@ If prefix arg used, search whole db."
           (list
            (--all-p (s-match-strings-all it (buffer-string)) regexp))
           (t (error "Unknown type?"))))
-    (message "ERROR: Missing %s" f)))
+    (message "ERROR: Missing %s" f)
+    nil))
 
 (defun okm-search-papers-by-pdf-string (regexp)
   "Search without opening org files."
