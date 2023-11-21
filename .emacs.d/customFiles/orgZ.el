@@ -488,6 +488,7 @@
   :CUSTOM_ID: %(okm--org-templates-get-project-id)
   :ID:       %(org-id-new)
   :END:
+** Related repos:
 ** %\\1 literature
    :PROPERTIES:
    :ID:       %(org-id-new)
