@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <seealso cref=""></seealso>
+# key: comment
+# --
+/// <seealso cref="$1">$2</seealso>$0

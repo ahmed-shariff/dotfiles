@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <inheritdoc/>
+# key: comment
+# --
+/// <inheritdoc />$0
