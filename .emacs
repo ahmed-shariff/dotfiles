@@ -1243,6 +1243,8 @@ targets."
 
 (use-package lsp-treemacs
   :after (lsp-mode)
+  :custom
+  (treemacs-missing-project-action 'remove)
   :config
   (lsp-treemacs-sync-mode 1))
 
