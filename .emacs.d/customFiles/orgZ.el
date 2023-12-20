@@ -1377,6 +1377,8 @@ Copied  from `org-roam-backlink-get'."
           ("v" . org-roam-ql-buffer-dispatch)
           :map minibuffer-mode-map
           ("C-c n i" . org-roam-ql-insert-node-title)))
+  :custom
+  (org-roam-ql-default-org-roam-buffer-query (lambda () `(backlink-to (id ,(org-roam-node-id org-roam-buffer-current-node)) :type nil)))
   :config
   ;; (defun okm-roam-view-query (source-or-query)
   ;;   "View source or query in org-roam buffer."
@@ -1719,10 +1721,10 @@ Currently written to work in org-ql buffer."
         (-let (((-topics . -other-parents) (okm-parents-by-topics (org-roam-node-id node))))
           (setq topics (append topics -topics -other-parents))))
       (setq topics (--map (cons (car it) (length (cdr it)))
-                               (--group-by it
-                                           (--filter (not (string-empty-p it))
-                                                     topics)))
-            topic-nodes (--map (org-roam-node-from-title-or-alias (car it)) topics))
+                          (--group-by it
+                                      (--filter (not (string-empty-p it))
+                                                topics)))
+            topic-nodes (-non-nil (--map (org-roam-node-from-title-or-alias (car it)) topics)))
       (cl-letf (((symbol-function 'org-roam-ql-view--format-node)
                  ;; Copied from `org-roam-ql-view--format-node'
                  (lambda (node)
