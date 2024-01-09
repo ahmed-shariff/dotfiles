@@ -15,7 +15,13 @@
 (defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
 (org-link-set-parameters okm-parent-id-type-name
-                           :follow 'org-roam-id-open)
+                         :follow 'org-roam-id-open
+                         :help-echo (lambda (_win _obj pos) (format "Link: %s" (org-roam-node-title
+                                                                                (org-roam-node-from-id
+                                                                                 (substring
+                                                                                  (cadr (get-text-property (point) 'htmlize-link))
+                                                                                  (1+ (length okm-parent-id-type-name))))))))
+
 
 (magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures" "brain/work/notes" "brain/personl/work"))
 
@@ -2205,6 +2211,22 @@ Parent-child relation is defined by the brain-parent links."
   (let ((embark-quit-after-action nil))
     (okm-add-parents parents entry)
     (okm-print-parents entry)))
+
+(defun okm-remove-parent-topic (&optional entry-id)
+  "Prompt and remove a parent for entry at point or entry with id ENTRY-ID"
+  (interactive)
+  (unless entry-id
+    (setq entry-id (org-id-get-closest)))
+  (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
+  (let* ((collection (--remove (string-empty-p (car it))
+                               (--map (cons (org-roam-node-title it) (org-roam-node-id it))
+                                      (-map #'org-roam-node-from-id (okm-get-parents entry-id)))))
+         (remove-entry (cdr (assoc (completing-read "Parent to remove: " collection nil t)
+                            collection))))
+    (apply #'org-entry-put-multivalued-property (point) okm-parent-property-name
+           (--remove (s-contains-p remove-entry it)
+                     (org-entry-get-multivalued-property
+                      (org-roam-node-point (org-roam-node-from-id entry-id)) okm-parent-property-name)))))
 
 (defvar org-agenda-okm-add-parents--parents nil)
 
