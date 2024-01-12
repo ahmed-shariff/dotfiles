@@ -411,7 +411,8 @@ advice, files on WSL can not be saved."
                                          evil-goto-definition-imenu
                                          evil-goto-definition-semantic
                                          evil-goto-definition-search)
-        evil-cross-lines t)
+        evil-cross-lines t
+        evil-undo-system 'undo-redo)
 
   (evil-mode 1)
 
@@ -518,6 +519,18 @@ advice, files on WSL can not be saved."
   (evil-define-key 'normal 'global (kbd "C-c -") #'evil-numbers/dec-at-pt)
   (evil-define-key 'normal 'global (kbd "<kp-add>") #'evil-numbers/inc-at-pt)
   (evil-define-key 'normal 'global (kbd "<kp-substract>") #'evil-numbers/dec-at-pt))
+
+(use-package vundo
+  :commands (vundo)
+  :config
+  ;; Take less on-screen space.
+  (setq vundo-compact-display nil)
+
+  ;; Better contrasting highlight.
+  (custom-set-faces
+    '(vundo-node ((t (:foreground "#808080"))))
+    '(vundo-stem ((t (:foreground "#808080"))))
+    '(vundo-highlight ((t (:foreground "#FFFF00"))))))
 
 (use-package orderless
   :custom (completion-styles '(orderless))
