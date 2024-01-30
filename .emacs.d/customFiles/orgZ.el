@@ -435,9 +435,12 @@
       '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
 	 entry (file+olp+datetree "~/Documents/org/notes.org")
 	 "* NOTE %^g\n\tAdded: %U\n\t%?")
-	("t" "A thing i have to do(a wonderfull epiphany? 3:))->TO THE NOTES"
-	 entry (file "~/Documents/org/notes.org")
-	 "* TODO %^{Description} %^g\n\tAdded: %U\n\t%?")
+	("t" "A thing i have to do(a wonderfull epiphany? 3:))->LIFE HAPPENS"
+	 entry (file "~/Documents/org/brain/personal/life.org")
+	 "* TODO %^{Description}
+  :PROPERTIES:
+  :ID:       %(org-id-new)
+  :END:")
 	("j" "Journal entry")
 	("jg" "Journal entry general"
 	 entry (file+olp+datetree "~/Documents/org/journal.org")
@@ -692,6 +695,12 @@
        nil nil)
       :prepend t
       :kill-buffer t)
+     ("t" "A thing i have to do(a wonderfull epiphany? 3:))->LIFE HAPPENS" entry "* TODO ${title}%?
+  :PROPERTIES:
+  :ID:       %(org-id-new)
+  :END:"
+      :target (file+head "~/Documents/org/brain/personal/life.org"
+                         "#+title: ${title}\n"))
      ("n" "new note" plain "%?"
      :target (file+head "~/Documents/org/brain/roam-notes/${slug}-%<%Y%m%d%H%M%S>.org"
                         "#+title: ${title}\n")
@@ -2536,6 +2545,30 @@ Parent-child relation is defined by the brain-parent links."
                                                                  (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))))))
 
 
+(defun okm-org-agenda-recompute ()
+  "Recompute the agenda list through the org-roam db."
+  (interactive)
+  (setq org-agenda-files (flatten-tree (list (--map (f-files it (lambda (f)
+                                                                  (and (f-ext-p f "org")
+                                                                       (with-temp-buffer
+                                                                         (insert-file f)
+                                                                         (org-mode)
+                                                                         (if-let (kwds (org-collect-keywords '("filetags")))
+                                                                             (not (member "agendauntrack" (split-string (cadar kwds) ":" 'omit-nulls)))
+                                                                           t)))))
+                                                    (f-glob "~/Documents/org/brain/*/project_boards"))
+                                             (f-files "~/Documents/org/brain/roam-notes"
+                                                      (lambda (f)
+                                                        (and (f-ext-p f "org")
+                                                             (with-temp-buffer
+                                                               (insert-file f)
+                                                               (org-mode)
+                                                               (when-let (kwds (org-collect-keywords '("filetags")))
+                                                                 (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))
+                                             (f-glob "~/Documents/org/brain/personal/**/*.org")))))
+
+(okm-org-agenda-recompute)
+
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
@@ -2558,24 +2591,6 @@ Parent-child relation is defined by the brain-parent links."
       org-agenda-start-day "-3d"
       org-image-actual-width (list 650)
       org-tag-alist '(("TEMP_BIB"))
-      org-agenda-files (flatten-tree (list (--map (f-files it (lambda (f)
-                                                                (and (f-ext-p f "org")
-                                                                     (with-temp-buffer
-                                                                       (insert-file f)
-                                                                       (org-mode)
-                                                                       (if-let (kwds (org-collect-keywords '("filetags")))
-                                                                           (not (member "agendauntrack" (split-string (cadar kwds) ":" 'omit-nulls)))
-                                                                         t)))))
-                                                           (f-glob "~/Documents/org/brain/*/project_boards"))
-                                           (f-files "~/Documents/org/brain/roam-notes"
-                                                    (lambda (f)
-                                                      (and (f-ext-p f "org")
-                                                           (with-temp-buffer
-                                                             (insert-file f)
-                                                             (org-mode)
-                                                             (when-let (kwds (org-collect-keywords '("filetags")))
-                                                               (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))
-                                           (f-glob "~/Documents/org/brain/personal/**/*.org")))
       org-export-with-broken-links t)
 
 (provide 'orgZ)
