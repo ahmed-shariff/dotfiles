@@ -1151,7 +1151,9 @@ targets."
   (add-hook 'python-mode-hook #'lsp-ui-mode)
   :config
   (setq lsp-ui-sideline-show-hover t
-	lsp-ui-sideline-delay 1))
+	lsp-ui-sideline-delay 1
+        lsp-ui-sideline-diagnostic-max-lines 4
+        lsp-ui-sideline-diagnostic-max-line-length 150))
 
 
 (use-package company-box
