@@ -918,6 +918,14 @@ targets."
   :commands (consult-todo consult-todo-all)
   :after (hl-todo consult))
 
+;; gptel ***********************************************************
+(use-package gptel
+  :bind
+  (("C-c o q" . gptel-send))
+  :custom
+  (gptel-api-key (gethash 'openai-apk configurations)))
+
+
 ;;tramp settings ***************************************************
 ;; See https://stackoverflow.com/questions/6954479/emacs-tramp-doesnt-work for more details
 (setq tramp-terminal-type "dumb")
