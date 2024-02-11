@@ -45,7 +45,7 @@
   (defun add-doi-and-pdf (data)
     "DATA exepcts to be an alist with keys :url and :filename."
     (message "Trying to add: %s" data)
-    (let* ((url (plist-get data :url))
+    (let* ((url (s-replace-regexp "\\(https:/\\)[^/]" "https://" (plist-get data :url) nil nil 1))
            (file-name (format "file:///%s" (expand-file-name (plist-get data :filename))))
            doi)
       (save-match-data 
