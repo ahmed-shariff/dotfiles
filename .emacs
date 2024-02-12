@@ -1863,15 +1863,17 @@ Used with atomic-chrome."
   ;;                                          (persp-switch (projectile-project-name))
   ;;                                          (projectile-find-file)))
   
-  (defun consult-projectile--switch-persp (&optional project)
+  (defun consult-projectile-switch-persp (&optional project)
+    "Create persp with projectile project."
+    (interactive)
     (ignore-errors
       (persp-switch (projectile-project-name project))))
   
-  (advice-add 'consult-projectile--file :before 'consult-projectile--switch-persp)
-  ;; (advice-add 'consult-projectile-find-file :before 'consult-projectile--switch-persp)
-  (advice-add 'consult-projectile-find-dir :before 'consult-projectile--switch-persp)
-  (advice-add 'consult-projectile-recentf :before 'consult-projectile--switch-persp)
-  (advice-add 'consult-projectile-switch-to-buffer :before 'consult-projectile--switch-persp)
+  (advice-add 'consult-projectile--file :before 'consult-projectile-switch-persp)
+  ;; (advice-add 'consult-projectile-find-file :before 'consult-projectile-switch-persp)
+  (advice-add 'consult-projectile-find-dir :before 'consult-projectile-switch-persp)
+  (advice-add 'consult-projectile-recentf :before 'consult-projectile-switch-persp)
+  (advice-add 'consult-projectile-switch-to-buffer :before 'consult-projectile-switch-persp)
 
   (defvar persp-harpoon-cache-file "~/.emacs.d/.cache/perspective-harpoon.json")
   (defvar persp-harpoon-buffers nil)
