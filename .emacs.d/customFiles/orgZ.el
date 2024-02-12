@@ -1328,6 +1328,32 @@ Copied  from `org-roam-backlink-get'."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 
+(defun ripgrep (pattern directory type)
+  (-non-nil
+   (--map
+    (pcase-let ((`(,file ,line ,match) (s-split ":" (f-relative it directory))))
+      `(,(expand-file-name file directory), (string-to-number line) ,match))
+    (--filter
+     (< 0 (length it))
+     (s-split "\n"
+              (with-temp-buffer
+                (call-process "rg" nil t "--null"
+                              "--line-buffered"
+                              "--color=never"
+                              "--max-columns=1000"
+                              "--max-columns-preview"
+                              "--path-separator" "/"
+                              "--smart-case"
+                              "--no-heading"
+                              "--with-filename"
+                              "--line-number"
+                              "--search-zip"
+                              "-j5"
+                              (format "-t%s" type)
+                              pattern
+                              directory)
+                (buffer-string)))))))
+
 (use-package org-ql
   :straight (org-ql :type git :host github :repo "alphapapa/org-ql" :fork t)
   :bind (:map org-agenda-mode-map
@@ -1403,11 +1429,35 @@ Copied  from `org-roam-backlink-get'."
                             "Child of node with a specific title"
                             (lambda (title)
                               (org-roam-ql--expand-backlinks `(title ,title t) :type okm-parent-id-type-name)))
-  (org-roam-ql-defpred 'pdf-string
-                       "Attached PDF has string"
-                       (lambda (node)
-                         (cdr (assoc "PDF_TEXT_FILE" (org-roam-node-properties node))))
-                       #'okm--test-regexp-on-file)
+  (org-roam-ql-defexpansion 'regexp-rg
+                            "Regex on all org files."
+                            (lambda (regexp)
+                              (-map
+                               #'org-roam-node-from-id
+                               (-non-nil (--map
+                                          ;; on windows the path has a colon, hence making it relative then expanding again.
+                                          (pcase-let ((`(,file ,line ,match) it))
+                                            (org-roam-with-file file nil
+                                              (goto-line line)
+                                              (or (org-id-get-closest)
+                                                  (progn
+                                                    (goto-char (point-min))
+                                                    (org-id-get)))))
+                                          (ripgrep regexp org-roam-directory "org"))))))
+  ;; (org-roam-ql-defpred 'pdf-string
+  ;;                      "Attached PDF has string"
+  ;;                      (lambda (node)
+  ;;                        (cdr (assoc "PDF_TEXT_FILE" (org-roam-node-properties node))))
+  ;;                      #'okm--test-regexp-on-file)
+
+  (org-roam-ql-defexpansion 'pdf-string
+                            "Regex on attached pdfs"
+                            (lambda (regexp)
+                              (-map
+                               #'org-roam-node-from-id
+                               (-flatten (org-roam-db-query [:select id :from nodes :where (in file $v1)]
+                                                            (apply #'vector (--map (f-expand (format "%s.org" (f-base (car it))) bibtex-completion-notes-path)
+                                                                                   (ripgrep regexp (file-truename bibtex-completion-library-path) "txt"))))))))
 
   (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
     :body
