@@ -95,7 +95,7 @@
 					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
 					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
-					   exec-path-from-shell slime-company slime
+					   slime-company slime
 					   slim-mode flycheck company-quickhelp company-c-headers company-anaconda))
 
 (mapcar #'straight-use-package
@@ -248,6 +248,12 @@ Used for debugging."
     `(let ((,plist-sym ,plist))
        ,@(nreverse list)
        ,plist-sym)))
+
+(use-package exec-path-from-shell
+  :demand
+  :config
+  (when (memq window-system '(mac ns x))
+    (exec-path-from-shell-initialize)))
 
 (use-package magit
   :custom
@@ -1190,6 +1196,7 @@ targets."
          (tex-mode . lsp)
          (latex-mode . lsp)
          (rust-mode . lsp)
+         (go-mode . lsp)
 	 (lsp-mode . lsp-enable-which-key-integration))
   
   :init
@@ -1327,6 +1334,8 @@ targets."
   :after (lsp-java))
 
 (use-package rustic)
+
+(use-package go-mode)
 
 ;;avy *******************************************************************************
 ;; see https://karthinks.com/software/avy-can-do-anything/#kill-a-candidate-word-sexp-or-line for more cool stuff

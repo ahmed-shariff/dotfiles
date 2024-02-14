@@ -310,3 +310,4 @@ neofetch
 # source .sh_functions/rclone.sh 
 
 export PATH="$HOME/.poetry/bin:$PATH"
+export PATH="$PATH:$(go env GOBIN):$(go env GOPATH)/bin"
