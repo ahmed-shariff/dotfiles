@@ -1450,14 +1450,33 @@ Copied  from `org-roam-backlink-get'."
   ;;                        (cdr (assoc "PDF_TEXT_FILE" (org-roam-node-properties node))))
   ;;                      #'okm--test-regexp-on-file)
 
+  (defun bibtex-keys-to-nodes (keys)
+    "Return a list of org-roam-nodes for corresponding list of KEYS."
+    (-map
+     #'org-roam-node-from-id
+     (-flatten (org-roam-db-query [:select id :from nodes :where (in file $v1)]
+                                  (apply #'vector (--map (f-expand (format "%s.org" it) bibtex-completion-notes-path)
+                                                         keys))))))
+
+
   (org-roam-ql-defexpansion 'pdf-string
                             "Regex on attached pdfs"
                             (lambda (regexp)
-                              (-map
-                               #'org-roam-node-from-id
-                               (-flatten (org-roam-db-query [:select id :from nodes :where (in file $v1)]
-                                                            (apply #'vector (--map (f-expand (format "%s.org" (f-base (car it))) bibtex-completion-notes-path)
-                                                                                   (ripgrep regexp (file-truename bibtex-completion-library-path) "txt"))))))))
+                              (bibtex-keys-to-nodes
+                               (--map (f-base (car it)) (ripgrep regexp (file-truename bibtex-completion-library-path) "txt")))))
+
+  (org-roam-ql-defexpansion 'last-n-papers
+                            "The lasn N entried in research_papers"
+                            (lambda (N)
+                              (let ((idx -1)
+                                    bibtex-keys)
+                                (with-temp-buffer
+                                  (insert-file (car bibtex-completion-bibliography))
+                                  (bibtex-map-entries
+                                   (lambda (key _ _)
+                                     (setq idx (1+ idx))
+                                     (push (cons key idx) bibtex-keys))))
+                                (bibtex-keys-to-nodes (-map #'car (-take N bibtex-keys))))))
 
   (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
     :body
