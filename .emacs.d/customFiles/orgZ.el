@@ -2005,6 +2005,15 @@ With C-u C-u C-u prefix, force run all research-papers."
                 (org-entry-put pom "INTERLEAVE_PDF" full-path)
                 (push 'interleve-pdf changes)))
 
+            (unless (org-entry-get pom "KEY_ORDER")
+              (let ((idx -1)
+                    bibtex-keys)
+                (with-current-buffer (find-file-noselect (car bibtex-completion-bibliography))
+                  (bibtex-map-entries
+                   (lambda (key _ _)
+                     (setq idx (1+ idx)))))
+                (org-entry-put pom "KEY_ORDER" (format "%s" (1+ idx)))))
+
             (when (and full-path (file-exists-p full-path))
               (let ((text-file-name (expand-file-name (format "%s.txt" (file-name-base full-path)) (file-name-directory full-path))))
                 (unless (and (file-exists-p text-file-name) (org-entry-get pom "PDF_TEXT_FILE"))
