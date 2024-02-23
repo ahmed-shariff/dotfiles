@@ -1081,7 +1081,58 @@ Copied  from `org-roam-backlink-get'."
               (unless (s-blank? doi)
                 (if (string-match "^http" doi)
                     doi
-                  (format "http://dx.doi.org/%s" doi))))))))))
+                  (format "http://dx.doi.org/%s" doi)))))))))
+
+  (advice-add 'reftex-create-bibtex-file :before (lambda (&rest r) (reftex-reset-scanning-information)))
+
+  (defun amsha/bib-keys-in-file (file)
+    "bib keys in file"
+    (let (bibtex-keys)
+      (with-temp-buffer
+        (insert-file file)
+        (bibtex-map-entries
+         (lambda (key _ _)
+           (push key bibtex-keys))))
+      bibtex-keys))
+
+  (defun amsha/compare-keys-in-bib-files (file1 file2)
+    "Compare and list out how the keys compare."
+    (interactive (list (read-file-name "File 1: " default-directory nil t)
+                       (read-file-name "File 2: " default-directory nil t)))
+    (let ((bibtex-keys-1 (amsha/bib-keys-in-file file1))
+          (bibtex-keys-2 (amsha/bib-keys-in-file file2)))
+      (with-current-buffer (get-buffer-create "*comparison-of-keys*")
+        (erase-buffer)
+        (em bibtex-keys-1)
+        (em bibtex-keys-2)
+        (insert (format "Comparing files `%s` and `%s`\n" file1 file2)
+                "\nCommon keys:\n============\n"
+                (s-join "\n" (-intersection bibtex-keys-1 bibtex-keys-2))
+                (format "\n\nKeys only in %s:\n============\n" file1)
+                (s-join "\n" (-difference bibtex-keys-1 bibtex-keys-2))
+                (format "\n\nKeys only in %s:\n============\n" file2)
+                (s-join "\n" (-difference bibtex-keys-2 bibtex-keys-1))))
+      (switch-to-buffer "*comparison-of-keys*")))
+
+  (defun amsha/compare-keys-in-bib-file-and-copy-bib (file1 file2)
+    "Copy bib entries in file1 and not in file2 to buffer named *new-bib*"
+    (interactive (list (read-file-name "File 1 (copy from): " default-directory nil t)
+                       (read-file-name "File 2 (check in): " default-directory nil t)))
+    (let ((bibtex-keys-1 (amsha/bib-keys-in-file file1))
+          (bibtex-keys-2 (amsha/bib-keys-in-file file2))
+          (bib-file-buffer (get-buffer-create "*new-bib*")))
+      (with-current-buffer bib-file-buffer
+        (erase-buffer))
+      (--map
+        (save-excursion
+          (find-file (car bibtex-completion-bibliography))
+          (bibtex-search-entry it)
+          (bibtex-copy-entry-as-kill)
+          (with-current-buffer bib-file-buffer
+            (bibtex-yank)))
+        (-difference bibtex-keys-1 bibtex-keys-2))
+      (switch-to-buffer "*comparison-of-keys*"))))
+
 
 ;; Moved out of use-pacakge to avoid errors with loading
 (with-eval-after-load 'org-ref-citation-links
