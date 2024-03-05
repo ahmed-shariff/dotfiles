@@ -1304,8 +1304,8 @@ targets."
   ;;                      (lsp-deferred))))  ; or lsp-deferred
   )
 
-(use-package lsp-origami
-  :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
+;; (use-package lsp-origami
+;;   :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
 
 (use-package dap-python
   :straight nil
@@ -2412,23 +2412,23 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
 ;;origami*****************************************************************************
-(use-package origami
-  :straight (origami :type git :host github :repo "elp-revive/origami.el")
-  :bind ("C-+" . hydra-origami/body)
-  :hook ((prog-mode . origami-mode))
-  :hydra (hydra-origami (:color red)
-   "
-  [_o_] Open node    [_n_] Next fold       [_f_] toggle forward  [_s_] Show current only
-  [_c_] Close node   [_p_] Previous fold   [_a_] toggle all      [_q_] quit
-  "
-   ("o" origami-open-node)
-   ("c" origami-close-node)
-   ("n" origami-next-fold)
-   ("p" origami-previous-fold)
-   ("f" origami-forward-toggle-node)
-   ("a" origami-toggle-all-nodes)
-   ("s" origami-show-only-node)
-   ("q" nil)))
+;; (use-package origami
+;;   :straight (origami :type git :host github :repo "elp-revive/origami.el")
+;;   :bind ("C-+" . hydra-origami/body)
+;;   :hook ((prog-mode . origami-mode))
+;;   :hydra (hydra-origami (:color red)
+;;    "
+;;   [_o_] Open node    [_n_] Next fold       [_f_] toggle forward  [_s_] Show current only
+;;   [_c_] Close node   [_p_] Previous fold   [_a_] toggle all      [_q_] quit
+;;   "
+;;    ("o" origami-open-node)
+;;    ("c" origami-close-node)
+;;    ("n" origami-next-fold)
+;;    ("p" origami-previous-fold)
+;;    ("f" origami-forward-toggle-node)
+;;    ("a" origami-toggle-all-nodes)
+;;    ("s" origami-show-only-node)
+;;    ("q" nil)))
 
 ;; ;;hide/show
 ;; (defun toggle-selective-display (column)
@@ -2457,6 +2457,36 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 ;;     (add-hook mode 'hs-minor-mode)))
 
 ;; (add-hs-hook (list 'python-mode-hook 'lisp-mode-hook))
+
+;;ts-fold*****************************************************************************
+(use-package tree-sitter
+  :config
+  (global-tree-sitter-mode 1))
+
+(use-package tree-sitter-langs)
+
+(use-package ts-fold
+  :straight (ts-fold :type git :host github :repo "emacs-tree-sitter/ts-fold")
+  :bind ("C-+" . hydra-ts-fold/body)
+  :hydra (hydra-ts-fold (:color red)
+   "
+  [_o_] open node    [_O_] open all nodes    [_t_] toggle
+  [_c_] close node   [_C_] close all nodes   [_r_] open recurse    [_q_] quit
+  "
+   ("o" ts-fold-open)
+   ("c" ts-fold-close)
+   ("O" ts-fold-open-all)
+   ("C" ts-fold-close-all)
+   ("t" ts-fold-toggle)
+   ("r" ts-fold-open-recursively)
+   ("q" nil))
+  :config
+  (global-ts-fold-mode 1))
+
+(use-package ts-fold-indicators
+  :straight (ts-fold-indicators :type git :host github :repo "emacs-tree-sitter/ts-fold")
+  :config
+  (global-ts-fold-indicators-mode 1))
 
 ;;other stuff************************************************************
 (defun copy-buffer-file-name (buffer-file-name)
