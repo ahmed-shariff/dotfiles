@@ -1809,7 +1809,8 @@ T - tag prefix
                                             amsha/get-project-root-overlooking-submodules
                                             projectile-root-bottom-up
                                             projectile-root-top-down
-                                            projectile-root-top-down-recurring))
+                                            projectile-root-top-down-recurring)
+        projectile-current-project-on-switch 'move-to-end)
 ;; (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
 ;; (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
