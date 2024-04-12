@@ -2521,13 +2521,16 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
    ("t" ts-fold-toggle)
    ("r" ts-fold-open-recursively)
    ("q" nil))
-  :config
-  (global-ts-fold-mode 1))
+  ;; :config
+  ;; (global-ts-fold-mode 1)
+  )
 
 (use-package ts-fold-indicators
+  :after (ts-fold)
   :straight (ts-fold-indicators :type git :host github :repo "emacs-tree-sitter/ts-fold")
-  :config
-  (global-ts-fold-indicators-mode 1))
+  ;; :config
+  ;; (global-ts-fold-indicators-mode 1)
+  )
 
 ;;other stuff************************************************************
 (defun copy-buffer-file-name (buffer-file-name)
