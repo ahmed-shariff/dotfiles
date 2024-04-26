@@ -1630,6 +1630,9 @@ If prefix arg used, search whole db."
   :config
   (org-roam-ql-ql-init))
 
+;; (use-package org-roam-gocal
+;;   :after (org-roam))
+
 (defun okm-query-papers-by-topics (&optional topic-ids)
   "Query papers based on topics."
   (interactive)
