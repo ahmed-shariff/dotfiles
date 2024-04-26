@@ -1391,7 +1391,7 @@ Copied  from `org-roam-backlink-get'."
                 (call-process "rg" nil t "--null"
                               "--line-buffered"
                               "--color=never"
-                              "--max-columns=1000"
+                              "--max-columns=10000"
                               "--max-columns-preview"
                               "--path-separator" "/"
                               "--smart-case"
@@ -1701,7 +1701,7 @@ If prefix arg used, search whole db."
                (lambda (f point)
                  (propertize (s-join "\n" (--map (format " - %s" it) (assoc (f-base f) results))) 'face 'org-tag))))
       (org-roam-ql-search
-       `(pdf-string ,regexp)
+       `(pdf-string ,(format "%s" regexp))
        (prin1-to-string regexp)))))
 
 (defun amsha/get-sprints (states)
