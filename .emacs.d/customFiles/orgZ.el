@@ -1622,8 +1622,14 @@ If prefix arg used, search whole db."
     (setq okm-org-roam-preview-kills nil))
 
   (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview)
+)
 
-  (require 'org-roam-gocal))
+;; (use-package org-roam-gocal
+;;   :after (org-roam-ql)
+;;   :straight nil
+;;   :init
+(require 'org-roam-gocal)
+;; :commands (org-roam-gocal-pull org-roam-gocal-push))
 
 (use-package org-roam-ql-ql
   :straight (org-roam-ql-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
