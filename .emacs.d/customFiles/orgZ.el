@@ -1621,7 +1621,9 @@ If prefix arg used, search whole db."
       (insert content "\n\n"))
     (setq okm-org-roam-preview-kills nil))
 
-  (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview))
+  (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview)
+
+  (require 'org-roam-gocal))
 
 (use-package org-roam-ql-ql
   :straight (org-roam-ql-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
@@ -1629,9 +1631,6 @@ If prefix arg used, search whole db."
   :after (org-roam org-ql org-roam-ql)
   :config
   (org-roam-ql-ql-init))
-
-;; (use-package org-roam-gocal
-;;   :after (org-roam))
 
 (defun okm-query-papers-by-topics (&optional topic-ids)
   "Query papers based on topics."
@@ -2697,7 +2696,8 @@ Parent-child relation is defined by the brain-parent links."
                                                                (org-mode)
                                                                (when-let (kwds (org-collect-keywords '("filetags")))
                                                                  (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))
-                                             (f-glob "~/Documents/org/brain/personal/**/*.org")))))
+                                             (f-glob "~/Documents/org/brain/personal/**/*.org")
+                                             "~/Documents/org/brain/google_calender_unlisted.org"))))
 
 (okm-org-agenda-recompute)
 
