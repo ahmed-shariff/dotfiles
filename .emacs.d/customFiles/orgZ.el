@@ -100,20 +100,20 @@
 ;;(set-register ("~/Documents/org/uniwork.org"
 ;;			     "~/Documents/org/uni_research.org")
 
-(setq org-agenda-custom-commands
-      '(("c" . "My custom queries")
-	("ci" tags-todo "LEVEL=1&+exp/!INPROGRESS"
-	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
-	  (org-agenda-filter-by-top-headline)))
-	("ct" tags-todo "LEVEL=1&+exp/!TODO|WAIT"
-	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
-	  (org-agenda-filter-by-top-headline)))
-	("ca" tags-todo "LEVEL=1&+exp"
-	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
-	  (org-agenda-filter-by-top-headline)))
-	("cd" tags-todo "LEVEL=1&+exp/!DONE"
-	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
-	  (org-agenda-filter-by-top-headline)))))
+;; (setq org-agenda-custom-commands
+;;       '(("c" . "My custom queries")
+;; 	("ci" tags-todo "LEVEL=1&+exp/!INPROGRESS"
+;; 	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
+;; 	  (org-agenda-filter-by-top-headline)))
+;; 	("ct" tags-todo "LEVEL=1&+exp/!TODO|WAIT"
+;; 	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
+;; 	  (org-agenda-filter-by-top-headline)))
+;; 	("ca" tags-todo "LEVEL=1&+exp"
+;; 	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
+;; 	  (org-agenda-filter-by-top-headline)))
+;; 	("cd" tags-todo "LEVEL=1&+exp/!DONE"
+;; 	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
+;; 	  (org-agenda-filter-by-top-headline)))))
 
 (add-to-list
  'org-src-lang-modes '("plantuml" . plantuml))
@@ -1405,6 +1405,10 @@ Copied  from `org-roam-backlink-get'."
                               directory)
                 (buffer-string)))))))
 
+(use-package org-super-agenda
+  :custom
+  (org-super-agenda-groups '((:name "dates" :auto-ts t))))
+
 (use-package org-ql
   :straight (org-ql :type git :host github :repo "alphapapa/org-ql" :fork t)
   :bind (:map org-agenda-mode-map
@@ -1622,6 +1626,8 @@ If prefix arg used, search whole db."
     (setq okm-org-roam-preview-kills nil))
 
   (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview)
+
+  (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled > "+0")))
 )
 
 ;; (use-package org-roam-gocal
