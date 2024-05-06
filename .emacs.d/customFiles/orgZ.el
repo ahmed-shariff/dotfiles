@@ -2703,7 +2703,7 @@ Parent-child relation is defined by the brain-parent links."
                                                                (when-let (kwds (org-collect-keywords '("filetags")))
                                                                  (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))
                                              (f-glob "~/Documents/org/brain/personal/**/*.org")
-                                             "~/Documents/org/brain/google_calender_unlisted.org"))))
+                                             '("~/Documents/org/brain/google_calender_unlisted.org")))))
 
 (okm-org-agenda-recompute)
 
