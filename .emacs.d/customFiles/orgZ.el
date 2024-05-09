@@ -1499,6 +1499,27 @@ Copied  from `org-roam-backlink-get'."
                                                     (goto-char (point-min))
                                                     (org-id-get)))))
                                           (ripgrep regexp org-roam-directory "org"))))))
+  (org-roam-ql-defexpansion 'dailies-range
+                            "Dailies in range"
+                            (lambda (&optional min max)
+                              (--> (--map (cons (time-convert (encode-time
+                                                               (org-parse-time-string
+                                                                (file-name-sans-extension
+                                                                 (file-name-nondirectory it))))
+                                                              'integer)
+                                                it)
+                                          (-flatten (--map (f-glob "*-*-*-*.org" it)
+                                                           (list (file-truename "~/Documents/org/brain/work/notes/")
+                                                                 (file-truename "~/Documents/org/brain/personal/notes/")))))
+                                   (if min (--filter (time-less-p (org-roam-ql--read-date-to-ts min) (car it)) it)
+                                     it)
+                                   (if max (--filter (time-less-p (car it) (org-roam-ql--read-date-to-ts max)) it)
+                                     it)
+                                   (-map #'cdr it)
+                                   (--sort (string< it other) it)
+                                   (-flatten (org-roam-db-query [:select id :from nodes :where (in file $v1) :and (= level 0)] (vconcat nil it)))
+                                   (-map #'org-roam-node-from-id it))))
+
   ;; (org-roam-ql-defpred 'pdf-string
   ;;                      "Attached PDF has string"
   ;;                      (lambda (node)
@@ -1628,7 +1649,7 @@ If prefix arg used, search whole db."
   (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview)
 
   (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled > "+0")))
-)
+  )
 
 ;; (use-package org-roam-gocal
 ;;   :after (org-roam-ql)
