@@ -973,7 +973,9 @@ Copied  from `org-roam-backlink-get'."
   :requires org-keys
   :demand
   :bind (:map org-mode-map
-         ("C-c ]" . org-ref-insert-link))
+         ("C-c ]" . org-ref-insert-link)
+         :map bibtex-mode-map
+         ("C-c o o" . org-ref-open-bibtex-notes))
   ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
   :config
   (setq bibtex-completion-notes-path (file-truename "~/Documents/org/brain/research_papers/")
@@ -1379,31 +1381,31 @@ Copied  from `org-roam-backlink-get'."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
 
-(defun ripgrep (pattern directory type)
-  (-non-nil
-   (--map
-    (pcase-let ((`(,file ,line ,match) (s-split ":" (f-relative it directory))))
-      `(,(expand-file-name file directory), (string-to-number line) ,match))
-    (--filter
-     (< 0 (length it))
-     (s-split "\n"
-              (with-temp-buffer
-                (call-process "rg" nil t "--null"
-                              "--line-buffered"
-                              "--color=never"
-                              "--max-columns=10000"
-                              "--max-columns-preview"
-                              "--path-separator" "/"
-                              "--smart-case"
-                              "--no-heading"
-                              "--with-filename"
-                              "--line-number"
-                              "--search-zip"
-                              "-j5"
-                              (format "-t%s" type)
-                              pattern
-                              directory)
-                (buffer-string)))))))
+  (defun ripgrep (pattern directory type)
+    (-non-nil
+     (--map
+      (pcase-let ((`(,file ,line ,match) (s-split ":" (f-relative it directory))))
+        `(,(expand-file-name file directory), (string-to-number line) ,match))
+      (--filter
+       (< 0 (length it))
+       (s-split "\n"
+                (with-temp-buffer
+                  (call-process "rg" nil t "--null"
+                                "--line-buffered"
+                                "--color=never"
+                                "--max-columns=10000"
+                                "--max-columns-preview"
+                                "--path-separator" "/"
+                                "--smart-case"
+                                "--no-heading"
+                                "--with-filename"
+                                "--line-number"
+                                "--search-zip"
+                                "-j5"
+                                (format "-t%s" type)
+                                pattern
+                                directory)
+                  (buffer-string)))))))
 
 (use-package org-super-agenda
   :custom
