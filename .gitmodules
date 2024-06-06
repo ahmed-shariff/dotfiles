@@ -16,3 +16,6 @@
 [submodule ".emacs.d/.cache/gitignore"]
 	path = .emacs.d/.cache/gitignore
 	url = https://github.com/github/gitignore
+[submodule ".stumpwm.d/modules"]
+	path = .stumpwm.d/modules
+	url = https://github.com/stumpwm/stumpwm-contrib

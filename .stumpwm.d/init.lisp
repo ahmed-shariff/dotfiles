@@ -2,6 +2,9 @@
 (defparameter *system-name* "msi"); "thinkpad" "msi"
 (set-prefix-key (kbd "C-z"))
 
+(load "/home/amsha/quicklisp/setup.lisp")
+;; (ql-dist:install-dist "http://dist.ultralisp.org/" :prompt nil) ;; only once
+
 (ql:quickload '(:cl-utilities :clx-truetype :xembed))
 ;		:cl-emoji))
 
