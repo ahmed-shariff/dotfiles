@@ -2122,6 +2122,38 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
       (lsp)))
 
   (add-hook 'persp-switch-hook #'amsha/launch-lsp-mode-after-switch))
+
+;; popper ****************************************************************************************************************
+
+(use-package popper
+  :ensure t ; or :straight t
+  :bind (("C-`"   . popper-toggle)
+         ("M-`"   . popper-cycle)
+         ("C-M-`" . popper-toggle-type))
+  :init
+  (setq popper-reference-buffers
+        '("\\*Messages\\*"
+          "Output\\*$"
+          "\\*Async Shell Command\\*"
+          ("\\*Warnings\\*" . hide)
+          help-mode
+          compilation-mode)
+        popper-group-function #'popper-group-by-perspective
+        ;; Copied from `popper-select-popup-at-bottom'
+        popper-display-function (lambda (buff alist)
+                                  (let ((alist-modified (append alist
+                                                                `((window-height . ,popper-window-height)
+                                                                  (side . bottom)
+                                                                  (slot . 1)))))
+                                        (if (popper--suppress-p buff)
+                                            (progn
+                                              (message (format "Hidden buffer %s" (buffer-name buff)))
+                                              ;; This is from the `display-buffer-no-window' function,
+                                              ;; which returns 'fail when the 'allow-no-window is set in alist.
+                                              'fail)
+                                          (select-window (display-buffer-in-side-window buff alist-modified))))))
+  (popper-mode +1)
+  (popper-echo-mode +1))                ; For echo area hints
   
 ;;harpoon ****************************************************************************************************************
 ;; (use-package harpoon
