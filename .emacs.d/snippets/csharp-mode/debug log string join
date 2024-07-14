@@ -1,0 +1,4 @@
+# key: delogj
+# name: debug log string join
+# --
+Debug.Log(string.Join(", ", $1));
