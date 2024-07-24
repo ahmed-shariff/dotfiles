@@ -96,7 +96,7 @@
 					   dired-sidebar stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
 					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
 					   slime-company slime
-					   slim-mode flycheck company-quickhelp company-c-headers company-anaconda))
+					   slim-mode company-quickhelp company-c-headers company-anaconda))
 
 (mapcar #'straight-use-package
 	my-package-list)
@@ -321,6 +321,11 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   (let ((default-directory (magit--safe-default-directory (or filename default-directory))))
     (when-let (project-root (magit-git-string "rev-parse" "--show-superproject-working-tree" "--show-toplevel"))
       (format "%s/" project-root))))
+
+
+(use-package flycheck
+  :custom
+  (flycheck-keymap-prefix (kbd "C-c e")))
 
 (use-package beacon
   :demand
