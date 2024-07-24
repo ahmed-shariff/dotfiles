@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: SerializeField
+# key: sf
+# --
+[SerializeField]
+[Tooltip("$1")]
+private $2 $3 = $4;

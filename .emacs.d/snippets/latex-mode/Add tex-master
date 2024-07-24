@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: Add tex-master
+# key: texmaster
+# --
+% -*- TeX-master: "$1"; -*-
+
+$0
