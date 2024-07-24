@@ -1347,6 +1347,8 @@ targets."
   ;; :hook (text-mode . (lambda ()
   ;;                      (require 'lsp-grammarly)
   ;;                      (lsp-deferred))))  ; or lsp-deferred
+  :custom
+  (lsp-grammarly-domain "academic")
   )
 
 ;; (use-package lsp-origami
@@ -2354,7 +2356,8 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
          (latex-mode-hook . turn-on-outline-minor-mode)
          (LaTeX-mode-hook . flyspell-mode)
          (latex-mode-hook . flyspell-mode)
-         (LaTeX-mode-hook . turn-on-reftex))
+         (LaTeX-mode-hook . turn-on-reftex)
+         (latex-mode-hook . turn-on-reftex))
   :config
   (setq TeX-auto-save t
         TeX-parse-self t
