@@ -1733,6 +1733,22 @@ T - tag prefix
       ;; (display-line-numbers-mode 1)
       (hl-todo-mode 1)))
 
+;; https://emacs.stackexchange.com/questions/653/how-can-i-find-out-in-which-keymap-a-key-is-bound
+(defun amsha/lookup-key-prefix (key)
+  "Search for KEY as prefix in all known keymaps.
+
+E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
+  (let (vals)
+    (mapatoms (lambda (ob)
+                (when (and (boundp ob) (keymapp (symbol-value ob)))
+                  (when (let ((m (lookup-key (symbol-value ob) key)))
+                          (and m (or (symbolp m) (keymapp m))))
+                    (push ob vals))
+                  (when (functionp (lookup-key (symbol-value ob) key))
+                    (push ob vals))))
+              obarray)
+    (-uniq vals)))
+
 ;; (use-package linum-relative
 ;;   :demand
 ;;   :hook (prog-mode text-mode)
