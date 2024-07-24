@@ -1556,6 +1556,10 @@ Copied  from `org-roam-backlink-get'."
                                      (push (cons key idx) bibtex-keys))))
                                 (bibtex-keys-to-nodes (-map #'car (-take N bibtex-keys))))))
 
+  (org-roam-ql-register-sort-fn "key-order" (lambda (el1 el2)
+                                              (string< (cdr (assoc "KEY_ORDER" (org-roam-node-properties el1)))
+                                                       (cdr (assoc "KEY_ORDER" (org-roam-node-properties el2))))))
+
   (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
     :body
     (let* ((backlink-destinations (apply #'vector (-non-nil
