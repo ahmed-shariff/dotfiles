@@ -720,14 +720,20 @@
          ("C-c n j" . org-roam-dailies-capture-today)
          ;; org-roam-bibtex
          ("C-c n b" . orb-insert-link)
+         :map org-roam-mode-map
+         ("j" . magit-section-forward)
+         ("k" . magit-section-backward)
          :map org-roam-node-map
          ("C-c o s" . org-roam-node-view-topics)
          ("C-c o o" . org-roam-node-view-noter)
          ("C-c o p" . org-roam-node-add-parents)
+         ;; ("C-c o r" . org-roam-node-ref-hydra)
          :map org-roam-preview-map
          ("C-c o s" . org-roam-node-view-topics)
          ("C-c o o" . org-roam-node-view-noter)
-         ("C-c o p" . org-roam-node-add-parents))
+         ("C-c o p" . org-roam-node-add-parents)
+         ;; ("C-c o r" . org-roam-node-ref-hydra)
+         )
   :config
   (org-roam-db-autosync-mode)
   ;; If using org-roam-protocol
@@ -752,6 +758,8 @@
     (okm-print-parents))
   (org-roam-node-action org-roam-node-add-parents
     (okm-add-parent-topic))
+  ;; (org-roam-node-action org-roam-node-ref-hydra
+  ;;   (org-ref-citation-hydra/body))
 
   (defun amsha/backup-org-roam-db ()
     (interactive)
