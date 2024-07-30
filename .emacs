@@ -324,8 +324,11 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
 
 
 (use-package flycheck
-  :custom
-  (flycheck-keymap-prefix (kbd "C-c e")))
+  :config
+  (define-key flycheck-mode-map flycheck-keymap-prefix nil)
+  (setq flycheck-keymap-prefix (kbd "C-c e"))
+  (define-key flycheck-mode-map flycheck-keymap-prefix
+              flycheck-command-map))
 
 (use-package beacon
   :demand
