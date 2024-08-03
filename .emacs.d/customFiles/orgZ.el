@@ -1200,7 +1200,47 @@ Copied  from `org-roam-backlink-get'."
     "Single linyfy the returned text."
     (when vals (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" vals))))
 
-  (advice-add 'org-noter-pdf--get-selected-text :filter-return #'org-noter-pdf--get-selected-text-single-linified))
+  (advice-add 'org-noter-pdf--get-selected-text :filter-return #'org-noter-pdf--get-selected-text-single-linified)
+
+  (defun org-noter-append-title-to-highlight ()
+    "Take the title and append it to the annotation if there is a corresponding highlight."
+    (interactive)
+    ;; Copied fron `org-noter-sync-current-note'
+    (org-noter--with-selected-notes-window
+     "No notes window exists"
+     (if (string= (org-noter--get-or-read-document-property t)
+                  (org-noter--session-property-text session))
+         (let ((location (org-noter--parse-location-property (org-noter--get-containing-element)))
+               (content-to-add (org-get-heading t t t t)))
+           (if location
+               ;; Copied from `org-noter--doc-goto-location'
+               (org-noter--with-valid-session
+                (let ((window (org-noter--get-doc-window))
+                      (mode (org-noter--session-doc-mode session)))
+                  (with-selected-window window
+                    (when (memq mode '(doc-view-mode pdf-view-mode))
+                      ;; Parts copied from `org-noter-pdf--show-arrow' and related
+                      (let* ((top (org-noter--get-location-top location))
+                             (left (org-noter--get-location-left location))
+                             (image-top  (if (floatp top)
+                                             (round (* top  (cdr (pdf-view-image-size)))))) ; pixel location on page (magnification-dependent)
+                             (image-left (if (floatp left)
+                                             (floor (* left (car (pdf-view-image-size))))))
+                             (a (pdf-annot-at-position (cons image-left image-top)))
+                             (current-contents (pdf-annot-get a 'contents)))
+                        (when (y-or-n-p "Append title to annotation?")
+                          (pdf-annot-put a
+                              'contents
+                            (concat
+                             (unless (string-empty-p current-contents)
+                               (format "%s\n\n" current-contents))
+                             content-to-add)))))
+                    (redisplay))))
+             (user-error "No note selected")))
+       (user-error "You are inside a different document"))))
+
+  (define-key org-noter-notes-mode-map (kbd "C-M->") 'org-noter-append-title-to-highlight))
+
 
 ;; (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
 ;;   :straight (org-brain :type git :host github :repo "Kungsgeten/org-brain"
