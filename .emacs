@@ -2220,11 +2220,7 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
                                         (-non-nil
                                          (--map (buffer-file-name (get-buffer it))
                                                 (funcall persp-harpoon-show-buffer-list-fn)))))
-            (new-order 0))
-        (maphash (lambda (_ order)
-                   (when (> order new-order)
-                     (setq new-order (+ 1 order))))
-                 persp-harpoon-show--current-hashtable)
+            (new-order (-min (-difference (number-sequence 1 9) (hash-table-values persp-harpoon-show--current-hashtable)))))
         (puthash new-entry new-order persp-harpoon-show--current-hashtable)
         (persp-harpoon-show--redisplay-lines))))
 
