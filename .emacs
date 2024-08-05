@@ -1284,6 +1284,7 @@ targets."
    )
   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
+
 ;; (use-package lsp-jedi
 ;;   :straight t
 ;;   :config
@@ -1352,6 +1353,12 @@ targets."
   ;;                      (lsp-deferred))))  ; or lsp-deferred
   :custom
   (lsp-grammarly-domain "academic")
+
+  (defhydra grammarly-flycheck (lsp-command-map "f")
+    ("n" flycheck-next-error)
+    ("p" flycheck-previous-error)
+    ("s" save-buffer)
+    ("a" lsp-execute-code-action))
   )
 
 ;; (use-package lsp-origami
