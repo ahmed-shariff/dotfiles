@@ -1919,6 +1919,7 @@ Used with atomic-chrome."
   :bind (("C-x k" . persp-kill-buffer*)
          ("C-c h <return>" . persp-harpoon-add-buffer)
          ("C-c h r" . persp-harpoon-remove-buffer)
+         ("C-c h m" . persp-harpoon-show-list)
          ("C-c h c" . persp-harpoon-clear-buffers)
          ("C-c h o" . persp-harpoon-switch-other)
          ("C-c h k" . persp-harpoon-kill-non-harpoon-buffers)
@@ -1954,6 +1955,7 @@ Used with atomic-chrome."
   (defvar persp-harpoon-cache-file "~/.emacs.d/.cache/perspective-harpoon.json")
   (defvar persp-harpoon-buffers nil)
   (defvar persp-harpoon-buffers-list nil)
+  (defvar persp-harpoon-show-buffer-list-fn #'persp-get-buffer-names)
 
   (persp-make-variable-persp-local 'persp-harpoon-buffers)
 
@@ -2140,6 +2142,110 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
   (add-hook 'buffer-list-update-hook #'persp-harpoon-on-buffer-switch)
   (add-hook 'persp-switch-hook #'persp-harpoon-on-switch)
   (add-hook 'persp-mode-hook #'persp-harpoon-on-switch)
+
+  (defvar-local persp-harpoon-show--current-hashtable nil)
+
+  (defvar persp-harpoon-mode-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map "d" #'persp-harpoon-show-mark-delete)
+      (define-key map "s" #'persp-harpoon-show-set-index)
+      (define-key map "a" #'persp-harpoon-show-add)
+      (define-key map "k" #'previous-line)
+      (define-key map "j" #'next-line)
+      (define-key map (kbd "C-c C-c") #'persp-harpoon-show-end-process)
+      map))
+
+  (define-derived-mode persp-harpoon-mode special-mode "persp-harpoon"
+    "Mode used to modify the order/renumber of the files."
+    (setq truncate-lines t)
+    (setq buffer-read-only t)
+    (setq-local persp-harpoon-show--current-hashtable (make-hash-table))
+    (setq header-line-format
+          (substitute-command-keys
+           (concat
+            "Quit (burry-buffer): \\[quit-window] When done \\[persp-harpoon-show-end-process];  "
+            "Delete entry: \\[persp-harpoon-show-mark-delete]; Set new index: \\[persp-harpoon-show-set-index]; Add new entry: \\[persp-harpoon-show-add];  "
+            "Previous line: \\[previous-line]; Next line: \\[next-line];")))
+    (buffer-disable-undo))
+
+  (defun persp-harpoon-show-list ()
+    (interactive)
+    (let ((buf (get-buffer-create "*persp-harpoon-list*")))
+      (with-current-buffer buf
+        (persp-harpoon-mode)
+        (setq persp-harpoon-show--current-hashtable (map-into persp-harpoon-buffers 'hash-table))
+        (persp-harpoon-show--redisplay-lines))
+      (pop-to-buffer buf)))
+
+  (defun persp-harpoon-show-mark-delete ()
+    (interactive)
+    (when (derived-mode-p 'persp-harpoon-mode)
+      (beginning-of-line)
+      (puthash (get-text-property (point) 'fname) "d" persp-harpoon-show--current-hashtable)
+      (persp-harpoon-show--redisplay-lines)))
+
+  (defun persp-harpoon-show-set-index ()
+    (interactive)
+    (when (derived-mode-p 'persp-harpoon-mode)
+      (beginning-of-line)
+      (let ((new-index (string-to-number (char-to-string (read-char "Enter new index[0-9]:"))))
+            existing-entry)
+        (maphash (lambda (fname order)
+                   (when (and (numberp order) (= order new-index))
+                     (puthash fname "?" persp-harpoon-show--current-hashtable)))
+                 persp-harpoon-show--current-hashtable)
+        (puthash (get-text-property (point) 'fname) new-index persp-harpoon-show--current-hashtable)
+        (persp-harpoon-show--redisplay-lines))))
+
+  (defun persp-harpoon-show-add ()
+    (interactive)
+    (when (derived-mode-p 'persp-harpoon-mode)
+      (beginning-of-line)
+      (let ((new-entry (completing-read "Buffer to add: "
+                                        (-non-nil
+                                         (--map (buffer-file-name (get-buffer it))
+                                                (funcall persp-harpoon-show-buffer-list-fn)))))
+            (new-order 0))
+        (maphash (lambda (_ order)
+                   (when (> order new-order)
+                     (setq new-order (+ 1 order))))
+                 persp-harpoon-show--current-hashtable)
+        (puthash new-entry new-order persp-harpoon-show--current-hashtable)
+        (persp-harpoon-show--redisplay-lines))))
+
+  (defun persp-harpoon-show-end-process ()
+    (interactive)
+    (when (derived-mode-p 'persp-harpoon-mode)
+      (beginning-of-line)
+      (let* ((new-buffer-list (--filter (not (equal "d" (cdr it))) (map-into persp-harpoon-show--current-hashtable 'alist)))
+             (all-valid (--all-p (numberp (cdr it)) new-buffer-list)))
+        (when (or all-valid (y-or-n-p "There are unassigned entried, remove them?"))
+          (setq persp-harpoon-buffers (--filter (numberp (cdr it)) new-buffer-list))
+          (setq persp-harpoon-buffers-list (-map #'car persp-harpoon-buffers))
+          (persp-harpoon-save))
+        (quit-window))))
+
+  (defun persp-harpoon-show--redisplay-lines ()
+    (when (derived-mode-p 'persp-harpoon-mode)
+      (let ((inhibit-read-only t)
+            (name-col-length 0)
+            lines)
+        (maphash (lambda (k v) (let ((len (length k)))
+                                 (when (< name-col-length len)
+                                   (setq name-col-length len))))
+                 persp-harpoon-show--current-hashtable)
+        (erase-buffer)
+        (maphash
+         (lambda (fname order)
+           (push (concat
+                  (propertize (format "%s  " order) 'face 'bold 'order order 'fname fname 'keymap persp-harpoon-mode-map)
+                  (propertize
+                   (format (format "%%%ds" name-col-length) fname)
+                   'order order 'fname fname 'keymap persp-harpoon-mode-map))
+                 lines))
+         persp-harpoon-show--current-hashtable)
+        (insert (string-join lines "\n"))
+        (goto-char (point-min)))))
 
   (defun amsha/launch-lsp-mode-after-switch ()
     (when (and (derived-mode-p 'prog-mode)
