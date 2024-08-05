@@ -1202,8 +1202,11 @@ Copied  from `org-roam-backlink-get'."
 
   (advice-add 'org-noter-pdf--get-selected-text :filter-return #'org-noter-pdf--get-selected-text-single-linified)
 
-  (defun org-noter-append-title-to-highlight ()
-    "Take the title and append it to the annotation if there is a corresponding highlight."
+  (defun org-noter-append-title-at-point-to-highlight ()
+    "Take the org heading title at point and append it to the annotation.
+
+If an annotation is at the point, add content to it.
+Else create a text annotations at point."
     (interactive)
     ;; Copied fron `org-noter-sync-current-note'
     (org-noter--with-selected-notes-window
@@ -1211,7 +1214,13 @@ Copied  from `org-roam-backlink-get'."
      (if (string= (org-noter--get-or-read-document-property t)
                   (org-noter--session-property-text session))
          (let ((location (org-noter--parse-location-property (org-noter--get-containing-element)))
-               (content-to-add (org-get-heading t t t t)))
+               (content-to-add (org-get-heading t t t t))
+               (highlight-coords (when-let (highlight-data
+                                             (org-entry-get (point) "HIGHLIGHT"))
+                                   (car (pdf-highlight-coords
+                                    (eval ;; FIXME: Should I be worried about saftey here?
+                                     (car (read-from-string
+                                           highlight-data))))))))
            (if location
                ;; Copied from `org-noter--doc-goto-location'
                (org-noter--with-valid-session
@@ -1219,16 +1228,33 @@ Copied  from `org-roam-backlink-get'."
                       (mode (org-noter--session-doc-mode session)))
                   (with-selected-window window
                     (when (memq mode '(doc-view-mode pdf-view-mode))
+                      (if (eq mode 'doc-view-mode)
+                          (doc-view-goto-page (org-noter--get-location-page location))
+                        (pdf-view-goto-page (org-noter--get-location-page location)))
                       ;; Parts copied from `org-noter-pdf--show-arrow' and related
-                      (let* ((top (org-noter--get-location-top location))
-                             (left (org-noter--get-location-left location))
+                      (let* ((top (or (and highlight-coords
+                                           (nth 1 highlight-coords))
+                                      (org-noter--get-location-top location)))
+                             (left (or (and highlight-coords
+                                            (nth 0 highlight-coords))
+                                       (org-noter--get-location-left location)))
+                             (org-noter--arrow-location
+                              (vector 0 0 top left))
                              (image-top  (if (floatp top)
                                              (round (* top  (cdr (pdf-view-image-size)))))) ; pixel location on page (magnification-dependent)
-                             (image-left (if (floatp left)
-                                             (floor (* left (car (pdf-view-image-size))))))
-                             (a (pdf-annot-at-position (cons image-left image-top)))
-                             (current-contents (pdf-annot-get a 'contents)))
-                        (when (y-or-n-p "Append title to annotation?")
+                             ;; Adding an offset of 2 to make the annotations is picked up correct
+                             (image-left (+ 2
+                                            (if (floatp left)
+                                                (floor (* left (car (pdf-view-image-size)))))))
+                             (a (ignore-errors (pdf-annot-at-position (cons image-left image-top))))
+                             (current-contents (if a (pdf-annot-get a 'contents) "")))
+                        ;; FIXME: is the delay needed here?
+                        (org-noter-pdf--show-arrow)
+                        (when (y-or-n-p (if a
+                                            "Append title to annotation?"
+                                          "Create annotation and append title to annotation"))
+                          (unless a
+                            (setq a (pdf-annot-add-text-annotation (cons (- image-left 2) image-top))))
                           (pdf-annot-put a
                               'contents
                             (concat
@@ -1239,7 +1265,7 @@ Copied  from `org-roam-backlink-get'."
              (user-error "No note selected")))
        (user-error "You are inside a different document"))))
 
-  (define-key org-noter-notes-mode-map (kbd "C-M->") 'org-noter-append-title-to-highlight))
+  (define-key org-noter-notes-mode-map (kbd "C-M->") 'org-noter-append-title-at-point-to-highlight))
 
 
 ;; (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
