@@ -2256,7 +2256,7 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
                  lines))
          persp-harpoon-show--current-hashtable)
         (insert (string-join lines "\n"))
-        (goto-char (point-min)))))
+        (beginning-of-line)))))
 
   (defun amsha/launch-lsp-mode-after-switch ()
     (when (and (derived-mode-p 'prog-mode)
