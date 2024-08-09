@@ -91,7 +91,7 @@
 					   use-package spaceline-all-the-icons
 					   org-bullets latex-math-preview csproj-mode plantuml-mode
 					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
-					   avy expand-region diminish amx flx
+					   expand-region diminish amx flx
 					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
 					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
@@ -1424,6 +1424,11 @@ targets."
   (setf (alist-get ?H avy-dispatch-alist) 'avy-action-helpful)
   (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark))
 
+(use-package ace-window
+  :bind ("M-o" . ace-window)
+  :custom
+  (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+
 ;; pdf
 (use-package pdf-tools
   :defer 5
@@ -2483,7 +2488,14 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
         TeX-parse-self t
         TeX-save-query nil
         TeX-PDF-mode t
+        TeX-source-correlate-mode t
+        TeX-source-correlate-method '(
+                                      (dvi . source-specials)
+                                      (pdf . synctex))
+        TeX-source-correlate-start-server t
+        TeX-view-program-selection '((output-pdf "PDF Tools"))
         reftex-plug-into-AUCTeX t
+        reftex-ref-style-default-list '("Default" "Hyperref")
         TeX-PDF-from-DVI "Dvips")
   (TeX-global-PDF-mode t)
   (setq outline-minor-mode-prefix "\C-c \C-o"))
