@@ -1440,7 +1440,15 @@ targets."
       (set (make-local-variable 'evil-normal-state-cursor) (list nil))
       (set (make-local-variable 'evil-emacs-state-cursor) (list nil))
       (evil-emacs-state))
-    (add-hook 'pdf-view-mode-hook #'amsha/pdf-view-mode-hook)))
+    (add-hook 'pdf-view-mode-hook #'amsha/pdf-view-mode-hook)
+
+    (defun pdf-toggle-edit-on-annotation-created ()
+      "Toggle if annotations active function should be called.
+
+See `pdf-annot-activate-created-annotations' for more details."
+      (interactive)
+      (setq-local pdf-annot-activate-created-annotations (not pdf-annot-activate-created-annotations))
+      (message "Toggled pdf-annot-activate-created-annotations to: %s" pdf-annot-activate-created-annotations))))
 
 ;;delete-selection-mode
 (delete-selection-mode t)
