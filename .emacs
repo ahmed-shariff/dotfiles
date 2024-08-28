@@ -1259,6 +1259,13 @@ targets."
   ;;                   :major-modes '(python-mode)
   ;;                   :remote? t
   ;;                   :server-id 'pyls))
+
+  (defhydra flycheck-lsp-action (lsp-command-map "f")
+    ("n" flycheck-next-error)
+    ("p" flycheck-previous-error)
+    ("s" save-buffer)
+    ("a" lsp-execute-code-action))
+
   (setq 
    ;; lsp-pyls-configuration-sources ["flake8"]
    ;; lsp-pyls-plugins-jedi-completion-enabled nil
@@ -1345,21 +1352,24 @@ targets."
   (dap-ui-mode 1)
   (dap-ui-controls-mode -1))
 
-(use-package lsp-grammarly
-  :after (lsp)
+;; (use-package lsp-grammarly
+;;   :after (lsp)
+;;   :ensure t
+;;   ;; :hook (text-mode . (lambda ()
+;;   ;;                      (require 'lsp-grammarly)
+;;   ;;                      (lsp-deferred))))  ; or lsp-deferred
+;;   :custom
+;;   (lsp-grammarly-domain "academic")
+
+;;   )
+
+(use-package lsp-ltex
   :ensure t
   ;; :hook (text-mode . (lambda ()
-  ;;                      (require 'lsp-grammarly)
-  ;;                      (lsp-deferred))))  ; or lsp-deferred
-  :custom
-  (lsp-grammarly-domain "academic")
-
-  (defhydra grammarly-flycheck (lsp-command-map "f")
-    ("n" flycheck-next-error)
-    ("p" flycheck-previous-error)
-    ("s" save-buffer)
-    ("a" lsp-execute-code-action))
-  )
+  ;;                      (require 'lsp-ltex)
+  ;;                      (lsp)))  ; or lsp-deferred
+  :init
+  (setq lsp-ltex-version "16.0.0"))  ; make sure you have set this, see below
 
 ;; (use-package lsp-origami
 ;;   :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
