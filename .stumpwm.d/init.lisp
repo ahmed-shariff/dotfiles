@@ -82,7 +82,7 @@
 (defparameter *app-menu* `(("Opera" "opera")
 			   ("Media"
 					;sub-menu
-			    ("Music" "vlc ~/Documents/Music")
+			    ("Music" "vlc ~/Music")
 			    ("Open media folder" "thunar ~/Documents/Media")
 			    ("VLC player" "vlc"))
 			   ("File Manager" "thunar")
