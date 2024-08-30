@@ -413,8 +413,6 @@
       "**** %?")))
     
 (defun okm-add-repository ()
-:PROPERTIES:
-:END:
   "Take a repo link and add that to the file as a node."
   (let* ((link (read-string "Repository url: "))
          (title (cond
