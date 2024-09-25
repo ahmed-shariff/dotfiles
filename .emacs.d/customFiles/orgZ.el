@@ -2015,7 +2015,10 @@ Currently written to work in org-ql buffer."
   (defun org-download--dir-2-use-id (oldfun &rest args)
     "Use ID if one of the parents has an ID or use the default behaviour of dir-2"
     (-if-let (id (save-excursion
-                   (org-id-get-closest)))
+                   (or (org-id-get-closest)
+                       (progn
+                         (goto-char 0)
+                         (org-id-get)))))
         id
       ;; args not used
       (funcall oldfun)))
