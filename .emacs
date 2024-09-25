@@ -346,7 +346,8 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
       fill-column 80
       ;; Following vertico readme
       read-extended-command-predicate #'command-completion-default-include-p
-      enable-recursive-minibuffers t)
+      enable-recursive-minibuffers t
+      confirm-kill-emacs #'y-or-n-p)
 
 
 ;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
@@ -2698,11 +2699,11 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 ;; (add-hs-hook (list 'python-mode-hook 'lisp-mode-hook))
 
 ;;ts-fold*****************************************************************************
-(use-package tree-sitter
-  :config
-  (global-tree-sitter-mode 1))
+;; (use-package tree-sitter
+;;   :config
+;;   (global-tree-sitter-mode 1))
 
-(use-package tree-sitter-langs)
+;; (use-package tree-sitter-langs)
 
 (use-package ts-fold
   :straight (ts-fold :type git :host github :repo "emacs-tree-sitter/ts-fold")
