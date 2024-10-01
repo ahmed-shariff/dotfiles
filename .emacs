@@ -2848,6 +2848,8 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
 
 ;;dashboard*************************************************************
 (use-package dashboard
+  :bind
+  (("C-c o d" . dashboard-open))
   :hook ((dashboard-mode . (lambda () (setq default-directory "~/"))))
   :custom
   (dashboard-set-heading-icons t)
@@ -2989,15 +2991,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
         dashboard-agenda-sort-strategy '(time-up)
         dashboard-week-agenda t
         dashboard-agenda-prefix-format " %-11s %-25:c")
-  (dashboard-setup-startup-hook)
-
-  (defun open-dashboard ()
-    "Jump to the dashboard buffer, if doesn't exists create one."
-    (interactive)
-    (switch-to-buffer dashboard-buffer-name)
-    (dashboard-mode)
-    (dashboard-insert-startupify-lists)
-    (dashboard-refresh-buffer)))
+  (dashboard-setup-startup-hook))
 
 ;; (require 'web-mode)
 ;; (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))

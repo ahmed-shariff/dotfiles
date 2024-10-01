@@ -1156,7 +1156,12 @@ Copied  from `org-roam-backlink-get'."
            (-if-let (url (org-ref-get-url-at-point))
                (kill-new url)
              (user-error "No url copied")))
-     "Copy url" :column "Copy")))
+     "Copy url" :column "Copy")
+    ("A" (save-window-excursion
+	   (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
+	         (entry (bibtex-completion-get-entry (org-ref-get-bibtex-key-under-cursor))))
+             (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
+     "Copy APA short" :column "Copy")))
 
 
 (use-package org-fragtog
