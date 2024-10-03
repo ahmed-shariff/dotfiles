@@ -593,14 +593,16 @@ advice, files on WSL can not be saved."
     '(vundo-highlight ((t (:foreground "#FFFF00"))))))
 
 (use-package orderless
-  :custom (completion-styles '(orderless))
+  :custom
+  (completion-styles '(orderless))
+  (orderless-matching-styles '(orderless-literal orderless-regexp))
   :config
-  (defun amsha/without-if-bang (pattern _index _total)
-    (cond
-     ((equal "!" pattern)
-      '(orderless-literal . ""))
-     ((string-prefix-p "!" pattern)
-      `(orderless-without-literal . ,(substring pattern 1)))))
+  ;; (defun amsha/without-if-bang (pattern _index _total)
+  ;;   (cond
+  ;;    ((equal "!" pattern)
+  ;;     '(orderless-literal . ""))
+  ;;    ((string-prefix-p "!" pattern)
+  ;;     `(orderless-without-literal . ,(substring pattern 1)))))
 
   (defun amsha/match-components-literally (orig-fun &rest args)
     "Funtion to add as advice for interactive functions that will always use lietral completion."
@@ -608,58 +610,7 @@ advice, files on WSL can not be saved."
     (let ((orderless-matching-styles '(orderless-literal)))
       (apply orig-fun args)))
 
-  (advice-add #'org-set-property :around #'amsha/match-components-literally)
-  
-  (setq orderless-matching-styles '(orderless-literal orderless-regexp)
-        orderless-style-dispatchers '(amsha/without-if-bang))
-
-  ;; copied from https://github.com/oantolin/orderless/issues/30
-  (defun cq-annotation (x y metadata)
-    (when-let* ((ann (completion-metadata-get metadata 'annotation-function))
-                (str (funcall ann x)))
-      (string-match-p y str)))
-
-  (defun cq-completion-all-completions-on-annotations (orig str table pred _point &optional metadata)
-    (let ((filter))
-      (setq str
-            (replace-regexp-in-string "@[^ ]*" (lambda (x)
-                                                    (setq x (substring x 1))
-                                                    (unless (string-blank-p x)
-                                                      ;;(push (substring x (1+ (string-match-p "=" x))) filter))
-                                                      (push x filter))
-                                                    "")
-                                      str))
-      ;; TODO correct point computation
-      (when-let* ((result (funcall orig str table pred (length str) metadata)))
-        ;; (when-let (queries (and filter
-        ;;                         (or (alist-get cat cq-queries)
-        ;;                             (and (eq cat 'consult-multi)
-        ;;                                  (apply #'append (mapcar #'cdr cq-queries))))))
-          (let* ((last (last result))
-                 (base (cdr last))) ;; why is this here?
-            (setcdr last nil)
-            (setq result (seq-filter (lambda (str)
-                                       ;; (when (eq cat 'consult-multi)
-                                       ;;   (setq x (cdr (get-text-property 0 'consult-multi x))))
-                                       (not (seq-find
-                                             (lambda (f)
-                                               ;; (or
-                                               ;;  (when-let* ((pos (or (string-match-p "=" f) (length f))))
-                                               ;;              ;;(key (intern-soft (substring f 0 pos))))
-                                               ;;              ;; (fun (alist-get key queries)))
-                                               ;;    (not (funcall fun x (if (< pos (length f)) (substring f (1+ pos)) "") metadata)))
-                                               ;;  (when-let (fun (alist-get (aref f 0) queries))
-                                               ;;    (not (funcall fun x (substring f 1) metadata)))))
-                                               (cq-annotation str f metadata))
-                                             filter)))
-                                     result))
-            (when result
-              (setq result (nconc result base))))
-        result)))
-
-  ;; (advice-add #'completion-all-completions :around #'cq-completion-all-completions-on-annotations)
-  ;; (advice-remove #'completion-all-completions #'cq-completion-all-completions-on-annotations)
-)
+  (advice-add #'org-set-property :around #'amsha/match-components-literally))
 
 (use-package vertico
   :straight (vertico :includes (vertico-directory vertico-quick vertico-indexed)
