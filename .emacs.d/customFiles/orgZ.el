@@ -1167,10 +1167,14 @@ Copied  from `org-roam-backlink-get'."
 (use-package org-fragtog
   :hook (org-mode . org-fragtog-mode))
 
-(defun doi-add-bibtex-entry-with-note ()
+(defun doi-add-bibtex-entry-with-note (doi)
   "."
-  (interactive)
-  (call-interactively #'doi-utils-add-bibtex-entry-from-doi)
+  (interactive
+   (list (read-string
+          "DOI: "
+          ;; now set initial input
+          (doi-utils-maybe-doi-from-region-or-current-kill))))
+  (doi-utils-add-bibtex-entry-from-doi doi)
   (find-file (car bibtex-completion-bibliography))
   (org-ref-open-bibtex-notes)
   (org-set-property "LINK" (completing-read "LINK: " nil nil nil (when (s-starts-with-p "file://" (car kill-ring))
