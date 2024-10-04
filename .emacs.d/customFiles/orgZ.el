@@ -1563,6 +1563,102 @@ Else create a text annotations at point."
   ;;   "View source or query in org-roam buffer."
   ;;   (interactive "xQuery: ")
   ;;   (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
+
+  ;; taken from `org-roam-ql--expand-link'
+  (defun org-roam-ql--expand-recursive-link (source-or-query type inlcude-refs combine is-backlink)
+    "Expansion function for links.
+Returns a list of nodes that have back links to any nodes that
+SOURCE-OR-QUERY resolves to, as a list.  TYPE is the type of the link.
+COMBINE can be :and or :or.  If :and, only nodes that have backlinks
+to all results of source-or-query, else if have backlinks to any of
+them.  If is-backlink is nil, return forward links, else return
+backlinks"
+    (let* ((query-nodes
+            ;; NOTE: -compare-fn is set in the `org-roam-ql--expand-query'
+            (-uniq
+             (org-roam-ql--nodes-cached source-or-query)))
+           (query-nodes-count (length query-nodes))
+           (target-col (if is-backlink 'links:source 'links:dest))
+           (test-col (if is-backlink 'links:dest 'links:source)))
+      (->> (org-roam-db-query
+            (apply
+             #'vector
+             `(
+               :with
+               :recursive
+               [
+                ;; Compute trees of headline nodes. org-roam does not store
+                ;; these natively.
+                (as (funcall headlines node_id relative_id)
+                    [
+                     :select [node:id relative:id]
+                     :from (on (join (as [:select * :from nodes :where (in id $v1)] node)
+                                     (as nodes relative))
+                               (and (= node:file relative:file)
+                                    (,(if is-backlink '> '<) node:level relative:level)
+                                    (or (and (= ,(if is-backlink 'relative:level 'node:level) 1)
+                                             (LIKE ,(if is-backlink 'node:olp 'relative:olp)
+                                                   ;; TODO escape meta chars in title
+                                                   (|| '"("
+                                                       ,(if is-backlink 'relative:title 'node:title)
+                                                       '"%")))
+                                        (and (> ,(if is-backlink 'relative:level 'node:level) 1)
+                                             (LIKE ,(if is-backlink 'node:olp 'relative:olp)
+                                                   ;; TODO escape meta chars in olp/title
+                                                   (|| '"("
+                                                       (funcall TRIM relative:olp '"()")
+                                                       '" "
+                                                       ,(if is-backlink 'relative:title 'node:title)
+                                                       '"%"))))))
+                     :group-by node:id
+                     :having (= relative:level (funcall MAX relative:level))])
+                (as (funcall links_tr id)
+                    [
+                     :values $v1
+                     :union
+                     :select ,target-col
+                     :from [links links_tr]
+                     :where
+                     (and ,(if type `(= type $s3)
+                             `(not (in type $v2)))
+                          (= ,test-col links_tr:id))
+                     :union
+                     :select ,target-col
+                     :from [(on (join links refs)
+                                (and (= ,test-col refs:ref) ;,test-col
+                                     (= links:type refs:type)))
+                            links_tr]
+                     :where (= refs:node_id links_tr:id)
+                     :union
+                     :select citations:node_id
+                     :from [(on (join citations refs)
+                                (and (= citations:cite_key refs:ref)
+                                     (= refs:type "cite")))
+                            links_tr]
+                     :where (= refs:node_id links_tr:id)
+                     :union
+                     ;; :select headlines:node_id
+                     :select headlines:relative_id
+                     :from [headlines links_tr]
+                     :where (= headlines:node_id links_tr:id)
+                     ])]
+               :select id
+               :from links_tr
+               :where (not (in id $v1))))
+            (apply #'vector (-map #'org-roam-node-id query-nodes))
+            ["http" "https"]
+            type)
+         (--filter
+          (pcase combine
+            (:and (= (cadr it) query-nodes-count))
+            (:or (>= (cadr it) 1))
+            (_ (user-error "Keyword :combine should be :and or :or; got %s" combine))))
+         (--map (org-roam-node-from-id (car it))))))
+
+  ;; (org-roam-ql-defpred 'backlink-recursive
+  ;;                      "Recursive backlinks (heading, backlink & refs)"
+  ;;                      (lambda (node)))
+
   (org-roam-ql-defexpansion 'child-of
                             "Child of node with a specific title"
                             (lambda (title)
@@ -1751,6 +1847,36 @@ If prefix arg used, search whole db."
   :after (org-roam org-ql org-roam-ql)
   :config
   (org-roam-ql-ql-init))
+
+;; I am not using this as its functionalities doesn't suit me
+;; well. But it does some have some nice recipies for me to use.
+;; (use-package consult-org-roam
+;;    :ensure t
+;;    :after org-roam
+;;    :init
+;;    (require 'consult-org-roam)
+;;    ;; Activate the minor mode
+;;    (consult-org-roam-mode 1)
+;;    :custom
+;;    ;; Use `ripgrep' for searching with `consult-org-roam-search'
+;;    (consult-org-roam-grep-func #'consult-ripgrep)
+;;    ;; Configure a custom narrow key for `consult-buffer'
+;;    (consult-org-roam-buffer-narrow-key ?r)
+;;    ;; Display org-roam buffers right after non-org-roam buffers
+;;    ;; in consult-buffer (and not down at the bottom)
+;;    (consult-org-roam-buffer-after-buffers t)
+;;    :config
+;;    ;; Eventually suppress previewing for certain functions
+;;    (consult-customize
+;;     consult-org-roam-forward-links
+;;     :preview-key "M-.")
+;;    :bind
+;;    ;; Define some convenient keybindings as an addition
+;;    ("C-c n e" . consult-org-roam-file-find)
+;;    ("C-c n b" . consult-org-roam-backlinks)
+;;    ("C-c n B" . consult-org-roam-backlinks-recursive)
+;;    ("C-c n l" . consult-org-roam-forward-links)
+;;    ("C-c n r" . consult-org-roam-search))
 
 (defun okm-query-papers-by-topics (&optional topic-ids)
   "Query papers based on topics."
