@@ -824,11 +824,12 @@ Copied  from `org-roam-backlink-get'."
 
   (defun org-roam-subtree-aware-preview-function ()
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
-    (if (--> (org-roam-node-at-point)
-             (org-roam-node-file it)
-             (or (s-matches-p "brain/work/notes" it)
-                 (s-matches-p "brain/personal/notes" it)
-                 (f-ancestor-of-p bibtex-completion-notes-path it)))
+    (if t
+        ;; (--> (org-roam-node-at-point)
+        ;;      (org-roam-node-file it)
+        ;;      (or (s-matches-p "brain/work/notes" it)
+        ;;          (s-matches-p "brain/personal/notes" it)
+        ;;          (f-ancestor-of-p bibtex-completion-notes-path it)))
         (let ((beg (progn (if (org-id-get)
                               (org-roam-end-of-meta-data t)
                             (org-beginning-of-line))
@@ -1565,19 +1566,19 @@ Else create a text annotations at point."
   ;;   (okm-org-roam-buffer-for-nodes (org-roam-ql-view--get-nodes-from-query source-or-query) (format "Query view: %s" source-or-query) "*org-roam query view*"))
 
   ;; taken from `org-roam-ql--expand-link'
-  (defun org-roam-ql--expand-recursive-link (source-or-query type inlcude-refs combine is-backlink)
-    "Expansion function for links.
-Returns a list of nodes that have back links to any nodes that
-SOURCE-OR-QUERY resolves to, as a list.  TYPE is the type of the link.
-COMBINE can be :and or :or.  If :and, only nodes that have backlinks
-to all results of source-or-query, else if have backlinks to any of
-them.  If is-backlink is nil, return forward links, else return
-backlinks"
+  (cl-defun org-roam-ql--expand-recursive-link (source-or-query is-backlink type inlcude-refs)
+    "Expansion function for recursive links.
+Returns a list of nodes that have back links to the node that
+SOURCE-OR-QUERY resolves to, as a list. If there are more than 1
+resulting node from source-or-query, it will return an error.  TYPE is
+the type of the link.  If is-backlink is nil, return forward
+links, else return backlinks"
     (let* ((query-nodes
             ;; NOTE: -compare-fn is set in the `org-roam-ql--expand-query'
             (-uniq
              (org-roam-ql--nodes-cached source-or-query)))
-           (query-nodes-count (length query-nodes))
+           (len (length query-nodes))
+           (_ (when (not (eq 1 len))  (user-error "%s results in %d nodes" source-or-query len)))
            (target-col (if is-backlink 'links:source 'links:dest))
            (test-col (if is-backlink 'links:dest 'links:source)))
       (->> (org-roam-db-query
@@ -1610,8 +1611,9 @@ backlinks"
                                                        '" "
                                                        ,(if is-backlink 'relative:title 'node:title)
                                                        '"%"))))))
-                     :group-by node:id
-                     :having (= relative:level (funcall MAX relative:level))])
+                     ;; :group-by node:id
+                     ;; :having (= relative:level (funcall MAX relative:level))])
+                     ])
                 (as (funcall links_tr id)
                     [
                      :values $v1
@@ -1622,20 +1624,21 @@ backlinks"
                      (and ,(if type `(= type $s3)
                              `(not (in type $v2)))
                           (= ,test-col links_tr:id))
-                     :union
-                     :select ,target-col
-                     :from [(on (join links refs)
-                                (and (= ,test-col refs:ref) ;,test-col
-                                     (= links:type refs:type)))
-                            links_tr]
-                     :where (= refs:node_id links_tr:id)
-                     :union
-                     :select citations:node_id
-                     :from [(on (join citations refs)
-                                (and (= citations:cite_key refs:ref)
-                                     (= refs:type "cite")))
-                            links_tr]
-                     :where (= refs:node_id links_tr:id)
+                     ,@(when inlcude-refs
+                         `(:union
+                           :select ,target-col
+                           :from [(on (join links refs)
+                                      (and (= ,test-col refs:ref) ;,test-col
+                                           (= links:type refs:type)))
+                                  links_tr]
+                           :where (= refs:node_id links_tr:id)
+                           :union
+                           :select citations:node_id
+                           :from [(on (join citations refs)
+                                      (and (= citations:cite_key refs:ref)
+                                           (= refs:type "cite")))
+                                  links_tr]
+                           :where (= refs:node_id links_tr:id)))
                      :union
                      ;; :select headlines:node_id
                      :select headlines:relative_id
@@ -1648,16 +1651,31 @@ backlinks"
             (apply #'vector (-map #'org-roam-node-id query-nodes))
             ["http" "https"]
             type)
-         (--filter
-          (pcase combine
-            (:and (= (cadr it) query-nodes-count))
-            (:or (>= (cadr it) 1))
-            (_ (user-error "Keyword :combine should be :and or :or; got %s" combine))))
          (--map (org-roam-node-from-id (car it))))))
 
-  ;; (org-roam-ql-defpred 'backlink-recursive
-  ;;                      "Recursive backlinks (heading, backlink & refs)"
-  ;;                      (lambda (node)))
+  (cl-defun org-roam-ql-recursive-backlink-to (source-or-query &key (type "id") inlcude-refs)
+    "Get recursive backlinks.
+Returns a list of nodes that have back links to the node that
+SOURCE-OR-QUERY resolves to, as a list. If there are more than 1
+resulting node from source-or-query, it will return an error.  TYPE is
+the type of the link."
+    (org-roam-ql--expand-recursive-link source-or-query t type inlcude-refs))
+
+  (cl-defun org-roam-ql-recursive-backlink-from (source-or-query &key (type "id") inlcude-refs)
+    "Get recursive forwardlinks.
+Returns a list of nodes that have back links to the node that
+SOURCE-OR-QUERY resolves to, as a list. If there are more than 1
+resulting node from source-or-query, it will return an error.  TYPE is
+the type of the link."
+    (org-roam-ql--expand-recursive-link source-or-query nil type inlcude-refs))
+
+  (org-roam-ql-defexpansion 'backlink-to-recursive
+                            "Recursive backlinks (heading, backlink & refs)"
+                            #'org-roam-ql-recursive-backlink-to)
+
+  (org-roam-ql-defexpansion 'backlink-from-recursive
+                            "Recursive backlinks (heading, backlink & refs)"
+                            #'org-roam-ql-recursive-backlink-from)
 
   (org-roam-ql-defexpansion 'child-of
                             "Child of node with a specific title"
