@@ -695,8 +695,13 @@ advice, files on WSL can not be saved."
   :bind
   (("C-." . embark-act)         ;; pick some comfortable binding
    ("C-;" . embark-dwim)        ;; good alternative: M-.
-   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
-
+   ("C-h B" . embark-bindings) ;; alternative for `describe-bindings'
+   :map minibuffer-mode-map
+   ("M-d" . delete-minibuffer-contents)
+   ("C-," . embark-select-with-clear-buffer)
+   ("C-<return>" . embark-act-all-with-default-action))
+  :custom
+  (embark-confirm-act-all nil)
   :init
   ;; Optionally replace the key help with a completing-read interface
   (setq prefix-help-command #'embark-prefix-help-command)
@@ -711,6 +716,23 @@ advice, files on WSL can not be saved."
   (define-key embark-file-map "o" nil)
   (define-key embark-file-map "ocn" #'copy-buffer-file-name)
   (define-key embark-file-map "ocf" #'copy-file-full-path)
+
+  (defun embark-select-with-clear-buffer ()
+    "Run `embark-select' and `delete-minibuffer-contents'."
+    (interactive)
+    (when (minibufferp)
+      (embark-select)
+      (delete-minibuffer-contents)))
+
+  (defun embark-non-propmter-with-default-action (_ _)
+    "For `embark-prompter' that just returns the default action."
+    embark--command)
+
+  (defun embark-act-all-with-default-action (&optional arg)
+    "`embark-act-all' but with default action without prompting."
+    (interactive)
+    (let ((embark-prompter #'embark-non-propmter-with-default-action))
+      (embark-act-all arg)))
 
   (defun embark-which-key-indicator ()
     "An embark indicator that displays keymaps using which-key.
