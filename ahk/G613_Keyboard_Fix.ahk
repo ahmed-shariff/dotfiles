@@ -9,14 +9,14 @@
 
 ;List all your broken keys between quotes below. I.e. if your broken keys are g and f then the line below shoud be 
 ;brokenKeys := "gf"
-brokenKeys := ["a", "n"]
+brokenKeys := ["a", "n", "s", "o", "x", "c"]
 
 ;timepan in which subsequent keystrokes should be ignored.
 ;In a typical scenario you yourself won't be pressing a single key faster than 5 times a second (every 200 miliseconds) so it's safe to have this number at 200.
 ;However, this number also determines how fast autorepeat can happen (when you hold the key).
 ;The smaller the number the faster the auto repeat speed of the fixed keys will be  but also the higher the chance of the key bug happening when you type  normally.
 ;Values higher than 80 seems work best but it might depend on you operating system. 
-fixOffset := 80
+fixOffset := 100
 
 ;This array will hold timers for each broken key
 lastTimePressed := {}
