@@ -824,12 +824,13 @@ Copied  from `org-roam-backlink-get'."
 
   (defun org-roam-subtree-aware-preview-function ()
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
-    (if t
-        ;; (--> (org-roam-node-at-point)
-        ;;      (org-roam-node-file it)
-        ;;      (or (s-matches-p "brain/work/notes" it)
-        ;;          (s-matches-p "brain/personal/notes" it)
-        ;;          (f-ancestor-of-p bibtex-completion-notes-path it)))
+    (if 
+        (--> (org-roam-node-at-point)
+             (org-roam-node-file it)
+             (or (s-matches-p "brain/work/notes" it)
+                 (s-matches-p "brain/personal/notes" it)
+                 (s-matches-p "brain/roam-notes" it)
+                 (f-ancestor-of-p bibtex-completion-notes-path it)))
         (let ((beg (progn (if (org-id-get)
                               (org-roam-end-of-meta-data t)
                             (org-beginning-of-line))
@@ -1850,6 +1851,21 @@ If prefix arg used, search whole db."
   (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview)
 
   (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled > "+0")))
+
+  (defun consult-org-roam-ql ()
+    "Consult with org-roam-ql for searching/narrowing."
+    (interactive)
+    (minibuffer-with-setup-hook
+        (lambda ()
+          ;; KLUDGE: No idea why this is here!
+          (set-syntax-table emacs-lisp-mode-syntax-table)
+          (add-hook 'completion-at-point-functions
+                    #'org-roam-ql--completion-at-point nil t))
+      (let ((consult--async-split-style ";"))
+        (consult--read
+         (consult--dynamic-collection (lambda (input) 
+                                        (-map #'org-roam-node-title (org-roam-ql-nodes (read input)))))))))
+
   )
 
 ;; (use-package org-roam-gocal
