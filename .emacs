@@ -983,8 +983,8 @@ targets."
   :bind
   (("C-c o q" . gptel-send))
   :custom
-  (gptel-api-key (gethash 'openai-apk configurations)))
-
+  (gptel-api-key (gethash 'openai-apk configurations))
+  (gptel-use-curl nil))
 
 ;;tramp settings ***************************************************
 ;; See https://stackoverflow.com/questions/6954479/emacs-tramp-doesnt-work for more details
