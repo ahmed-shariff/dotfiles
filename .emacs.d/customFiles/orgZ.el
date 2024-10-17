@@ -652,7 +652,30 @@
   :custom
   (bibtex-completion-cite-prompt-for-optional-arguments nil)
   :config
-  (setf (alist-get 'org-mode bibtex-completion-format-citation-functions) (lambda (keys) (s-join "," (--map (format "cite:&%s" it) keys)))))
+  (setf (alist-get 'org-mode bibtex-completion-format-citation-functions) (lambda (keys) (s-join "," (--map (format "cite:%s" it) keys))))
+
+  (defun amsha/bibtex-completion-apa-get-value (old-fun &rest args)
+    "Override the downcase situation."
+    (em args)
+    (if (and (stringp (car args)) (string-equal (car args) "title"))
+        (if-let (value (bibtex-completion-get-value (car args) entry))
+            (replace-regexp-in-string ; remove braces
+             "[{}]"
+             ""
+             (replace-regexp-in-string ; remove macros
+              "\\\\[[:alpha:]]+{"
+              ""
+              (replace-regexp-in-string ; upcase initial letter
+               "^[[:alpha:]]"
+               'upcase
+               (replace-regexp-in-string ; preserve stuff in braces from being downcased
+                "\\(^[^{]*{\\)\\|\\(}[^{]*{\\)\\|\\(}.*$\\)\\|\\(^[^{}]*$\\)"
+                (lambda (x) (s-replace "\\" "\\\\" x))
+                value))))
+          (apply old-fun args))
+      (apply old-fun args)))
+
+  (advice-add 'bibtex-completion-apa-get-value :around #'amsha/bibtex-completion-apa-get-value))
 
 (use-package emacsql
   :straight (emacsql :includes (emacsql-sqlite)
