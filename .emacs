@@ -94,9 +94,7 @@
 					   expand-region diminish amx flx
 					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
 					   dired-sidebar stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
-					   yasnippet company-jedi jedi sr-speedbar latex-preview-pane
-					   slime-company slime
-					   slim-mode company-quickhelp company-c-headers company-anaconda))
+					   yasnippet jedi sr-speedbar latex-preview-pane slime slim-mode))
 
 (mapcar #'straight-use-package
 	my-package-list)
@@ -1614,16 +1612,16 @@ T - tag prefix
 (require 'orgZ)
 
 ;; ;;enabling company***********************************************
-(add-hook 'after-init-hook 'global-company-mode)
+;; (add-hook 'after-init-hook 'global-company-mode)
 ;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
-(setq company-minimum-prefix-length 1)
-(setq company-idle-delay 0.1)
+;; (setq company-minimum-prefix-length 1)
+;; (setq company-idle-delay 0.1)
 ;;;; GC issue
 ;; (add-hook 'after-init-hook (lambda () (setq gc-cons-threshold 100000000))) ;; This is set in lsp-mode
 (add-hook 'focus-out-hook 'garbage-collect)
 ;; ;; ;;company quickhelp gives docstring info
-(company-quickhelp-mode 1)
-(setq company-quickhelp-delay nil)
+;; (company-quickhelp-mode 1)
+;; (setq company-quickhelp-delay nil)
 
 ;; ;;yasnippet setup************************************************
 (use-package yasnippet
@@ -1671,7 +1669,7 @@ T - tag prefix
 (setq slime-net-coding-system 'utf-8-unix)
 (require  'slime)
 (slime-setup
- '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser slime-company))
+ '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser))
 ;; (unless package-archive-contents 
 ;;   (package-refresh-contents))
 (setq tab-always-indent 'complete)
@@ -1797,7 +1795,7 @@ E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
 
 (semantic-mode 1)
 
-(add-to-list 'company-backends 'company-c-headers)
+;; (add-to-list 'company-backends 'company-c-headers)
 ; (semantic-add-system-include "/usr/lib/gcc/x86_64-pc-linux-gnu/6.4.1/" 'c++-mode)
 					;(add-to-list 'company-c-headers-path-system "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1")
 (defun my-c-mode-common-hook ()
@@ -2451,10 +2449,10 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
   "."
   (outline-minor-mode 1))
 
-(use-package company-auctex
-  :after (auctex)
-  :config
-  (company-auctex-init))
+;; (use-package company-auctex
+;;   :after (auctex)
+;;   :config
+;;   (company-auctex-init))
 
 (use-package latex
   :straight auctex
@@ -3087,22 +3085,22 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 
 ;; company-tabnin********************************************************
 
-(use-package company-tabnine
-  :config
-  (when (gethash 'use-tabnine configurations t)
-    (push 'company-tabnine company-backends))
-  (defun tabnine-toggle ()
-    "Toggle tabnine."
-    (interactive)
-    (--> '(company-tabnine :with company-yasnippet)
-         (if (member it company-backends)
-             (progn
-               (company-tabnine-kill-process)
-               (message "Started")
-               (setq company-backends
-                     (delete it company-backends)))
-           (message "Stopped")
-           (add-to-list 'company-backends it)))))
+;; (use-package company-tabnine
+;;   :config
+;;   (when (gethash 'use-tabnine configurations t)
+;;     (push 'company-tabnine company-backends))
+;;   (defun tabnine-toggle ()
+;;     "Toggle tabnine."
+;;     (interactive)
+;;     (--> '(company-tabnine :with company-yasnippet)
+;;          (if (member it company-backends)
+;;              (progn
+;;                (company-tabnine-kill-process)
+;;                (message "Started")
+;;                (setq company-backends
+;;                      (delete it company-backends)))
+;;            (message "Stopped")
+;;            (add-to-list 'company-backends it)))))
 
 
 ;; emacs discrod plugin
@@ -3130,15 +3128,15 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 
 ;;code to run at the end!************************************************
 
-(defun company-mode/backend-with-yas (backend)
-"Adding yasnippet after company-mode.
-BACKEND: the backend"
-  (if (and (listp backend) (member 'company-yasnippet backend))
-      backend
-    (append (if (consp backend) backend (list backend))
-            '(:with company-yasnippet))))
+;; (defun company-mode/backend-with-yas (backend)
+;; "Adding yasnippet after company-mode.
+;; BACKEND: the backend"
+;;   (if (and (listp backend) (member 'company-yasnippet backend))
+;;       backend
+;;     (append (if (consp backend) backend (list backend))
+;;             '(:with company-yasnippet))))
 
-(setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
+;; (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
 
 ;;yasnippets company conflict resolution
 ;(provide .emacs)
