@@ -127,8 +127,8 @@
  '(ansi-color-faces-vector
    [default default default italic underline success warning error])
  '(bookmark-save-flag 1)
- '(company-c-headers-path-system
-   '("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/"))
+ ;; '(company-c-headers-path-system
+   ;; '("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/"))
  '(custom-safe-themes
    '("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default))
  '(ede-project-directories '("/media/Files/Research/FoodClassification/deployment"))
@@ -176,12 +176,12 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(company-scrollbar-bg ((t (:background "#000000"))) t)
- '(company-scrollbar-fg ((t (:background "#555555"))) t)
- '(company-tooltip ((t (:inherit default :background "#000000"))))
- '(company-tooltip-annotation ((t (:inherit font-lock-builtin-face))))
- '(company-tooltip-common ((t (:inherit font-lock-constant-face))))
- '(company-tooltip-selection ((t (:inherit highlight))))
+ ;; '(company-scrollbar-bg ((t (:background "#000000"))) t)
+ ;; '(company-scrollbar-fg ((t (:background "#555555"))) t)
+ ;; '(company-tooltip ((t (:inherit default :background "#000000"))))
+ ;; '(company-tooltip-annotation ((t (:inherit font-lock-builtin-face))))
+ ;; '(company-tooltip-common ((t (:inherit font-lock-constant-face))))
+ ;; '(company-tooltip-selection ((t (:inherit highlight))))
  '(markdown-code-face ((t (:inherit consolas))))
  '(org-block-begin-line ((t (:background "#112424" :overline t))))
  '(org-block-end-line ((t (:background "#112424" :overline nil :underline t))))
@@ -641,6 +641,15 @@ advice, files on WSL can not be saved."
   (corfu-popupinfo-mode)
   (corfu-history-mode)
   (corfu-indexed-mode))
+
+(use-package kind-icon
+  :ensure t
+  :after corfu
+  ;:custom
+  ; (kind-icon-blend-background t)
+  ; (kind-icon-default-face 'corfu-default) ; only needed with blend-background
+  :config
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 
 (use-package vertico
   :straight (vertico :includes (vertico-directory vertico-quick vertico-indexed)
@@ -1227,8 +1236,8 @@ targets."
         lsp-ui-sideline-diagnostic-max-line-length 150))
 
 
-(use-package company-box
-  :hook (company-mode . company-box-mode))
+;; (use-package company-box
+  ;; :hook (company-mode . company-box-mode))
 
 
 ;; about using lsp-csharp for unity, just make sure you have installed latest omnisharp-roslyn and have mono >= 6 installed on your machine
@@ -1249,13 +1258,18 @@ targets."
          (latex-mode . lsp)
          (rust-mode . lsp)
          (go-mode . lsp)
-	 (lsp-mode . lsp-enable-which-key-integration))
+	 (lsp-mode . lsp-enable-which-key-integration)
+         (lsp-completion-mode . amsha/lsp-mode-setup-completion))
   
   :init
   (setq lsp-keymap-prefix "C-x l")
   ;; (add-hook 'prog-mode-hook #'lsp)
   ;; (setq lsp-auto-guess-root t)
   ;; (setq lsp-log-io t)
+  ;; https://github.com/minad/corfu/wiki#configuring-corfu-for-lsp-clients
+  (defun amsha/lsp-mode-setup-completion ()
+    (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+          '(orderless))) ;; Configure orderless
   :config
   ;; (lsp-register-client
   
@@ -1292,6 +1306,7 @@ targets."
    lsp-pylsp-plugins-autopep8-enabled nil
    lsp-pylsp-plugins-yapf-enabled t
    lsp-pylsp-plugins-pylint-enabled nil
+   lsp-completion-provider :none ;; we use Corfu!
    )
   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
