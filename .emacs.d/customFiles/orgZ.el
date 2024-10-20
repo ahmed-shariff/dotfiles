@@ -1693,6 +1693,10 @@ resulting node from source-or-query, it will return an error.  TYPE is
 the type of the link."
     (org-roam-ql--expand-recursive-link source-or-query nil type inlcude-refs))
 
+  (org-roam-ql-add-saved-query 'rp "research papers" '(file "research_papers"))
+  (org-roam-ql-add-saved-query 'pe "people" '(file "People.org"))
+  (org-roam-ql-add-saved-query 'rt "research topics" '(file "research topics.org"))
+
   (org-roam-ql-defexpansion 'backlink-to-recursive
                             "Recursive backlinks (heading, backlink & refs)"
                             #'org-roam-ql-recursive-backlink-to)
@@ -1887,38 +1891,39 @@ If prefix arg used, search whole db."
     (let* ((style (consult--async-split-style))
            (fn (plist-get style :function))
            ;; Override how the empty string is handled!
-           ;; When empty async-str should return defaul candidates
+           ;; When empty async-str should return default candidates
            (split (lambda (str)
                     (pcase-let* ((res (funcall fn str style))
                                  (`(,async-str ,_ ,force . ,_) res))
                       (when (and force (equal "" async-str))
                         (setf (car res) "-"))
                       res)))
-           ;; The sink is what holds the candidates and feed it back to all-completions
-           (sink (consult--async-sink))
            ;; Default candidates
            (nodes (mapcar (lambda (node)
                             (cons (org-roam-node-title node) node))
-                          (org-roam-node-list))))
-        ;; Feeding initial set of candidates to sink
-        (funcall sink nodes)
-        (-->
-         (consult--dynamic-compute
-          sink
-          (lambda (input) 
-            (if (and (> (length input) 0) (not (equal input "-")))
-                ;; TODO: can I update the state somehow?
-                (condition-case err
-                    (mapcar
-                     (lambda (node) (cons (org-roam-node-title node) node))
-                     (org-roam-ql-nodes (read input)))
-                  (user-error err))
-              nodes)))
-         (consult--async-throttle it)
-         (consult--async-split it split)
-         (consult--read it :initial ";")
-         (or (cdr (assoc it nodes))
-             (org-roam-node-create :title it))))))
+                          (org-roam-node-list)))
+           ;; The sink is what holds the candidates and feed it back to all-completions
+           (sink (consult--async-sink)))
+      (setq indicator-async dynamic-async)
+      ;; Feeding initial set of candidates to sink
+      (funcall sink nodes)
+      (-->
+       (consult--dynamic-compute
+        sink
+        (lambda (input) 
+          (if (and (> (length input) 0) (not (equal input "-")))
+              ;; TODO: can I update the state/indicator somehow?
+              (condition-case err
+                  (mapcar
+                   (lambda (node) (cons (org-roam-node-title node) node))
+                   (org-roam-ql-nodes (read input)))
+                (user-error nodes))
+            nodes)))
+       (consult--async-throttle it)
+       (consult--async-split it split)
+       (consult--read it :initial ";" :keymap org-roam-ql--read-query-map)
+       (or (cdr (assoc it nodes))
+           (org-roam-node-create :title it))))))
   )
 
 ;; (use-package org-roam-gocal
