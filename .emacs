@@ -666,12 +666,7 @@ advice, files on WSL can not be saved."
   ;; Grow and shrink the Vertico minibuffer
   (setq vertico-resize t
         ;; Optionally enable cycling for `vertico-next' and `vertico-previous'.
-        vertico-cycle t
-        completion-in-region-function (lambda (&rest args)
-                                        (apply (if vertico-mode
-                                                   #'consult-completion-in-region
-                                                 #'completion--in-region)
-                                               args))))
+        vertico-cycle t))
 
 (use-package savehist
   :init
