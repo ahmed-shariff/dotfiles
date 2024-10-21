@@ -910,52 +910,99 @@ Copied  from `org-roam-backlink-get'."
   (add-to-list 'marginalia-annotator-registry
                '(org-roam-node org-roam-node-annotator marginalia-annotate-face builtin none)))
 
-(use-package consult-notes
-  :straight (:type git :host github :repo "mclear-tools/consult-notes")
-  :bind (("C-c n n" . consult-notes-search-in-all-notes)
-         ("C-c n N" . consult-ripgrep-roam-notes)
-         ("C-c n v" . consult-notes-visit-relation))
-  :commands (consult-notes
-             consult-notes-search-in-all-notes
-             consult-notes-org-roam-find-node
-             consult-ripgrep-roam-notes
-             consult-notes-org-roam-find-node-relation)
+;; (use-package consult-notes
+;;   :straight (:type git :host github :repo "mclear-tools/consult-notes")
+;;   :bind (("C-c n n" . consult-notes-search-in-all-notes)
+;;          ("C-c n N" . consult-ripgrep-roam-notes)
+;;          ("C-c n v" . consult-notes-visit-relation))
+;;   :commands (consult-notes
+;;              consult-notes-search-in-all-notes
+;;              consult-notes-org-roam-find-node
+;;              consult-ripgrep-roam-notes
+;;              consult-notes-org-roam-find-node-relation)
+;;   :config
+;;   (setq consult-notes-sources `(("Org"  ?o  ,okm-base-directory)) ;; Set notes dir(s), see below
+;;         consult-notes-org-roam-template org-roam-node-display-template ;; To make sure I can use my marginalia approach.
+;;         consult-notes-org-roam-annotate-function nil)
+;;   (consult-notes-org-roam-mode) ;; Set org-roam integration
+
+(use-package consult-org-roam
+  :ensure t
+  :demand 3
+  :after org-roam
+  :bind
+  ;; Define some convenient keybindings as an addition
+  ("C-c n e" . consult-org-roam-file-find)
+  ("C-c n B" . consult-org-roam-backlinks-recursive)
+  ("C-c n r" . consult-org-roam-search)
+  ("C-c n v" . consult-notes-visit-relation)
+  :init
+  ;; Activate the minor mode
+  (consult-org-roam-mode 1)
+  :custom
+  ;; Use `ripgrep' for searching with `consult-org-roam-search'
+  (consult-org-roam-grep-func #'consult-ripgrep)
+  ;; Configure a custom narrow key for `consult-buffer'
+  (consult-org-roam-buffer-narrow-key ?r)
+  ;; Display org-roam buffers right after non-org-roam buffers
+  ;; in consult-buffer (and not down at the bottom)
+  (consult-org-roam-buffer-after-buffers t)
   :config
-  (setq consult-notes-sources `(("Org"  ?o  ,okm-base-directory)) ;; Set notes dir(s), see below
-        consult-notes-org-roam-template org-roam-node-display-template ;; To make sure I can use my marginalia approach.
-        consult-notes-org-roam-annotate-function nil)
-  (consult-notes-org-roam-mode) ;; Set org-roam integration
+  ;; Eventually suppress previewing for certain functions
+  (consult-customize
+   consult-org-roam-forward-links
+   :preview-key "M-.")
+
+  (defvar amsha/org-consult-notes-org-roam--nodes 
+    `(:require-match t
+      :category 'org-roam-node
+      ;; :state ,(consult-org-roam--node-preview)
+      :lookup (lambda (selected candidates input narrow) (alist-get selected candidates input nil #'equal))
+      :action ,(lambda (cand)
+                 (org-roam-node-open (get-text-property 0 'node cand))))
+    "Setup for `org-roam' and `consult--multi'.")
 
   (defun consult-notes-visit-relation (node)
     "Navigate to related node of `node'."
     (interactive (list (or (when (eq major-mode 'org-mode) (org-roam-node-at-point)) (org-roam-node-read nil nil nil t "Select node: "))))
     (consult--multi (list
-                     (plist-multi-put (copy-sequence consult-notes-org-roam--nodes)
-                                      :name (propertize "Backlinks" 'face 'consult-notes-sep)
+                     (plist-multi-put (copy-sequence amsha/org-consult-notes-org-roam--nodes)
+                                      :name (propertize "Backlinks" 'face 'consult-help)
                                       :narrow ?b
-                                      :items (lambda () (--map (org-roam-node-title (org-roam-backlink-source-node it))
-                                                               (org-roam-backlinks-get node :unique t))))
-                     (plist-multi-put (copy-sequence consult-notes-org-roam--nodes)
-                                      :name (propertize "Brain Children" 'face 'consult-notes-sep)
+                                      :items (lambda () (em (--map
+                                                             (-->
+                                                              (org-roam-backlink-source-node it)
+                                                              (propertize
+                                                               (org-roam-node-title it)
+                                                               'node it))
+                                                             (org-roam-backlinks-get node :unique t)))))
+                     (plist-multi-put (copy-sequence amsha/org-consult-notes-org-roam--nodes)
+                                      :name (propertize "Brain Children" 'face 'consult-help)
                                       :narrow ?c
-                                      :items (lambda () (--map (org-roam-node-title (org-roam-node-from-id it))
+                                      :items (lambda () (--map (propertize
+                                                                (org-roam-node-title (org-roam-node-from-id it))
+                                                                'node (org-roam-node-from-id it))
                                                                (okm-get-children (org-roam-node-id node)))))
-                     (plist-multi-put (copy-sequence consult-notes-org-roam--nodes)
-                                       :name (propertize "Forwardlink" 'face 'consult-notes-sep)
-                                       :narrow ?f
-                                       :items (lambda () (-map #'car (org-roam-db-query
-                                                                      [:select :distinct nodes:title
-                                                                               :from links :inner :join nodes :on (= links:dest nodes:id)
-                                                                               :where (in links:source $v1)]
-                                                                      (vector (org-roam-node-id node))))))
-                     (plist-multi-put (copy-sequence consult-notes-org-roam--nodes)
-                                      :name (propertize "Brain Parents" 'face 'consult-notes-sep)
+                     (plist-multi-put (copy-sequence amsha/org-consult-notes-org-roam--nodes)
+                                      :name (propertize "Forwardlink" 'face 'consult-help)
+                                      :narrow ?f
+                                      :items (lambda () (--map (propertize (car it) 'node (org-roam-node-from-id (cdr it)))
+                                                               (org-roam-db-query
+                                                                [:select [nodes:title nodes:id]
+                                                                         :from links :inner :join nodes :on (= links:dest nodes:id)
+                                                                         :where (in links:source $v1)]
+                                                                (vector (org-roam-node-id node))))))
+                     (plist-multi-put (copy-sequence amsha/org-consult-notes-org-roam--nodes)
+                                      :name (propertize "Brain Parents" 'face 'consult-help)
                                       :narrow ?p
-                                      :items (lambda () (--map (org-roam-node-title (org-roam-node-from-id it))
+                                      :items (lambda () (--map (propertize
+                                                                (org-roam-node-title (org-roam-node-from-id it))
+                                                                'node (org-roam-node-from-id it))
                                                                (okm-get-parents (org-roam-node-id node)))))
                      )
                     :require-match t
                     :prompt "Related nodes:"))
+
   ;; From https://github.com/minad/consult/issues/597
   (defun consult-ripgrep-roam-notes ()
     "search notes files."
@@ -1921,7 +1968,10 @@ If prefix arg used, search whole db."
             nodes)))
        (consult--async-throttle it)
        (consult--async-split it split)
-       (consult--read it :initial ";" :keymap org-roam-ql--read-query-map)
+       (consult--read it
+        :initial ";"
+        :keymap org-roam-ql--read-query-map
+        :category 'org-roam-node)
        (or (cdr (assoc it nodes))
            (org-roam-node-create :title it))))))
   )
