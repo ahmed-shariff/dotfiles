@@ -429,6 +429,38 @@
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading) 
 
+(defun okm-add-new-project-board ()
+  (let* ((title (read-string "title: "))
+         (new-file (file-truename
+                    (format
+                     "~/Documents/org/brain/work/project_boards/%s.org"
+                     (read-string "board name: " (s-replace " " "_" (downcase title)))))))
+    (if (file-exists-p new-file)
+        (user-error "File exists %s" (em new-file "boooooooooo"))
+      (org-capture-put :new-buffer t)
+      (find-file new-file)
+      (setq org-capture-plist
+            (plist-put org-capture-plist
+                       :amsha-file-created
+                       new-file))
+      (goto-char (point-min))
+      (org-id-get-create)
+      (goto-char (point-max))
+      (insert (format "\n#+title: %s\n
+* Meta data
+** Related repos:
+** %s literature" title title))
+      (org-id-get-create)
+      (goto-char (point-max)))))
+
+(defun okm-add-new-project-finalize ()
+  (when org-note-abort
+    (when-let* ((new-file (plist-get org-capture-plist :amsha-file-created))
+                (_ (yes-or-no-p "Delete file for aborted capture?")))
+      (when (find-buffer-visiting new-file)
+        (kill-buffer (find-buffer-visiting new-file)))
+      (delete-file new-file))))
+
 (setq org-capture-templates
       '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
 	 entry (file+olp+datetree "~/Documents/org/notes.org")
@@ -458,50 +490,55 @@
         ("ejt" "for task"
 	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
 	 "%(okm-board-task-location)")
-	("eje" "for experiment"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-         "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
-        ("el" "Add experiment"
-	 entry (file "~/Documents/org/brain/work/experiments_log.org")
-	 "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp_%^{Project_id}:\n  :PROPERTIES:
-  :CUSTOM_ID:       %\\1
-  :PROJECT: [[file:projects.org::#%\\3][%\\3]]
-  :PROJECT_ID: %\\3
-  :SPRINT: %^{Sprint ID}
-  :END:\n- %^{Description}\n\n** Notes\n\n** TODO %?\n** TODO Conclusions"
-	 :jump-to-captured t)
-	("es" "Add sprint"
-	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
-	 "** TODO Sprint %(okm--org-templates-get-sprint-id): %^{TITLE}
-   :PROPERTIES:
-   :EXPORT_TOC: nil
-   :EXPORT_TITLE: %\\1
-   :EXPORT_OPTIONS: H:2
-   :EXPORT_AUTHOR:
-   :START_DATE: %u
-   :END_DATE:
-   :ID:       %(org-id-new)
-   :END:
-*** From previous:
-    - %?
-*** Sprint goal:
-*** Related experiments:
-*** Remarks:
-" :jump-to-captured t)
-	("ep" "Add project"
-	 entry (file "~/Documents/org/brain/work/projects.org")
-	 "* TODO <<%(okm--org-templates-get-project-id)>> %^{TITLE}
-  :PROPERTIES:
-  :CUSTOM_ID: %(okm--org-templates-get-project-id)
-  :ID:       %(org-id-new)
-  :END:
-** Related repos:
-** %\\1 literature
-   :PROPERTIES:
-   :ID:       %(org-id-new)
-   :END:
-%?
-"
+  ;;       ("eje" "for experiment"
+  ;;        entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
+  ;;        "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
+  ;;       ("el" "Add experiment"
+  ;;        entry (file "~/Documents/org/brain/work/experiments_log.org")
+  ;;        "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp_%^{Project_id}:\n  :PROPERTIES:
+  ;; :CUSTOM_ID:       %\\1
+  ;; :PROJECT: [[file:projects.org::#%\\3][%\\3]]
+  ;; :PROJECT_ID: %\\3
+  ;; :SPRINT: %^{Sprint ID}
+  ;; :END:\n- %^{Description}\n\n** Notes\n\n** TODO %?\n** TODO Conclusions"
+  ;;        :jump-to-captured t)
+;; 	("es" "Add sprint"
+;; 	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
+;; 	 "** TODO Sprint %(okm--org-templates-get-sprint-id): %^{TITLE}
+;;    :PROPERTIES:
+;;    :EXPORT_TOC: nil
+;;    :EXPORT_TITLE: %\\1
+;;    :EXPORT_OPTIONS: H:2
+;;    :EXPORT_AUTHOR:
+;;    :START_DATE: %u
+;;    :END_DATE:
+;;    :ID:       %(org-id-new)
+;;    :END:
+;; *** From previous:
+;;     - %?
+;; *** Sprint goal:
+;; *** Related experiments:
+;; *** Remarks:
+;; " :jump-to-captured t)
+;; 	("ep" "Add project"
+;; 	 entry (file "~/Documents/org/brain/work/projects.org")
+;; 	 "* TODO <<%(okm--org-templates-get-project-id)>> %^{TITLE}
+;;   :PROPERTIES:
+;;   :CUSTOM_ID: %(okm--org-templates-get-project-id)
+;;   :ID:       %(org-id-new)
+;;   :END:
+;; ** Related repos:
+;; ** %\\1 literature
+;;    :PROPERTIES:
+;;    :ID:       %(org-id-new)
+;;    :END:
+;; %?
+;; "
+;; 	 :jump-to-captured t)
+        ("ep" "Add project board"
+         plain (function okm-add-new-project-board)
+         "%?"
+         :after-finalize okm-add-new-project-finalize
 	 :jump-to-captured t)
         ("et" "Add task"
 	 entry (function okm-ask-task-board)
