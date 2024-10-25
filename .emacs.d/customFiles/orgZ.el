@@ -2206,7 +2206,7 @@ Either show all or filter based on a sprint."
   (interactive)
   (let* ((files (f-glob "*/project_boards/*.org" okm-base-directory))
          (selection-list (append '(("ALL"))
-                                 (amsha/get-sprints '("INPROGRESS" "TODO"))
+                                 ;; (amsha/get-sprints '("INPROGRESS" "TODO"))
                                  (--map (list (format "%s/project_boards::%s"
                                                       (f-base (f-parent (f-parent it)))
                                                       (file-name-base it)) it) files)))

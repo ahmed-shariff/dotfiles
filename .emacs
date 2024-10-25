@@ -2888,23 +2888,23 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
              (dashboard-insert-shortcut ,shortcut-id ,shortcut-char ,section-name))
          (insert (propertize "\n    --- No items ---" 'face 'dashboard-no-items-face)))))
 
-  (defun dashboard-insert-sprints (list-size)
-    "Add the list of LIST-SIZE items."
-    (let ((sprints (condition-case nil (amsha/get-sprints '("INPROGRESS")) ((user-error))))
-          (dashboard-set-file-icons nil))
-      (amsha/dashboard-insert-section
-       "Active Sprints:"
-       (all-the-icons-octicon "globe"
-                              :height 1.2
-                              :v-adjust 0.0
-                              :face 'dashboard-heading)
-       sprints
-       list-size
-       'sprints
-       (dashboard-get-shortcut 'sprints)
-       `(lambda (&rest ignore)
-          (org-id-goto (cdr (quote ,el))))
-       (format "%s" (car el)))))
+  ;; (defun dashboard-insert-sprints (list-size)
+  ;;   "Add the list of LIST-SIZE items."
+  ;;   (let ((sprints (condition-case nil (amsha/get-sprints '("INPROGRESS")) ((user-error))))
+  ;;         (dashboard-set-file-icons nil))
+  ;;     (amsha/dashboard-insert-section
+  ;;      "Active Sprints:"
+  ;;      (all-the-icons-octicon "globe"
+  ;;                             :height 1.2
+  ;;                             :v-adjust 0.0
+  ;;                             :face 'dashboard-heading)
+  ;;      sprints
+  ;;      list-size
+  ;;      'sprints
+  ;;      (dashboard-get-shortcut 'sprints)
+  ;;      `(lambda (&rest ignore)
+  ;;         (org-id-goto (cdr (quote ,el))))
+  ;;      (format "%s" (car el)))))
 
   (defun dashboard-insert-tasks (list-size)
     "Add the list of LIST-SIZE items."
@@ -2968,13 +2968,13 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
           (browse-url ,(cdr el)))
        (format "%s" (car el)))))
 
-  (add-to-list 'dashboard-item-generators  '(sprints . dashboard-insert-sprints))
+  ;; (add-to-list 'dashboard-item-generators  '(sprints . dashboard-insert-sprints))
   (add-to-list 'dashboard-item-generators  '(tasks . dashboard-insert-tasks))
   (add-to-list 'dashboard-item-generators  '(quick-links . dashboard-insert-links))
-  (add-to-list 'dashboard-item-shortcuts '(sprints . "s"))
+  ;; (add-to-list 'dashboard-item-shortcuts '(sprints . "s"))
   (add-to-list 'dashboard-item-shortcuts '(tasks . "t"))
   (add-to-list 'dashboard-item-shortcuts '(quick-links . "l"))
-  (dashboard-modify-heading-icons '((sprints . "globe")
+  (dashboard-modify-heading-icons '(;;(sprints . "globe")
                                     (tasks . "checklist")
                                     (quick-links . "info")))
 
@@ -2993,7 +2993,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
                           (recents  . 5)
                           (projects . 5)
                           (tasks . 50)
-                          (sprints . 50)
+                          ;; (sprints . 50)
                           (agenda . 50)
                           (registers . 5)
                           (bookmarks . 5))
