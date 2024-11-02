@@ -2918,7 +2918,8 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
                                                     (--> (buffer-file-name)
                                                          (format "%s/%s" (f-base (f-parent (f-parent it))) (file-name-base it))
                                                          (propertize it 'face 'shadow))
-                                                    (org-no-properties (org-get-heading t t t t)))
+                                                    (amsha/org-repalce-link-in-string
+                                                     (org-no-properties (org-get-heading t t t t))))
                                             (org-id-get))))
                     nil))
            (dashboard-set-file-icons nil))
@@ -2935,6 +2936,62 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
        `(lambda (&rest ignore)
           (org-id-goto (cdr (quote ,el))))
        (format "%s" (car el)))))
+
+  (defun dashboard-insert-day-to-day-task (list-size)
+    "Add day-to-day tasks."
+    (let* ((tasks (org-ql-select "~/Documents/org/brain/work/project_boards/day-to-day.org"
+                    '(todo "INPROGRESS" "TODO")
+                    :action (lambda ()
+                              (--> (list
+                                    (--> (cl-subseq (org-entry-get (point) "TODO") 0 1)
+                                         (propertize it 'face (org-get-todo-face "INPROGRESS")))
+                                    (--> (org-entry-get (point) "DEADLINE" t)
+                                         (format "%-16s" (or it "-"))
+                                         (propertize it 'face 'highlight))
+                                    (amsha/org-repalce-link-in-string
+                                     (org-no-properties
+                                      (org-get-heading t t t t)))
+                                    (--> (if (<= (org-current-level) 3)
+                                             "-"
+                                           (save-excursion
+                                             (while (progn (org-up-heading-safe)
+                                                           (and (org-current-level)
+                                                                (not (eq 3 (org-current-level))))))
+                                             (org-get-heading t t t t)))
+                                         (format "<%s>" it)
+                                         (s-replace "Friday" "Fri" it)
+                                         (s-replace "Saturday" "Sat" it)
+                                         (s-replace "Sunday" "Sun" it)
+                                         (s-replace "Monday" "Mon" it)
+                                         (s-replace "Tuesday" "Tue" it)
+                                         (s-replace "Wednesday" "Wed" it)
+                                         (s-replace "Thursday" "Thu" it)
+                                         (propertize it 'face 'shadow)))
+                                   (format "%s %s %s %s" (car it) (cadddr it) (cadr it) (caddr it))
+                                        (progn
+                                          (add-text-properties 0 (length it)
+                                                               (list 'dashboard-file (buffer-file-name)
+                                                                     'dashboard-loc (point))
+                                                               it)
+                                          it)))))
+
+           (dashboard-set-file-icons nil))
+      (amsha/dashboard-insert-section
+       "day-to-day:"
+       (all-the-icons-octicon "checklist"
+                              :height 1.2
+                              :v-adjust 0.0
+                              :face 'dashboard-heading)
+       tasks
+       list-size
+       'day-to-day
+       (dashboard-get-shortcut 'day-to-day)
+       `(lambda (&rest ignore)
+          (let ((buffer (find-file-other-window (get-text-property 0 'dashboard-file ,el))))
+            (with-current-buffer buffer
+              (goto-char (get-text-property 0 'dashboard-loc ,el))
+              (switch-to-buffer buffer))))
+       el)))
 
   (defun dashboard-insert-links (list-size)
     "Add the list of LIST-SIZE items."
@@ -2971,10 +3028,13 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   ;; (add-to-list 'dashboard-item-generators  '(sprints . dashboard-insert-sprints))
   (add-to-list 'dashboard-item-generators  '(tasks . dashboard-insert-tasks))
   (add-to-list 'dashboard-item-generators  '(quick-links . dashboard-insert-links))
+  (add-to-list 'dashboard-item-generators  '(day-to-day . dashboard-insert-day-to-day-task))
   ;; (add-to-list 'dashboard-item-shortcuts '(sprints . "s"))
   (add-to-list 'dashboard-item-shortcuts '(tasks . "t"))
   (add-to-list 'dashboard-item-shortcuts '(quick-links . "l"))
+  (add-to-list 'dashboard-item-shortcuts '(day-to-day . "d"))
   (dashboard-modify-heading-icons '(;;(sprints . "globe")
+                                    (day-to-day . "globe")
                                     (tasks . "checklist")
                                     (quick-links . "info")))
 
@@ -2988,11 +3048,13 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   
   (setq dashboard-startup-banner "~/.emacs.d/customFiles/banner.png"
         dashboard-banner-logo-title nil
-        dashboard-image-banner-max-height 200
+        dashboard-image-banner-max-height 1
+        dashboard-image-banner-max-width 1
         dashboard-items '((quick-links . 5)
                           (recents  . 5)
                           (projects . 5)
                           (tasks . 50)
+                          (day-to-day . 50)
                           ;; (sprints . 50)
                           (agenda . 50)
                           (registers . 5)

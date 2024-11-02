@@ -472,24 +472,24 @@
   :ID:       %(org-id-new)
   :END:")
 	("j" "Journal entry")
-	("jg" "Journal entry general"
-	 entry (file+olp+datetree "~/Documents/org/journal.org")
-	 "* %?")
+	;; ("jg" "Journal entry general"
+	;;  entry (file+olp+datetree "~/Documents/org/journal.org")
+	;;  "* %?")
 	("jw" "Journal entry work"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-	 "* %?")
+	 entry (file+olp+datetree "~/Documents/org/brain/work/project_boards/day-to-day.org")
+	 "* TODO %?")
 	("js" "Journal entry work-scrum"
 	 entry (file+olp+datetree "~/Documents/org/brain/work/scrum.org")
 	 "* Y:\n1. %?\n* T:\n1. "
 	 :jump-to-captured t)
-	("jt" "Journal sub entry"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-	 "1. %?")
+	;; ("jt" "Journal sub entry"
+	;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
+	;;  "1. %?")
 	("e" "Experiment setup information")
 	("ej" "Add Journal entry")
-        ("ejt" "for task"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-	 "%(okm-board-task-location)")
+        ;; ("ejt" "for task"
+	;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
+	;;  "%(okm-board-task-location)")
   ;;       ("eje" "for experiment"
   ;;        entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
   ;;        "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
@@ -905,9 +905,7 @@ Copied  from `org-roam-backlink-get'."
              ;; remove properties not interested. If prop drawer is empty at the end, remove drawer itself
              (s-replace-regexp (format "\n *:%s:.*$" el) "" str))
            ;; remove links
-           (list (s-replace-regexp "\\[id:\\([a-z]\\|[0-9]\\)\\{8\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{12\\}\\]"
-                                   ""
-                                   (string-trim (buffer-substring-no-properties beg end)))
+           (list (amsha/org-repalce-link-in-string (string-trim (buffer-substring-no-properties beg end)))
                  "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" okm-parent-property-name "PROPERTIES:\n *:END")))
       (org-roam-preview-default-function)))
 
@@ -1614,7 +1612,14 @@ Else create a text annotations at point."
   (org-agenda-action org-ql-view-topics
     (okm-print-parents))
   (org-agenda-action org-ql-add-parents
-    (okm-add-parent-topic)))
+    (okm-add-parent-topic))
+
+  (add-to-list 'org-ql-views
+               (cons "Overview: day-to-day active tasks"
+                     (list :buffers-files "~/Documents/org/brain/work/project_boards/day-to-day.org"
+                           :query '(todo "TODO" "INPROGRESS")
+                           :sort '(date priority)
+                           :title "Overview: day-to-day active tasks"))))
 
 (defmacro org-agenda-action (name &rest body)
   (declare (indent defun))
@@ -1777,9 +1782,10 @@ resulting node from source-or-query, it will return an error.  TYPE is
 the type of the link."
     (org-roam-ql--expand-recursive-link source-or-query nil type inlcude-refs))
 
-  (org-roam-ql-add-saved-query 'rp "research papers" '(file "research_papers"))
-  (org-roam-ql-add-saved-query 'pe "people" '(file "People.org"))
-  (org-roam-ql-add-saved-query 'rt "research topics" '(file "research topics.org"))
+  (org-roam-ql-add-saved-query 'rp "Research papers" '(file "research_papers"))
+  (org-roam-ql-add-saved-query 'pe "People" '(file "People.org"))
+  (org-roam-ql-add-saved-query 'rt "Research topics" '(file "research topics.org"))
+  (org-roam-ql-add-saved-query 'pr "Projects" '(file "project_boards"))
 
   (org-roam-ql-defexpansion 'backlink-to-recursive
                             "Recursive backlinks (heading, backlink & refs)"
@@ -3126,6 +3132,13 @@ Parent-child relation is defined by the brain-parent links."
                                                                  (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))
                                              (f-glob "~/Documents/org/brain/personal/**/*.org")
                                              '("~/Documents/org/brain/google_calender_unlisted.org")))))
+
+(defun amsha/org-repalce-link-in-string (str)
+  "Replace the link in the string."
+  (s-replace-regexp
+   "\\[id:\\([a-z]\\|[0-9]\\)\\{8\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{12\\}\\]"
+   ""
+   str))
 
 (okm-org-agenda-recompute)
 
