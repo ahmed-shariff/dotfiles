@@ -910,25 +910,25 @@ Copied  from `org-roam-backlink-get'."
 
   (setq org-roam-preview-function #'org-roam-subtree-aware-preview-function)
 
-  (defun org-roam-node-read-multiple (&optional prompt)
-    "Like org-roam-node-read, but with mulitiple read excluding the template used by roam."
-    (let ((nodes (mapcar (lambda (node)
-                           (cons (org-roam-node-title node) node))
-                         (org-roam-node-list))))
-      (-non-nil
-       (--map (org-roam-node-from-title-or-alias it)
-              (completing-read-multiple
-               (or prompt "Node(s):")
-               (lambda (string pred action)
-                 (if (eq action 'metadata)
-                     '(metadata
-                       ;; (annotation-function . consult-notes-org-roam-annotate)
-                       (category . org-roam-node))
-                   (complete-with-action
-                    action
-                    nodes
-                    string
-                    pred))))))))
+  ;; (defun org-roam-node-read-multiple (&optional prompt)
+  ;;   "Like org-roam-node-read, but with mulitiple read excluding the template used by roam."
+  ;;   (let ((nodes (mapcar (lambda (node)
+  ;;                          (cons (org-roam-node-title node) node))
+  ;;                        (org-roam-node-list))))
+  ;;     (-non-nil
+  ;;      (--map (org-roam-node-from-title-or-alias it)
+  ;;             (completing-read-multiple
+  ;;              (or prompt "Node(s):")
+  ;;              (lambda (string pred action)
+  ;;                (if (eq action 'metadata)
+  ;;                    '(metadata
+  ;;                      ;; (annotation-function . consult-notes-org-roam-annotate)
+  ;;                      (category . org-roam-node))
+  ;;                  (complete-with-action
+  ;;                   action
+  ;;                   nodes
+  ;;                   string
+  ;;                   pred))))))))
 
   (defun org-roam-node-annotator (cand)
     "Annotate org-roam-nodes in completions"
@@ -1933,10 +1933,10 @@ the type of the link."
     (org-roam-ql-nodes (list [:select [id] :from nodes :where (= file $s1)] f)))
 
   (defun okm-org-roam-list-notes (entries)
-    "Filter based on the list of ids (FILTER) in the notes files.
+    "Filter based on the list nodes in the notes files. Interactive only handles only one node.
 If prefix arg used, search whole db."
     (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
-                  (org-roam-node-read-multiple)))
+                  (list (org-roam-node-read))))
     (let* ((entries (-uniq
                      (-flatten
                       (--map (let ((node (if (stringp it) (org-roam-node-from-title-or-alias it) it)))
@@ -2106,42 +2106,42 @@ If prefix arg used, search whole db."
 ;;    ("C-c n l" . consult-org-roam-forward-links)
 ;;    ("C-c n r" . consult-org-roam-search))
 
-(defun okm-query-papers-by-topics (&optional topic-ids)
-  "Query papers based on topics."
-  (interactive)
-  (let* ((topics (if topic-ids
-                     (-map #'org-roam-node-from-id topic-ids)
-                   (org-roam-node-read-multiple "Query topics: ")))
-         (topic-queries (--map `(child-of ,(org-roam-node-title it)) topics)))
-    (org-roam-ql-search
-     `(and (file "research_papers")
-           ,(if (eq 1 (length topic-queries))
-               (car topic-queries)
-              `(,(pcase (completing-read "connector: " '(and or) nil t)
-                   ("or" 'or)
-                   ("and" 'and))
-            ,@topic-queries)))
-     (format "(%s)" (s-join ", " (-map #'org-roam-node-title topics))))))
+;; (defun okm-query-papers-by-topics (&optional topic-ids)
+;;   "Query papers based on topics."
+;;   (interactive)
+;;   (let* ((topics (if topic-ids
+;;                      (-map #'org-roam-node-from-id topic-ids)
+;;                    (org-roam-node-read-multiple "Query topics: ")))
+;;          (topic-queries (--map `(child-of ,(org-roam-node-title it)) topics)))
+;;     (org-roam-ql-search
+;;      `(and (file "research_papers")
+;;            ,(if (eq 1 (length topic-queries))
+;;                (car topic-queries)
+;;               `(,(pcase (completing-read "connector: " '(and or) nil t)
+;;                    ("or" 'or)
+;;                    ("and" 'and))
+;;             ,@topic-queries)))
+;;      (format "(%s)" (s-join ", " (-map #'org-roam-node-title topics))))))
 
-;; TODO: allow mulitiple combinations of brain-parent to be used (eg: (and (or ..) (or ..)))
-(defun okm-query-papers-by-topic-with-ql ()
-  "CONNECTOR."
-  (interactive)
-  (let* ((topics 
-          (org-roam-node-read-multiple "Query topics: "))
-         (connector (if (> (length topics) 1)
-                        (pcase (completing-read "connector: " '(and or) nil t)
-                          ("or" 'or)
-                          ("and" 'and))
-                      'and))
-         (topic-ids (list (append `(okm-parent (quote ,connector))
-                                  (mapcar
-                                   (lambda (topic)
-                                     `(quote ,(cons (org-roam-node-title topic) (org-roam-node-id topic))))
-                                   topics))))
-         (query (append '(and (level <= 1)) topic-ids))
-         (after-change-major-mode-hook nil))
-    (org-ql-search (f-glob "*.org" (f-join okm-base-directory "research_papers"))  query)))
+;; ;; TODO: allow mulitiple combinations of brain-parent to be used (eg: (and (or ..) (or ..)))
+;; (defun okm-query-papers-by-topic-with-ql ()
+;;   "CONNECTOR."
+;;   (interactive)
+;;   (let* ((topics 
+;;           (org-roam-node-read-multiple "Query topics: "))
+;;          (connector (if (> (length topics) 1)
+;;                         (pcase (completing-read "connector: " '(and or) nil t)
+;;                           ("or" 'or)
+;;                           ("and" 'and))
+;;                       'and))
+;;          (topic-ids (list (append `(okm-parent (quote ,connector))
+;;                                   (mapcar
+;;                                    (lambda (topic)
+;;                                      `(quote ,(cons (org-roam-node-title topic) (org-roam-node-id topic))))
+;;                                    topics))))
+;;          (query (append '(and (level <= 1)) topic-ids))
+;;          (after-change-major-mode-hook nil))
+;;     (org-ql-search (f-glob "*.org" (f-join okm-base-directory "research_papers"))  query)))
 
 ;; (defun okm-query-papers-by-pdf-string (regexp)
 ;;   "query with org-ql REGEXP."
@@ -2249,19 +2249,19 @@ If prefix arg used, search whole db."
                          :point pos
                          :properties properties))))))
 
-(defun amsha/org-brain-children-topics (entry)
-  "list parents of all the children of an ENTRY."
-  (interactive (list (org-roam-node-read-multiple)))
-  (let (topics other-parents)
-    (mapcar (lambda (child-entry)
-              (-let (((-topics . -other-parents) (okm-parents-by-topics (org-roam-node-id (org-roam-backlink-target-node child-entry)))))
-                (setq topics (append topics -topics)
-                      other-parents (append other-parents -other-parents))))
-            (org-roam-backlinks-get entry))
-    (setq topics (-uniq topics)
-          other-parents (-uniq other-parents))
-    (okm-print-parents topics other-parents)
-    (cons topics other-parents)))
+;; (defun amsha/org-brain-children-topics (entry)
+;;   "list parents of all the children of an ENTRY."
+;;   (interactive (list (org-roam-node-read-multiple)))
+;;   (let (topics other-parents)
+;;     (mapcar (lambda (child-entry)
+;;               (-let (((-topics . -other-parents) (okm-parents-by-topics (org-roam-node-id (org-roam-backlink-target-node child-entry)))))
+;;                 (setq topics (append topics -topics)
+;;                       other-parents (append other-parents -other-parents))))
+;;             (org-roam-backlinks-get entry))
+;;     (setq topics (-uniq topics)
+;;           other-parents (-uniq other-parents))
+;;     (okm-print-parents topics other-parents)
+;;     (cons topics other-parents)))
 
 (defun okm-org-ql-query-topics ()
   "List all parent topics of all results from QUERY.
@@ -2778,7 +2778,7 @@ Parent-child relation is defined by the brain-parent links."
   (interactive)
   ;; forgoing interactive args to allow this to be called interactively.
   (unless parents
-    (setq parents (--map (org-roam-node-id it) (org-roam-node-read-multiple "Add parents:"))))
+    (setq parents (--map (org-roam-node-id it) (list (org-roam-node-read)))))
   ;; (or (s-starts-with-p "People::" (car entry))
   ;;     (s-starts-with-p "research topics::" (car entry))
   ;;     (s-starts-with-p "misc_topics::" (car entry))
@@ -2811,7 +2811,7 @@ Parent-child relation is defined by the brain-parent links."
 (defun org-agenda-okm-add-parents ()
   "To be used with the org-agenda-bulk-action."
   (unless org-agenda-okm-add-parents--parents
-    (setq org-agenda-okm-add-parents--parents (-map #'org-roam-node-id (org-roam-node-read-multiple "Add parents: "))
+    (setq org-agenda-okm-add-parents--parents (list (org-roam-node-id (org-roam-node-read "Add parents: ")))
           org-agenda-bulk-action-post-execution-function (lambda ()
                                                            (em "Cleared org-agenda-okm-add-parents--parents")
                                                            (setq org-agenda-okm-add-parents--parents nil))))
@@ -3168,7 +3168,8 @@ Parent-child relation is defined by the brain-parent links."
       org-agenda-start-day "-3d"
       org-image-actual-width (list 650)
       org-tag-alist '(("TEMP_BIB"))
-      org-export-with-broken-links t)
+      org-export-with-broken-links t
+      org-agenda-persistent-marks t)
 
 (provide 'orgZ)
 ;;; orgZ.el ends here
