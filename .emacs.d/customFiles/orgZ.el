@@ -1061,70 +1061,71 @@ Copied  from `org-roam-backlink-get'."
           (set-syntax-table emacs-lisp-mode-syntax-table)
           (add-hook 'completion-at-point-functions
                     #'org-roam-ql--completion-at-point nil t))
-    (let* ((style (consult--async-split-style))
-           (fn (plist-get style :function))
-           split-pos
-           mb-str
-           ;; Override how the empty string is handled!
-           ;; When empty async-str should return default candidates
-           (split (lambda (str)
-                    (pcase-let* ((res (funcall fn str style))
-                                 (`(,async-str ,pos ,force . ,_) res))
-                      ;; This gets called at severaal places. We only want the data when it is
-                      ;; called with the force value!
-                      (when force
-                        (setq split-pos pos
-                              mb-str str))
-                      (when (and force (equal "" async-str))
-                        (setf (car res) "-"))
-                      res)))
-           ;; Default candidates
-           (nodes (mapcar (lambda (node)
-                            (cons (propertize (org-roam-node-title node) 'node node) node))
-                          (org-roam-node-list)))
-           ;; The sink is what holds the candidates and feed it back to all-completions
-           (sink (consult--async-sink))
-           (overriden-keymap (make-sparse-keymap)))
+      (let* ((style (consult--async-split-style))
+             (fn (plist-get style :function))
+             (corfu-auto nil)
+             split-pos
+             mb-str
+             ;; Override how the empty string is handled!
+             ;; When empty async-str should return default candidates
+             (split (lambda (str)
+                      (pcase-let* ((res (funcall fn str style))
+                                   (`(,async-str ,pos ,force . ,_) res))
+                        ;; This gets called at severaal places. We only want the data when it is
+                        ;; called with the force value!
+                        (when force
+                          (setq split-pos pos
+                                mb-str str))
+                        (when (and force (equal "" async-str))
+                          (setf (car res) "-"))
+                        res)))
+             ;; Default candidates
+             (nodes (mapcar (lambda (node)
+                              (cons (propertize (org-roam-node-title node) 'node node) node))
+                            (org-roam-node-list)))
+             ;; The sink is what holds the candidates and feed it back to all-completions
+             (sink (consult--async-sink))
+             (overriden-keymap (make-sparse-keymap)))
 
-      (define-key overriden-keymap "\M-d" (lambda ()
-                                            (interactive)
-                                            (when (and mb-str split-pos)
-                                              (delete-minibuffer-contents)
-                                              (insert (substring mb-str 0 split-pos)))))
-      (set-keymap-parent overriden-keymap org-roam-ql--read-query-map)
-      ;; (setq indicator-async dynamic-async)
-      ;; Feeding initial set of candidates to sink
-      (funcall sink nodes)
-      (-->
-       (consult--dynamic-compute
-        sink
-        (lambda (input) 
-          (if (and (> (length input) 0) (not (equal input "-")))
-              ;; TODO: can I update the state/indicator somehow?
-              (condition-case err
-                  (mapcar
-                   (lambda (node)
-                     (cons (propertize (org-roam-node-title node) 'node node) node))
-                   (org-roam-ql-nodes (read input)))
-                (user-error nodes))
-            nodes)))
-       (consult--async-throttle it)
-       (consult--async-split it split)
-       (consult--read
-        it
-        :prompt (or prompt "Node: ")
-        :initial (if initial-input initial-input ";")
-        :keymap overriden-keymap
-        :category 'org-roam-node
-        :sort nil ;; TODO
-        :require-match require-match
-        :state (consult-org-roam--node-preview)
-        ;; Taken from consult-org-roam
-        ;; Uses the DEFAULT argument of alist-get to return input in case the input is not found as key.
-        :lookup (lambda (selected candidates input narrow) (alist-get selected candidates input nil #'equal)))
-       (if (org-roam-node-p it)
-           it
-         (org-roam-node-create :title it))))))
+        (define-key overriden-keymap "\M-d" (lambda ()
+                                              (interactive)
+                                              (when (and mb-str split-pos)
+                                                (delete-minibuffer-contents)
+                                                (insert (substring mb-str 0 split-pos)))))
+        (set-keymap-parent overriden-keymap org-roam-ql--read-query-map)
+        ;; (setq indicator-async dynamic-async)
+        ;; Feeding initial set of candidates to sink
+        (funcall sink nodes)
+        (-->
+         (consult--dynamic-compute
+          sink
+          (lambda (input) 
+            (if (and (> (length input) 0) (not (equal input "-")))
+                ;; TODO: can I update the state/indicator somehow?
+                (condition-case err
+                    (mapcar
+                     (lambda (node)
+                       (cons (propertize (org-roam-node-title node) 'node node) node))
+                     (org-roam-ql-nodes (read input)))
+                  (user-error nodes))
+              nodes)))
+         (consult--async-throttle it)
+         (consult--async-split it split)
+         (consult--read
+          it
+          :prompt (or prompt "Node: ")
+          :initial (if initial-input initial-input ";")
+          :keymap overriden-keymap
+          :category 'org-roam-node
+          :sort nil ;; TODO
+          :require-match require-match
+          :state (consult-org-roam--node-preview)
+          ;; Taken from consult-org-roam
+          ;; Uses the DEFAULT argument of alist-get to return input in case the input is not found as key.
+          :lookup (lambda (selected candidates input narrow) (alist-get selected candidates input nil #'equal)))
+         (if (org-roam-node-p it)
+             it
+           (org-roam-node-create :title it))))))
 
   (advice-add #'consult-org-roam-node-read :override #'consult-org-roam-ql))
 
