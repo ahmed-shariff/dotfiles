@@ -1604,7 +1604,7 @@ Else create a text annotations at point."
               ("C-c o s" . org-ql-view-topics)
               ("C-c o o" . org-ql-view-noter)
               ("C-c o p" . org-ql-add-parents))
-  :commands org-ql-defpred
+  :commands (org-ql-defpred okm-query-boards)
   :config
   (org-agenda-action org-ql-view-noter
     (org-noter))
@@ -1613,12 +1613,56 @@ Else create a text annotations at point."
   (org-agenda-action org-ql-add-parents
     (okm-add-parent-topic))
 
+  (defun okm-query-boards ()
+    "List the in progress items in the project boards directory.
+Either show all or filter based on a sprint."
+    (interactive)
+    (let* ((files (f-glob "*/project_boards/*.org" okm-base-directory))
+           (selection-list (append '(("ALL"))
+                                   ;; (amsha/get-sprints '("INPROGRESS" "TODO"))
+                                   (--map (list (format "%s/project_boards::%s"
+                                                        (f-base (f-parent (f-parent it)))
+                                                        (file-name-base it)) it) files)))
+           (predicate '(and (todo "INPROGRESS" "TODO")))
+           (selection (--map (assoc it selection-list) (completing-read-multiple "Project topic: " selection-list nil t)))
+           (selection-car (--map (car it) selection)))
+      ;; (cond
+      ;;  ;; if ALL is in the list, we have nothing more to do
+      ;;  ((member "ALL" selection-car)
+      ;;   nil)
+      ;;  ((s-contains-p "/project_boards::" (car selection))
+      ;;   (setq files (cdr selection)))
+      ;;  ((not (string= (car selection) "ALL"))
+      ;;   (setq predicate
+      ;;         (append predicate
+      ;;                 `((member ,(cdr selection)
+      ;;                           (org-entry-get-multivalued-property (point) okm-parent-property-name)))))))
+      (unless (member "ALL" selection-car)
+        (let ((-files '()))
+          (--map (cond
+                  ((s-contains-p "/project_boards::" (car it))
+                   (push (cadr it) -files))
+                  ((not (string= (car it) "ALL"))
+                   (setq predicate (append predicate`((member ,(cdr it)
+                                                              (okm-org-get-parent-ids)))))))
+                 selection)
+          (when -files
+            (setq files -files))))
+      (org-ql-search files predicate
+        :super-groups (mapcar (lambda (x) (list :file-path (car (s-match "[^/]*/[^/]*/[^/]*\\.org" x)))) files)
+        :title (format "%s" selection))))
+
+
   (add-to-list 'org-ql-views
-               (cons "Overview: day-to-day active tasks"
+               (cons "okm: day-to-day active tasks"
                      (list :buffers-files "~/Documents/org/brain/work/project_boards/day-to-day.org"
                            :query '(todo "TODO" "INPROGRESS")
                            :sort '(date priority)
-                           :title "Overview: day-to-day active tasks"))))
+                           :title "okm: day-to-day active tasks")))
+  (add-to-list 'org-ql-views
+               (cons "okm: project boards query"
+                     #'okm-query-boards)))
+
 
 (defmacro org-agenda-action (name &rest body)
   (declare (indent defun))
@@ -2204,45 +2248,6 @@ If prefix arg used, search whole db."
                          :target-node (org-roam-node-create :id dest-id)
                          :point pos
                          :properties properties))))))
-
-(defun okm-query-boards ()
-  "List the in progress items in the project boards directory.
-Either show all or filter based on a sprint."
-  (interactive)
-  (let* ((files (f-glob "*/project_boards/*.org" okm-base-directory))
-         (selection-list (append '(("ALL"))
-                                 ;; (amsha/get-sprints '("INPROGRESS" "TODO"))
-                                 (--map (list (format "%s/project_boards::%s"
-                                                      (f-base (f-parent (f-parent it)))
-                                                      (file-name-base it)) it) files)))
-         (predicate '(and (todo "INPROGRESS" "TODO")))
-         (selection (--map (assoc it selection-list) (completing-read-multiple "Project topic: " selection-list nil t)))
-         (selection-car (--map (car it) selection)))
-    ;; (cond
-    ;;  ;; if ALL is in the list, we have nothing more to do
-    ;;  ((member "ALL" selection-car)
-    ;;   nil)
-    ;;  ((s-contains-p "/project_boards::" (car selection))
-    ;;   (setq files (cdr selection)))
-    ;;  ((not (string= (car selection) "ALL"))
-    ;;   (setq predicate
-    ;;         (append predicate
-    ;;                 `((member ,(cdr selection)
-    ;;                           (org-entry-get-multivalued-property (point) okm-parent-property-name)))))))
-    (unless (member "ALL" selection-car)
-      (let ((-files '()))
-        (--map (cond
-                ((s-contains-p "/project_boards::" (car it))
-                 (push (cadr it) -files))
-                ((not (string= (car it) "ALL"))
-                 (setq predicate (append predicate`((member ,(cdr it)
-                                                            (okm-org-get-parent-ids)))))))
-               selection)
-        (when -files
-          (setq files -files))))
-    (org-ql-search files predicate
-      :super-groups (mapcar (lambda (x) (list :file-path (car (s-match "[^/]*/[^/]*/[^/]*\\.org" x)))) files)
-      :title (format "%s" selection))))
 
 (defun amsha/org-brain-children-topics (entry)
   "list parents of all the children of an ENTRY."
