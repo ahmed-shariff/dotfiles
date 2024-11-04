@@ -1051,7 +1051,6 @@ Copied  from `org-roam-backlink-get'."
       (consult-ripgrep)))
 
   ;; TODO: filter-fn and sort-fn does notthing now!
-  ;; TODO: handle delete-minibuffer-contents better
   (defun consult-org-roam-ql (&optional initial-input filter-fn sort-fn
                                         require-match prompt)
     "Consult with org-roam-ql for searching/narrowing."
@@ -1064,11 +1063,18 @@ Copied  from `org-roam-backlink-get'."
                     #'org-roam-ql--completion-at-point nil t))
     (let* ((style (consult--async-split-style))
            (fn (plist-get style :function))
+           split-pos
+           mb-str
            ;; Override how the empty string is handled!
            ;; When empty async-str should return default candidates
            (split (lambda (str)
                     (pcase-let* ((res (funcall fn str style))
-                                 (`(,async-str ,_ ,force . ,_) res))
+                                 (`(,async-str ,pos ,force . ,_) res))
+                      ;; This gets called at severaal places. We only want the data when it is
+                      ;; called with the force value!
+                      (when force
+                        (setq split-pos pos
+                              mb-str str))
                       (when (and force (equal "" async-str))
                         (setf (car res) "-"))
                       res)))
@@ -1077,7 +1083,15 @@ Copied  from `org-roam-backlink-get'."
                             (cons (org-roam-node-title node) node))
                           (org-roam-node-list)))
            ;; The sink is what holds the candidates and feed it back to all-completions
-           (sink (consult--async-sink)))
+           (sink (consult--async-sink))
+           (overriden-keymap (make-sparse-keymap)))
+
+      (define-key overriden-keymap "\M-d" (lambda ()
+                                            (interactive)
+                                            (when (and mb-str split-pos)
+                                              (delete-minibuffer-contents)
+                                              (insert (substring mb-str 0 split-pos)))))
+      (set-keymap-parent overriden-keymap org-roam-ql--read-query-map)
       ;; (setq indicator-async dynamic-async)
       ;; Feeding initial set of candidates to sink
       (funcall sink nodes)
@@ -1099,7 +1113,7 @@ Copied  from `org-roam-backlink-get'."
         it
         :prompt (or prompt "Node: ")
         :initial (if initial-input initial-input ";")
-        :keymap org-roam-ql--read-query-map
+        :keymap overriden-keymap
         :category 'org-roam-node
         :sort nil ;; TODO
         :require-match require-match
