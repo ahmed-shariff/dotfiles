@@ -1080,7 +1080,7 @@ Copied  from `org-roam-backlink-get'."
                       res)))
            ;; Default candidates
            (nodes (mapcar (lambda (node)
-                            (cons (org-roam-node-title node) node))
+                            (cons (propertize (org-roam-node-title node) 'node node) node))
                           (org-roam-node-list)))
            ;; The sink is what holds the candidates and feed it back to all-completions
            (sink (consult--async-sink))
@@ -1103,7 +1103,8 @@ Copied  from `org-roam-backlink-get'."
               ;; TODO: can I update the state/indicator somehow?
               (condition-case err
                   (mapcar
-                   (lambda (node) (cons (org-roam-node-title node) node))
+                   (lambda (node)
+                     (cons (propertize (org-roam-node-title node) 'node node) node))
                    (org-roam-ql-nodes (read input)))
                 (user-error nodes))
             nodes)))
@@ -1121,8 +1122,9 @@ Copied  from `org-roam-backlink-get'."
         ;; Taken from consult-org-roam
         ;; Uses the DEFAULT argument of alist-get to return input in case the input is not found as key.
         :lookup (lambda (selected candidates input narrow) (alist-get selected candidates input nil #'equal)))
-       (or (cdr (assoc it nodes))
-           (org-roam-node-create :title it))))))
+       (if (org-roam-node-p it)
+           it
+         (org-roam-node-create :title it))))))
 
   (advice-add #'consult-org-roam-node-read :override #'consult-org-roam-ql))
 
