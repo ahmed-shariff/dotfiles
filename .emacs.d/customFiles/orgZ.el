@@ -1048,8 +1048,69 @@ Copied  from `org-roam-backlink-get'."
                     (file-truename "~/Documents/org/brain/personal/notes")
                     (file-truename "~/Documents/org/brain/work/notes"))
             consult-ripgrep-args)))
-      (consult-ripgrep))))
+      (consult-ripgrep)))
 
+  ;; TODO: filter-fn and sort-fn does notthing now!
+  ;; TODO: handle delete-minibuffer-contents better
+  (defun consult-org-roam-ql (&optional initial-input filter-fn sort-fn
+                                        require-match prompt)
+    "Consult with org-roam-ql for searching/narrowing."
+    (interactive)
+    (minibuffer-with-setup-hook
+        (lambda ()
+          ;; KLUDGE: No idea why this is here!
+          (set-syntax-table emacs-lisp-mode-syntax-table)
+          (add-hook 'completion-at-point-functions
+                    #'org-roam-ql--completion-at-point nil t))
+    (let* ((style (consult--async-split-style))
+           (fn (plist-get style :function))
+           ;; Override how the empty string is handled!
+           ;; When empty async-str should return default candidates
+           (split (lambda (str)
+                    (pcase-let* ((res (funcall fn str style))
+                                 (`(,async-str ,_ ,force . ,_) res))
+                      (when (and force (equal "" async-str))
+                        (setf (car res) "-"))
+                      res)))
+           ;; Default candidates
+           (nodes (mapcar (lambda (node)
+                            (cons (org-roam-node-title node) node))
+                          (org-roam-node-list)))
+           ;; The sink is what holds the candidates and feed it back to all-completions
+           (sink (consult--async-sink)))
+      ;; (setq indicator-async dynamic-async)
+      ;; Feeding initial set of candidates to sink
+      (funcall sink nodes)
+      (-->
+       (consult--dynamic-compute
+        sink
+        (lambda (input) 
+          (if (and (> (length input) 0) (not (equal input "-")))
+              ;; TODO: can I update the state/indicator somehow?
+              (condition-case err
+                  (mapcar
+                   (lambda (node) (cons (org-roam-node-title node) node))
+                   (org-roam-ql-nodes (read input)))
+                (user-error nodes))
+            nodes)))
+       (consult--async-throttle it)
+       (consult--async-split it split)
+       (consult--read
+        it
+        :prompt (or prompt "Node: ")
+        :initial (if initial-input initial-input ";")
+        :keymap org-roam-ql--read-query-map
+        :category 'org-roam-node
+        :sort nil ;; TODO
+        :require-match require-match
+        :state (consult-org-roam--node-preview)
+        ;; Taken from consult-org-roam
+        ;; Uses the DEFAULT argument of alist-get to return input in case the input is not found as key.
+        :lookup (lambda (selected candidates input narrow) (alist-get selected candidates input nil #'equal)))
+       (or (cdr (assoc it nodes))
+           (org-roam-node-create :title it))))))
+
+  (advice-add #'consult-org-roam-node-read :override #'consult-org-roam-ql))
 
 (use-package org-roam-bibtex
   :after (org-roam consult-bibtex)
@@ -2012,54 +2073,6 @@ If prefix arg used, search whole db."
 
   (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled > "+0")))
 
-  (defun consult-org-roam-ql ()
-    "Consult with org-roam-ql for searching/narrowing."
-    (interactive)
-    (minibuffer-with-setup-hook
-        (lambda ()
-          ;; KLUDGE: No idea why this is here!
-          (set-syntax-table emacs-lisp-mode-syntax-table)
-          (add-hook 'completion-at-point-functions
-                    #'org-roam-ql--completion-at-point nil t))
-    (let* ((style (consult--async-split-style))
-           (fn (plist-get style :function))
-           ;; Override how the empty string is handled!
-           ;; When empty async-str should return default candidates
-           (split (lambda (str)
-                    (pcase-let* ((res (funcall fn str style))
-                                 (`(,async-str ,_ ,force . ,_) res))
-                      (when (and force (equal "" async-str))
-                        (setf (car res) "-"))
-                      res)))
-           ;; Default candidates
-           (nodes (mapcar (lambda (node)
-                            (cons (org-roam-node-title node) node))
-                          (org-roam-node-list)))
-           ;; The sink is what holds the candidates and feed it back to all-completions
-           (sink (consult--async-sink)))
-      (setq indicator-async dynamic-async)
-      ;; Feeding initial set of candidates to sink
-      (funcall sink nodes)
-      (-->
-       (consult--dynamic-compute
-        sink
-        (lambda (input) 
-          (if (and (> (length input) 0) (not (equal input "-")))
-              ;; TODO: can I update the state/indicator somehow?
-              (condition-case err
-                  (mapcar
-                   (lambda (node) (cons (org-roam-node-title node) node))
-                   (org-roam-ql-nodes (read input)))
-                (user-error nodes))
-            nodes)))
-       (consult--async-throttle it)
-       (consult--async-split it split)
-       (consult--read it
-        :initial ";"
-        :keymap org-roam-ql--read-query-map
-        :category 'org-roam-node)
-       (or (cdr (assoc it nodes))
-           (org-roam-node-create :title it))))))
   )
 
 ;; (use-package org-roam-gocal
@@ -2075,36 +2088,6 @@ If prefix arg used, search whole db."
   :after (org-roam org-ql org-roam-ql)
   :config
   (org-roam-ql-ql-init))
-
-;; I am not using this as its functionalities doesn't suit me
-;; well. But it does some have some nice recipies for me to use.
-;; (use-package consult-org-roam
-;;    :ensure t
-;;    :after org-roam
-;;    :init
-;;    (require 'consult-org-roam)
-;;    ;; Activate the minor mode
-;;    (consult-org-roam-mode 1)
-;;    :custom
-;;    ;; Use `ripgrep' for searching with `consult-org-roam-search'
-;;    (consult-org-roam-grep-func #'consult-ripgrep)
-;;    ;; Configure a custom narrow key for `consult-buffer'
-;;    (consult-org-roam-buffer-narrow-key ?r)
-;;    ;; Display org-roam buffers right after non-org-roam buffers
-;;    ;; in consult-buffer (and not down at the bottom)
-;;    (consult-org-roam-buffer-after-buffers t)
-;;    :config
-;;    ;; Eventually suppress previewing for certain functions
-;;    (consult-customize
-;;     consult-org-roam-forward-links
-;;     :preview-key "M-.")
-;;    :bind
-;;    ;; Define some convenient keybindings as an addition
-;;    ("C-c n e" . consult-org-roam-file-find)
-;;    ("C-c n b" . consult-org-roam-backlinks)
-;;    ("C-c n B" . consult-org-roam-backlinks-recursive)
-;;    ("C-c n l" . consult-org-roam-forward-links)
-;;    ("C-c n r" . consult-org-roam-search))
 
 ;; (defun okm-query-papers-by-topics (&optional topic-ids)
 ;;   "Query papers based on topics."
