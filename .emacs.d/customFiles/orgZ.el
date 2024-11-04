@@ -23,7 +23,7 @@
                                                                                   (1+ (length okm-parent-id-type-name))))))))
 
 
-(magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures" "brain/work/notes" "brain/personl/work"))
+(magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures" "brain/work/notes" "brain/personl/work" "brain/work/project_boards"))
 
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
@@ -693,7 +693,6 @@
 
   (defun amsha/bibtex-completion-apa-get-value (old-fun &rest args)
     "Override the downcase situation."
-    (em args)
     (if (and (stringp (car args)) (string-equal (car args) "title"))
         (if-let (value (bibtex-completion-get-value (car args) entry))
             (replace-regexp-in-string ; remove braces

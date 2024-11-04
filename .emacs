@@ -672,6 +672,10 @@ advice, files on WSL can not be saved."
   :init
   (savehist-mode))
 
+(use-package recentf
+  :init
+  (recentf-mode))
+
 ;; Configure directory extension.
 (use-package vertico-directory
   :after vertico
