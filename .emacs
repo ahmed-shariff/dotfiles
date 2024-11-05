@@ -2943,14 +2943,26 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 
   (defun dashboard-insert-day-to-day-task (list-size)
     "Add day-to-day tasks."
-    (let* ((tasks (org-ql-select "~/Documents/org/brain/work/project_boards/day-to-day.org"
+    (let* ((today-day-number (org-today))
+             ;; (scheduled-day-number (org-time-string-to-absolute
+                                    ;; (org-element-timestamp-interpreter scheduled-date 'ignore)))
+             ;; (difference-days (- today-day-number scheduled-day-number))
+             ;; (relative-due-date (org-add-props (org-ql-view--format-relative-date difference-days) nil
+                                  ;; 'help-echo (org-element-property :raw-value scheduled-date)))
+           (tasks (org-ql-select "~/Documents/org/brain/work/project_boards/day-to-day.org"
                     '(todo "INPROGRESS" "TODO")
                     :action (lambda ()
                               (--> (list
                                     (--> (cl-subseq (org-entry-get (point) "TODO") 0 1)
                                          (propertize it 'face (org-get-todo-face "INPROGRESS")))
                                     (--> (org-entry-get (point) "DEADLINE" t)
-                                         (format "%-16s" (or it "-"))
+                                         (or (and it
+                                                  (pcase (- today-day-number (org-time-string-to-absolute it))
+                                                    ((and (pred (< 0)) diff) (format "%dd ago" diff))
+                                                    ((and (pred (> 0)) diff) (format "in %dd " (* -1 diff)))
+                                                    (_ "today")))
+                                             "  -   ")
+                                         (format " %-8s " it)
                                          (propertize it 'face 'highlight))
                                     (amsha/org-repalce-link-in-string
                                      (org-no-properties
@@ -2962,14 +2974,18 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
                                                            (and (org-current-level)
                                                                 (not (eq 3 (org-current-level))))))
                                              (org-get-heading t t t t)))
-                                         (format "<%s>" it)
-                                         (s-replace "Friday" "Fri" it)
-                                         (s-replace "Saturday" "Sat" it)
-                                         (s-replace "Sunday" "Sun" it)
-                                         (s-replace "Monday" "Mon" it)
-                                         (s-replace "Tuesday" "Tue" it)
-                                         (s-replace "Wednesday" "Wed" it)
-                                         (s-replace "Thursday" "Thu" it)
+                                         ;; (format "<%s>" it)
+                                         ;; (s-replace "Friday" "Fri" it)
+                                         ;; (s-replace "Saturday" "Sat" it)
+                                         ;; (s-replace "Sunday" "Sun" it)
+                                         ;; (s-replace "Monday" "Mon" it)
+                                         ;; (s-replace "Tuesday" "Tue" it)
+                                         ;; (s-replace "Wednesday" "Wed" it)
+                                         ;; (s-replace "Thursday" "Thu" it)
+                                         (pcase (- today-day-number (org-time-string-to-absolute it))
+                                           ((and (pred (< 0)) diff) (format "%3dd ago" diff))
+                                           ((and (pred (> 0)) diff) (format "in %3dd " (* -1 diff)))
+                                           (_ "   today"))
                                          (propertize it 'face 'shadow)))
                                    (format "%s %s %s %s" (car it) (cadddr it) (cadr it) (caddr it))
                                         (progn
