@@ -1092,6 +1092,8 @@ Copied  from `org-roam-backlink-get'."
                                               (when (and mb-str split-pos)
                                                 (delete-minibuffer-contents)
                                                 (insert (substring mb-str 0 split-pos)))))
+        (when (not (featurep 'org-roam-ql))
+          (require 'org-roam-ql))
         (set-keymap-parent overriden-keymap org-roam-ql--read-query-map)
         ;; (setq indicator-async dynamic-async)
         ;; Feeding initial set of candidates to sink
