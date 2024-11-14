@@ -1909,6 +1909,7 @@ the type of the link."
   (org-roam-ql-add-saved-query 'pe "People" '(file "People.org"))
   (org-roam-ql-add-saved-query 'rt "Research topics" '(file "research topics.org"))
   (org-roam-ql-add-saved-query 'pr "Projects" '(file "project_boards"))
+  (org-roam-ql-add-saved-query 'tg "Tags" '(and (file "brain/tags.org") (level 1)))
 
   (org-roam-ql-defexpansion 'backlink-to-recursive
                             "Recursive backlinks (heading, backlink & refs)"
