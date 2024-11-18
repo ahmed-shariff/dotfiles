@@ -1686,6 +1686,12 @@ Else create a text annotations at point."
               ("C-c o p" . org-ql-add-parents))
   :commands (org-ql-defpred okm-query-boards)
   :config
+  ;; (setq org-super-agenda-header-map
+  ;;       (let ((map (make-sparse-keymap)))
+  ;;         (set-keymap-parent map org-agenda-mode-map)
+  ;;         map))
+  (setq org-super-agenda-header-map (make-sparse-keymap))
+
   (org-agenda-action org-ql-view-noter
     (org-noter))
   (org-agenda-action org-ql-view-topics
