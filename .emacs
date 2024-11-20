@@ -3402,7 +3402,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
                                          (pcase (- today-day-number (org-time-string-to-absolute it))
                                            ((and (pred (< 0)) diff) (format "%s / %3dd ago" it diff))
                                            ((and (pred (> 0)) diff) (format "%s / in %3dd " it (* -1 diff)))
-                                           (_ (format "%s  today" it)))
+                                           (_ (format "%s /   today " it)))
                                          (s-replace "Friday" "Fri" it)
                                          (s-replace "Saturday" "Sat" it)
                                          (s-replace "Sunday" "Sun" it)
