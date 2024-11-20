@@ -1,4 +1,4 @@
-;;; package -- Summary
+;;; package -- Summary  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 
@@ -231,6 +231,8 @@
   "Call `messaage' ARGS passed as args of `message' & retur the first argument passed.
 Used for debugging."
   ;; `(signal 'error ""))
+  (unless (featurep 's) (require 's))
+  (unless (featurep 'dash) (require 'dash))
   `(progn
      (when em-error
        (signal 'error "em is erroring"))

@@ -1738,7 +1738,7 @@ Either show all or filter based on a sprint."
         :super-groups (mapcar (lambda (x) (list :file-path (car (s-match "[^/]*/[^/]*/[^/]*\\.org" x)))) files)
         :title (format "%s" selection))))
 
-
+  (require 'org-ql-view)
   (add-to-list 'org-ql-views
                (cons "okm: day-to-day active tasks"
                      (list :buffers-files "~/Documents/org/brain/work/project_boards/day-to-day.org"
