@@ -1024,10 +1024,14 @@ targets."
 (use-package consult-omni
   :straight (consult-omni :type git :host github :repo "armindarvish/consult-omni" :branch "main" :files (:defaults "sources/*.el"))
   :after consult
+  :commands (consult-omni consult-omni-web consult-omni-local consult-omni-scholar)
+  :bind
+  (("C-c o m n" . consult-omni)
+   ("C-c o m s" . consult-omni-scholar)
+   ("C-c o m l" . consult-omni-local)
+   ("C-c o m w" . consult-omni-web))
   :custom
-
   ;;; General settings that apply to all sources
-
   (consult-omni-show-preview t) ;;; show previews
   (consult-omni-preview-key "C-o") ;;; set the preview key to C-o
   (consult-omni-highlight-matches-in-minibuffer t) ;;; highlight matches in minibuffer
@@ -1077,11 +1081,12 @@ targets."
                                              (annotated-results
                                               (mapcar (lambda (item)
                                                         (let ((display-name (gethash "display_name" item)))
-                                                          (em (gethash "id" item))
-                                                          (propertize (propertize display-name 'face 'consult-omni-default-face)
-                                                                      :source "Openalex AutoSuggest"
-                                                                      :title display-name
-                                                                      :url (gethash "id" item))))
+                                                          (propertize
+                                                           (concat (propertize (gethash "publication_year" item) 'face 'consult-omni-keyword-face)
+                                                                   (propertize display-name 'face 'consult-omni-default-face))
+                                                           :source "Openalex AutoSuggest"
+                                                           :title display-name
+                                                           :url (gethash "id" item))))
                                                       results)))
                                    (when (and annotated-results (functionp callback))
                                      (funcall callback annotated-results))
@@ -1166,6 +1171,66 @@ See URL `https://docs.openalex.org'"
                               :sort t
                               :interactive consult-omni-intereactive-commands-type)
 
+  (defun consult-omni--org-roam-ql-results (query callback)
+    "function that returns the results of a query for consult-omni."
+    (unless (featurep 'org-roam-ql) (require 'org-roam-ql))
+    (let ((results (--map
+                    (let ((title (org-roam-node-title it)))
+                      (propertize (propertize title 'face 'consult-omni-default-face)
+                                  :source "org-roam-ql"
+                                  :title title
+                                  :node it))
+                    (org-roam-ql-nodes query))))
+      (when callback (funcall callback results))
+      results))
+
+  (defun consult-omni--org-roam-node-goto (cand)
+    "Go to node of CAND."
+    (org-roam-node-open (get-text-property 0 :node cand)))
+
+  (cl-defun consult-omni--org-roam-get-nodes (input &rest args &key callback &allow-other-keys)
+    "Collects all nodes based on input title"
+    (pcase-let* ((`(,query . ,opts) (consult-omni--split-command input)))
+      (consult-omni--org-roam-ql-results `(title ,query) callback)))
+
+  (consult-omni-define-source "org-roam nodes"
+                              :narrow-char ?o
+                              :type 'dynamic
+                              :require-match nil
+                              :state #'consult-org-roam--node-preview
+                              :face 'consult-omni-engine-title-face
+                              :category 'org-roam-node
+                              :request #'consult-omni--org-roam-get-nodes
+                              :on-new #'org-roam-capture
+                              :on-callback #'consult-omni--org-roam-node-goto
+                              :preview-key consult-omni-preview-key
+                              :search-hist 'consult-omni--search-history
+                              :select-hist 'consult-omni--selection-history
+                              :group #'consult-omni--group-function
+                              :sort t
+                              :interactive consult-omni-intereactive-commands-type)
+
+  (cl-defun consult-omni--org-roam-get-research-papers (input &rest args &key callback &allow-other-keys)
+    "Collects research paper nodes based on input title"
+    (pcase-let* ((`(,query . ,opts) (consult-omni--split-command input)))
+      (consult-omni--org-roam-ql-results `(and "rp" (title ,query)) callback)))
+
+  (consult-omni-define-source "org-roam research papers"
+                              :narrow-char ?o
+                              :type 'dynamic
+                              :require-match nil
+                              :state #'consult-org-roam--node-preview
+                              :face 'consult-omni-engine-title-face
+                              :category 'org-roam-node
+                              :request #'consult-omni--org-roam-get-research-papers 
+                              :on-new #'org-roam-capture
+                              :on-callback #'consult-omni--org-roam-node-goto
+                              :preview-key consult-omni-preview-key
+                              :search-hist 'consult-omni--search-history
+                              :select-hist 'consult-omni--selection-history
+                              :group #'consult-omni--group-function
+                              :sort t
+                              :interactive consult-omni-intereactive-commands-type)
   ;;;----------------------------------------
 
   ;;; Either load all source modules or a selected list
@@ -1234,6 +1299,7 @@ See URL `https://docs.openalex.org'"
                                      ;; "GitHub"
                                      ;; "YouTube"
                                      "Invidious"
+                                     "org-roam nodes"
                                      ))
 
   ;;; Per source customization
@@ -1295,6 +1361,7 @@ See URL `https://docs.openalex.org'"
                                        ;; "GitHub"
                                        "Invidious"
                                        ))
+
   (defun consult-omni-web (&optional initial prompt sources no-callback &rest args)
     "Interactive web search”
 
@@ -1311,6 +1378,7 @@ See `consult-omni-multi' for more details.
   (defvar consult-omni-local-sources (list "ripgrep"
                                            ;; "mdfind"
                                            ;; "Notes Search"
+                                           "org-roam nodes"
                                            "Apps"
                                            "Org Agenda"))
   (defun consult-omni-local (&optional initial prompt sources no-callback &rest args)
@@ -1330,6 +1398,7 @@ See `consult-omni-multi' for more details.
                                       ;; "PubMed"
                                       ;; "Scopus"
                                       ;; "Notes Search"
+                                      "org-roam research papers"
                                       "OpenAlex"))
 
   (defun consult-omni-scholar (&optional initial prompt sources no-callback &rest args)
