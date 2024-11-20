@@ -796,6 +796,8 @@
   ;; If using org-roam-protocol
   ;; (require 'org-roam-protocol)
 
+  (add-hook 'org-roam-post-node-insert-hook (lambda (_ _) (insert " ")))
+
   (defmacro org-roam-node-action (name &rest body)
     (declare (indent defun))
     `(defun ,name ()
@@ -1085,13 +1087,20 @@ Copied  from `org-roam-backlink-get'."
                             (org-roam-node-list)))
              ;; The sink is what holds the candidates and feed it back to all-completions
              (sink (consult--async-sink))
-             (overriden-keymap (make-sparse-keymap)))
+             (overriden-keymap (make-sparse-keymap))
+             (delete-minibuffer-override
+              (lambda ()
+                (interactive)
+                (when (and mb-str split-pos)
+                  (delete-minibuffer-contents)
+                  (insert (substring mb-str 0 split-pos))))))
 
-        (define-key overriden-keymap "\M-d" (lambda ()
-                                              (interactive)
-                                              (when (and mb-str split-pos)
-                                                (delete-minibuffer-contents)
-                                                (insert (substring mb-str 0 split-pos)))))
+        (define-key overriden-keymap "\M-d" delete-minibuffer-override)
+        (define-key overriden-keymap (kbd "C-,") (lambda ()
+                                                   (interactive)
+                                                   (when (minibufferp)
+                                                     (embark-select)
+                                                     (funcall delete-minibuffer-override))))
         (when (not (featurep 'org-roam-ql))
           (require 'org-roam-ql))
         (set-keymap-parent overriden-keymap org-roam-ql--read-query-map)
