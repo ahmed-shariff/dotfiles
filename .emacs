@@ -777,6 +777,14 @@ advice, files on WSL can not be saved."
     (let ((embark-prompter #'embark-non-propmter-with-default-action))
       (embark-act-all arg)))
 
+  (defun embark-minibuffer-exit (other &rest rest)
+    "If embark-selection has been run, run `embark-act-all-with-default-action'."
+    (if embark--selection
+        (apply #'embark-act-all-with-default-action rest)
+      (apply other rest)))
+
+  (advice-add 'vertico-exit :around #'embark-minibuffer-exit)
+
   (defun embark-which-key-indicator ()
     "An embark indicator that displays keymaps using which-key.
 The which-key help message will show the type and value of the
