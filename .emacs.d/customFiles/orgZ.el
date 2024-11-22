@@ -1118,7 +1118,9 @@ Copied  from `org-roam-backlink-get'."
                      (lambda (node)
                        (cons (propertize (org-roam-node-title node) 'node node) node))
                      (org-roam-ql-nodes (read input)))
-                  (user-error nodes))
+                  (user-error
+                   (minibuffer-message (propertize (cadr err) 'face 'consult-async-failed))
+                   nodes))
               nodes)))
          (consult--async-throttle it)
          (consult--async-split it split)
