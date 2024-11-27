@@ -1352,9 +1352,17 @@ See URL `https://docs.openalex.org'"
     (setq consult-omni-apps-paths (-non-nil
                                    (append (list (file-truename "~/AppData/Roaming/Microsoft/Windows/Start Menu/Programs"))
                                            (f-directories (file-truename "~/AppData/Roaming/Microsoft/Windows/Start Menu/Programs") nil t)
+                                           (list (file-truename "C:/ProgramData/Microsoft/Windows/Start Menu/Programs"))
+                                           (f-directories (file-truename "C:/ProgramData/Microsoft/Windows/Start Menu/Programs") nil t)
                                            (-map #'file-truename (s-split ";" (getenv "path")))))
           consult-omni-apps-regexp-pattern "\\(.*\\.exe$\\|.*\\.lnk$\\)"
-          consult-omni-apps-open-command-args "start"))
+          consult-omni-apps-open-command-args "powershell Start-Process"
+          consult-omni-apps-default-launch-function (lambda (app &optional file)
+                                                      ;; (let ((consult-omni-apps-open-command-args (format "powershell $env:path='%s';Start-Process" (string-replace "/" "\\" (string-join consult-omni-apps-paths ";")))))
+                                                        ;; (em consult-omni-apps-open-command-args)
+                                                      ;; (let ((shell-file-name "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
+                                                            ;; (consult-omni-apps-open-command-args "Start-Process"));;(format "$env:path='%s';Start-Process" (string-replace "/" "\\" (string-join consult-omni-apps-paths ";")))))
+                                                        (consult-omni--apps-launch-app (format "'%s'" app) file))))
   
   ;;; Optionally add more interactive commands
 
