@@ -3557,6 +3557,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   :mode	"\\.erb\\'"
   :mode "\\.html?\\'"
   :mode "\\.js[x]?\\'"
+  :mode "\\.ts[x]?\\'"
   :mode "\\.svelte\\'"
   :bind ("C-c s" . switch-web-js2)
   :config
