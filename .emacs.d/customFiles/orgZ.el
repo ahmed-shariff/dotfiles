@@ -1052,6 +1052,8 @@ Copied  from `org-roam-backlink-get'."
             consult-ripgrep-args)))
       (consult-ripgrep)))
 
+  (defvar consult-org-roam-ql--history nil)
+
   ;; TODO: filter-fn and sort-fn does notthing now!
   (defun consult-org-roam-ql (&optional initial-input filter-fn sort-fn
                                         require-match prompt)
@@ -1104,7 +1106,6 @@ Copied  from `org-roam-backlink-get'."
         (when (not (featurep 'org-roam-ql))
           (require 'org-roam-ql))
         (set-keymap-parent overriden-keymap org-roam-ql--read-query-map)
-        ;; (setq indicator-async dynamic-async)
         ;; Feeding initial set of candidates to sink
         (funcall sink nodes)
         (-->
@@ -1133,6 +1134,7 @@ Copied  from `org-roam-backlink-get'."
           :sort nil ;; TODO
           :require-match require-match
           :state (consult-org-roam--node-preview)
+          :history 'consult-org-roam-ql--history
           ;; Taken from consult-org-roam
           ;; Uses the DEFAULT argument of alist-get to return input in case the input is not found as key.
           :lookup (lambda (selected candidates input narrow) (alist-get selected candidates input nil #'equal)))
