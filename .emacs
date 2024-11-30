@@ -3505,6 +3505,23 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
     (time-add (current-time) (* 86400 20)))
 
   (advice-add 'dashboard-due-date-for-agenda :override #'amsha/dashboard-due-date-for-agenda-n-days)
+
+  (defun amsha/dashboard-agenda--formatted-time (oldfun)
+    (let ((time-string (funcall oldfun))
+          (today-day-number (org-today)))
+      (format "%s  %s"
+              time-string 
+              (--> (org-entry-get (point) "DEADLINE" t)
+                   (or (and it
+                            (pcase (- today-day-number (org-time-string-to-absolute it))
+                              ((and (pred (< 0)) diff) (format "%dd ago" diff))
+                              ((and (pred (> 0)) diff) (format "in %dd " (* -1 diff)))
+                              (_ "today")))
+                       "  -  ")
+                   (format " %-7s " it)
+                   (propertize it 'face 'highlight)))))
+
+  (advice-add 'dashboard-agenda--formatted-time :around #'amsha/dashboard-agenda--formatted-time)
   
   (setq dashboard-startup-banner "~/.emacs.d/customFiles/banner.png"
         dashboard-banner-logo-title nil
@@ -3525,7 +3542,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
         dashboard-center-content t
         dashboard-agenda-sort-strategy '(time-up)
         dashboard-week-agenda t
-        dashboard-agenda-prefix-format " %-11s %-25:c")
+        dashboard-agenda-prefix-format " %-11s %-20:c")
   (dashboard-setup-startup-hook))
 
 ;; (require 'web-mode)
