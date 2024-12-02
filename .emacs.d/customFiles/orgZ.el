@@ -1929,6 +1929,10 @@ the type of the link."
   (org-roam-ql-add-saved-query 'rt "Research topics" '(file "research topics.org"))
   (org-roam-ql-add-saved-query 'pr "Projects" '(file "project_boards"))
   (org-roam-ql-add-saved-query 'tg "Tags" '(and (file "brain/tags.org") (level 1)))
+  (org-roam-ql-add-saved-query 'lvl0 "file nodes" '(level 0))
+  (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level 1))
+  (org-roam-ql-add-saved-query 'inp "inprogress" '(todo "INPROGRESS"))
+  (org-roam-ql-add-saved-query 'todo "todo" '(todo "TODO"))
 
   (org-roam-ql-defexpansion 'backlink-to-recursive
                             "Recursive backlinks (heading, backlink & refs)"
