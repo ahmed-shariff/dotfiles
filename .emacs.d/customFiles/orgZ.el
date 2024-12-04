@@ -2567,6 +2567,41 @@ With C-u C-u C-u prefix, force run all research-papers."
 ;; (org-brain-update-id-locations)
 ;; (org-roam-db-sync))
 
+(defun amsha/curl (&rest rest)
+  (shell-command-to-string
+   (string-join
+    (append
+     (list
+      "curl"
+      "--disable" "--location" "--silent"
+      (if (memq system-type '(windows-nt ms-dos))
+          "" "--compressed")
+      "-X" "POST" "-y300" "-Y1"
+      ;; "-D-"
+      ;; "--trace-ascii"
+      )
+     rest)
+    " ")))
+
+(defun amsha/add-file-to-openai (file)
+  ""
+  (let* ((api-key (gethash 'openai-apk configurations))
+         (org-data-store-id (gethash 'openai-org-vector-store configurations))
+         (json-response
+          (amsha/curl
+           (format "-H \"Authorization: Bearer %s\"" api-key)
+           "-F purpose=\"assistants\""
+           (format "-F file=\"@%s\"" (file-truename file))
+           "https://api.openai.com/v1/files"))
+         (json-data
+          (json-read-from-string json-response)))
+    (amsha/curl
+     (format "-H \"Authorization: Bearer %s\"" api-key)
+     "-H \"Content-Type: application/json\""
+     "-H \"OpenAI-Beta: assistants=v2\""
+     "-d" (format "%S" (json-encode (list :file_id (cdr (assoc-string 'id json-data)))))
+     (format "https://api.openai.com/v1/vector_stores/%s/files" org-data-store-id))))
+
 (defun amsha/doi-utils-get-pdf-url-uml (old-function &rest rest)
   "Making sure the urls that are being recived by org-ref is made to use uml links."
   (let ((url (apply old-function rest)))
