@@ -25,8 +25,8 @@
                                                                                   (cadr (get-text-property (point) 'htmlize-link))
                                                                                   (1+ (length okm-parent-id-type-name))))))))
 
-
-(magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures" "brain/work/notes" "brain/personl/work" "brain/work/project_boards"))
+(with-eval-after-load 'magit
+  (magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures" "brain/work/notes" "brain/personl/work" "brain/work/project_boards")))
 
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"

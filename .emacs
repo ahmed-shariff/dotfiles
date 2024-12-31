@@ -57,7 +57,16 @@
   (interactive (list (string-to-number (completing-read "Percentage: " '("10" "20" "50" "60" "75" "85")))))
   (enlarge-window-horizontally (truncate (- (* (frame-width) (/ (float percentage) 100)) (window-width)))))
 
+(defvar made-transparent nil)
+
+(defun toggle-frame-alpha ()
+  "Toggle frame transparency."
+  (interactive)
+  (set-frame-parameter (selected-frame) 'alpha (if made-transparent '(100 . 100) '(98 . 92)))
+  (setq made-transparent (not made-transparent)))
+
 (maximize)
+(toggle-frame-alpha)
 (add-hook 'after-make-frame-functions 'maximize)
 (setq ns-auto-hide-menu-bar t)
 (tool-bar-mode 0)
@@ -84,7 +93,31 @@
       package-enable-at-startup nil
       straight-recipes-gnu-elpa-use-mirror t
       straight-vc-git-default-protocol 'https
-      straight-host-usernames '((github . "ahmed-shariff")))
+      straight-host-usernames '((github . "ahmed-shariff"))
+      backup-directory-alist `(("." . "~/.backups_emacs"))
+      backup-by-copying t
+      delete-old-versions t
+      fill-column 80
+      ;; Following vertico readme
+      read-extended-command-predicate #'command-completion-default-include-p
+      enable-recursive-minibuffers t
+      confirm-kill-emacs #'y-or-n-p
+      ;;tramp settings ***************************************************
+      ;; See https://stackoverflow.com/questions/6954479/emacs-tramp-doesnt-work for more details
+      tramp-terminal-type "dumb")
+
+;; ;;enabling company***********************************************
+;; (add-hook 'after-init-hook 'global-company-mode)
+;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
+;; (setq company-minimum-prefix-length 1)
+;; (setq company-idle-delay 0.1)
+;;;; GC issue
+;; (add-hook 'after-init-hook (lambda () (setq gc-cons-threshold 100000000))) ;; This is set in lsp-mode
+(add-hook 'focus-out-hook 'garbage-collect)
+;; ;; ;;company quickhelp gives docstring info
+;; (company-quickhelp-mode 1)
+;; (setq company-quickhelp-delay nil)
+
 
 (defvar my-package-list '(org org-contrib elgrep dired+
 					   ;; org-capture-pop-frame
@@ -208,6 +241,83 @@
 (setq view-read-only t)
 
 (repeat-mode 1)
+
+(customize-set-value 'create-lockfiles nil "It's not being ignored propperly?")
+
+(add-hook 'prog-mode-hook
+    (lambda ()
+      ;; (linum-on)
+      (setq indent-tabs-mode nil)
+      (infer-indentation-style)))
+
+;;fix for issues with ACL on WLS ***********************************
+;; from https://github.com/microsoft/WSL/issues/6004
+(when (eq system-type 'windows-nt)
+  (defun fp/ignore-wsl-acls (orig-fun &rest args)
+    "Ignore ACLs on WSL. WSL does not provide an ACL, but emacs
+expects there to be one before saving any file. Without this
+advice, files on WSL can not be saved."
+    (if (string-match-p "^//wsl\$/" (car args))
+        (progn (message "ignoring wsl acls") "")
+      (apply orig-fun args)))
+
+  (advice-add 'file-acl :around 'fp/ignore-wsl-acls))
+
+(put 'upcase-region 'disabled nil)
+(put 'narrow-to-region 'disabled nil)
+(put 'downcase-region 'disabled nil)
+
+(defun yank-pop-forwards (arg)
+  "Ha ha ha. 
+ARG : the arg"
+  (interactive "p")
+  (yank-pop (- arg)))
+
+(global-set-key "\M-Y" 'yank-pop-forwards) ; M-Y (Meta-Shift-Y)
+
+;; from https://emacs.stackexchange.com/questions/32140/python-mode-indentation
+(defun how-many-region (begin end regexp &optional interactive)
+  "Print number of non-trivial matches for REGEXP in region.
+   Non-interactive arguments are Begin End Regexp"
+  (interactive "r\nsHow many matches for (regexp): \np")
+  (let ((count 0) opoint)
+    (save-excursion
+      (setq end (or end (point-max)))
+      (goto-char (or begin (point)))
+      (while (and (< (setq opoint (point)) end)
+                  (re-search-forward regexp end t))
+        (if (= opoint (point))
+            (forward-char 1)
+          (setq count (1+ count))))
+      (if interactive (message "%d occurrences" count))
+      count)))
+
+(defun infer-indentation-style ()
+  ;; if our source file uses tabs, we use tabs, if spaces spaces, and if
+  ;; neither, we use the current indent-tabs-mode
+  (let ((space-count (how-many-region (point-min) (point-max) "^  "))
+        (tab-count (how-many-region (point-min) (point-max) "^\t")))
+    (if (> space-count tab-count) (setq indent-tabs-mode nil))
+    (if (> tab-count space-count) (setq indent-tabs-mode t))))
+
+;; https://emacs.stackexchange.com/questions/653/how-can-i-find-out-in-which-keymap-a-key-is-bound
+(defun amsha/lookup-key-prefix (key)
+  "Search for KEY as prefix in all known keymaps.
+
+E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
+  (let (vals)
+    (mapatoms (lambda (ob)
+                (when (and (boundp ob) (keymapp (symbol-value ob)))
+                  (when (let ((m (lookup-key (symbol-value ob) key)))
+                          (and m (or (symbolp m) (keymapp m))))
+                    (push ob vals))
+                  (when (functionp (lookup-key (symbol-value ob) key))
+                    (push ob vals))))
+              obarray)
+    (-uniq vals)))
+
+;; (setq use-package-compute-statistics t)
+
 ;; from https://karthinks.com/software/it-bears-repeating/
 (defun repeatize (keymap)
   "Add `repeat-mode' support to a KEYMAP."
@@ -216,10 +326,6 @@
      (when (symbolp cmd)
        (put cmd 'repeat-map keymap)))
    (symbol-value keymap)))
-
-(customize-set-value 'create-lockfiles nil "It's not being ignored propperly?")
-
-;; (setq use-package-compute-statistics t)
 
 (defvar em-error nil "If non-nil the `em' macro will signal error")
 
@@ -249,6 +355,120 @@ Used for debugging."
        ,@(nreverse list)
        ,plist-sym)))
 
+;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
+(defun amsha/visual-fill ()
+  (setq visual-fill-column-width 110
+        visual-fill-column-center-text t)
+  (visual-fill-column-mode 1))
+
+(defun visual-fill-set-width-buffer-local (width)
+  "Set visual fill column width for this buffer."
+  (interactive (list (read (read-string (format "Width [%s]: " visual-fill-column-width) nil nil
+                                        (format "%s" visual-fill-column-width)))))
+  (if (numberp width)
+      (setq-local visual-fill-column-width width)
+    (user-error "%s is not a number" width)))
+
+(defun git-message ()
+  (format "[%s] %s"
+          (gethash 'system-name configurations "Check system-name in configurations.el")
+          (format-time-string "%Y-%m-%dT%H:%M:%S%:z")))
+
+(defun amsha/get-project-root-overlooking-submodules (&optional filename)
+  "Get the project root by looking for the root directory by running
+git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
+  (unless (featurep 'magit)
+    (require 'magit))
+  (let ((default-directory (magit--safe-default-directory (or filename default-directory))))
+    (when-let (project-root (magit-git-string "rev-parse" "--show-superproject-working-tree" "--show-toplevel"))
+      (format "%s/" project-root))))
+
+(defun copy-buffer-file-name (buffer-file-name)
+  "Copy the file name without the directory. If directory, copy the directory-name.
+ If buffer/non-exisitant file just copy buffer-file-name."
+  (kill-new
+   (if (f-exists-p buffer-file-name)
+       (f-filename buffer-file-name)
+     buffer-file-name)))
+
+(defun copy-file-full-path (file-name)
+  "Copy the full path of the file-name"
+  (kill-new (file-truename file-name)))
+
+(defun copy-current-file-buffer-name ()
+  "Copy the current buffers filename or FILE to the kill ring."
+  (interactive)
+  (copy-buffer-file-name (buffer-name (window-buffer (minibuffer-selected-window)))))
+
+(defun copy-current-file-full-path ()
+  "Copy the current buffers filename to the kill ring."
+  (interactive)
+  (copy-file-full-path (buffer-file-name (window-buffer (minibuffer-selected-window)))))
+
+(defun copy-current-directory ()
+  "Copy the current direcory. If prefix arg, copy project root."
+  (interactive)
+  (kill-new (-->
+             (file-truename
+              (buffer-file-name (window-buffer
+                                 (minibuffer-selected-window))))
+             (if current-prefix-arg
+                 (amsha/get-project-root-overlooking-submodules it)
+               (file-name-directory it)))))
+
+(defun single-linify (beg end)
+  "Make a paragraph single-lined by replacing line break with space.
+  BEG The begining of a region
+  END The end of a region"
+  (interactive (if (use-region-p)
+                   (list (region-beginning) (region-end))
+                 (list nil nil)))
+  (let ((insertion (replace-regexp-in-string "\n" " " (buffer-substring beg end))))
+    (when (and beg end)
+      (delete-region beg end)
+      (insert insertion))))
+
+(defun amsha/downlad-raname-move-file (url newname dir)
+  (url-copy-file url (expand-file-name newname dir)))
+
+(defun amsha/get-uml-link (link)
+  (interactive "slink: ")
+  (let ((split-link (s-split "/" link))
+	(formated-link '()))
+    (dolist (el split-link)
+      (if (or (s-matches-p ".*\.com" el)
+		(s-matches-p ".*\.org" el))
+	  (push (s-concat (s-replace "." "-" el) ".uml.idm.oclc.org") formated-link)
+	(push el formated-link)))
+    (kill-new (s-join "/" (reverse formated-link)))))
+
+;; font setup****************************************************
+(use-package mixed-pitch
+  :hook
+  (text-mode . mixed-pitch-mode))
+
+(set-face-attribute 'default nil
+                       :font "Fira Code"
+                       :weight 'normal
+                       :height 100)
+
+;; Set the fixed pitch face
+(set-face-attribute 'fixed-pitch nil
+                    :font "Fira Code"
+                    :weight 'normal
+                    :height 100)
+
+;; Set the variable pitch face
+(set-face-attribute 'variable-pitch nil
+                    ;; :font "Cantarell"
+                    :font "Iosevka Aile"
+                    :height 105
+                    :weight 'normal)
+
+(when (member "Segoe UI Emoji" (font-family-list))
+  (set-fontset-font
+   t 'unicode (font-spec :family "Segoe UI Emoji") nil 'prepend))
+
 (use-package exec-path-from-shell
   :demand
   :config
@@ -256,12 +476,46 @@ Used for debugging."
     (exec-path-from-shell-initialize)))
 
 (use-package magit
+  :bind ("C-x g" . magit-status)
+  :commands (get-gitignore-from-github)
   :custom
   (magit-clone-always-transient t)
+  (magit-git-executable "git")
+  (transient-default-level 7)
   :config
+
+  (defun get-gitignore-from-github ()
+    "Get a gitignore file from github/gitignore repo."
+    ;; Expecting the repo (https://github.com/github/gitignore) to be cloned in ~/.emacs.d/.cache/gitignore
+    (interactive)
+    (unless (featurep 'magit-gitignore)
+      (require 'magit-gitignore))
+    (let ((gitignore-location (expand-file-name ".cache/gitignore" user-emacs-directory)))
+      (magit--with-safe-default-directory gitignore-location
+        (magit-run-git-with-editor "pull"))
+      (let* ((gitignore-files (--map (cons (f-base it) it) (f-files gitignore-location (lambda (f) (string= "gitignore" (f-ext f))))))
+             (target-gitignore-content (f-read-text (cdr (assoc (completing-read "Add gitignore for: " gitignore-files) gitignore-files)))))
+        (magit-with-toplevel
+          (magit--gitignore target-gitignore-content ".gitignore")))))
 
   (remove-hook 'server-switch-hook 'magit-commit-diff)
   (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff)
+
+  (defvar home-dir-magit-files '("~/" "~/.emacs.d/customFiles/"))
+
+  (defun home-dir-magit-process-environment (env)
+    "Add GIT_DIR and GIT_WORK_TREE to ENV when in a special directory.
+https://github.com/magit/magit/issues/460 (@cpitclaudel)."
+    (let* ((default (file-name-as-directory (expand-file-name default-directory)))
+           (dot-dirs (--map (expand-file-name it) home-dir-magit-files)))
+      (when (member default dot-dirs)
+        (let ((gitdir (expand-file-name "~/.dotfiles/")))
+          (push (format "GIT_WORK_TREE=%s" (car dot-dirs)) env) ;; car of dot-dirs should be ~/
+          (push (format "GIT_DIR=%s" gitdir) env))))
+    env)
+
+  (advice-add 'magit-process-environment
+              :filter-return #'home-dir-magit-process-environment)
 
   (defmacro magit-sync-repo (name git-directory git-message &optional add-directories)
     "Creats an interactive function with name `sync-<NAME>'.
@@ -314,19 +568,14 @@ that returns a string."
                       "failed")))))))
 
 (use-package forge
+  :defer t
   :after magit)
 
-(defun amsha/get-project-root-overlooking-submodules (&optional filename)
-  "Get the project root by looking for the root directory by running
-git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
-  (unless (featurep 'magit)
-    (require 'magit))
-  (let ((default-directory (magit--safe-default-directory (or filename default-directory))))
-    (when-let (project-root (magit-git-string "rev-parse" "--show-superproject-working-tree" "--show-toplevel"))
-      (format "%s/" project-root))))
-
+(use-package hl-todo
+  :hook prog-mode-hook)
 
 (use-package flycheck
+  :defer t
   :config
   (define-key flycheck-mode-map flycheck-keymap-prefix nil)
   (setq flycheck-keymap-prefix (kbd "C-c e"))
@@ -334,7 +583,7 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
               flycheck-command-map))
 
 (use-package beacon
-  :demand
+  :defer 2
   :custom
   (beacon-push-mark nil)
   (beacon-color "#cc342b")
@@ -343,82 +592,49 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   :config
   (beacon-mode))
 
-(setq backup-directory-alist `(("." . "~/.backups_emacs"))
-      backup-by-copying t
-      delete-old-versions t
-      fill-column 80
-      ;; Following vertico readme
-      read-extended-command-predicate #'command-completion-default-include-p
-      enable-recursive-minibuffers t
-      confirm-kill-emacs #'y-or-n-p)
-
-
-;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
-(defun amsha/visual-fill ()
-  (setq visual-fill-column-width 110
-        visual-fill-column-center-text t)
-  (visual-fill-column-mode 1))
-
-(defun visual-fill-set-width-buffer-local (width)
-  "Set visual fill column width for this buffer."
-  (interactive (list (read (read-string (format "Width [%s]: " visual-fill-column-width) nil nil
-                                        (format "%s" visual-fill-column-width)))))
-  (if (numberp width)
-      (setq-local visual-fill-column-width width)
-    (user-error "%s is not a number" width)))
-
-(defun git-message ()
-  (format "[%s] %s"
-          (gethash 'system-name configurations "Check system-name in configurations.el")
-          (format-time-string "%Y-%m-%dT%H:%M:%S%:z")))
-
 (use-package visual-fill-column
-  :defer 
+  :defer 2
   :hook ((org-mode LaTeX-mode latex-mode markdown-mode org-roam-mode) . amsha/visual-fill))
 
 ;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
 ;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
-(if (not (eq system-type 'windows-nt))
+(unless (eq system-type 'windows-nt)
     (progn
       (setq symlink-overload-expand-file-name-p t)
       (require 'symlink-fix)
-      (setq expand-file-name-resolve-symlinks-p t))
-  (set-face-attribute 'default nil
-                      :family "Consolas" :height 105))
+      (setq expand-file-name-resolve-symlinks-p t)))
+  ;; (set-face-attribute 'default nil
+                      ;; :family "Consolas" :height 105))
 
 ;;enable ido mode
 ;; (require 'ido)
 ;; (ido-mode t)
 
-(use-package golden-ratio)
+(use-package golden-ratio
+  :defer t)
 
-(use-package diminish)
+(use-package diminish
+  :defer 1
+  :config
+  (diminish 'visual-line-mode)
+  (diminish 'ivy-mode)
+  (diminish 'projectile-mode "P"))
 
-(use-package flycheck-package)
-(use-package package-build)
+(use-package flycheck-package
+  :defer t)
+
+(use-package package-build
+  :defer t)
 
 (use-package persistent-scratch
   :init (persistent-scratch-setup-default))
-
-;;fix for issues with ACL on WLS ***********************************
-;; from https://github.com/microsoft/WSL/issues/6004
-(when (eq system-type 'windows-nt)
-  (defun fp/ignore-wsl-acls (orig-fun &rest args)
-    "Ignore ACLs on WSL. WSL does not provide an ACL, but emacs
-expects there to be one before saving any file. Without this
-advice, files on WSL can not be saved."
-    (if (string-match-p "^//wsl\$/" (car args))
-        (progn (message "ignoring wsl acls") "")
-      (apply orig-fun args)))
-
-  (advice-add 'file-acl :around 'fp/ignore-wsl-acls))
-
 
 (use-package powershell)
 
 
 ;;evil *************************************************************
 (use-package evil
+  :defer 1
   :init
   (setq evil-want-integration t ;; This is optional since it's already set to t by default.
         evil-want-keybinding nil)
@@ -475,11 +691,13 @@ advice, files on WSL can not be saved."
   )
 
 (use-package evil-lion
+  :after evil
   :ensure t
   :config
   (evil-lion-mode))
 
 (use-package evil-easymotion
+  :after evil
   :config
   (evilem-default-keybindings "SPC"))
 
@@ -490,6 +708,7 @@ advice, files on WSL can not be saved."
   (evil-embrace-enable-evil-surround-integration))
 
 (use-package evil-multiedit
+  :after evil
   :config
   (evil-define-key 'normal 'global
     (kbd "M-d")   #'evil-multiedit-match-symbol-and-next
@@ -512,12 +731,13 @@ advice, files on WSL can not be saved."
 
 ;; Keybindings set in evil-collections
 (use-package evil-mc
+  :after evil
   :config
   (global-evil-mc-mode  1))
 
 (use-package evil-org
   :ensure t
-  :after org
+  :after (org evil)
   :hook (org-mode . (lambda () evil-org-mode))
   :config
   (require 'evil-org-agenda)
@@ -526,6 +746,8 @@ advice, files on WSL can not be saved."
     (setq org-super-agenda-header-map (copy-keymap org-agenda-mode-map))))
 
 (use-package evil-textobj-tree-sitter
+  :defer t
+  :after evil
   :straight (evil-textobj-tree-sitter :type git :host github :repo "meain/evil-textobj-tree-sitter"
                                       :files (:defaults "queries" "treesit-queries"))
   :config
@@ -577,6 +799,7 @@ advice, files on WSL can not be saved."
 ;;   (setq selectrum-prescient-enable-filtering nil))
 
 (use-package evil-numbers
+  :after evil
   :config
   (evil-define-key 'normal 'global (kbd "C-c +") #'evil-numbers/inc-at-pt)
   (evil-define-key 'normal 'global (kbd "C-c -") #'evil-numbers/dec-at-pt)
@@ -648,6 +871,7 @@ advice, files on WSL can not be saved."
   (corfu-indexed-mode))
 
 (use-package kind-icon
+  :defer t
   :ensure t
   :after corfu
   ;:custom
@@ -1438,45 +1662,41 @@ See `consult-omni-multi' for more details.
         (setq input (substring input 1)))
       (consult-omni-brave-autosuggest input))))
 
-;;tramp settings ***************************************************
-;; See https://stackoverflow.com/questions/6954479/emacs-tramp-doesnt-work for more details
-(setq tramp-terminal-type "dumb")
-
 ;;ivy-mode *********************************************************
 (use-package amx
   :init (amx-mode 1))
 
-(use-package ivy
-  :diminish (ivy-mode . "")             ; does not display ivy in the modeline
-  ;; :init
-  ;; (ivy-mode 1)                          ; enable ivy globally at startup
-  :bind (;; ("C-c g" . counsel-git)
-	 ;; ("C-c j" . counsel-git-grep) 
-	 ;; ("C-c k" . counsel-ag)       
-	 ;; ("C-x l" . counsel-locate)   
-	 ;; ("C-S-o" . counsel-rhythmbox)
-	 ;;("C-x C-f" . counsel-find-file)
-	 :map ivy-minibuffer-map        ; bind in the ivy buffer
-	 ("RET" . ivy-alt-done))
-	 ;;      ("s-<"   . ivy-avy)
-	 ;;      ("s->"   . ivy-dispatching-done)
-	 ;;      ("s-+"   . ivy-call)
-	 ;;      ("s-!"   . ivy-immediate-done)
-	 ;;      ("s-["   . ivy-previous-history-element)
-	 ;;      ("s-]"   . ivy-next-history-element))
-  :config
-  (setq ivy-use-virtual-buffers t)       ; extend searching to bookmarks and
-  (setq ivy-height 15)                   ; set height of the ivy window
-  (setq ivy-count-format "(%d) ")     ; count format, from the ivy help page
-  (setq ivy-display-style 'fancy)
-  (setq ivy-format-function 'ivy-format-function-line) ; Make highlight extend all the way to the right
-  ;; TODO testing out the fuzzy search
-  (setq ivy-re-builders-alist
-      '(;; (read-file-name-internal . ivy--regex-fuzzy)
-	;; (internal-complete-buffer . ivy--regex-fuzzy)
-	;; (execute-extended-command . ivy--regex-fuzzy)
-	;; (amx . ivy--regex-fuzzy)
-	(t . ivy--regex-fuzzy))))
+;; (use-package ivy
+;;   :diminish (ivy-mode . "")             ; does not display ivy in the modeline
+;;   ;; :init
+;;   ;; (ivy-mode 1)                          ; enable ivy globally at startup
+;;   :bind (;; ("C-c g" . counsel-git)
+;; 	 ;; ("C-c j" . counsel-git-grep) 
+;; 	 ;; ("C-c k" . counsel-ag)       
+;; 	 ;; ("C-x l" . counsel-locate)   
+;; 	 ;; ("C-S-o" . counsel-rhythmbox)
+;; 	 ;;("C-x C-f" . counsel-find-file)
+;; 	 :map ivy-minibuffer-map        ; bind in the ivy buffer
+;; 	 ("RET" . ivy-alt-done))
+;; 	 ;;      ("s-<"   . ivy-avy)
+;; 	 ;;      ("s->"   . ivy-dispatching-done)
+;; 	 ;;      ("s-+"   . ivy-call)
+;; 	 ;;      ("s-!"   . ivy-immediate-done)
+;; 	 ;;      ("s-["   . ivy-previous-history-element)
+;; 	 ;;      ("s-]"   . ivy-next-history-element))
+;;   :config
+;;   (setq ivy-use-virtual-buffers t)       ; extend searching to bookmarks and
+;;   (setq ivy-height 15)                   ; set height of the ivy window
+;;   (setq ivy-count-format "(%d) ")     ; count format, from the ivy help page
+;;   (setq ivy-display-style 'fancy)
+;;   (setq ivy-format-function 'ivy-format-function-line) ; Make highlight extend all the way to the right
+;;   ;; TODO testing out the fuzzy search
+;;   (setq ivy-re-builders-alist
+;;       '(;; (read-file-name-internal . ivy--regex-fuzzy)
+;; 	;; (internal-complete-buffer . ivy--regex-fuzzy)
+;; 	;; (execute-extended-command . ivy--regex-fuzzy)
+;; 	;; (amx . ivy--regex-fuzzy)
+;; 	(t . ivy--regex-fuzzy))))
 
 ;; (use-package all-the-icons-ivy
 ;;   :config
@@ -1501,10 +1721,10 @@ See `consult-omni-multi' for more details.
 ;;   :after (ivy hydra))
 
 ;; helm setup ************************************************************************
-(use-package helm
-  ;; :init (helm-mode 1)
-  ;; :bind (("M-y" . helm-show-kill-ring))
-  )
+;; (use-package helm
+;;   ;; :init (helm-mode 1)
+;;   ;; :bind (("M-y" . helm-show-kill-ring))
+;;   )
 
 ;;which key **************************************************************************
 (use-package which-key :config (which-key-mode))
@@ -1584,6 +1804,7 @@ See `consult-omni-multi' for more details.
 
 ;;grugru (alternative to cycle-at-point)**********************************************
 (use-package grugru
+  :defer t
   :after hl-todo
   :requires dash
   :commands (grugru grugru-select grugru-edit)
@@ -1616,6 +1837,8 @@ See `consult-omni-multi' for more details.
 
 ;;elgrep******************************************************************************
 (use-package elgrep
+  :defer t
+  :commands (elgrep elgrep-r)
   :config
   (defun elgrep-r ()
     (interactive)
@@ -1823,6 +2046,7 @@ See `consult-omni-multi' for more details.
 ;;   )
 
 (use-package lsp-ltex
+  :after lsp-mode
   :ensure t
   ;; :hook (text-mode . (lambda ()
   ;;                      (require 'lsp-ltex)
@@ -1834,6 +2058,7 @@ See `consult-omni-multi' for more details.
 ;;   :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
 
 (use-package dap-python
+  :after lsp
   :straight nil
   :config
   (setq dap-python-debugger 'debugpy)
@@ -1859,9 +2084,11 @@ See `consult-omni-multi' for more details.
 (use-package dap-java :straight nil
   :after (lsp-java))
 
-(use-package rustic)
+(use-package rustic
+  :defer t)
 
-(use-package go-mode)
+(use-package go-mode
+  :defer t)
 
 ;;avy *******************************************************************************
 ;; see https://karthinks.com/software/avy-can-do-anything/#kill-a-candidate-word-sexp-or-line for more cool stuff
@@ -1900,7 +2127,7 @@ See `consult-omni-multi' for more details.
 
 ;; pdf
 (use-package pdf-tools
-  :defer 5
+  :defer t
   :config
   (when (gethash 'use-pdf-tools configurations t)
     (when (eq system-type 'gnu/linux)
@@ -1946,9 +2173,11 @@ See `pdf-annot-activate-created-annotations' for more details."
 
 ;;ispell
 ;; for hunspell on windows: http://www.nextpoint.se/?p=656
-(setq ispell-program-name "hunspell")
-(require 'ispell)
-(require 'flyspell)
+(use-package ispell
+  :config
+  (setq ispell-program-name "hunspell"))
+
+(use-package flyspell)
 
 ;; (require 'micgoline)
 ;; (setq powerline-default-separator 'arrow-fade)
@@ -1956,10 +2185,6 @@ See `pdf-annot-activate-created-annotations' for more details."
 ;;   :after spaceline
 ;;   :config (spaceline-all-the-icons-theme))
 ;;(rich-minority-mode 1)
-
-(diminish 'visual-line-mode)
-(diminish 'ivy-mode)
-(diminish 'projectile-mode "P")
 
 ;; (use-package eyeliner :straight nil
 ;;   :straight (eyeliner :type git
@@ -2007,13 +2232,31 @@ See `pdf-annot-activate-created-annotations' for more details."
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
 
-(require 'dired+)
-(diredp-toggle-find-file-reuse-dir 1)
-;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
-(add-hook 'dired-mode-hook (lambda () (dired-omit-mode)))
-(require 'dired-sort)
+(use-package dired-sort
+  :straight nil
+  :after dired)
 
-(defhydra hydra-dired (:hint nil :color pink)
+(use-package dired+
+  :after dired
+  :config
+  (diredp-toggle-find-file-reuse-dir 1)
+  ;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+  (add-hook 'dired-mode-hook (lambda () (dired-omit-mode))))
+
+(use-package dired
+  :straight nil
+  :bind (:map dired-mode-map
+              ([return] . 'dired-single-buffer)
+              ([mouse-1] . 'dired-single-buffer-mouse)
+              ("." . 'hydra-dired/body)
+              ("^" . 'amsha/dired-go-up))
+  :config
+  (defun amsha/dired-go-up ()
+    (interactive)
+    (dired-single-buffer ".."))
+
+  :hydra
+  (hydra-dired (:hint nil :color pink)
   "
 _+_ mkdir          _v_iew           _m_ark             _(_ details        _i_nsert-subdir    wdired
 _C_opy             _O_ view other   _U_nmark all       _)_ omit-mode      _$_ hide-subdir    C-x C-q : edit
@@ -2062,25 +2305,7 @@ T - tag prefix
   ("z" diredp-compress-this-file)
   ("Z" dired-do-compress)
   ("q" nil)
-  ("." nil :color blue))
-
-(defun my-dired-init ()
-  "Bunch of stuff to run for dired, either immediately or when it's
-   loaded."
-  ;; <add other stuff here>
-  (define-key dired-mode-map [return] 'dired-single-buffer)
-  (define-key dired-mode-map [mouse-1] 'dired-single-buffer-mouse)
-  (define-key dired-mode-map "." 'hydra-dired/body)
-  (define-key dired-mode-map "^"
-    (function
-     (lambda nil (interactive) (dired-single-buffer "..")))))
-
-;; if dired's already loaded, then the keymap will be bound
-(if (boundp 'dired-mode-map)
-    ;; we're good to go; just add our bindings
-    (my-dired-init)
-  ;; it's not loaded yet, so add our bindings to the load-hook
-  (add-hook 'dired-load-hook 'my-dired-init))
+  ("." nil :color blue)))
 
 (use-package ranger
   :hook
@@ -2094,24 +2319,17 @@ T - tag prefix
   :config
   (ranger-override-dired-mode t))
 
+;;ibuffer****************************************************************
+(use-package ibuffer
+  :bind ("C-x C-b" . 'ibuffer))
+
 ;; ;;org mode*******************************************************
 ;; ;;rest in ~/.emacs.d/CustomLoadFiles/orgZ.el
 (require 'orgZ)
 
-;; ;;enabling company***********************************************
-;; (add-hook 'after-init-hook 'global-company-mode)
-;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
-;; (setq company-minimum-prefix-length 1)
-;; (setq company-idle-delay 0.1)
-;;;; GC issue
-;; (add-hook 'after-init-hook (lambda () (setq gc-cons-threshold 100000000))) ;; This is set in lsp-mode
-(add-hook 'focus-out-hook 'garbage-collect)
-;; ;; ;;company quickhelp gives docstring info
-;; (company-quickhelp-mode 1)
-;; (setq company-quickhelp-delay nil)
-
 ;; ;;yasnippet setup************************************************
 (use-package yasnippet
+  :defer t
   :init (yas-global-mode 1)
   :config
   (setq yas-snippet-dirs
@@ -2119,48 +2337,24 @@ T - tag prefix
                 `("~/.emacs.d/snippets"))                 ;; personal snippets
         yas-indent-line 'fixed))
 
-;; font setup****************************************************
-(use-package mixed-pitch
-  :hook
-  (text-mode . mixed-pitch-mode))
-
-(set-face-attribute 'default nil
-                       :font "Fira Code"
-                       :weight 'normal
-                       :height 100)
-
-;; Set the fixed pitch face
-(set-face-attribute 'fixed-pitch nil
-                    :font "Fira Code"
-                    :weight 'normal
-                    :height 100)
-
-;; Set the variable pitch face
-(set-face-attribute 'variable-pitch nil
-                    ;; :font "Cantarell"
-                    :font "Iosevka Aile"
-                    :height 105
-                    :weight 'normal)
-
-(when (member "Segoe UI Emoji" (font-family-list))
-  (set-fontset-font
-   t 'unicode (font-spec :family "Segoe UI Emoji") nil 'prepend))
-
 ;;slime and cl setup*********************************************
-(require 'slim-mode)
-;;(load (expand-file-name "/home/amsha/quicklisp/slime-helper.el"))
-(setq package-enable-at-startup nil)
-;;(setq inferior-lisp-program "F:/Binaries/ccl/wx86cl64.exe")
-(setq inferior-lisp-program "sbcl")
-(setq slime-auto-connect 'ask)
-(setq slime-net-coding-system 'utf-8-unix)
-(require  'slime)
-(slime-setup
- '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser))
-;; (unless package-archive-contents 
-;;   (package-refresh-contents))
-(setq tab-always-indent 'complete)
-(add-to-list 'completion-styles 'initials t)
+(use-package slim-mode
+  :config
+  ;;(load (expand-file-name "/home/amsha/quicklisp/slime-helper.el"))
+  ;; (setq package-enable-at-startup nil)
+  ;;(setq inferior-lisp-program "F:/Binaries/ccl/wx86cl64.exe")
+  (setq inferior-lisp-program "sbcl")
+  (setq slime-auto-connect 'ask)
+  (setq slime-net-coding-system 'utf-8-unix))
+
+(use-package slime
+  :config
+  (slime-setup
+   '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser))
+  ;; (unless package-archive-contents 
+  ;;   (package-refresh-contents))
+  (setq tab-always-indent 'complete)
+  (add-to-list 'completion-styles 'initials t))
 
 ;;python setup*************************************************
  ;(eval-after-load "company"
@@ -2182,6 +2376,7 @@ T - tag prefix
 ;;   (with-venv-advice-add 'dap-python--pyenv-executable-find))
 
 (use-package poetry
+  :defer t
   :straight (poetry :type git :host github :repo "cybniv/poetry.el"
                     :fork (:host github :repo "ahmed-shariff/poetry.el"))
   :init
@@ -2194,54 +2389,6 @@ T - tag prefix
   ;; ;;(advice-add #'lsp-pyright-locate-venv :override 'pyright-find-venv-with-poetry))
   ;; (advice-add #'lsp-pylsp-get-pyenv-environment :override 'pyright-find-venv-with-poetry))
   )
-
-;; from https://emacs.stackexchange.com/questions/32140/python-mode-indentation
-(defun how-many-region (begin end regexp &optional interactive)
-  "Print number of non-trivial matches for REGEXP in region.
-   Non-interactive arguments are Begin End Regexp"
-  (interactive "r\nsHow many matches for (regexp): \np")
-  (let ((count 0) opoint)
-    (save-excursion
-      (setq end (or end (point-max)))
-      (goto-char (or begin (point)))
-      (while (and (< (setq opoint (point)) end)
-                  (re-search-forward regexp end t))
-        (if (= opoint (point))
-            (forward-char 1)
-          (setq count (1+ count))))
-      (if interactive (message "%d occurrences" count))
-      count)))
-
-(defun infer-indentation-style ()
-  ;; if our source file uses tabs, we use tabs, if spaces spaces, and if
-  ;; neither, we use the current indent-tabs-mode
-  (let ((space-count (how-many-region (point-min) (point-max) "^  "))
-        (tab-count (how-many-region (point-min) (point-max) "^\t")))
-    (if (> space-count tab-count) (setq indent-tabs-mode nil))
-    (if (> tab-count space-count) (setq indent-tabs-mode t))))
-(add-hook 'prog-mode-hook
-    (lambda ()
-      ;; (linum-on)
-      (setq indent-tabs-mode nil)
-      (infer-indentation-style)
-      ;; (display-line-numbers-mode 1)
-      (hl-todo-mode 1)))
-
-;; https://emacs.stackexchange.com/questions/653/how-can-i-find-out-in-which-keymap-a-key-is-bound
-(defun amsha/lookup-key-prefix (key)
-  "Search for KEY as prefix in all known keymaps.
-
-E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
-  (let (vals)
-    (mapatoms (lambda (ob)
-                (when (and (boundp ob) (keymapp (symbol-value ob)))
-                  (when (let ((m (lookup-key (symbol-value ob) key)))
-                          (and m (or (symbolp m) (keymapp m))))
-                    (push ob vals))
-                  (when (functionp (lookup-key (symbol-value ob) key))
-                    (push ob vals))))
-              obarray)
-    (-uniq vals)))
 
 ;; (use-package linum-relative
 ;;   :demand
@@ -2257,7 +2404,8 @@ E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
   :custom
   (display-line-numbers-type 'visual))
 
-(use-package ess)
+(use-package ess
+  :defer t)
 
 ;; (highlight-indentation-mode t)
 ;; (highlight-indentation-current-column t)
@@ -2274,32 +2422,37 @@ E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
 ;;      auto-mode-alist))
 
 ;; c/c++ setup*************************************************
-(require 'cc-mode)
-(require 'semantic)
+(use-package semantic
+  :defer t
+  :config
+  (global-semanticdb-minor-mode 1)
+  (global-semantic-idle-scheduler-mode 1)
 
-(global-semanticdb-minor-mode 1)
-(global-semantic-idle-scheduler-mode 1)
+  (semantic-mode 1))
 
-(semantic-mode 1)
+(use-package cc-mode
+  :defer t
+  :config
 
-;; (add-to-list 'company-backends 'company-c-headers)
-; (semantic-add-system-include "/usr/lib/gcc/x86_64-pc-linux-gnu/6.4.1/" 'c++-mode)
+  ;; (add-to-list 'company-backends 'company-c-headers)
+                                        ; (semantic-add-system-include "/usr/lib/gcc/x86_64-pc-linux-gnu/6.4.1/" 'c++-mode)
 					;(add-to-list 'company-c-headers-path-system "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1")
-(defun my-c-mode-common-hook ()
- ;; my customizations for all of c-mode, c++-mode, objc-mode, java-mode
- (c-set-offset 'substatement-open 0)
- ;; other customizations can go here
+  (defun my-c-mode-common-hook ()
+    ;; my customizations for all of c-mode, c++-mode, objc-mode, java-mode
+    (c-set-offset 'substatement-open 0)
+    ;; other customizations can go here
 
- (setq c++-tab-always-indent t)
- (setq c-basic-offset 4)                  ;; Default is 2
- (setq c-indent-level 4)                  ;; Default is 2
+    (setq c++-tab-always-indent t)
+    (setq c-basic-offset 4)                  ;; Default is 2
+    (setq c-indent-level 4)                  ;; Default is 2
 
- (setq tab-stop-list '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60))
- ; (setq tab-width 4)
- (setq indent-tabs-mode nil)  ; use spaces only if nil
- )
+    (setq tab-stop-list '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60))
+                                        ; (setq tab-width 4)
+    (setq indent-tabs-mode nil)  ; use spaces only if nil
+    )
 
-(add-hook 'c-mode-common-hook 'my-c-mode-common-hook)
+  (add-hook 'c-mode-common-hook 'my-c-mode-common-hook))
+
 ;; (use-package ccls
 ;;   :straight t
 ;;   :config
@@ -2320,16 +2473,6 @@ E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
 ;; (set-frame-parameter (selected-frame) 'alpha '(98 . 92))
 ;; (add-to-list 'default-frame-alist '(alpha . (98 . 92)))
 
-(defvar made-transparent nil)
-
-(defun toggle-frame-alpha ()
-  "Toggle frame transparency."
-  (interactive)
-  (set-frame-parameter (selected-frame) 'alpha (if made-transparent '(100 . 100) '(98 . 92)))
-  (setq made-transparent (not made-transparent)))
-
-(toggle-frame-alpha)
-
 ;; (custom-set-faces
 ;;  ;; custom-set-faces was added by Custom.
 ;;  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -2341,7 +2484,8 @@ E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
 
 
 ;;arduino-mode***********************************************************
-(use-package arduino-mode)
+(use-package arduino-mode
+  :defer t)
 
 (use-package arduino-cli-mode
   :ensure t
@@ -2743,7 +2887,6 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
 ;; popper ****************************************************************************************************************
 
 (use-package popper
-  :ensure t ; or :straight t
   :bind (("C-`"   . popper-toggle)
          ("M-`"   . popper-cycle)
          ("C-M-`" . popper-toggle-type))
@@ -2915,6 +3058,7 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
 
 ;;atomic-chrome*********************************************************************************
 (use-package atomic-chrome
+  :defer t
   :after projectile
   :init (atomic-chrome-start-server)
   :config
@@ -2930,22 +3074,23 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
 
   (advice-add 'atomic-chrome-create-buffer :after #'atomic-chrome-setup))
 
-
 ;;latex setup***********************************************************************************
-(defun turn-on-outline-minor-mode ()
-  "."
-  (outline-minor-mode 1))
 
 ;; (use-package company-auctex
 ;;   :after (auctex)
 ;;   :config
 ;;   (company-auctex-init))
 
+(use-package reftex
+  :config
+  (keymap-set reftex-mode-map "C-c [" nil))
+
 (use-package latex
   :straight auctex
   :defer t
   :bind (:map LaTeX-mode-map
-         ("C-c [" . org-ref-insert-link))
+         ("C-c [" . org-ref-insert-link)
+         ("C-c o o" . org-ref-latex-click))
   :hook ((LaTeX-mode-hook . turn-on-outline-minor-mode)
          (latex-mode-hook . turn-on-outline-minor-mode)
          (LaTeX-mode-hook . flyspell-mode)
@@ -2967,7 +3112,34 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
         reftex-ref-style-default-list '("Default" "Hyperref")
         TeX-PDF-from-DVI "Dvips")
   (TeX-global-PDF-mode t)
-  (setq outline-minor-mode-prefix "\C-c \C-o"))
+  (setq outline-minor-mode-prefix "\C-c \C-o")
+  
+  (defun turn-on-outline-minor-mode ()
+    "."
+    (outline-minor-mode 1))
+
+  ;; After changing this value, run (font-latex-make-user-keywords) and (font-lock-fontify-buffer)
+  (setq font-latex-user-keyword-classes '(("positive-comment"
+                                           (("p" "{"))
+                                           (:foreground "aquamarine")
+                                           command)
+                                          ("negative-comment"
+                                           (("n" "{"))
+                                           (:foreground "IndianRed")
+                                           command)
+                                          ("rev" (("rev" "{")) (:background "blue") command)
+                                          ("autoref" (("autoref" "{")) 'font-lock-constant-face command)
+                                          ("red" (("red" "{")) (:background "red") command)
+                                          ("green" (("green" "{")) (:background "Springgreen4") command)
+                                          ("mg-comment" (("mg" "{")) (:background "blue") command)
+                                          ("shf-comment" (("shf" "{")) (:background "DarkGreen") command) 
+                                          ("kf-comment" (("kf" "{")) (:background "Sienna") command)  
+                                          ("dh-comment" (("dyh" "{")) (:background "Firebrick") command)
+                                          ("rc-commen" (("rc" "{")) (:background "orange") command)
+                                          ("ly-commen" (("ly" "{")) (:background "blue1") command)
+                                          ("jj-commen" (("jj" "{")) (:background "magenta") command)
+                                          ("ld-commen" (("ld" "{")) (:background "cyan") command)
+                                          ("pp-comment" (("ppi" "{")) (:background "DarkSlateBlue") command))))
 
 (use-package lsp-latex
   :config
@@ -2986,40 +3158,6 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
 
 
 ;;magit******************************************************************
-(global-set-key (kbd "C-x g") 'magit-status)
-(setq magit-git-executable "git"
-      transient-default-level 7)
-
-(defvar home-dir-magit-files '("~/" "~/.emacs.d/customFiles/"))
-
-(defun home-dir-magit-process-environment (env)
-  "Add GIT_DIR and GIT_WORK_TREE to ENV when in a special directory.
-https://github.com/magit/magit/issues/460 (@cpitclaudel)."
-  (let* ((default (file-name-as-directory (expand-file-name default-directory)))
-         (dot-dirs (--map (expand-file-name it) home-dir-magit-files)))
-    (when (member default dot-dirs)
-      (let ((gitdir (expand-file-name "~/.dotfiles/")))
-        (push (format "GIT_WORK_TREE=%s" (car dot-dirs)) env) ;; car of dot-dirs should be ~/
-        (push (format "GIT_DIR=%s" gitdir) env))))
-  env)
-
-(advice-add 'magit-process-environment
-            :filter-return #'home-dir-magit-process-environment)
-
-(defun get-gitignore-from-github ()
-  "Get a gitignore file from github/gitignore repo."
-  ;; Expecting the repo (https://github.com/github/gitignore) to be cloned in ~/.emacs.d/.cache/gitignore
-  (interactive)
-  (unless (featurep 'magit-gitignore)
-    (require 'magit-gitignore))
-  (let ((gitignore-location (expand-file-name ".cache/gitignore" user-emacs-directory)))
-    (magit--with-safe-default-directory gitignore-location
-      (magit-run-git-with-editor "pull"))
-    (let* ((gitignore-files (--map (cons (f-base it) it) (f-files gitignore-location (lambda (f) (string= "gitignore" (f-ext f))))))
-           (target-gitignore-content (f-read-text (cdr (assoc (completing-read "Add gitignore for: " gitignore-files) gitignore-files)))))
-      (magit-with-toplevel
-        (magit--gitignore target-gitignore-content ".gitignore")))))
-
 (use-package git-gutter
   :straight git-gutter-fringe
   :diminish
@@ -3106,9 +3244,6 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
                     :height 100  ;; TODO: find a way to get this from font attribute
                     :italic t))))
 
-;;ibuffer****************************************************************
-(global-set-key (kbd "C-x C-b") 'ibuffer)
-
 ;;origami*****************************************************************************
 ;; (use-package origami
 ;;   :straight (origami :type git :host github :repo "elp-revive/origami.el")
@@ -3188,52 +3323,6 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   ;; :config
   ;; (global-ts-fold-indicators-mode 1)
   )
-
-;;other stuff************************************************************
-(defun copy-buffer-file-name (buffer-file-name)
-  "Copy the file name without the directory. If directory, copy the directory-name.
- If buffer/non-exisitant file just copy buffer-file-name."
-  (kill-new
-   (if (f-exists-p buffer-file-name)
-       (f-filename buffer-file-name)
-     buffer-file-name)))
-
-(defun copy-file-full-path (file-name)
-  "Copy the full path of the file-name"
-  (kill-new (file-truename file-name)))
-
-(defun copy-current-file-buffer-name ()
-  "Copy the current buffers filename or FILE to the kill ring."
-  (interactive)
-  (copy-buffer-file-name (buffer-name (window-buffer (minibuffer-selected-window)))))
-
-(defun copy-current-file-full-path ()
-  "Copy the current buffers filename to the kill ring."
-  (interactive)
-  (copy-file-full-path (buffer-file-name (window-buffer (minibuffer-selected-window)))))
-
-(defun copy-current-directory ()
-  "Copy the current direcory. If prefix arg, copy project root."
-  (interactive)
-  (kill-new (-->
-             (file-truename
-              (buffer-file-name (window-buffer
-                                 (minibuffer-selected-window))))
-             (if current-prefix-arg
-                 (amsha/get-project-root-overlooking-submodules it)
-               (file-name-directory it)))))
-
-(defun single-linify (beg end)
-  "Make a paragraph single-lined by replacing line break with space.
-  BEG The begining of a region
-  END The end of a region"
-  (interactive (if (use-region-p)
-                   (list (region-beginning) (region-end))
-                 (list nil nil)))
-  (let ((insertion (replace-regexp-in-string "\n" " " (buffer-substring beg end))))
-    (when (and beg end)
-      (delete-region beg end)
-      (insert insertion))))
 
 (use-package slack
   :commands (slack-start)
@@ -3555,16 +3644,6 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 ;; (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
 ;; (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
 
-(defun switch-web-js2 ()
-  "Swicth between web mode and js2 mode."
-  (interactive)
-  (cond
-   ((equal major-mode 'web-mode)
-    (js2-mode))
-   ((equal major-mode 'js2-mode)
-    (web-mode))
-   (t (error "Only when in web-mode or js2-mode"))))
-
 (use-package web-mode 
   :mode "\\.phtml\\'"
   :mode	"\\.tpl\\.php\\'"
@@ -3585,7 +3664,18 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
         web-mode-sql-indent-offset 4
         web-mode-code-indent-offset 4
         web-mode-attr-indent-offset 4
-        web-mode-markup-indent-offset 4))
+        web-mode-markup-indent-offset 4)
+
+  (defun switch-web-js2 ()
+    "Swicth between web mode and js2 mode."
+    (interactive)
+    (cond
+     ((equal major-mode 'web-mode)
+      (js2-mode))
+     ((equal major-mode 'js2-mode)
+      (web-mode))
+     (t (error "Only when in web-mode or js2-mode")))))
+
 
 (use-package web-narrow-mode
   :hook 'web-mode)
@@ -3602,7 +3692,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   :init (setq markdown-command "multimarkdown"))
 
 (use-package json-mode
-  :defer 5
+  :defer t
   :hook ((json-mode . (lambda () (setq tab-width 2
                                        js-indent-level 2)))))
 
@@ -3610,6 +3700,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   :mode "\\.toml\\'")
 
 (use-package plantuml-mode
+  :defer t
   :init
   (add-to-list 'auto-mode-alist '("\\.plantuml\\'" . plantuml-mode))
   :config
@@ -3629,6 +3720,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 ;; 2. Add the code.exe at .emacs.d/var/unity ad the editor to unity
 ;; 3. Set the args to: emacsclient -n +$(Line):$(Column) $(File)
 (use-package unity
+  :defer t
   :straight (unity :type git :host github :repo "elizagamedev/unity.el"
                    :files ("*.el" "*.c"))
   :config
@@ -3650,20 +3742,6 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 (use-package arxiv-mode
   :commands (arxiv-read-new arxiv-read-recent arxiv-search)
   :straight (arxiv-mode :type git :host github :repo "fizban007/arxiv-mode"))
-
-(defun amsha/downlad-raname-move-file (url newname dir)
-  (url-copy-file url (expand-file-name newname dir)))
-
-(defun amsha/get-uml-link (link)
-  (interactive "slink: ")
-  (let ((split-link (s-split "/" link))
-	(formated-link '()))
-    (dolist (el split-link)
-      (if (or (s-matches-p ".*\.com" el)
-		(s-matches-p ".*\.org" el))
-	  (push (s-concat (s-replace "." "-" el) ".uml.idm.oclc.org") formated-link)
-	(push el formated-link)))
-    (kill-new (s-join "/" (reverse formated-link)))))
 
 ;; company-tabnin********************************************************
 
@@ -3687,11 +3765,11 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 
 ;; emacs discrod plugin
 (use-package elcord
+  :defer t
   :config
   (setq elcord-display-buffer-details nil)
   (elcord-mode))
 ;; (setq elcord-client-id (gethash 'elcord-client-id configurations))
-
 
 (use-package buttercup)
 
@@ -3723,37 +3801,3 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 ;;yasnippets company conflict resolution
 ;(provide .emacs)
 ;;; .emacs ends here
-(put 'upcase-region 'disabled nil)
-(put 'narrow-to-region 'disabled nil)
-(put 'downcase-region 'disabled nil)
-
-(defun yank-pop-forwards (arg)
-  "Ha ha ha. 
-ARG : the arg"
-  (interactive "p")
-  (yank-pop (- arg)))
-(global-set-key "\M-Y" 'yank-pop-forwards) ; M-Y (Meta-Shift-Y)
-
-;; After chaning this value, run (font-latex-make-user-keywords) and (font-lock-fontify-buffer)
-(setq font-latex-user-keyword-classes '(("positive-comment"
-                                         (("p" "{"))
-                                         (:foreground "aquamarine")
-                                         command)
-                                        ("negative-comment"
-                                         (("n" "{"))
-                                         (:foreground "IndianRed")
-                                         command)
-                                        ("rev" (("rev" "{")) (:background "blue") command)
-                                        ("autoref" (("autoref" "{")) 'font-lock-constant-face command)
-                                        ("red" (("red" "{")) (:background "red") command)
-                                        ("green" (("green" "{")) (:background "Springgreen4") command)
-                                        ("mg-comment" (("mg" "{")) (:background "blue") command)
-                                        ("shf-comment" (("shf" "{")) (:background "DarkGreen") command) 
-                                        ("kf-comment" (("kf" "{")) (:background "Sienna") command)  
-                                        ("dh-comment" (("dyh" "{")) (:background "Firebrick") command)
-                                        ("rc-commen" (("rc" "{")) (:background "orange") command)
-                                        ("ly-commen" (("ly" "{")) (:background "blue1") command)
-                                        ("jj-commen" (("jj" "{")) (:background "magenta") command)
-                                        ("ld-commen" (("ld" "{")) (:background "cyan") command)
-                                        ("pp-comment" (("ppi" "{")) (:background "DarkSlateBlue") command)))
-
