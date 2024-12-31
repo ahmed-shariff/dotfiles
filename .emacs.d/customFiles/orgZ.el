@@ -9,9 +9,6 @@
 ;; (require 'org-capture-pop-frame)
 ;(ido-mode)
 
-(use-package plz)
-
-
 (defvar okm-base-directory (file-truename "~/Documents/org/brain") "org knowladge management base direcory.")
 (defvar okm-research-papers-id "34854c23-cf0a-40ba-b0c6-c9e5b3bb3030" "The id of the research_papers file.") ;; research_papers id TODO: think of a better way to do this?
 (defvar okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
@@ -1101,6 +1098,7 @@ Copied  from `org-roam-backlink-get'."
                   (insert (substring mb-str 0 split-pos))))))
 
         (define-key overriden-keymap "\M-d" delete-minibuffer-override)
+        (define-key overriden-keymap "\M-D" #'delete-minibuffer-contents)
         (define-key overriden-keymap (kbd "C-,") (lambda ()
                                                    (interactive)
                                                    (when (minibufferp)
@@ -2546,9 +2544,9 @@ With C-u C-u C-u prefix, force run all research-papers."
                     (error (message "Error: failed to read pdf file: %s" full-path)
                            (setq tags (append tags '("PDF_ERROR")))))
                   (push 'txt-file changes))))
-            (unless (or (org-entry-get pom "OPENAI_FILE_ID") (string-empty-p (org-entry-get pom "OPENAI_FILE_ID")))
-              (when-let ((text-file-name (org-entry-get pom "PDF_TEXT_FILE")))
-                (org-entry-put pom "OPENAI_FILE_ID" (amsha/add-file-to-openai text-file-name))))
+            ;; (unless (or (org-entry-get pom "OPENAI_FILE_ID") (string-empty-p (org-entry-get pom "OPENAI_FILE_ID")))
+            ;;   (when-let ((text-file-name (org-entry-get pom "PDF_TEXT_FILE")))
+            ;;     (org-entry-put pom "OPENAI_FILE_ID" (amsha/add-file-to-openai text-file-name))))
             (when changes
               (save-buffer))
             (setq tags
@@ -2600,18 +2598,13 @@ With C-u C-u C-u prefix, force run all research-papers."
            (format "-F file=\"@%s\"" (file-truename file))
            "https://api.openai.com/v1/files"))
          (json-data
-          (json-read-from-string json-response))
-         (openai-file-id (cdr (assoc-string 'id json-data))))
-         ;; (openai-file-id "file-RFcxukZGGFotheZBoRs362"))
-    (plz 'post (format "https://api.openai.com/v1/vector_stores/%s/files" org-data-store-id)
-      :headers `(("Content-Type" . "application/json")
-                 ("Authorization" . ,(format "Bearer %s" api-key))
-                 ("OpenAI-Beta" . "assistants=v2"))
-      :body (json-encode `(("file_id" . ,openai-file-id)))
-      :as #'json-read
-      :then (lambda (alist)
-              (message "Result: %s" alist)))
-    openai-file-id))
+          (json-read-from-string json-response)))
+    (amsha/curl
+     (format "-H \"Authorization: Bearer %s\"" api-key)
+     "-H \"Content-Type: application/json\""
+     "-H \"OpenAI-Beta: assistants=v2\""
+     "-d" (format "%S" (json-encode (list :file_id (cdr (assoc-string 'id json-data)))))
+     (format "https://api.openai.com/v1/vector_stores/%s/files" org-data-store-id))))
 
 (defun amsha/doi-utils-get-pdf-url-uml (old-function &rest rest)
   "Making sure the urls that are being recived by org-ref is made to use uml links."
