@@ -47,15 +47,16 @@
     (message "Trying to add: %s" data)
     (let* ((url (s-replace-regexp "\\(https:/\\)[^/]" "https://" (plist-get data :url) nil nil 1))
            (file-name (format "file:///%s" (expand-file-name (plist-get data :filename))))
-           doi)
+           (doi (plist-get data :doi)))
       (save-match-data 
         (cond
-         ((and (string-match "\\(10\\.[0-9]\\{4\\}\\(/\\|%2F\\)\\([a-z]\\|[0-9]\\|_\\|-\\|\\.\\)+\\)" url)
-               (setq doi (s-replace-regexp
-                          "\\.$" ""
-                          (s-replace-regexp
-                           "\\.pdf$" ""
-                           (s-replace "%2F" "/" (match-string 1 url))))))
+         ((or doi
+              (and (string-match "\\(10\\.[0-9]\\{4\\}\\(/\\|%2F\\)\\([a-z]\\|[0-9]\\|_\\|-\\|\\.\\)+\\)" url)
+                   (setq doi (s-replace-regexp
+                              "\\.$" ""
+                              (s-replace-regexp
+                               "\\.pdf$" ""
+                               (s-replace "%2F" "/" (match-string 1 url)))))))
           (progn
             (save-excursion
               (with-current-buffer (find-file-noselect (car bibtex-completion-bibliography))
