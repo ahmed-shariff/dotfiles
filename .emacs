@@ -428,6 +428,20 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
       (delete-region beg end)
       (insert insertion))))
 
+(defun terminal-in-directory ()
+  "Option terminal in current directory, in project root if prefix."
+  (interactive)
+  (shell-command
+   (format "%s %s"
+           (if (eq system-type 'windows-nt) "wt -d" "tilix")
+           (-->
+             (file-truename
+              (buffer-file-name (window-buffer
+                                 (minibuffer-selected-window))))
+             (if current-prefix-arg
+                 (amsha/get-project-root-overlooking-submodules it)
+               (file-name-directory it))))))
+
 (defun amsha/downlad-raname-move-file (url newname dir)
   (url-copy-file url (expand-file-name newname dir)))
 
