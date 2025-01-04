@@ -1246,9 +1246,160 @@ targets."
   (("C-c o q" . gptel-send))
   :custom
   (gptel-api-key (gethash 'openai-apk configurations))
-  (gptel-use-curl nil)
+  (gptel-use-curl t)
   (gptel-backend gptel--openai)
-  (gptel-model "gpt-40"))
+  (gptel-model 'gpt-4o)
+
+  :config
+  (defvar-local gptel-openai-assistant-thread-id nil)
+
+  (cl-defstruct (gptel-openai-assistant
+                 (:constructor gptel-openai--make-assistant-step)
+                 (:copier nil)
+                 (:include gptel-openai))
+    step)
+
+  (cl-defmethod gptel--parse-response ((backend gptel-openai-assistant) response info)
+    (pcase (gptel-openai-assistant-step backend)
+      (:threads
+       (with-current-buffer (plist-get info :buffer)
+         (setq-local gptel-openai-assistant-thread-id (plist-get response :id))))
+      (:messages
+       "")
+      (:runs
+       ;; TODO: peridically poll the run and check if it's completed. If so, get last message
+       ;; https://platform.openai.com/docs/assistants/deep-dive#polling-for-updates
+       (error "not implemented yet!"))
+      (_ (error "Unknown step"))))
+
+  (cl-defmethod gptel--request-data ((backend gptel-openai-assistant) prompts)
+    (pcase (gptel-openai-assistant-step backend)
+      (:threads nil)
+      (:messages
+       (list :role "user"
+             :content `[(:type "text" :text ,(plist-get (car (last prompts)) :content))]))
+      (:runs
+       (let ((prompts-plist
+              `(:assistant_id ,(gethash 'openai-assistant-id configurations)
+                              :stream ,(or (and gptel-stream gptel-use-curl
+                                                (gptel-backend-stream gptel-backend))
+                                           :json-false))))
+         (when gptel-temperature
+           (plist-put prompts-plist :temperature gptel-temperature))
+         (when gptel-max-tokens
+           (plist-put prompts-plist (if (memq gptel-model '(o1-preview o1-mini))
+                                        :max_completion_tokens :max_tokens)
+                      gptel-max-tokens))
+         ;; Merge request params with model and backend params.
+         (gptel--merge-plists
+          prompts-plist
+          (gptel-backend-request-params gptel-backend)
+          (gptel--model-request-params  gptel-model))))
+      (_ (error "Unknown step"))))
+
+  (cl-defmethod gptel-curl--parse-stream ((backend gptel-openai-assistant) info)
+    (pcase (gptel-openai-assistant-step backend)
+      (:threads
+       (user-error "no streaming happening here!"))
+      (:messages 
+       (user-error "no streaming happening here!"))
+      (:runs
+       (let* ((content-strs))
+         (condition-case nil
+             (while (re-search-forward "^data:" nil t)
+               (save-match-data
+                 (unless (looking-at " *\\[DONE\\]")
+                   ;; TODO: Handle annotations
+                   (when-let* ((response (gptel--json-read))
+                               (content (map-nested-elt
+                                         response '(:delta :content 0 :text :value))))
+                     (push content content-strs)))))
+           (error
+            (goto-char (match-beginning 0))))
+         (apply #'concat (nreverse content-strs))))))
+
+  (setq gptel-openai-assistant--threads-start-backend
+        (gptel-openai--make-assistant-step
+         :name "gptel-openai-assistant--threads-start"
+         :step :threads
+         :host "api.openai.com"
+         :key 'gptel-api-key
+         :stream nil
+         :header (lambda () (when-let (key (gptel--get-api-key))
+                              `(("Authorization" . ,(concat "Bearer " key))
+                                ("OpenAI-Beta" . "assistants=v2"))))
+         :protocol "https"
+         :endpoint "/v1/threads"
+         :models (gptel--process-models gptel--openai-models)
+         :url (concat "https://api.openai.com/v1/threads")))
+
+  (setq gptel-openai-assistant--add-message-backend
+        (gptel-openai--make-assistant-step
+         :name "gptel-openai-assistant--add-message"
+         :step :messages
+         :host "api.openai.com"
+         :key 'gptel-api-key
+         :stream nil
+         :header (lambda () (when-let (key (gptel--get-api-key))
+                              `(("Authorization" . ,(concat "Bearer " key))
+                                ("OpenAI-Beta" . "assistants=v2"))))
+         :protocol "https"
+         :endpoint "/v1/threads/thread_id/messages"
+         :models (gptel--process-models gptel--openai-models)
+         :url (lambda ()
+                (if gptel-openai-assistant-thread-id
+                    (format "https://api.openai.com/v1/threads/%s/messages" gptel-openai-assistant-thread-id)
+                  (user-error "No thread in current buffer to add messages!")))))
+
+  (setq gptel-openai-assistant--runs-backend
+        (gptel-openai--make-assistant-step
+         :name "gptel-openai-assistant--runs"
+         :step :runs
+         :host "api.openai.com"
+         :key 'gptel-api-key
+         :header (lambda () (when-let (key (gptel--get-api-key))
+                              `(("Authorization" . ,(concat "Bearer " key))
+                                ("OpenAI-Beta" . "assistants=v2"))))
+         :protocol "https"
+         :endpoint "/v1/threads/thread_id/runs"
+         :models (gptel--process-models gptel--openai-models)
+         :stream t
+         :url (lambda ()
+                (if gptel-openai-assistant-thread-id
+                    (format "https://api.openai.com/v1/threads/%s/runs" gptel-openai-assistant-thread-id)
+                  (user-error "No thread in current buffer to start run!")))))
+
+  (defun gptel-openai-assistant-start-thread (&optional callback)
+    "Start a assistant thread in the current buffer."
+    (let ((gptel-backend gptel-openai-assistant--threads-start-backend))
+      (funcall (if gptel-use-curl
+                   #'gptel-curl-get-response #'gptel--url-get-response)
+               `(:data ,(gptel--request-data gptel-openai-assistant--threads-start-backend nil)
+                       :buffer ,(current-buffer))
+               callback)))
+
+  (defun gptel-openai-assistant-add-messages (&optional callback)
+    "Add a message to the current thread in the buffer."
+    (let ((gptel-backend gptel-openai-assistant--add-message-backend))
+      (gptel-request nil :stream nil :callback callback)))
+
+  (defun gptel-openai-assistant-run ()
+    "Start a run on the thread in the current buffer."
+    ;; TODO: should messages already in the thread be filtered out?
+    (let ((gptel-backend gptel-openai-assistant--runs-backend))
+      (gptel-request nil :stream t)))
+
+  (defun gptel-openai-assistant-send ()
+    "Add message to the current thread and run it. Create thread if one is not initialized."
+    (interactive)
+    (let (prompt position)
+      (cl-labels ((send-message-and-run (&optional _ _)
+                    (gptel-openai-assistant-add-messages (lambda (_ _)
+                                                           (gptel-openai-assistant-run)))))
+        (if gptel-openai-assistant-thread-id
+            (send-message-and-run)
+          (gptel-openai-assistant-start-thread #'send-message-and-run))))))
+  
 
 ;; (use-package consult-gh
 ;;   :straight (consult-gh :type git :host github :repo "armindarvish/consult-gh")
