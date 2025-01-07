@@ -2618,11 +2618,33 @@ With C-u C-u C-u prefix, force run all research-papers."
   (em "testing wait again" (plist-get info :wait))
   (plist-get info :wait))
 
-;; Adding TYPE -> WAIT transition
-(setf (alist-get 'TYPE gptel-request--transitions) '((gptel--error-p . ERRS)
+(defun gptel--delay-p (info)
+  "Test fsm transition to DELAY."
+  (em "testing delay" (plist-get info :delay))
+  (plist-get info :delay))
+
+(defun gptel--handle-delay (fsm)
+  "Handle the delay state."
+  (let ((delay (plist-get (gptel-fsm-info fsm) :delay)))
+    (cl-assert (numberp delay))
+    (plist-put (gptel-fsm-info fsm) :delay nil)
+    (run-at-time delay nil (lambda () (gptel--fsm-transition fsm)))))
+
+;; Adding TYPE -> WAIT & TYPE -> DELAY transitions
+(setf (alist-get 'TYPE gptel-request--transitions) '((gptel--delay-p . DELAY)
+                                                     (gptel--error-p . ERRS)
                                                      (gptel--tool-use-p . TOOL)
                                                      (gptel--wait-again-p . WAIT)
                                                      (t . DONE)))
+
+;; MAYBE: this is useful to be connected to other states as well?
+;; From DELAY go to what was expected
+(setf (alist-get 'DELAY gptel-request--transitions) '((gptel--error-p . ERRS)
+                                                     (gptel--tool-use-p . TOOL)
+                                                     (gptel--wait-again-p . WAIT)
+                                                     (t . DONE)))
+
+(setf (alist-get 'DELAY gptel-request--handlers) '(gptel--handle-delay))
 
 (defvar-local gptel-openai-assistant-thread-id nil)
 
@@ -2684,7 +2706,7 @@ With C-u C-u C-u prefix, force run all research-papers."
         (if gptel-openai-assistant-thread-id
             (format "https://api.openai.com/v1/threads/%s/messages" gptel-openai-assistant-thread-id)
           (user-error "No thread in current buffer to add messages!")))
- :request-data-fn (lambda (prompts)
+ :request-data-fn (lambda (backend prompts)
                     (list :role "user"
                           :content
                           `[(:type "text"
@@ -2795,6 +2817,7 @@ With C-u C-u C-u prefix, force run all research-papers."
       )))
 
 (cl-defmethod gptel--request-data ((backend gptel-openai-assistant-session) prompts)
+  (em "requesting data...")
   (when (eq 0 (gptel-openai-assistant-session-step-idx backend))
     (setf (gptel-openai-assistant-session-cached-prompts backend) prompts))
   (let* ((step (gptel-openai-assistant-session-step backend))
@@ -2877,7 +2900,7 @@ With C-u C-u C-u prefix, force run all research-papers."
 (defun gptel-openai-assistant-send ()
   "Add message to the current thread and run it. Create thread if one is not initialized."
   (interactive)
-  (setq-local gptel-backend (gptel-openai-assistant-make-session '(:threads :messages :runs)))
+  (setq-local gptel-backend (gptel-openai-assistant-make-session '(:threads :messages)))
   (gptel-openai-assistant--update-session-step nil gptel-backend)
   ;; (cl-labels ((send-message-and-run (&optional _ _)
   ;;               (gptel-openai-assistant-add-messages (lambda (_ _)
