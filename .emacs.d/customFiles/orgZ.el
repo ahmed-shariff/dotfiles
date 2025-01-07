@@ -2626,6 +2626,13 @@ With C-u C-u C-u prefix, force run all research-papers."
 
 (defvar-local gptel-openai-assistant-thread-id nil)
 
+
+;; issues:
+;; - not all methods recieve the backend as a parameter. Often the backend can be obtained from the info
+;; - gptel--request-data needs the stream parameter....
+;; - the :parser and :stream values of the info need to be updated on the fly for what I am trying to do here!
+;;   - actually, the process sentinal/filter methods also need to be updated!!!
+
 ;; This gets created when a new session/thread is started
 (cl-defstruct (gptel-openai-assistant-session
                (:constructor gptel-openai--make-assistant-session)
@@ -2655,8 +2662,10 @@ With C-u C-u C-u prefix, force run all research-papers."
             (nth step-idx (gptel-openai-assistant-session-steps backend))))
          (target-buffer (or (and info
                                  (plist-get info :buffer))
-                            ;; Being called first....?
-                            (current-buffer))))
+                            ;; When being called first time, assuming it is
+                            ;; done from the current-buffer
+                            (current-buffer)))
+         stream)
     (setf 
      (gptel-openai-assistant-session-step backend) new-step
      (gptel-backend-url backend) (with-current-buffer target-buffer
@@ -2672,16 +2681,34 @@ With C-u C-u C-u prefix, force run all research-papers."
                                         (user-error "No thread in current buffer to start run!")))
                                      ('nil nil)
                                      (_ (error "Unknown step %s" new-step))))
-     (gptel-backend-stream backend) (pcase new-step
-                                      (:threads nil)
-                                      (:messages nil)
-                                      (:runs t)))
+     ;; This doesn't currently work unless I have set the process sentinel/fileter functions
+     ;; stream (pcase new-step
+     ;;          (:threads nil)
+     ;;          (:messages nil)
+     ;;          (:runs t)))
+     )
 
     (when new-step
+      ;; (push (gptel-fsm-state machine)
+      ;;       (plist-get (gptel-fsm-info machine) :history))
       (plist-put info :data (gptel--request-data backend (gptel-openai-assistant-session-cached-prompts backend))))
     (when info
-      (plist-put info :stream (gptel-backend-stream backend))
-      (plist-put info :wait new-step))))
+      (plist-put info :wait new-step)
+      ;; ;; KLUDGE: copied from `gptel-request'. Can this be managed upstream?
+      ;; (plist-put info :stream (and stream
+      ;;                              ;; TODO: model parameters?
+      ;;                              gptel-stream gptel-use-curl
+      ;;                              (gptel-backend-stream backend)))
+      ;; KLUDGE: copied from `gptel-curl-get-response'. Can this be managed upstream?
+      ;; (plist-put info :parser (cl--generic-method-function
+      ;;                          (if stream
+      ;;                              (cl-find-method
+      ;;                               'gptel-curl--parse-stream nil
+      ;;                               (list (aref backend 0) t))
+      ;;                            (cl-find-method
+      ;;                             'gptel--parse-response nil
+      ;;                             (list (aref backend 0) t t)))))
+      )))
 
 (cl-defmethod gptel--request-data ((backend gptel-openai-assistant-session) prompts)
   (when (eq 0 (gptel-openai-assistant-session-step-idx backend))
@@ -2808,7 +2835,7 @@ With C-u C-u C-u prefix, force run all research-papers."
 ;;                   (format "https://api.openai.com/v1/threads/%s/runs" gptel-openai-assistant-thread-id)
 ;;                 (user-error "No thread in current buffer to start run!")))))
 
-(defun gptel-openai-assistant-make-session (steps)
+(defun gptel-openai-assistant-make-session (steps &optional stream)
   (gptel-openai--make-assistant-session
    :name "gptel-openai-assistant-session"
    :step (car steps)
@@ -2819,16 +2846,35 @@ With C-u C-u C-u prefix, force run all research-papers."
                         `(("Authorization" . ,(concat "Bearer " key))
                           ("OpenAI-Beta" . "assistants=v2"))))
    :protocol "https"
-   :endpoint "/v1/threads/thread_id/runs"))
+   :endpoint "/v1/threads/thread_id/runs"
+   :stream stream))
 
 (defun gptel-openai-assistant-start-thread ()
   "Start a assistant thread in the current buffer."
   (interactive)
-  ;; Doing this as the `gptel--parse-response' isn't aware of the backaend.
   ;; The info hasn't yet been created either.
+  ;; FIXME: is this needed?
   (setq-local gptel-backend (gptel-openai-assistant-make-session '(:threads)))
   (gptel-openai-assistant--update-session-step nil gptel-backend)
   (gptel-request nil :stream nil))
+
+(defun gptel-openai-assistant-add-message ()
+  "Start a assistant thread in the current buffer."
+  (interactive)
+  ;; The info hasn't yet been created either.
+  ;; FIXME: is this needed?
+  (setq-local gptel-backend (gptel-openai-assistant-make-session '(:messages)))
+  (gptel-openai-assistant--update-session-step nil gptel-backend)
+  (gptel-request nil :stream nil))
+
+(defun gptel-openai-assistant-start-run ()
+  "Start a assistant thread in the current buffer."
+  (interactive)
+  ;; The info hasn't yet been created either.
+  ;; FIXME: is this needed?
+  (setq-local gptel-backend (gptel-openai-assistant-make-session '(:runs) t))
+  (gptel-openai-assistant--update-session-step nil gptel-backend)
+  (gptel-request nil :stream t))
 
 ;; (defun gptel-openai-assistant-add-messages (&optional callback)
 ;;   "Add a message to the current thread in the buffer."
