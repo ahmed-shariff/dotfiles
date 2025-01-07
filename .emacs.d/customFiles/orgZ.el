@@ -404,7 +404,7 @@
                             title)
                     title
                     (org-roam-node-id it)))
-            (org-roam-ql-nodes '(and (level 1) (file "./project_boards/."))))))
+            (org-roam-ql-nodes '(and (level= 1) (file-like "project_boards"))))))
          (target (progn
                    (assoc (completing-read "Select task: " targets nil t) targets))))
     (if (cdr target)
@@ -1815,6 +1815,7 @@ Either show all or filter based on a sprint."
   :straight (org-roam-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
                          :files (:defaults (:exclude "org-roam-ql-ql.el")))
   :after (org-roam)
+  :commands (okm-org-roam-list-notes okm-org-roam-ql-copy-preview okm-org-roam-preview-kills-yank)
   :bind ((:map org-roam-mode-map
           ("v" . org-roam-ql-buffer-dispatch)
           :map minibuffer-mode-map
@@ -1931,15 +1932,15 @@ resulting node from source-or-query, it will return an error.  TYPE is
 the type of the link."
     (org-roam-ql--expand-recursive-link source-or-query nil type inlcude-refs))
 
-  (org-roam-ql-add-saved-query 'rp "Research papers" '(file "research_papers"))
-  (org-roam-ql-add-saved-query 'pe "People" '(file "People.org"))
-  (org-roam-ql-add-saved-query 'rt "Research topics" '(file "research topics.org"))
-  (org-roam-ql-add-saved-query 'pr "Projects" '(file "project_boards"))
-  (org-roam-ql-add-saved-query 'tg "Tags" '(and (file "brain/tags.org") (level 1)))
-  (org-roam-ql-add-saved-query 'lvl0 "file nodes" '(level 0))
-  (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level 1))
-  (org-roam-ql-add-saved-query 'inp "inprogress" '(todo "INPROGRESS"))
-  (org-roam-ql-add-saved-query 'todo "todo" '(todo "TODO"))
+  (org-roam-ql-add-saved-query 'rp "Research papers" '(file-like "research_papers"))
+  (org-roam-ql-add-saved-query 'pe "People" '(file-like "People.org"))
+  (org-roam-ql-add-saved-query 'rt "Research topics" '(file-like "research topics.org"))
+  (org-roam-ql-add-saved-query 'pr "Projects" '(file-like "project_boards"))
+  (org-roam-ql-add-saved-query 'tg "Tags" '(and (file-like "brain/tags.org") (level= 1)))
+  (org-roam-ql-add-saved-query 'lvl0 "file nodes" '(level= 0))
+  (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level= 1))
+  (org-roam-ql-add-saved-query 'inp "inprogress" '(todo-like "INPROGRESS" t))
+  (org-roam-ql-add-saved-query 'todo "todo" '(todo-like "TODO" t))
 
   (org-roam-ql-defexpansion 'backlink-to-recursive
                             "Recursive backlinks (heading, backlink & refs)"
@@ -1952,7 +1953,7 @@ the type of the link."
   (org-roam-ql-defexpansion 'child-of
                             "Child of node with a specific title"
                             (lambda (title)
-                              (org-roam-ql--expand-backlinks `(title ,title t) :type okm-parent-id-type-name)))
+                              (org-roam-ql--expand-backlinks `(title-like ,title t) :type okm-parent-id-type-name)))
   (org-roam-ql-defexpansion 'regexp-rg
                             "Regex on all org files."
                             (lambda (regexp)
@@ -2121,8 +2122,7 @@ If prefix arg used, search whole db."
 
   (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview)
 
-  (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled > "+0")))
-
+  (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled> "+0")))
   )
 
 ;; (use-package org-roam-gocal
@@ -3484,11 +3484,12 @@ Parent-child relation is defined by the brain-parent links."
       org-tag-alist '(("TEMP_BIB"))
       org-export-with-broken-links t
       org-agenda-persistent-marks t
-      org-agenda-files (string-split
-                        (with-temp-buffer
-                          (insert-file "~/.emacs.d/org-agenda-org-roam-ql-cache")
-                          (buffer-string))
-                        "\n"))
+      org-agenda-files (when (f-exists-p "~/.emacs.d/org-agenda-org-roam-ql-cache")
+                         (string-split
+                          (with-temp-buffer
+                            (insert-file "~/.emacs.d/org-agenda-org-roam-ql-cache")
+                            (buffer-string))
+                          "\n")))
 
 (provide 'orgZ)
 ;;; orgZ.el ends here
