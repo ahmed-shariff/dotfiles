@@ -2623,6 +2623,11 @@ With C-u C-u C-u prefix, force run all research-papers."
   (em "testing delay" (plist-get info :delay))
   (plist-get info :delay))
 
+(defun gptel-handle-on-wait-callback (fsm)
+  "Handle on-wait-callback."
+  (when-let ((callback (plist-get (gptel-fsm-info fsm) :on-wait-callback)))
+    (funcall callback)))
+
 (defun gptel--handle-delay (fsm)
   "Handle the delay state."
   (let ((delay (plist-get (gptel-fsm-info fsm) :delay)))
@@ -2646,8 +2651,9 @@ With C-u C-u C-u prefix, force run all research-papers."
 
 (setf (alist-get 'DELAY gptel-request--handlers) '(gptel--handle-delay))
 
-(defvar-local gptel-openai-assistant-thread-id nil)
+(setf (alist-get 'WAIT gptel-request--handlers) '(gptel-handle-on-wait-callback gptel--handle-wait))
 
+(defvar-local gptel-openai-assistant-thread-id nil)
 
 ;; issues:
 ;; - not all methods recieve the backend as a parameter. Often the backend can be obtained from the info
@@ -2698,7 +2704,25 @@ With C-u C-u C-u prefix, force run all research-papers."
  :parse-response-fn (lambda (response info)
                       (with-current-buffer (plist-get info :buffer)
                         (setq-local gptel-openai-assistant-thread-id (plist-get response :id))
-                        nil)))
+                        nil))
+ :parse-stream-fn (lambda (info)
+                    (em "message sent")
+                    (goto-char (point-min))
+                    (re-search-forward "
+?\n
+?\n" nil t)
+                    (condition-case err
+                        (when-let* ((response (gptel--json-read))
+                                    (_ (equal "thread" (plist-get response :object))))
+                          (em "thread set")
+                          (gptel-openai-assistant--wait-or-update-step info)
+                          (with-current-buffer (plist-get info :buffer)
+                            (setq-local gptel-openai-assistant-thread-id (plist-get response :id)))
+                          nil)
+                      (json-parse-error
+                       (goto-char (match-beginning 0)))
+                      (error
+                       (signal (car err) (cdr err))))))
 
 (gptel-openai-assistant--add-known-step
  :messages
@@ -2710,7 +2734,23 @@ With C-u C-u C-u prefix, force run all research-papers."
                     (list :role "user"
                           :content
                           `[(:type "text"
-                             :text ,(plist-get (car (last prompts)) :content))])))
+                             :text ,(plist-get (car (last prompts)) :content))]))
+ :parse-stream-fn (lambda (info)
+                    (em "message sent")
+                    (goto-char (point-min))
+                    (re-search-forward "
+?\n
+?\n" nil t)
+                    (condition-case nil
+                        (when-let* ((response (gptel--json-read))
+                                    (_ (equal "thread.message" (plist-get response :object))))
+                          (em "message sent")
+                          (gptel-openai-assistant--wait-or-update-step info)
+                          nil)
+                      (json-parse-error
+                       (goto-char (match-beginning 0)))
+                      (error
+                       (signal (car err) (cdr err))))))
 
 (gptel-openai-assistant--add-known-step
  :runs
@@ -2719,8 +2759,7 @@ With C-u C-u C-u prefix, force run all research-papers."
             (format "https://api.openai.com/v1/threads/%s/runs" gptel-openai-assistant-thread-id)
           (user-error "No thread in current buffer to add messages!")))
  :request-data-fn (lambda (backend prompts)
-                    (let ((_ (em gptel-stream gptel-use-curl (gptel-backend-stream backend) 333333333333))
-                          (prompts-plist
+                    (let ((prompts-plist
                            `(:assistant_id ,(gethash 'openai-assistant-id configurations)
                                            :stream ,(or (and gptel-stream gptel-use-curl
                                                              (gptel-backend-stream backend))
@@ -2742,12 +2781,12 @@ With C-u C-u C-u prefix, force run all research-papers."
                       (error "not implemented yet!"))
  :parse-stream-fn (lambda (info)
                     (let* ((content-strs))
-                      (condition-case nil
+                      (condition-case err
                           (while (re-search-forward "^data:" nil t)
                             (save-match-data
                               (if (looking-at " *\\[DONE\\]")
-                                  ;; (gptel-openai-assistant--update-session-step info)
-                                  (em "boom")
+                                  (prog1 nil
+                                    (gptel-openai-assistant--wait-or-update-step info))
                                 (when-let* ((response (gptel--json-read))
                                             (content (map-nested-elt
                                                       response '(:delta :content 0 :text :value)))
@@ -2759,9 +2798,25 @@ With C-u C-u C-u prefix, force run all research-papers."
                                              for file-id = (map-nested-elt
                                                             annotation '(:file_citation :file_id))
                                              if file-id do (push (format "(%s)" file-id) content-strs)))))))
+                        ((json-parse-error json-end-of-file)
+                         (goto-char (match-beginning 0)))
                         (error
-                         (goto-char (match-beginning 0))))
+                         (signal (car err) (cdr err))))
                       (apply #'concat (nreverse content-strs)))))
+
+(defun gptel-openai-assistant--wait-or-update-step (info)
+  (if (length>
+       (gptel-openai-assistant-session-steps (plist-get info :backend))
+       (1+ (gptel-openai-assistant-session-step-idx (plist-get info :backend))))
+      (progn
+        (em "delayed setting of states")
+        (plist-put info :wait t)
+        (plist-put info :on-wait-callback
+                   (lambda ()
+                     (gptel-openai-assistant--update-session-step info))))
+    (plist-put info :wait nil)))
+    ;; (em "..setting of states")
+    ;; (gptel-openai-assistant--update-session-step info)))
 
 (defun gptel-openai-assistant--update-session-step (info &optional backend)
   (cl-assert (or info backend))
@@ -2782,7 +2837,7 @@ With C-u C-u C-u prefix, force run all research-papers."
      (gptel-backend-url backend) (with-current-buffer target-buffer
                                    (when new-step
                                      (if-let (step (alist-get new-step gptel-openai-assistant--known-steps))
-                                         (let ((url (em (gptel-openai-assistant-step-url step) new-step)))
+                                         (let ((url (gptel-openai-assistant-step-url step)))
                                            (cl-typecase url
                                              (string url)
                                              (function (funcall url))
@@ -2796,10 +2851,12 @@ With C-u C-u C-u prefix, force run all research-papers."
      ;;          (:runs t)))
      )
 
+    (em "new step" new-step)
     (when new-step
       (plist-put info :data (gptel--request-data backend (gptel-openai-assistant-session-cached-prompts backend))))
     (when info
       (plist-put info :wait new-step)
+      (plist-put info :on-wait-callback nil)
       ;; ;; KLUDGE: copied from `gptel-request'. Can this be managed upstream?
       ;; (plist-put info :stream (and stream
       ;;                              ;; TODO: model parameters?
@@ -2900,7 +2957,7 @@ With C-u C-u C-u prefix, force run all research-papers."
 (defun gptel-openai-assistant-send ()
   "Add message to the current thread and run it. Create thread if one is not initialized."
   (interactive)
-  (setq-local gptel-backend (gptel-openai-assistant-make-session '(:threads :messages)))
+  (setq-local gptel-backend (gptel-openai-assistant-make-session '(:threads :messages :runs) t))
   (gptel-openai-assistant--update-session-step nil gptel-backend)
   ;; (cl-labels ((send-message-and-run (&optional _ _)
   ;;               (gptel-openai-assistant-add-messages (lambda (_ _)
