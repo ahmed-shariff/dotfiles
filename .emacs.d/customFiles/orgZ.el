@@ -2708,9 +2708,7 @@ With C-u C-u C-u prefix, force run all research-papers."
  :parse-stream-fn (lambda (info)
                     (em "message sent")
                     (goto-char (point-min))
-                    (re-search-forward "
-?\n
-?\n" nil t)
+                    (re-search-forward "?\n?\n" nil t)
                     (condition-case err
                         (when-let* ((response (gptel--json-read))
                                     (_ (equal "thread" (plist-get response :object))))
@@ -2738,9 +2736,7 @@ With C-u C-u C-u prefix, force run all research-papers."
  :parse-stream-fn (lambda (info)
                     (em "message sent")
                     (goto-char (point-min))
-                    (re-search-forward "
-?\n
-?\n" nil t)
+                    (re-search-forward "?\n?\n" nil t)
                     (condition-case nil
                         (when-let* ((response (gptel--json-read))
                                     (_ (equal "thread.message" (plist-get response :object))))
