@@ -3535,6 +3535,8 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   :bind ("C-c d" . docker))
 
 (use-package ahk-mode
+  :defer t
+  :mode	"\\.ahk\\'"
   :straight (ahk-mode :type git :host github :repo "punassuming/ahk-mode"
                       :fork (:host github :repo "tu10ng/ahk-mode")))
 
