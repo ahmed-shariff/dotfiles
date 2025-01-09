@@ -1275,6 +1275,7 @@ targets."
 
 (use-package elysium
   :bind (("C-c o q c" . elysium-query))
+  :after gptel
   :custom
   ;; Below are the default values
   (elysium-window-size 0.33) ; The elysium buffer will be 1/3 your screen
@@ -1286,9 +1287,11 @@ targets."
   (prog-mode . smerge-mode))
 
 (use-package magit-gptcommit
-  :straight (:type git :host github :repo "douo/magit-gptcommit" :branch "gptel"))
+  :straight (:type git :host github :repo "douo/magit-gptcommit" :branch "gptel")
   :demand t
-  :after gptel magit
+  :after (gptel magit)
+  :bind (:map git-commit-mode-map
+              ("C-c C-g" . magit-gptcommit-commit-accept))
   :config
 
   ;; Enable magit-gptcommit-mode to watch staged changes and generate commit message automatically in magit status buffer
@@ -1299,8 +1302,6 @@ targets."
   ;; Add gptcommit transient commands to `magit-commit'
   ;; Eval (transient-remove-suffix 'magit-commit '(1 -1)) to remove gptcommit transient commands
   (magit-gptcommit-status-buffer-setup)
-  :bind (:map git-commit-mode-map
-              ("C-c C-g" . magit-gptcommit-commit-accept))
   )
 
 (use-package gptel-quick
