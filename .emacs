@@ -1243,18 +1243,72 @@ targets."
 ;; gptel ***********************************************************
 (use-package gptel
   :bind
-  (("C-c o q" . gptel-send))
+  (("C-c o q m" . gptel-menu))
   :custom
   (gptel-api-key (gethash 'openai-apk configurations))
   (gptel-use-curl t)
   (gptel-backend gptel--openai)
-  (gptel-model 'gpt-4o))
+  (gptel-model 'gpt-4o)
+  :config
+  (add-to-list 'gptel-post-response-functions
+               (lambda (start end)
+                 "Updating annotations strings."
+                 (save-excursion
+                   (goto-char start)
+                   (let ((nodes (--map
+                                 (cons
+                                  (alist-get "OPENAI_FILE_ID" (org-roam-node-properties it) nil nil #'equal)
+                                  (cons (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'equal)
+                                        (org-roam-node-id it)))
+                                 (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
+                     (condition-case err
+                         (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)]\\[\\(.*?\\)\\]" end)
+                           (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'equal))
+                                       (newtext (format "[[id:%s][cite:%s]]" (cdr elt) (car elt))))
+                             (setq end (+ end (- (length newtext) (length (match-string 0)))))
+                             (replace-match newtext)))
+                       (search-failed nil)))))))
+
 (use-package gptel-extensions
   :straight nil
   :after gptel)
 
+(use-package elysium
+  :bind (("C-c o q c" . elysium-query))
+  :custom
+  ;; Below are the default values
+  (elysium-window-size 0.33) ; The elysium buffer will be 1/3 your screen
+  (elysium-window-style 'vertical)) ; Can be customized to horizontal
 
-  
+(use-package smerge-mode
+  :ensure nil
+  :hook
+  (prog-mode . smerge-mode))
+
+(use-package magit-gptcommit
+  :straight (:type git :host github :repo "douo/magit-gptcommit" :branch "gptel"))
+  :demand t
+  :after gptel magit
+  :config
+
+  ;; Enable magit-gptcommit-mode to watch staged changes and generate commit message automatically in magit status buffer
+  ;; This mode is optional, you can also use `magit-gptcommit-generate' to generate commit message manually
+  ;; `magit-gptcommit-generate' should only execute on magit status buffer currently
+  ;; (magit-gptcommit-mode 1)
+
+  ;; Add gptcommit transient commands to `magit-commit'
+  ;; Eval (transient-remove-suffix 'magit-commit '(1 -1)) to remove gptcommit transient commands
+  (magit-gptcommit-status-buffer-setup)
+  :bind (:map git-commit-mode-map
+              ("C-c C-g" . magit-gptcommit-commit-accept))
+  )
+
+(use-package gptel-quick
+  :straight (:type git :host github :repo "karthink/gptel-quick")
+  :after gptel
+  :bind
+  (("C-c o q q" . gptel-quick)))
+
 
 ;; (use-package consult-gh
 ;;   :straight (consult-gh :type git :host github :repo "armindarvish/consult-gh")
