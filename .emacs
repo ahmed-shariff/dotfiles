@@ -1243,13 +1243,17 @@ targets."
 ;; gptel ***********************************************************
 (use-package gptel
   :bind
-  (("C-c o q m" . gptel-menu))
+  (("C-c o q m" . gptel-menu)
+   ("C-c o q Q" . gptel-send))
   :custom
   (gptel-api-key (gethash 'openai-apk configurations))
   (gptel-use-curl t)
   (gptel-backend gptel--openai)
   (gptel-model 'gpt-4o)
+  (gptel-org-branching-context t)
   :config
+  (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
+        (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n")
   (add-to-list 'gptel-post-response-functions
                (lambda (start end)
                  "Updating annotations strings."
@@ -1264,7 +1268,7 @@ targets."
                      (condition-case err
                          (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)]\\[\\(.*?\\)\\]" end)
                            (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'equal))
-                                       (newtext (format "[[id:%s][cite:%s]]" (cdr elt) (car elt))))
+                                       (newtext (format " [cite:%s]" (car elt))))
                              (setq end (+ end (- (length newtext) (length (match-string 0)))))
                              (replace-match newtext)))
                        (search-failed nil)))))))

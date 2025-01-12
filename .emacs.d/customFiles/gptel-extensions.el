@@ -46,6 +46,37 @@
 
 (defvar-local gptel-openai-assistant-thread-id nil)
 
+
+(defun gptel-request--handle-openai-assistant-startup (oldfn args)
+  (if (em (gptel-openai-assistant-session-p gptel-backend) 111)
+      (when (or (eq (gptel-openai-assistant-session-step-idx gptel-backend) -1)
+                (and
+                 (y-or-n-p "There might be an exisating run. Reset and proceed?")
+                 (prog1 t
+                   (gptel--openai-assistant-reset-backend nil gptel-backend))))
+        (setf (gptel-openai-assistant-session-steps gptel-backend)
+              (if gptel-openai-assistant-thread-id
+                  '(:messages :runs)
+                '(:threads :messages :runs)))
+        (gptel-openai-assistant--update-session-step nil gptel-backend)
+        (apply oldfn args))
+    (apply oldfn args)))
+
+(defun gptel--openai-assistant-reset-backend (fsm &optional backend)
+  (let ((backend (or backend (plist-get :backend (gptel-fsm-info fsm)))))
+    (em "resetting openai assistant backend")
+    (when (gptel-openai-assistant-session-p backend)
+      (setf (gptel-openai-assistant-session-cached-prompts backend) nil
+            (gptel-openai-assistant-session-step-idx backend) -1
+            (gptel-openai-assistant-session-steps backend) '(:threads :messages :runs)))))
+
+(unless (memq 'gptel--openai-assistant-reset-backend (alist-get 'ERRS gptel-request--handlers))
+  (push 'gptel--openai-assistant-reset-backend (alist-get 'ERRS gptel-request--handlers)))
+(unless (memq 'gptel--openai-assistant-reset-backend (alist-get 'DONE gptel-request--handlers))
+  (push 'gptel--openai-assistant-reset-backend (alist-get 'DONE gptel-request--handlers)))
+
+(advice-add #'gptel-send :around #'gptel-request--handle-openai-assistant-startup)
+
 ;; issues:
 ;; - not all methods recieve the backend as a parameter. Often the backend can be obtained from the info
 ;; - gptel--request-data needs the stream parameter....
@@ -224,7 +255,7 @@
                                              (string url)
                                              (function (funcall url))
                                              (t (error "Unknown value for url (%s) in step (%s)" url new-step))))
-                                       (error "Unknown step %s" new-step))))
+                                       (error "Unknown step %s in update session step" new-step))))
 
      ;; This doesn't currently work unless I have set the process sentinel/fileter functions
      ;; stream (pcase new-step
@@ -233,9 +264,9 @@
      ;;          (:runs t)))
      )
 
-    (when new-step
-      (plist-put info :data (gptel--request-data backend (gptel-openai-assistant-session-cached-prompts backend))))
-    (when info
+    (when info ;; not first step
+      (when new-step
+        (plist-put info :data (gptel--request-data backend (gptel-openai-assistant-session-cached-prompts backend))))
       (plist-put info :wait new-step)
       (plist-put info :on-wait-callback nil)
       ;; ;; KLUDGE: copied from `gptel-request'. Can this be managed upstream?
@@ -262,7 +293,7 @@
     (if step-info
         (when-let (fn (gptel-openai-assistant-step-request-data-fn step-info))
           (funcall fn backend prompts))
-      (error "Unknown step %s" step-info))))
+      (error "Unknown step %s in request data" step-info))))
 
 (cl-defmethod gptel--parse-response ((_ gptel-openai-assistant-session) response info)
   (prog1
@@ -271,7 +302,7 @@
         (if step-info
             (when-let (fn (gptel-openai-assistant-step-parse-response-fn step-info))
               (funcall fn response info))
-          (error "Unknown step %s" step)))
+          (error "Unknown step %s in parse response" step)))
     (gptel-openai-assistant--update-session-step info)))
 
 (cl-defmethod gptel-curl--parse-stream ((_ gptel-openai-assistant-session) info)
@@ -280,21 +311,23 @@
     (if step-info
         (when-let (fn (gptel-openai-assistant-step-parse-stream-fn step-info))
           (funcall fn info))
-      (error "Unknown step %s" new-step))))
+      (error "Unknown step %s response" new-step))))
 
-(defun gptel-openai-assistant-make-session (steps &optional stream)
+;;;###autoload
+(defun gptel-openai-assistant-make-session (steps)
   (gptel-openai--make-assistant-session
-   :name "gptel-openai-assistant-session"
+   :name "gptel-openai-assistant"
    :step (car steps)
    :steps steps
    :host "api.openai.com"
    :key 'gptel-api-key
+   :models (gptel--process-models gptel--openai-models)
    :header (lambda () (when-let (key (gptel--get-api-key))
                         `(("Authorization" . ,(concat "Bearer " key))
                           ("OpenAI-Beta" . "assistants=v2"))))
    :protocol "https"
    :endpoint "/v1/threads/thread_id/runs"
-   :stream stream))
+   :stream t))
 
 ;;;###autoload
 (defun gptel-openai-assistant-start-thread ()
@@ -304,9 +337,13 @@
   ;; FIXME: is this needed?
   (when (or (not gptel-openai-assistant-thread-id)
             (y-or-n-p "There is already a thread in the buffer. Create a new thread? "))
-    (setq-local gptel-backend (gptel-openai-assistant-make-session '(:threads)))
+    (if (gptel-openai-assistant-session-p gptel-backend)
+        (setf (gptel-openai-assistant-session-steps gptel-backend) '(:threads))
+      (setq-local gptel-backend (gptel-openai-assistant-make-session '(:threads))))
+    (setf (gptel-openai-assistant-session-cached-prompts gptel-backend) nil
+          (gptel-openai-assistant-session-step-idx gptel-backend) -1)
     (gptel-openai-assistant--update-session-step nil gptel-backend)
-    (gptel-request nil :stream nil)))
+    (gptel-request nil :stream t)))
 
 ;;;###autoload
 (defun gptel-openai-assistant-add-message ()
@@ -314,9 +351,13 @@
   (interactive)
   ;; The info hasn't yet been created either.
   ;; FIXME: is this needed?
-  (setq-local gptel-backend (gptel-openai-assistant-make-session '(:messages)))
+  (if (gptel-openai-assistant-session-p gptel-backend)
+      (setf (gptel-openai-assistant-session-steps gptel-backend) '(:messages))
+    (setq-local gptel-backend (gptel-openai-assistant-make-session '(:messages))))
+  (setf (gptel-openai-assistant-session-cached-prompts gptel-backend) nil
+        (gptel-openai-assistant-session-step-idx gptel-backend) -1)
   (gptel-openai-assistant--update-session-step nil gptel-backend)
-  (gptel-request nil :stream nil))
+  (gptel-request nil :stream t))
 
 ;;;###autoload
 (defun gptel-openai-assistant-start-run ()
@@ -324,7 +365,11 @@
   (interactive)
   ;; The info hasn't yet been created either.
   ;; FIXME: is this needed?
-  (setq-local gptel-backend (gptel-openai-assistant-make-session '(:runs) t))
+  (if (gptel-openai-assistant-session-p gptel-backend)
+      (setf (gptel-openai-assistant-session-steps gptel-backend) '(:runs))
+    (setq-local gptel-backend (gptel-openai-assistant-make-session '(:runs))))
+  (setf (gptel-openai-assistant-session-cached-prompts gptel-backend) nil
+        (gptel-openai-assistant-session-step-idx gptel-backend) -1)
   (gptel-openai-assistant--update-session-step nil gptel-backend)
   (gptel-request nil :stream t))
 
@@ -332,14 +377,25 @@
 (defun gptel-openai-assistant-send ()
   "Add message to the current thread and run it. Create thread if one is not initialized."
   (interactive)
-  (setq-local gptel-backend (gptel-openai-assistant-make-session
-                             (if gptel-openai-assistant-thread-id
-                                 '(:messages :runs)
-                               '(:threads :messages :runs))
-                             t))
+  (if (gptel-openai-assistant-session-p gptel-backend)
+      (setf (gptel-openai-assistant-session-steps gptel-backend)
+            (if gptel-openai-assistant-thread-id
+                '(:messages :runs)
+              '(:threads :messages :runs)))
+    (setq-local gptel-backend
+                (gptel-openai-assistant-make-session
+                 (if gptel-openai-assistant-thread-id
+                     '(:messages :runs)
+                   '(:threads :messages :runs)))))
+  (setf (gptel-openai-assistant-session-cached-prompts gptel-backend) nil
+        (gptel-openai-assistant-session-step-idx gptel-backend) -1)
   (gptel-openai-assistant--update-session-step nil gptel-backend)
   (gptel-request nil :stream t))
 ;; )
+
+(setf (alist-get "openai-assistant" gptel--known-backends
+                 nil nil #'equal)
+      (gptel-openai-assistant-make-session '(:threads :messages :runs)))
 
 
 (provide 'gptel-extensions)

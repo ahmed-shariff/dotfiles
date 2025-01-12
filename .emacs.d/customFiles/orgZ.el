@@ -2481,7 +2481,9 @@ With C-u C-u C-u prefix, force run all research-papers."
     (dolist-with-progress-reporter (f (if (and (not (null current-prefix-arg))
                                                (listp current-prefix-arg)
                                                (< 4 (car current-prefix-arg)))
-                                          (f-files bibtex-completion-notes-path (lambda (f) (not (s-starts-with-p "." (f-base f)))))
+                                          (f-files bibtex-completion-notes-path
+                                                   (lambda (f)
+                                                     (equal (f-ext f) "org")))
                                         (--> (buffer-file-name)
                                              (when (and it (okm-is-research-paper it))
                                                (list it)))))
@@ -2550,9 +2552,12 @@ With C-u C-u C-u prefix, force run all research-papers."
                     (error (message "Error: failed to read pdf file: %s" full-path)
                            (setq tags (append tags '("PDF_ERROR")))))
                   (push 'txt-file changes))))
-            ;; (unless (or (org-entry-get pom "OPENAI_FILE_ID") (string-empty-p (org-entry-get pom "OPENAI_FILE_ID")))
-            ;;   (when-let ((text-file-name (org-entry-get pom "PDF_TEXT_FILE")))
-            ;;     (org-entry-put pom "OPENAI_FILE_ID" (amsha/add-file-to-openai text-file-name))))
+            (unless (or (org-entry-get pom "OPENAI_FILE_ID") (string-empty-p (org-entry-get pom "OPENAI_FILE_ID")))
+              (when-let ((text-file-name (org-entry-get pom "PDF_TEXT_FILE")))
+                (org-entry-put pom "OPENAI_FILE_ID"
+                               (plist-get
+                                (amsha/add-file-to-openai text-file-name)
+                                :id))))
             (when changes
               (save-buffer))
             (setq tags
@@ -2577,7 +2582,7 @@ With C-u C-u C-u prefix, force run all research-papers."
 ;; (org-brain-update-id-locations)
 ;; (org-roam-db-sync))
 
-(defun amsha/curl (&rest rest)
+(defun amsha/curl (method &rest rest)
   (shell-command-to-string
    (string-join
     (append
@@ -2586,7 +2591,7 @@ With C-u C-u C-u prefix, force run all research-papers."
       "--disable" "--location" "--silent"
       (if (memq system-type '(windows-nt ms-dos))
           "" "--compressed")
-      "-X" "POST" "-y300" "-Y1"
+      "-X" method "-y300" "-Y1"
       ;; "-D-"
       ;; "--trace-ascii"
       )
@@ -2598,19 +2603,25 @@ With C-u C-u C-u prefix, force run all research-papers."
   (let* ((api-key (gethash 'openai-apk configurations))
          (org-data-store-id (gethash 'openai-org-vector-store configurations))
          (json-response
-          (amsha/curl
+          (amsha/curl "POST"
            (format "-H \"Authorization: Bearer %s\"" api-key)
            "-F purpose=\"assistants\""
            (format "-F file=\"@%s\"" (file-truename file))
            "https://api.openai.com/v1/files"))
          (json-data
-          (json-read-from-string json-response)))
-    (amsha/curl
-     (format "-H \"Authorization: Bearer %s\"" api-key)
-     "-H \"Content-Type: application/json\""
-     "-H \"OpenAI-Beta: assistants=v2\""
-     "-d" (format "%S" (json-encode (list :file_id (cdr (assoc-string 'id json-data)))))
-     (format "https://api.openai.com/v1/vector_stores/%s/files" org-data-store-id))))
+          (json-read-from-string json-response))
+         (json-object-type 'plist)
+         (json-null :null))
+    (with-temp-buffer
+      (insert
+       (amsha/curl "POST"
+        (format "-H \"Authorization: Bearer %s\"" api-key)
+        "-H \"Content-Type: application/json\""
+        "-H \"OpenAI-Beta: assistants=v2\""
+        "-d" (format "%S" (json-encode (list :file_id (cdr (assoc-string 'id json-data)))))
+        (format "https://api.openai.com/v1/vector_stores/%s/files" org-data-store-id)))
+      (goto-char 0)
+      (json-read))))
 
 ;; (with-eval-after-load 'gptel-openai
 (defun amsha/doi-utils-get-pdf-url-uml (old-function &rest rest)
