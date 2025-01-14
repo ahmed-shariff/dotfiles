@@ -47,13 +47,11 @@
 (defvar-local gptel-openai-assistant-thread-id nil)
 
 
-(defun gptel-request--handle-openai-assistant-startup (oldfn args)
-  (if (em (gptel-openai-assistant-session-p gptel-backend) 111)
-      (when (or (eq (gptel-openai-assistant-session-step-idx gptel-backend) -1)
-                (and
-                 (y-or-n-p "There might be an exisating run. Reset and proceed?")
-                 (prog1 t
-                   (gptel--openai-assistant-reset-backend nil gptel-backend))))
+(defun gptel-request--handle-openai-assistant-startup (oldfn &rest args)
+  (if (gptel-openai-assistant-session-p gptel-backend)
+      (progn
+        (unless (eq (gptel-openai-assistant-session-step-idx gptel-backend) -1)
+          (gptel--openai-assistant-reset-backend nil gptel-backend))
         (setf (gptel-openai-assistant-session-steps gptel-backend)
               (if gptel-openai-assistant-thread-id
                   '(:messages :runs)
@@ -75,7 +73,7 @@
 (unless (memq 'gptel--openai-assistant-reset-backend (alist-get 'DONE gptel-request--handlers))
   (push 'gptel--openai-assistant-reset-backend (alist-get 'DONE gptel-request--handlers)))
 
-(advice-add #'gptel-send :around #'gptel-request--handle-openai-assistant-startup)
+(advice-add #'gptel-request :around #'gptel-request--handle-openai-assistant-startup)
 
 ;; issues:
 ;; - not all methods recieve the backend as a parameter. Often the backend can be obtained from the info
