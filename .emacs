@@ -375,7 +375,7 @@ Used for debugging."
           (fancy-splash-image (let ((files
                                 (append
                                  (directory-files
-                                  (file-truename "~/.emacs.d/.cache/doom-banners/splashes/gnu/")
+                                  (file-truename "~/.emacs.d/.cache/doom-banners/splashes/gnu-sm/")
                                   t "png")
                                  (directory-files
                                   (file-truename "~/.emacs.d/.cache/doom-banners/splashes/emacs/")

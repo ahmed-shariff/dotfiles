@@ -21,4 +21,4 @@
 	url = https://github.com/stumpwm/stumpwm-contrib
 [submodule ".emacs.d/.cache/doom-banners"]
 	path = .emacs.d/.cache/doom-banners
-	url = git@github.com:jeetelongname/doom-banners.git
+	url = git@github.com:ahmed-shariff/doom-banners.git
