@@ -14,10 +14,19 @@
   "Test fsm transition to DELAY."
   (plist-get info :delay))
 
+(defun gptel--await-p (info)
+  "Test fsm transition to AWAIT."
+  (plist-get info :await))
+
+(defun gptel-handle-on-wait-again (fsm)
+  "Handle on-wait-callback."
+  (plist-put (gptel-fsm-info fsm) :wait nil))
+
 (defun gptel-handle-on-wait-callback (fsm)
   "Handle on-wait-callback."
   (when-let ((callback (plist-get (gptel-fsm-info fsm) :on-wait-callback)))
-    (funcall callback)))
+    (funcall callback)
+    (plist-put (gptel-fsm-info fsm) :on-wait-callback nil)))
 
 (defun gptel--handle-delay (fsm)
   "Handle the delay state."
@@ -27,7 +36,8 @@
     (run-at-time delay nil (lambda () (gptel--fsm-transition fsm)))))
 
 ;; Adding TYPE -> WAIT & TYPE -> DELAY transitions
-(setf (alist-get 'TYPE gptel-request--transitions) '((gptel--delay-p . DELAY)
+(setf (alist-get 'TYPE gptel-request--transitions) '((gptel--await-p . AWAIT)
+                                                     (gptel--delay-p . DELAY)
                                                      (gptel--error-p . ERRS)
                                                      (gptel--tool-use-p . TOOL)
                                                      (gptel--wait-again-p . WAIT)
@@ -35,28 +45,48 @@
 
 ;; MAYBE: this is useful to be connected to other states as well?
 ;; From DELAY go to what was expected
-(setf (alist-get 'DELAY gptel-request--transitions) '((gptel--error-p . ERRS)
-                                                     (gptel--tool-use-p . TOOL)
-                                                     (gptel--wait-again-p . WAIT)
-                                                     (t . DONE)))
+(setf (alist-get 'DELAY gptel-request--transitions) '((gptel--await-p . AWAIT)
+                                                      (gptel--error-p . ERRS)
+                                                      (gptel--tool-use-p . TOOL)
+                                                      (gptel--wait-again-p . WAIT)
+                                                      (t . DONE)))
+
+
+;; From AWAIT go to what was expected
+(setf (alist-get 'AWAIT gptel-request--transitions)
+      '((gptel--delay-p . DELAY)
+        (gptel--error-p . ERRS)
+        (gptel--tool-use-p . TOOL)
+        (gptel--wait-again-p . WAIT)
+        (t . DONE)))
+
+(push '(gptel--await-p . AWAIT) (alist-get 'INIT gptel-request--transitions))
+(push '(gptel--await-p . AWAIT) (alist-get 'WAIT gptel-request--transitions))
+(push '(gptel--await-p . AWAIT) (alist-get 'TOOL gptel-request--transitions))
 
 (setf (alist-get 'DELAY gptel-request--handlers) '(gptel--handle-delay))
 
-(setf (alist-get 'WAIT gptel-request--handlers) '(gptel-handle-on-wait-callback gptel--handle-wait))
+(setf (alist-get 'WAIT gptel-request--handlers) '(gptel-handle-on-wait-callback gptel-handle-on-wait-again gptel--handle-wait))
 
 (defvar-local gptel-openai-assistant-thread-id nil)
 
-(cl-defgeneric gptel-backend--on-start-of-state (backend state info))
+;; TODO: Get this from api?
+(defvar-local gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
 
-(cl-defmethod gptel-backend--on-start-of-state ((backend gptel-backend) state info)
-  (em "start of state" state))
+(cl-defgeneric gptel-backend--on-start-of-state (backend state info)
+  "When a the gptel fsm starts a new STATE, this will be called.
+This method is called before the handlers of the new state are invoked.")
 
-(cl-defgeneric gptel-backend--on-end-of-state (backend state info))
+(cl-defmethod gptel-backend--on-start-of-state ((backend gptel-backend) state info))
 
-(cl-defmethod gptel-backend--on-end-of-state ((backend gptel-backend) state info)
-  (em "end of state" state))
+(cl-defgeneric gptel-backend--on-end-of-state (backend state info)
+  "When a the gptel fsm transitions to a new state, this will be called with the old STATE.")
+
+(cl-defmethod gptel-backend--on-end-of-state ((backend gptel-backend) state info))
 
 (defun gptel--fsm-transition-handle-backend-on-start-on-end (oldfn fsm &optional new-state)
+  "Advice for `gptel--fsm-transition'.
+Invokes the `gptel-backend--on-start-of-state' & `gptel-backend--on-end-of-state'."
   (let* ((info (gptel-fsm-info fsm))
          (backend (plist-get info :backend)))
     (gptel-backend--on-end-of-state backend (gptel-fsm-state fsm) info)
@@ -66,223 +96,17 @@
 
 (advice-add #'gptel--fsm-transition :around #'gptel--fsm-transition-handle-backend-on-start-on-end)
 
-;; (unless (memq 'gptel--openai-assistant-reset-backend (alist-get 'ERRS gptel-request--handlers))
-;;   (push 'gptel--openai-assistant-reset-backend (alist-get 'ERRS gptel-request--handlers)))
-;; (unless (memq 'gptel--openai-assistant-reset-backend (alist-get 'DONE gptel-request--handlers))
-;;   (push 'gptel--openai-assistant-reset-backend (alist-get 'DONE gptel-request--handlers)))
-
-;; (advice-add #'gptel-request :around #'gptel-request--handle-openai-assistant-startup)
-
-;; issues:
-;; - not all methods recieve the backend as a parameter. Often the backend can be obtained from the info
-;; - gptel--request-data needs the stream parameter....
-;; - the :parser and :stream values of the info need to be updated on the fly for what I am trying to do here!
-;;   - actually, the process sentinal/filter methods also need to be updated!!!
-
-;; This gets created when a new session/thread is started
-(cl-defstruct (gptel-openai-assistant-session
-               (:constructor gptel-openai--make-assistant-session)
+(cl-defstruct (gptel-openai-assistant
+               (:constructor gptel-openai--make-assistant)
                (:copier nil)
                (:include gptel-openai))
-  ;; (session-step-endpoint-urls
-  ;;  #'gptel-openai-assistant--step-endpoint-url
-  ;;  (:documentation
-  ;;   "This is a function that take one argument, the current step, and returns the url.")
-  ;;  (:type 'function))
-  (steps
-   '(:threads :messages :runs)
-   :documentation "The sequence of the steps.")
-  (step-idx -1 :documentation "Current step in steps sequence.")
-  cached-prompts
-  (step
-   :threads
-   :documentation "The current step of the session."))
-
-(defvar gptel-openai-assistant--known-steps nil)
-
-(cl-defstruct (gptel-openai-assistant-step
-               (:constructor gptel-openai-assistant--make-step))
-  (url
-   :documentation "String of function that returns the url as string")
-  (request-data-fn
-   :documentation "Takes backend and prompts as arg. See `gptel--request-data'")
-  (parse-response-fn
-   :documentation "Takes response and info as args. See `gptel--parse-response'")
-  (parse-stream-fn
-   :documentation "Takes info as args. See `gptel-curl--parse-stream'"))
-
-(cl-defun gptel-openai-assistant--add-known-step (step &key url request-data-fn parse-response-fn parse-stream-fn)
-  (setf (alist-get step gptel-openai-assistant--known-steps)
-        (gptel-openai-assistant--make-step
-         :url url :request-data-fn request-data-fn :parse-response-fn parse-response-fn :parse-stream-fn parse-stream-fn)))
-
-(gptel-openai-assistant--add-known-step
- :threads
- :url "https://api.openai.com/v1/threads"
- :parse-response-fn (lambda (response info)
-                      (with-current-buffer (plist-get info :buffer)
-                        (setq-local gptel-openai-assistant-thread-id (plist-get response :id))
-                        nil))
- :parse-stream-fn (lambda (info)
-                    (goto-char (point-min))
-                    (re-search-forward "?\n?\n" nil t)
-                    (condition-case err
-                        (when-let* ((response (gptel--json-read))
-                                    (_ (equal "thread" (plist-get response :object))))
-                          (gptel-openai-assistant--progress-step info)
-                          (with-current-buffer (plist-get info :buffer)
-                            (setq-local gptel-openai-assistant-thread-id (plist-get response :id)))
-                          nil)
-                      (json-parse-error
-                       (goto-char (match-beginning 0)))
-                      (error
-                       (signal (car err) (cdr err))))))
-
-(gptel-openai-assistant--add-known-step
- :messages
- :url (lambda ()
-        (if gptel-openai-assistant-thread-id
-            (format "https://api.openai.com/v1/threads/%s/messages" gptel-openai-assistant-thread-id)
-          (user-error "No thread in current buffer to add messages!")))
- :request-data-fn (lambda (backend prompts)
-                    (list :role "user"
-                          :content
-                          `[(:type "text"
-                             :text ,(plist-get (car (last prompts)) :content))]))
- :parse-stream-fn (lambda (info)
-                    (goto-char (point-min))
-                    (re-search-forward "?\n?\n" nil t)
-                    (condition-case nil
-                        (when-let* ((response (gptel--json-read))
-                                    (_ (equal "thread.message" (plist-get response :object))))
-                          (gptel-openai-assistant--progress-step info)
-                          nil)
-                      (json-parse-error
-                       (goto-char (match-beginning 0)))
-                      (error
-                       (signal (car err) (cdr err))))))
-
-(gptel-openai-assistant--add-known-step
- :runs
- :url (lambda ()
-        (if gptel-openai-assistant-thread-id
-            (format "https://api.openai.com/v1/threads/%s/runs" gptel-openai-assistant-thread-id)
-          (user-error "No thread in current buffer to add messages!")))
- :request-data-fn (lambda (backend prompts)
-                    (let ((prompts-plist
-                           `(:assistant_id ,(gethash 'openai-assistant-id configurations)
-                                           :stream ,(or (and gptel-stream gptel-use-curl
-                                                             (gptel-backend-stream backend))
-                                                        :json-false))))
-                      (when gptel-temperature
-                        (plist-put prompts-plist :temperature gptel-temperature))
-                      (when gptel-max-tokens
-                        (plist-put prompts-plist (if (memq gptel-model '(o1-preview o1-mini))
-                                                     :max_completion_tokens :max_tokens)
-                                   gptel-max-tokens))
-                      ;; Merge request params with model and backend params.
-                      (gptel--merge-plists
-                       prompts-plist
-                       (gptel-backend-request-params backend)
-                       (gptel--model-request-params  gptel-model))))
- :parse-response-fn (lambda (response info)
-                      ;; TODO: peridically poll the run and check if it's completed. If so, get last message
-                      ;; https://platform.openai.com/docs/assistants/deep-dive#polling-for-updates
-                      (error "not implemented yet!"))
- :parse-stream-fn (lambda (info)
-                    (let* ((content-strs))
-                      (condition-case err
-                          (while (re-search-forward "^data:" nil t)
-                            (save-match-data
-                              (if (looking-at " *\\[DONE\\]")
-                                  (prog1 nil
-                                    (gptel-openai-assistant--progress-step info))
-                                (when-let* ((response (gptel--json-read))
-                                            (content (map-nested-elt
-                                                      response '(:delta :content 0 :text :value)))
-                                            )
-                                  (if-let* ((annotations (map-nested-elt
-                                                          response '(:delta :content 0 :text :annotations)))
-                                            (_ (length> annotations 0)))
-                                      (cl-loop for annotation across annotations
-                                               for file-id = (map-nested-elt
-                                                                  annotation '(:file_citation :file_id))
-                                               if file-id
-                                               do (push (format "[[file_citation:%s][%s]]" file-id content) content-strs))
-                                    (push content content-strs))))))
-                        ((json-parse-error json-end-of-file search-failed)
-                         (goto-char (match-beginning 0)))
-                        (error
-                         (signal (car err) (cdr err))))
-                      (apply #'concat (nreverse content-strs)))))
-
-;; (defun gptel-openai-assistant--wait-or-update-step (info)
-;;   (if (length>
-;;        (gptel-openai-assistant-session-steps (plist-get info :backend))
-;;        (1+ (gptel-openai-assistant-session-step-idx (plist-get info :backend))))
-;;       (progn
-;;         (plist-put info :wait t)
-;;         (plist-put info :on-wait-callback
-;;                    (lambda ()
-;;                      (gptel-openai-assistant--update-session-step info))))
-;;     (plist-put info :wait nil)))
-
-;; (defun gptel-openai-assistant--update-session-step (info &optional backend)
-;;   (cl-assert (or info backend))
-;;   (let* ((backend (or backend
-;;                           (plist-get info :backend)))
-;;          (new-step
-;;           (when-let* ((step-idx (cl-incf (gptel-openai-assistant-session-step-idx backend)))
-;;                       (_ (length> (gptel-openai-assistant-session-steps backend) step-idx)))
-;;             (nth step-idx (gptel-openai-assistant-session-steps backend))))
-;;          (target-buffer (or (and info
-;;                                  (plist-get info :buffer))
-;;                             ;; When being called first time, assuming it is
-;;                             ;; done from the current-buffer
-;;                             (current-buffer)))
-;;          stream)
-;;     (setf 
-;;      (gptel-openai-assistant-session-step backend) new-step
-;;      (gptel-backend-url backend) (with-current-buffer target-buffer
-;;                                    (when new-step
-;;                                      (if-let (step (alist-get new-step gptel-openai-assistant--known-steps))
-;;                                          (let ((url (gptel-openai-assistant-step-url step)))
-;;                                            (em (cl-typecase url
-;;                                              (string url)
-;;                                              (function (funcall url))
-;;                                              (t (error "Unknown value for url (%s) in step (%s)" url new-step)))))
-;;                                        (error "Unknown step %s in update session step" new-step))))
-
-;;      ;; This doesn't currently work unless I have set the process sentinel/fileter functions
-;;      ;; stream (pcase new-step
-;;      ;;          (:threads nil)
-;;      ;;          (:messages nil)
-;;      ;;          (:runs t)))
-;;      )
-
-;;     (when info ;; not first step
-;;       (when new-step
-;;         (plist-put info :data (gptel--request-data backend (gptel-openai-assistant-session-cached-prompts backend))))
-;;       (plist-put info :wait new-step)
-;;       (plist-put info :on-wait-callback nil)
-;;       ;; ;; KLUDGE: copied from `gptel-request'. Can this be managed upstream?
-;;       ;; (plist-put info :stream (and stream
-;;       ;;                              ;; TODO: model parameters?
-;;       ;;                              gptel-stream gptel-use-curl
-;;       ;;                              (gptel-backend-stream backend)))
-;;       ;; KLUDGE: copied from `gptel-curl-get-response'. Can this be managed upstream?
-;;       ;; (plist-put info :parser (cl--generic-method-function
-;;       ;;                          (if stream
-;;       ;;                              (cl-find-method
-;;       ;;                               'gptel-curl--parse-stream nil
-;;       ;;                               (list (aref backend 0) t))
-;;       ;;                            (cl-find-method
-;;       ;;                             'gptel--parse-response nil
-;;       ;;                             (list (aref backend 0) t t)))))
-;;       )))
+  messages-data)
 
 (defvar url-http-end-of-headers)
 (defun gptel--openai-assistant-url-retrive (method data url info callback)
+  "Get data from URL with DATA using METHOD (POST/GET).
+INFO is info from gptel
+CALLBACK is called with the response from calling url-retrive."
   (let ((url-request-method "POST")
         (url-request-extra-headers
          (append `(("Content-Type" . "application/json")
@@ -292,7 +116,7 @@
     (url-retrieve (cl-typecase url
                     (string url)
                     (function (funcall url))
-                    (t (error "Unknown value for url (%s) in step (%s)" url new-step)))
+                    (t (error "Unknown value for url (%s) in step" url)))
                   (lambda (_)
                     (pcase-let ((`(,response ,http-status ,http-msg ,error)
                                  (custom--url-parse-response))
@@ -301,13 +125,24 @@
                       (plist-put info :status http-msg)
                       (when error
                         (plist-put info :error error))
-                      (funcall callback response)
-                      ;; (kill-buffer buf)))
+                      (with-current-buffer (plist-get info :buffer)
+                        (funcall callback response))
+                      (kill-buffer buf)
                       ))
                   nil t t)))
 
+;; copied from `gptel--url-parse-response' beacuse we don't want the following:
+;; (gptel--parse-response backend response proc-info)
 (defun custom--url-parse-response ()
-  "Parse response from BACKEND with PROC-INFO."
+  "Parse response from url-retrive."
+  (when gptel-log-level             ;logging
+    (save-excursion
+      (goto-char url-http-end-of-headers)
+      (when (eq gptel-log-level 'debug)
+        (gptel--log (gptel--json-encode (buffer-substring-no-properties (point-min) (point)))
+                    "response headers"))
+      (gptel--log (buffer-substring-no-properties (point) (point-max))
+                  "response body")))
   (if-let* ((http-msg (string-trim (buffer-substring (line-beginning-position)
                                                      (line-end-position))))
             (http-status
@@ -333,21 +168,29 @@
     (list nil (concat "(" http-msg ") Could not parse HTTP response.")
           "Could not parse HTTP response.")))
 
-(defun gptel-openai-assistant-start-thread (info callback)
+(defun gptel-openai-assistant-start-thread (info &optional callback)
+  "Use the threads endpoint to start new thread.
+Set the `gptel-openai-assistant-thread-id' of the buffer.
+INFO is the info plist from gptel.
+CALLBACK is invoked without any args after successfully creating a thread."
   (gptel--openai-assistant-url-retrive
    "POST" nil "https://api.openai.com/v1/threads"
    info
    (lambda (response)
      (with-current-buffer
          (plist-get info :buffer)
-       (em (setq-local gptel-openai-assistant-thread-id (plist-get response :id)))
+       (setq-local gptel-openai-assistant-thread-id (plist-get response :id))
        (when callback (funcall callback))))))
 
 (defun gptel-openai-assistant-add-message (info callback)
+  "Use the messages endpoint to start new thread.
+Needs the `gptel-openai-assistant-thread-id' of the buffer to be set.
+INFO is the info plist from gptel.
+CALLBACK is invoked without any args after successfully creating a thread."
   (gptel--openai-assistant-url-retrive
    "POST"
    (encode-coding-string
-    (gptel--json-encode (plist-get info :data))
+    (gptel--json-encode (gptel-openai-assistant-messages-data (plist-get info :backend)))
     'utf-8)
    (with-current-buffer
        (plist-get info :buffer)
@@ -357,90 +200,97 @@
        (user-error "No thread in current buffer to add messages!")))
    info
    (lambda (response)
-     (em response)
      (when callback (funcall callback)))))
 
-(cl-defmethod gptel--request-data ((backend gptel-openai-assistant-session) prompts)
-  (when (eq 0 (gptel-openai-assistant-session-step-idx backend))
-    (setf (gptel-openai-assistant-session-cached-prompts backend) prompts))
-  (let* ((step (gptel-openai-assistant-session-step backend))
-         (step-info (alist-get step gptel-openai-assistant--known-steps)))
-    (if step-info
-        (when-let (fn (gptel-openai-assistant-step-request-data-fn step-info))
-          (funcall fn backend prompts))
-      (error "Unknown step %s in request data" step-info))))
+(cl-defmethod gptel--request-data ((backend gptel-openai-assistant) prompts)
+  (setf (gptel-openai-assistant-messages-data backend)
+        (list :role "user"
+              :content
+              `[(:type "text"
+                       :text ,(plist-get (car (last prompts)) :content))]))
+  (let ((prompts-plist
+         `(:assistant_id ,gptel-openai-assistant-assistant-id
+                         :stream ,(or (and gptel-stream gptel-use-curl
+                                           (gptel-backend-stream backend))
+                                      :json-false))))
+    (when gptel-temperature
+      (plist-put prompts-plist :temperature gptel-temperature))
+    (when gptel-max-tokens
+      (plist-put prompts-plist (if (memq gptel-model '(o1-preview o1-mini))
+                                   :max_completion_tokens :max_tokens)
+                 gptel-max-tokens))
+    ;; Merge request params with model and backend params.
+    (gptel--merge-plists
+     prompts-plist
+     (gptel-backend-request-params backend)
+     (gptel--model-request-params  gptel-model))))
 
-(cl-defmethod gptel--parse-response ((_ gptel-openai-assistant-session) response info)
-  (prog1
-      (let* ((step (gptel-openai-assistant-session-step (plist-get info :backend)))
-             (step-info (alist-get step gptel-openai-assistant--known-steps)))
-        (if step-info
-            (when-let (fn (gptel-openai-assistant-step-parse-response-fn step-info))
-              (funcall fn response info))
-          (error "Unknown step %s in parse response" step)))
-    (gptel-openai-assistant--update-session-step info)))
+(cl-defmethod gptel--parse-response ((_ gptel-openai-assistant) response info)
+  ;; TODO: peridically poll the run and check if it's completed. If so, get last message
+  ;; https://platform.openai.com/docs/assistants/deep-dive#polling-for-updates
+  (error "not implemented yet!"))
 
-(cl-defmethod gptel-curl--parse-stream ((_ gptel-openai-assistant-session) info)
-  (let* ((step (gptel-openai-assistant-session-step (plist-get info :backend)))
-         (step-info (alist-get step gptel-openai-assistant--known-steps)))
-    (if step-info
-        (when-let (fn (gptel-openai-assistant-step-parse-stream-fn step-info))
-          (funcall fn info))
-      (error "Unknown step %s response" new-step))))
+(cl-defmethod gptel-curl--parse-stream ((_ gptel-openai-assistant) info)
+  (let* ((content-strs))
+    (condition-case err
+        (while (re-search-forward "^data:" nil t)
+          (save-match-data
+            (unless (looking-at " *\\[DONE\\]")
+              (when-let* ((response (gptel--json-read))
+                          (content (map-nested-elt
+                                    response '(:delta :content 0 :text :value)))
+                          )
+                (if-let* ((annotations (map-nested-elt
+                                        response '(:delta :content 0 :text :annotations)))
+                          (_ (length> annotations 0)))
+                    (cl-loop for annotation across annotations
+                             for file-id = (map-nested-elt
+                                            annotation '(:file_citation :file_id))
+                             if file-id
+                             do (push (format "[[file_citation:%s][%s]]" file-id content) content-strs))
+                  (push content content-strs))))))
+      ((json-parse-error json-end-of-file search-failed)
+       (goto-char (match-beginning 0)))
+      (error
+       (signal (car err) (cdr err))))
+    (apply #'concat (nreverse content-strs))))
 
-(cl-defmethod gptel-backend--on-start-of-state ((backend gptel-openai-assistant-session) state info)
-  (pcase state
-    ('DONE (gptel--openai-assistant-reset-backend backend))
-    ('WAIT
-     (let* ((new-step
-             (when-let* ((step-idx (cl-incf (gptel-openai-assistant-session-step-idx backend)))
-                         (_ (length> (gptel-openai-assistant-session-steps backend) step-idx)))
-               (nth step-idx (gptel-openai-assistant-session-steps backend))))
-            (target-buffer (plist-get info :buffer)))
-       (setf 
-        (gptel-openai-assistant-session-step backend) new-step
-        (gptel-backend-url backend) (with-current-buffer target-buffer
-                                      (when new-step
-                                        (if-let (step (alist-get new-step gptel-openai-assistant--known-steps))
-                                            (let ((url (gptel-openai-assistant-step-url step)))
-                                              (em (cl-typecase url
-                                                    (string url)
-                                                    (function (funcall url))
-                                                    (t (error "Unknown value for url (%s) in step (%s)" url new-step)))))
-                                          (error "Unknown step %s in update session step" new-step)))))
-
-       (plist-put info :data (gptel--request-data backend (gptel-openai-assistant-session-cached-prompts backend)))
-       (plist-put info :wait new-step)))))
-
-(cl-defmethod gptel-backend--on-end-of-state ((backend gptel-openai-assistant-session) state info)
+(cl-defmethod gptel--handle-openai-assistant-await (fsm)
+  (let* ((info (gptel-fsm-info fsm))
+         (await-manual-state (plist-get info :await)))
+    (when (gptel-openai-assistant-p (plist-get info :backend))
+     ;; This tells us await manual is happening from after the init
+      (pcase await-manual-state
+        (:send-message
+         (plist-put info :await nil)
+         (cl-labels ((send-message ()
+                       (gptel-openai-assistant-add-message
+                        info
+                        (lambda ()
+                          (plist-put info :wait t)
+                          (gptel--fsm-transition fsm)))))
+           (if gptel-openai-assistant-thread-id
+               (send-message)
+             (gptel-openai-assistant-start-thread
+              info
+              (lambda ()
+                (if (plist-get info :error)
+                    (gptel--fsm-transition fsm)
+                  (send-message)))))))
+        (:await-runs-complete
+         (plist-put info :await nil)
+         ;; TODO: The polling can happen here
+         (error "Not implemented yet"))))))
+     
+(cl-defmethod gptel-backend--on-end-of-state ((backend gptel-openai-assistant) state info)
   (when (eq state 'INIT)
-    (unless (eq (gptel-openai-assistant-session-step-idx backend) -1)
-      (gptel--openai-assistant-reset-backend backend))
-    (setf (gptel-openai-assistant-session-steps backend)
-          (with-current-buffer (plist-get info :buffer)
-            (if gptel-openai-assistant-thread-id
-                '(:messages :runs)
-              '(:threads :messages :runs))))
-    (gptel-openai-assistant--update-session-step backend)))
-
-(defun gptel--openai-assistant-reset-backend (backend)
-  (em "resetting openai assistant backend")
-  (when (gptel-openai-assistant-session-p backend)
-    (setf (gptel-openai-assistant-session-cached-prompts backend) nil
-          (gptel-openai-assistant-session-step-idx backend) -1
-          (gptel-openai-assistant-session-steps backend) '(:threads :messages :runs))))
-
-(defun gptel-openai-assistant--progress-step (info)
-  (plist-put info :wait (length>
-                         (gptel-openai-assistant-session-steps (plist-get info :backend))
-                         (1+ (gptel-openai-assistant-session-step-idx (plist-get info :backend))))))
+    (plist-put info :await :send-message)))
 
 ;;;###autoload
-(defun gptel-openai-assistant-make-session (steps)
-  (gptel-openai--make-assistant-session
+(defun gptel-openai-make-assistant ()
+  "Create a openai-assistant backend."
+  (gptel-openai--make-assistant
    :name "gptel-openai-assistant"
-   :step (car steps)
-   :steps steps
    :host "api.openai.com"
    :key 'gptel-api-key
    :models (gptel--process-models gptel--openai-models)
@@ -449,76 +299,23 @@
                           ("OpenAI-Beta" . "assistants=v2"))))
    :protocol "https"
    :endpoint "/v1/threads/thread_id/runs"
+   :url (lambda ()
+          (if gptel-openai-assistant-thread-id
+              (format "https://api.openai.com/v1/threads/%s/runs" gptel-openai-assistant-thread-id)
+            (user-error "No thread in current buffer to add messages!")))
    :stream t))
 
 ;;;###autoload
-(defun gptel-openai-assistant-start-thread ()
-  "Start a assistant thread in the current buffer."
+(defun gptel-openai-assistant-create-new-thread ()
+  "Create a new thread in the current buffer."
   (interactive)
-  ;; The info hasn't yet been created either.
-  ;; FIXME: is this needed?
-  (when (or (not gptel-openai-assistant-thread-id)
-            (y-or-n-p "There is already a thread in the buffer. Create a new thread? "))
-    (if (gptel-openai-assistant-session-p gptel-backend)
-        (setf (gptel-openai-assistant-session-steps gptel-backend) '(:threads))
-      (setq-local gptel-backend (gptel-openai-assistant-make-session '(:threads))))
-    (setf (gptel-openai-assistant-session-cached-prompts gptel-backend) nil
-          (gptel-openai-assistant-session-step-idx gptel-backend) -1)
-    (gptel-openai-assistant--update-session-step nil gptel-backend)
-    (gptel-request nil :stream t)))
+  (gptel-openai-assistant-start-thread `(:buffer ,(buffer-name))))
 
-;;;###autoload
-(defun gptel-openai-assistant-add-message ()
-  "Start a assistant thread in the current buffer."
-  (interactive)
-  ;; The info hasn't yet been created either.
-  ;; FIXME: is this needed?
-  (if (gptel-openai-assistant-session-p gptel-backend)
-      (setf (gptel-openai-assistant-session-steps gptel-backend) '(:messages))
-    (setq-local gptel-backend (gptel-openai-assistant-make-session '(:messages))))
-  (setf (gptel-openai-assistant-session-cached-prompts gptel-backend) nil
-        (gptel-openai-assistant-session-step-idx gptel-backend) -1)
-  (gptel-openai-assistant--update-session-step nil gptel-backend)
-  (gptel-request nil :stream t))
-
-;;;###autoload
-(defun gptel-openai-assistant-start-run ()
-  "Start a assistant thread in the current buffer."
-  (interactive)
-  ;; The info hasn't yet been created either.
-  ;; FIXME: is this needed?
-  (if (gptel-openai-assistant-session-p gptel-backend)
-      (setf (gptel-openai-assistant-session-steps gptel-backend) '(:runs))
-    (setq-local gptel-backend (gptel-openai-assistant-make-session '(:runs))))
-  (setf (gptel-openai-assistant-session-cached-prompts gptel-backend) nil
-        (gptel-openai-assistant-session-step-idx gptel-backend) -1)
-  (gptel-openai-assistant--update-session-step nil gptel-backend)
-  (gptel-request nil :stream t))
-
-;;;###autoload
-(defun gptel-openai-assistant-send ()
-  "Add message to the current thread and run it. Create thread if one is not initialized."
-  (interactive)
-  (if (gptel-openai-assistant-session-p gptel-backend)
-      (setf (gptel-openai-assistant-session-steps gptel-backend)
-            (if gptel-openai-assistant-thread-id
-                '(:messages :runs)
-              '(:threads :messages :runs)))
-    (setq-local gptel-backend
-                (gptel-openai-assistant-make-session
-                 (if gptel-openai-assistant-thread-id
-                     '(:messages :runs)
-                   '(:threads :messages :runs)))))
-  (setf (gptel-openai-assistant-session-cached-prompts gptel-backend) nil
-        (gptel-openai-assistant-session-step-idx gptel-backend) -1)
-  (gptel-openai-assistant--update-session-step nil gptel-backend)
-  (gptel-request nil :stream t))
-;; )
+(push 'gptel--handle-openai-assistant-await (alist-get 'AWAIT gptel-request--handlers))
 
 (setf (alist-get "openai-assistant" gptel--known-backends
                  nil nil #'equal)
-      (gptel-openai-assistant-make-session '(:threads :messages :runs)))
-
+      (gptel-openai-make-assistant))
 
 (provide 'gptel-extensions)
 ;;; orgZ.el ends here
