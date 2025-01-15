@@ -104,7 +104,15 @@
       confirm-kill-emacs #'y-or-n-p
       ;;tramp settings ***************************************************
       ;; See https://stackoverflow.com/questions/6954479/emacs-tramp-doesnt-work for more details
-      tramp-terminal-type "dumb")
+      tramp-terminal-type "dumb"
+      initial-buffer-choice "*splash*"
+      inhibit-startup-screen t
+      banner-text-list (string-split
+                        (with-temp-buffer
+                         (insert-file "~/.emacs.d/customFiles/banner_text.txt")
+                         (buffer-string))
+                        "\n")
+      )
 
 ;; ;;enabling company***********************************************
 ;; (add-hook 'after-init-hook 'global-company-mode)
@@ -360,6 +368,47 @@ Used for debugging."
   (setq visual-fill-column-width 110
         visual-fill-column-center-text t)
   (visual-fill-column-mode 1))
+
+(defun amsha/show-startup ()
+  (with-current-buffer (get-buffer-create initial-buffer-choice)
+    (let ((inhibit-read-only t)
+          (fancy-splash-image (let ((files
+                                (append
+                                 (directory-files
+                                  (file-truename "~/.emacs.d/.cache/doom-banners/splashes/gnu/")
+                                  t "png")
+                                 (directory-files
+                                  (file-truename "~/.emacs.d/.cache/doom-banners/splashes/emacs/")
+                                  t "png"))))
+                           (nth (random (length files)) files)))
+          (visual-fill-column-width 200)
+          (footer-text (nth (random (length banner-text-list)) banner-text-list)))
+      (amsha/visual-fill)
+      (erase-buffer)
+      (setq default-directory "~/")
+      (make-local-variable 'startup-screen-inhibit-startup-screen)
+      (fancy-splash-head)
+      (insert "\n"
+              ;; copied from `fancy-splash-head'
+              ;; (insert (propertize " " 'display
+              ;;                     `(space :align-to (+ ,(- (/ (length footer-text) 2)
+              ;;                                              3)
+              ;;                                          (-0.5 . ,footer-text)))))
+              (propertize footer-text 'face 'font-lock-doc-face
+                          ;; copied from `dashboard-center-text'
+                          'line-prefix (propertize " " 'display `(space . (:align-to (- center ,(/ (float visual-fill-column-width) 2)))))
+                          'indent-prefix (propertize " " 'display `(space . (:align-to (- center ,(/ (float visual-fill-column-width) 2))))))
+              "\n\n"))
+    (use-local-map splash-screen-keymap)
+    (setq tab-width 22
+	  buffer-read-only t)
+    (set-buffer-modified-p nil)
+    (if (and view-read-only (not view-mode))
+	(view-mode-enter nil 'kill-buffer)))
+  (switch-to-buffer initial-buffer-choice)
+  (goto-char (point-max)))
+
+(add-hook 'emacs-startup-hook #'amsha/show-startup)
 
 (defun visual-fill-set-width-buffer-local (width)
   "Set visual fill column width for this buffer."
@@ -3204,6 +3253,7 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
   :hook ((dashboard-mode . (lambda () (setq default-directory "~/"))))
   :custom
   (dashboard-set-heading-icons t)
+  (dashboard-footer-messages banner-text-list)
   :config
   (defmacro amsha/dashboard-insert-section
       (section-name icon list list-size shortcut-id shortcut-char action &rest widget-params)
