@@ -112,6 +112,13 @@
                          (insert-file "~/.emacs.d/customFiles/banner_text.txt")
                          (buffer-string))
                         "\n")
+      banner-images-list (append
+                          (directory-files
+                           (file-truename "~/.emacs.d/.cache/doom-banners/splashes/gnu-sm/")
+                           t "png")
+                          (directory-files
+                           (file-truename "~/.emacs.d/.cache/doom-banners/splashes/emacs/")
+                           t "png"))
       )
 
 ;; ;;enabling company***********************************************
@@ -372,15 +379,7 @@ Used for debugging."
 (defun amsha/show-startup ()
   (with-current-buffer (get-buffer-create initial-buffer-choice)
     (let ((inhibit-read-only t)
-          (fancy-splash-image (let ((files
-                                (append
-                                 (directory-files
-                                  (file-truename "~/.emacs.d/.cache/doom-banners/splashes/gnu-sm/")
-                                  t "png")
-                                 (directory-files
-                                  (file-truename "~/.emacs.d/.cache/doom-banners/splashes/emacs/")
-                                  t "png"))))
-                           (nth (random (length files)) files)))
+          (fancy-splash-image (nth (random (length banner-images-list)) banner-images-list)))
           (visual-fill-column-width 200)
           (footer-text (nth (random (length banner-text-list)) banner-text-list)))
       (amsha/visual-fill)
@@ -3467,8 +3466,9 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   
   (setq dashboard-startup-banner "~/.emacs.d/customFiles/banner.png"
         dashboard-banner-logo-title nil
-        dashboard-image-banner-max-height 1
-        dashboard-image-banner-max-width 1
+        dashboard-startup-banner banner-images-list
+        dashboard-image-banner-max-height 200
+        dashboard-image-banner-max-width 200
         dashboard-items '((quick-links . 5)
                           (recents  . 5)
                           (projects . 5)
