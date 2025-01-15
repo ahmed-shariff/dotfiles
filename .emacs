@@ -631,7 +631,6 @@ that returns a string."
                       "failed")))))))
 
 (use-package forge
-  :defer t
   :after magit)
 
 (use-package hl-todo
