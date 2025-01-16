@@ -20,11 +20,11 @@
   "Test fsm transition to AWAIT."
   (plist-get info :await))
 
-(defun gptel-handle-on-wait-again (fsm)
+(defun gptel--handle-on-wait-again (fsm)
   "Handle on-wait-callback."
   (plist-put (gptel-fsm-info fsm) :wait nil))
 
-(defun gptel-handle-on-wait-callback (fsm)
+(defun gptel--handle-on-wait-callback (fsm)
   "Handle on-wait-callback."
   (when-let ((callback (plist-get (gptel-fsm-info fsm) :on-wait-callback)))
     (funcall callback)
@@ -68,30 +68,30 @@
 
 (setf (alist-get 'DELAY gptel-request--handlers) '(gptel--handle-delay))
 
-(setf (alist-get 'WAIT gptel-request--handlers) '(gptel-handle-on-wait-callback gptel-handle-on-wait-again gptel--handle-wait))
+(setf (alist-get 'WAIT gptel-request--handlers) '(gptel--handle-on-wait-callback gptel--handle-on-wait-again gptel--handle-wait))
 
-(cl-defgeneric gptel-backend--on-start-of-state (backend state info)
-  "When a the gptel fsm starts a new STATE, this will be called.
-This method is called before the handlers of the new state are invoked.")
+;; (cl-defgeneric gptel-backend--on-start-of-state (backend state info)
+;;   "When a the gptel fsm starts a new STATE, this will be called.
+;; This method is called before the handlers of the new state are invoked.")
 
-(cl-defmethod gptel-backend--on-start-of-state ((backend gptel-backend) state info))
+;; (cl-defmethod gptel-backend--on-start-of-state ((backend gptel-backend) state info))
 
-(cl-defgeneric gptel-backend--on-end-of-state (backend state info)
-  "When a the gptel fsm transitions to a new state, this will be called with the old STATE.")
+;; (cl-defgeneric gptel-backend--on-end-of-state (backend state info)
+;;   "When a the gptel fsm transitions to a new state, this will be called with the old STATE.")
 
-(cl-defmethod gptel-backend--on-end-of-state ((backend gptel-backend) state info))
+;; (cl-defmethod gptel-backend--on-end-of-state ((backend gptel-backend) state info))
 
-(defun gptel--fsm-transition-handle-backend-on-start-on-end (oldfn fsm &optional new-state)
-  "Advice for `gptel--fsm-transition'.
-Invokes the `gptel-backend--on-start-of-state' & `gptel-backend--on-end-of-state'."
-  (let* ((info (gptel-fsm-info fsm))
-         (backend (plist-get info :backend)))
-    (gptel-backend--on-end-of-state backend (gptel-fsm-state fsm) info)
-    ;; the start is being called before the handlers of the next state..
-    (gptel-backend--on-start-of-state backend (gptel--fsm-next fsm) info)
-    (funcall oldfn fsm new-state)))
+;; (defun gptel--fsm-transition-handle-backend-on-start-on-end (oldfn fsm &optional new-state)
+;;   "Advice for `gptel--fsm-transition'.
+;; Invokes the `gptel-backend--on-start-of-state' & `gptel-backend--on-end-of-state'."
+;;   (let* ((info (gptel-fsm-info fsm))
+;;          (backend (plist-get info :backend)))
+;;     (gptel-backend--on-end-of-state backend (gptel-fsm-state fsm) info)
+;;     ;; the start is being called before the handlers of the next state..
+;;     (gptel-backend--on-start-of-state backend (gptel--fsm-next fsm) info)
+;;     (funcall oldfn fsm new-state)))
 
-(advice-add #'gptel--fsm-transition :around #'gptel--fsm-transition-handle-backend-on-start-on-end)
+;; (advice-add #'gptel--fsm-transition :around #'gptel--fsm-transition-handle-backend-on-start-on-end)
 
 ;; Tool use ******************************************************************************
 (gptel-make-tool
@@ -229,7 +229,7 @@ Invokes the `gptel-backend--on-start-of-state' & `gptel-backend--on-end-of-state
   messages-data)
 
 (defvar url-http-end-of-headers)
-(defun gptel--openai-assistant-url-retrive (method data url info callback)
+(defun gptel-openai-assistant--url-retrive (method data url info callback)
   "Get data from URL with DATA using METHOD (POST/GET).
 INFO is info from gptel
 CALLBACK is called with the response from calling url-retrive."
@@ -245,7 +245,7 @@ CALLBACK is called with the response from calling url-retrive."
                     (t (error "Unknown value for url (%s) in step" url)))
                   (lambda (_)
                     (pcase-let ((`(,response ,http-status ,http-msg ,error)
-                                 (custom--url-parse-response))
+                                 (gptel-openai-assistant--url-parse-response))
                                 (buf (current-buffer)))
                       (plist-put info :http-status http-status)
                       (plist-put info :status http-msg)
@@ -259,7 +259,7 @@ CALLBACK is called with the response from calling url-retrive."
 
 ;; copied from `gptel--url-parse-response' beacuse we don't want the following:
 ;; (gptel--parse-response backend response proc-info)
-(defun custom--url-parse-response ()
+(defun gptel-openai-assistant--url-parse-response ()
   "Parse response from url-retrive."
   (when gptel-log-level             ;logging
     (save-excursion
@@ -299,7 +299,7 @@ CALLBACK is called with the response from calling url-retrive."
 Set the `gptel-openai-assistant-thread-id' of the buffer.
 INFO is the info plist from gptel.
 CALLBACK is invoked without any args after successfully creating a thread."
-  (gptel--openai-assistant-url-retrive
+  (gptel-openai-assistant--url-retrive
    "POST" nil "https://api.openai.com/v1/threads"
    info
    (lambda (response)
@@ -313,7 +313,7 @@ CALLBACK is invoked without any args after successfully creating a thread."
 Needs the `gptel-openai-assistant-thread-id' of the buffer to be set.
 INFO is the info plist from gptel.
 CALLBACK is invoked without any args after successfully creating a thread."
-  (gptel--openai-assistant-url-retrive
+  (gptel-openai-assistant--url-retrive
    "POST"
    (encode-coding-string
     (gptel--json-encode (gptel-openai-assistant-messages-data (plist-get info :backend)))
@@ -381,7 +381,7 @@ CALLBACK is invoked without any args after successfully creating a thread."
        (signal (car err) (cdr err))))
     (apply #'concat (nreverse content-strs))))
 
-(cl-defmethod gptel--handle-openai-assistant-await (fsm)
+(defun gptel-openai-assistant--handle-await (fsm)
   (let* ((info (gptel-fsm-info fsm))
          (await-manual-state (plist-get info :await)))
     (when (gptel-openai-assistant-p (plist-get info :backend))
@@ -407,13 +407,18 @@ CALLBACK is invoked without any args after successfully creating a thread."
          (plist-put info :await nil)
          ;; TODO: The polling can happen here
          (error "Not implemented yet"))))))
+
+(defun gptel-openai-assistant--handle-init (fsm)
+  (let ((info (gptel-fsm-info fsm)))
+    (when (gptel-openai-assistant-p (plist-get info :backend))
+      (plist-put info :await :send-message))))
      
-(cl-defmethod gptel-backend--on-end-of-state ((backend gptel-openai-assistant) state info)
-  (when (eq state 'INIT)
-    (plist-put info :await :send-message)))
+;; (cl-defmethod gptel-backend--on-end-of-state ((backend gptel-openai-assistant) state info)
+;;   (when (eq state 'INIT)
+;;     (plist-put info :await :send-message)))
 
 ;;;###autoload
-(defun gptel-openai-make-assistant ()
+(defun gptel-make-openai-assistant ()
   "Create a openai-assistant backend."
   (gptel-openai--make-assistant
    :name "gptel-openai-assistant"
@@ -437,11 +442,12 @@ CALLBACK is invoked without any args after successfully creating a thread."
   (interactive)
   (gptel-openai-assistant-start-thread `(:buffer ,(buffer-name))))
 
-(push 'gptel--handle-openai-assistant-await (alist-get 'AWAIT gptel-request--handlers))
+(push 'gptel-openai-assistant--handle-await (alist-get 'AWAIT gptel-request--handlers))
+(push 'gptel-openai-assistant--handle-init (alist-get 'INIT gptel-request--handlers))
 
 (setf (alist-get "openai-assistant" gptel--known-backends
                  nil nil #'equal)
-      (gptel-openai-make-assistant))
+      (gptel-make-openai-assistant))
 
 (provide 'gptel-extensions)
 ;;; orgZ.el ends here
