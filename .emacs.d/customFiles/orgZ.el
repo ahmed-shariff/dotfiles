@@ -906,18 +906,13 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
 ;;                            :properties properties))))))
 
   (defun org-roam-buffer-for-node (node)
-    "Display org-roam-buffer for NODE."
+    "Display org-roam-buffer for NODE.
+Like `org-roam-buffer-display-dedicated', but always
+prompt when used interactively"
     (interactive (list (org-roam-node-read (when (derived-mode-p 'org-roam-mode)
                                              (when-let (_node (org-roam-node-at-point))
                                                (org-roam-node-title _node))))))
-    ;; copied from `org-roam-buffer-toggle' and `org-roam-buffer-persistent-redisplay'
-    (display-buffer (get-buffer-create org-roam-buffer))
-    (unless (equal node org-roam-buffer-current-node)
-      (setq org-roam-buffer-current-node node
-            org-roam-buffer-current-directory org-roam-directory)
-      (with-current-buffer (get-buffer-create org-roam-buffer)
-        (org-roam-buffer-render-contents)
-        (add-hook 'kill-buffer-hook #'org-roam-buffer--persistent-cleanup-h nil t))))
+    (org-roam-buffer-display-dedicated node))
 
   (defun org-roam-brain-children-section (node)
     "The brain children section for NODE.
