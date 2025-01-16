@@ -62,7 +62,9 @@
               (with-current-buffer (find-file-noselect (car bibtex-completion-bibliography))
                 (goto-char (point-max))
                 (when (not (looking-at "^")) (insert "\n\n")))
-              (ignore-errors (doi-add-bibtex-entry doi (car bibtex-completion-bibliography)))
+              (condition-case err
+                  (doi-add-bibtex-entry doi (car bibtex-completion-bibliography))
+                (error (signal (car err) (cdr err))))
               (doi-utils-open-bibtex doi)
               (org-ref-open-bibtex-notes)
               ;; make sure at the top most level
@@ -712,7 +714,48 @@
           (apply old-fun args))
       (apply old-fun args)))
 
-  (advice-add 'bibtex-completion-apa-get-value :around #'amsha/bibtex-completion-apa-get-value))
+  (advice-add 'bibtex-completion-apa-get-value :around #'amsha/bibtex-completion-apa-get-value)
+
+  ;; Handle the number of authors being changed to ... to 20
+  (defun amsha/bibtex-completion-apa-format-authors (value &optional abbrev)
+    "Format author list in VALUE in APA style.
+When ABBREV is non-nil, format in abbreviated APA style instead."
+    (cl-loop for a in (s-split " and " value t)
+             if (s-index-of "{" a)
+             collect
+             (replace-regexp-in-string "[{}]" "" a)
+             into authors
+             else if (s-index-of "," a)
+             collect
+             (let ((p (s-split " *, *" a t)))
+               (concat
+                (car p) ", "
+                (s-join " " (-map (lambda (it) (concat (s-left 1 it) "."))
+                                  (s-split " " (cadr p))))))
+             into authors
+             else
+             collect
+             (let ((p (s-split " " a t)))
+               (concat
+                (-last-item p) ", "
+                (s-join " " (-map (lambda (it) (concat (s-left 1 it) "."))
+                                  (-butlast p)))))
+             into authors
+             finally return
+             (let ((l (length authors)))
+               (cond
+                ((= l 1) (car authors))
+                ((and abbrev (= l 2))
+                 (concat (s-join " & " authors)))
+                (abbrev
+                 (format "%s et al." (car authors)))
+                ;; This is originally 8 not made 21
+                ((< l 20) (concat (s-join ", " (-butlast authors))
+                                 ", & " (-last-item authors)))
+                ;; This is originally 7 not made 20
+                (t (concat (s-join ", " (-slice authors 0 20)) ", …"))))))
+
+  (advice-add 'bibtex-completion-apa-format-authors :override #'amsha/bibtex-completion-apa-format-authors))
 
 (use-package emacsql
   :straight (emacsql :includes (emacsql-sqlite)
