@@ -379,7 +379,7 @@ Used for debugging."
 (defun amsha/show-startup ()
   (with-current-buffer (get-buffer-create initial-buffer-choice)
     (let ((inhibit-read-only t)
-          (fancy-splash-image (nth (random (length banner-images-list)) banner-images-list)))
+          (fancy-splash-image (nth (random (length banner-images-list)) banner-images-list))
           (visual-fill-column-width 200)
           (footer-text (nth (random (length banner-text-list)) banner-text-list)))
       (amsha/visual-fill)
@@ -403,9 +403,9 @@ Used for debugging."
 	  buffer-read-only t)
     (set-buffer-modified-p nil)
     (if (and view-read-only (not view-mode))
-	(view-mode-enter nil 'kill-buffer)))
+	(view-mode-enter nil 'kill-buffer))
   (switch-to-buffer initial-buffer-choice)
-  (goto-char (point-max)))
+  (goto-char (point-max))))
 
 (add-hook 'emacs-startup-hook #'amsha/show-startup)
 
