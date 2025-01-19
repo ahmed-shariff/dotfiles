@@ -1313,7 +1313,7 @@ targets."
                                         (org-roam-node-id it)))
                                  (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
                      (condition-case err
-                         (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)]\\[\\(.*?\\)\\]" end)
+                         (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
                            (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'equal))
                                        (newtext (format " [cite:%s]" (car elt))))
                              (setq end (+ end (- (length newtext) (length (match-string 0)))))

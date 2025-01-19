@@ -288,7 +288,7 @@ CALLBACK is invoked without any args after successfully creating a thread."
                              for file-id = (map-nested-elt
                                             annotation '(:file_citation :file_id))
                              if file-id
-                             do (push (format "[[file_citation:%s][%s]]" file-id content) content-strs))
+                             do (push (format "[file_citation:%s]" file-id content) content-strs))
                   (push content content-strs))))))
       ((json-parse-error json-end-of-file search-failed)
        (goto-char (match-beginning 0)))
@@ -327,7 +327,7 @@ CALLBACK is invoked without any args after successfully creating a thread."
         (:openai-assistant-await-runs-complete
          ;; TODO: The polling can happen here
          (error "Not implemented yet"))
-        (t (error "Unknown await state %s" await-manual-state))))))
+        (_ (error "Unknown await state %s" await-manual-state))))))
 
 ;;;###autoload
 (defun gptel-make-openai-assistant ()
