@@ -257,27 +257,42 @@ CALLBACK is invoked without any args after successfully creating a thread."
               :content
               `[(:type "text"
                        :text ,(plist-get (car (last prompts)) :content))]))
-  (let ((prompts-plist
-         `(:assistant_id ,gptel-openai-assistant-assistant-id
-                         :stream ,(or (and gptel-stream gptel-use-curl
-                                           (gptel-backend-stream backend))
-                                      :json-false))))
-    (when gptel-temperature
-      (plist-put prompts-plist :temperature gptel-temperature))
-    (when gptel-max-tokens
-      (plist-put prompts-plist (if (memq gptel-model '(o1-preview o1-mini))
-                                   :max_completion_tokens :max_tokens)
-                 gptel-max-tokens))
-    ;; Merge request params with model and backend params.
-    (gptel--merge-plists
-     prompts-plist
-     (gptel-backend-request-params backend)
-     (gptel--model-request-params  gptel-model))))
+  (if (and gptel-stream gptel-use-curl
+           (gptel-backend-stream backend))
+      (let ((prompts-plist
+             `(:assistant_id ,gptel-openai-assistant-assistant-id
+                             :stream ,(or (and gptel-stream gptel-use-curl
+                                               (gptel-backend-stream backend))
+                                          :json-false))))
+        (when gptel-temperature
+          (plist-put prompts-plist :temperature gptel-temperature))
+        (when gptel-max-tokens
+          (plist-put prompts-plist (if (memq gptel-model '(o1-preview o1-mini))
+                                       :max_completion_tokens :max_tokens)
+                     gptel-max-tokens))
+        ;; Merge request params with model and backend params.
+        (gptel--merge-plists
+         prompts-plist
+         (gptel-backend-request-params backend)
+         (gptel--model-request-params  gptel-model)))
+    `(:metadata nil)))
 
 (cl-defmethod gptel--parse-response ((_ gptel-openai-assistant) response info)
-  ;; FIXME: gptel should use GET to get the last message!
-  ;; https://platform.openai.com/docs/assistants/deep-dive#polling-for-updates
-  (error "not implemented yet!"))
+  (string-join
+   (mapcar
+    (lambda (content)
+      (let ((str (map-nested-elt content '(:text :value))))
+        (mapcar
+         (lambda (annotation)
+           (setf str
+                 (string-replace
+                  (plist-get annotation :text)
+                  (format "[file_citation:%s]" (map-nested-elt annotation '(:file_citation :file_id)))
+                  str)))
+         (map-nested-elt content '(:text :annotations)))
+        str))
+      (plist-get response :content))
+     " "))
 
 (cl-defmethod gptel-curl--parse-stream ((_ gptel-openai-assistant) info)
   (let* ((content-strs))
@@ -374,8 +389,25 @@ CALLBACK is invoked without any args after successfully creating a thread."
                  (plist-put info :openai-assistant-await :openai-assistant-runs-completed-p)
                  (plist-put info :openai-assistant-delay 0.5))
                 ("completed"
-                 (plist-put info :openai-assistant-wait t))
+                 (plist-put info :openai-assistant-await :openai-assistant-list-messages))
                 (status (error "Unhandle state for run %s" status))))
+            (gptel--fsm-transition fsm))))
+        (:openai-assistant-list-messages
+         (gptel-openai-assistant--url-retrive
+          "GET"
+          nil
+          (with-current-buffer
+              (plist-get info :buffer)
+            (if gptel-openai-assistant-thread-id
+                (format "https://api.openai.com/v1/threads/%s/messages?run_id=%s"
+                        gptel-openai-assistant-thread-id
+                        (plist-get info :openai-assistant-run-id))
+              (user-error "No thread in current buffer to add messages!")))
+          info
+          (lambda (response)
+            (unless (plist-get info :error)
+              (plist-put info :openai-assistant-message-id (map-nested-elt response '(:data 0 :id)))
+              (plist-put info :openai-assistant-wait t))
             (gptel--fsm-transition fsm))))
         (_ (error "Unknown await state %s" await-manual-state))))))
 
@@ -445,11 +477,11 @@ CALLBACK is invoked without any args after successfully creating a thread."
       (setf (gptel-backend-url (plist-get info :backend))
             (if (plist-get info :stream)
                 (format "https://api.openai.com/v1/threads/%s/runs" gptel-openai-assistant-thread-id)
-              ;; FIXME: Does not work becuase gptel-always sends POST
-              (error "not implemented yet!")
-              (format "https://api.openai.com/v1/threads/%s/messages?run_id=%s"
+              ;; FIXME: gptel-always sends POST. Ideally, this should be the GET endpoint
+              ;; So using the endpoint for updating messages to get messages related to a run.
+              (format "https://api.openai.com/v1/threads/%s/messages/%s"
                       gptel-openai-assistant-thread-id
-                      (plist-get info :openai-assistant-run-id)))))))
+                      (plist-get info :openai-assistant-message-id)))))))
 
 (defun gptel-openai-assistant--handle-delay (fsm)
   "Handle the delay state."
