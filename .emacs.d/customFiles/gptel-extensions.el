@@ -6,93 +6,6 @@
 
 (require 'gptel)
 
-;; Additions to global fsm ***************************************************************
-
-(defun gptel--wait-again-p (info)
-  "Check if the fsm should WAIT."
-  (plist-get info :wait))
-
-(defun gptel--delay-p (info)
-  "Test fsm transition to DELAY."
-  (plist-get info :delay))
-
-(defun gptel--await-p (info)
-  "Test fsm transition to AWAIT."
-  (plist-get info :await))
-
-(defun gptel--handle-on-wait-again (fsm)
-  "Handle on-wait-callback."
-  (plist-put (gptel-fsm-info fsm) :wait nil))
-
-(defun gptel--handle-on-wait-callback (fsm)
-  "Handle on-wait-callback."
-  (when-let ((callback (plist-get (gptel-fsm-info fsm) :on-wait-callback)))
-    (funcall callback)
-    (plist-put (gptel-fsm-info fsm) :on-wait-callback nil)))
-
-(defun gptel--handle-delay (fsm)
-  "Handle the delay state."
-  (let ((delay (plist-get (gptel-fsm-info fsm) :delay)))
-    (cl-assert (numberp delay))
-    (plist-put (gptel-fsm-info fsm) :delay nil)
-    (run-at-time delay nil (lambda () (gptel--fsm-transition fsm)))))
-
-;; Adding TYPE -> WAIT & TYPE -> DELAY transitions
-(setf (alist-get 'TYPE gptel-request--transitions) '((gptel--await-p . AWAIT)
-                                                     (gptel--delay-p . DELAY)
-                                                     (gptel--error-p . ERRS)
-                                                     (gptel--tool-use-p . TOOL)
-                                                     (gptel--wait-again-p . WAIT)
-                                                     (t . DONE)))
-
-;; MAYBE: this is useful to be connected to other states as well?
-;; From DELAY go to what was expected
-(setf (alist-get 'DELAY gptel-request--transitions) '((gptel--await-p . AWAIT)
-                                                      (gptel--error-p . ERRS)
-                                                      (gptel--tool-use-p . TOOL)
-                                                      (gptel--wait-again-p . WAIT)
-                                                      (t . DONE)))
-
-
-;; From AWAIT go to what was expected
-(setf (alist-get 'AWAIT gptel-request--transitions)
-      '((gptel--delay-p . DELAY)
-        (gptel--error-p . ERRS)
-        (gptel--tool-use-p . TOOL)
-        (gptel--wait-again-p . WAIT)
-        (t . DONE)))
-
-(push '(gptel--await-p . AWAIT) (alist-get 'INIT gptel-request--transitions))
-(push '(gptel--await-p . AWAIT) (alist-get 'WAIT gptel-request--transitions))
-(push '(gptel--await-p . AWAIT) (alist-get 'TOOL gptel-request--transitions))
-
-(setf (alist-get 'DELAY gptel-request--handlers) '(gptel--handle-delay))
-
-(setf (alist-get 'WAIT gptel-request--handlers) '(gptel--handle-on-wait-callback gptel--handle-on-wait-again gptel--handle-wait))
-
-;; (cl-defgeneric gptel-backend--on-start-of-state (backend state info)
-;;   "When a the gptel fsm starts a new STATE, this will be called.
-;; This method is called before the handlers of the new state are invoked.")
-
-;; (cl-defmethod gptel-backend--on-start-of-state ((backend gptel-backend) state info))
-
-;; (cl-defgeneric gptel-backend--on-end-of-state (backend state info)
-;;   "When a the gptel fsm transitions to a new state, this will be called with the old STATE.")
-
-;; (cl-defmethod gptel-backend--on-end-of-state ((backend gptel-backend) state info))
-
-;; (defun gptel--fsm-transition-handle-backend-on-start-on-end (oldfn fsm &optional new-state)
-;;   "Advice for `gptel--fsm-transition'.
-;; Invokes the `gptel-backend--on-start-of-state' & `gptel-backend--on-end-of-state'."
-;;   (let* ((info (gptel-fsm-info fsm))
-;;          (backend (plist-get info :backend)))
-;;     (gptel-backend--on-end-of-state backend (gptel-fsm-state fsm) info)
-;;     ;; the start is being called before the handlers of the next state..
-;;     (gptel-backend--on-start-of-state backend (gptel--fsm-next fsm) info)
-;;     (funcall oldfn fsm new-state)))
-
-;; (advice-add #'gptel--fsm-transition :around #'gptel--fsm-transition-handle-backend-on-start-on-end)
-
 ;; Tool use ******************************************************************************
 (gptel-make-tool
  :function (lambda (url)
@@ -221,13 +134,7 @@
 ;; TODO: Get this from api?
 (defvar-local gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
 
-
-(cl-defstruct (gptel-openai-assistant
-               (:constructor gptel-openai--make-assistant)
-               (:copier nil)
-               (:include gptel-openai))
-  messages-data)
-
+;; Helper functions **********************************************************************
 (defvar url-http-end-of-headers)
 (defun gptel-openai-assistant--url-retrive (method data url info callback)
   "Get data from URL with DATA using METHOD (POST/GET).
@@ -293,6 +200,14 @@ CALLBACK is called with the response from calling url-retrive."
                 "Could not parse HTTP response.")))
     (list nil (concat "(" http-msg ") Could not parse HTTP response.")
           "Could not parse HTTP response.")))
+
+
+;; Core function to work with gptel ******************************************************
+(cl-defstruct (gptel-openai-assistant
+               (:constructor gptel-openai--make-assistant)
+               (:copier nil)
+               (:include gptel-openai))
+  messages-data)
 
 (defun gptel-openai-assistant-start-thread (info &optional callback)
   "Use the threads endpoint to start new thread.
@@ -383,17 +298,23 @@ CALLBACK is invoked without any args after successfully creating a thread."
 
 (defun gptel-openai-assistant--handle-await (fsm)
   (let* ((info (gptel-fsm-info fsm))
-         (await-manual-state (plist-get info :await)))
+         (await-manual-state
+          (or (plist-get info :openai-assistant-await)
+              (let ((history (plist-get info :history)))
+                (when (and
+                       (eq (car history) 'INIT)
+                       (null (cdr history)))
+                  :send-message)))))
+    (plist-put info :openai-assistant-await nil)
     (when (gptel-openai-assistant-p (plist-get info :backend))
-     ;; This tells us await manual is happening from after the init
+      ;; This tells us await manual is happening from after the init
       (pcase await-manual-state
         (:send-message
-         (plist-put info :await nil)
          (cl-labels ((send-message ()
                        (gptel-openai-assistant-add-message
                         info
                         (lambda ()
-                          (plist-put info :wait t)
+                          (plist-put info :openai-assistant-wait t)
                           (gptel--fsm-transition fsm)))))
            (if gptel-openai-assistant-thread-id
                (send-message)
@@ -403,19 +324,10 @@ CALLBACK is invoked without any args after successfully creating a thread."
                 (if (plist-get info :error)
                     (gptel--fsm-transition fsm)
                   (send-message)))))))
-        (:await-runs-complete
-         (plist-put info :await nil)
+        (:openai-assistant-await-runs-complete
          ;; TODO: The polling can happen here
-         (error "Not implemented yet"))))))
-
-(defun gptel-openai-assistant--handle-init (fsm)
-  (let ((info (gptel-fsm-info fsm)))
-    (when (gptel-openai-assistant-p (plist-get info :backend))
-      (plist-put info :await :send-message))))
-     
-;; (cl-defmethod gptel-backend--on-end-of-state ((backend gptel-openai-assistant) state info)
-;;   (when (eq state 'INIT)
-;;     (plist-put info :await :send-message)))
+         (error "Not implemented yet"))
+        (t (error "Unknown await state %s" await-manual-state))))))
 
 ;;;###autoload
 (defun gptel-make-openai-assistant ()
@@ -442,12 +354,94 @@ CALLBACK is invoked without any args after successfully creating a thread."
   (interactive)
   (gptel-openai-assistant-start-thread `(:buffer ,(buffer-name))))
 
-(push 'gptel-openai-assistant--handle-await (alist-get 'AWAIT gptel-request--handlers))
-(push 'gptel-openai-assistant--handle-init (alist-get 'INIT gptel-request--handlers))
+;; Modify gptel vars *********************************************************************
 
 (setf (alist-get "openai-assistant" gptel--known-backends
                  nil nil #'equal)
       (gptel-make-openai-assistant))
+
+(defun gptel-openai-assistant--backend-is-oaia-p (info)
+  "Check if backend is openai-assistant."
+  (gptel-openai-assistant-p (plist-get info :backend)))
+
+(defun gptel-openai-assistant--init-to-await (info)
+  "If in first INIT, move to AWAIT"
+  (and (gptel-openai-assistant--backend-is-oaia-p info)
+       ;; If :history is not set or empty, means state is at INIT
+       (null (plist-get info :history))))
+
+(defun gptel-openai-assistant--wait-again-p (info)
+  "Check if the fsm should WAIT."
+  (and (gptel-openai-assistant--backend-is-oaia-p info)
+       (plist-get info :openai-assistant-wait)))
+
+(defun gptel-openai-assistant--delay-p (info)
+  "Test fsm transition to DELAY."
+  (and (gptel-openai-assistant--backend-is-oaia-p info)
+       (plist-get info :openai-assistant-delay)))
+
+(defun gptel-openai-assistant--await-p (info)
+  "Test fsm transition to AWAIT."
+  (and (gptel-openai-assistant--backend-is-oaia-p info)
+       (plist-get info :openai-assistant-await)))
+
+(defun gptel-openai-assistant--handle-wait-again (fsm)
+  "Handle wait-again."
+  (let ((info (gptel-fsm-info fsm)))
+    (and (gptel-openai-assistant--backend-is-oaia-p info)
+         (plist-put info :openai-assistant-wait nil))))
+
+(defun gptel-openai-assistant--handle-delay (fsm)
+  "Handle the delay state."
+  (let ((info (gptel-fsm-info fsm)))
+    (and (gptel-openai-assistant--backend-is-oaia-p info)
+         (let ((delay (plist-get info :openai-assistant-delay)))
+           (cl-assert (numberp delay))
+           (plist-put info :openai-assistant-delay nil)
+           (run-at-time delay nil (lambda () (gptel--fsm-transition fsm)))))))
+
+;; INIT should transition to AWAIT
+(push '(gptel-openai-assistant--init-to-await . AWAIT) (alist-get 'INIT gptel-request--transitions))
+
+;; Adding TYPE -> WAIT/DELAY/AWAIT
+;; DELAY & AWAIT has to happen at the veru beginning
+;; WAIT should be tested right before DONE
+(setf (alist-get 'TYPE gptel-request--transitions)
+      (append 
+      '((gptel-openai-assistant--await-p . AWAIT)
+        (gptel-openai-assistant--delay-p . DELAY))
+      ;; *sigh*
+      (cl-loop for transition in (alist-get 'TYPE gptel-request--transitions)
+               ;; Insert the wait again, right before DONE
+               if (eq (cdr transition) 'DONE)
+                 collect '(gptel-openai-assistant--wait-again-p . WAIT) into retval
+               collect transition into retval
+               finally return retval)))
+
+;; From DELAY go to what was expected
+;; Same as TYPE but without the DELAY itself!
+(setf (alist-get 'DELAY gptel-request--transitions) (cl-loop for transition in (alist-get 'TYPE gptel-request--transitions)
+                                                             unless (eq (cdr transition) 'DELAY)
+                                                             collect transition))
+
+;; From AWAIT go to what was expected
+;; Same as TYPE but without the AWAIT itself!
+(setf (alist-get 'AWAIT gptel-request--transitions) (cl-loop for transition in (alist-get 'TYPE gptel-request--transitions)
+                                                             unless (eq (cdr transition) 'AWAIT)
+                                                             collect transition))
+
+;; AWAIT should be tested for first in WAIT and TOOL
+(push '(gptel-openai-assistant--await-p . AWAIT) (alist-get 'WAIT gptel-request--transitions))
+(push '(gptel-openai-assistant--await-p . AWAIT) (alist-get 'TOOL gptel-request--transitions))
+
+;; Adding DELAY handler
+(push '(DELAY gptel-openai-assistant--handle-delay) gptel-request--handlers)
+
+;; Handle the wait-again in WAIT
+(push 'gptel-openai-assistant--handle-wait-again (alist-get 'WAIT gptel-request--handlers))
+
+;; Handle AWAIT
+(push '(AWAIT gptel-openai-assistant--handle-await) gptel-request--handlers)
 
 (provide 'gptel-extensions)
 ;;; orgZ.el ends here
