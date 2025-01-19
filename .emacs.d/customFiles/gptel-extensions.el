@@ -140,12 +140,20 @@
   "Get data from URL with DATA using METHOD (POST/GET).
 INFO is info from gptel
 CALLBACK is called with the response from calling url-retrive."
-  (let ((url-request-method "POST")
+  (let ((url-request-method method)
         (url-request-extra-headers
          (append `(("Content-Type" . "application/json")
                    ("Authorization" . ,(concat "Bearer " (gptel--get-api-key)))
                    ("OpenAI-Beta" . "assistants=v2"))))
         (url-request-data data))
+    (when gptel-log-level               ;logging
+      (when (eq gptel-log-level 'debug)
+        (gptel--log (gptel--json-encode
+                     (mapcar (lambda (pair) (cons (intern (car pair)) (cdr pair)))
+                             url-request-extra-headers))
+                    "request headers"))
+      (when url-request-data
+        (gptel--log url-request-data "request body")))
     (url-retrieve (cl-typecase url
                     (string url)
                     (function (funcall url))
@@ -267,7 +275,7 @@ CALLBACK is invoked without any args after successfully creating a thread."
      (gptel--model-request-params  gptel-model))))
 
 (cl-defmethod gptel--parse-response ((_ gptel-openai-assistant) response info)
-  ;; TODO: peridically poll the run and check if it's completed. If so, get last message
+  ;; FIXME: gptel should use GET to get the last message!
   ;; https://platform.openai.com/docs/assistants/deep-dive#polling-for-updates
   (error "not implemented yet!"))
 
@@ -307,6 +315,8 @@ CALLBACK is invoked without any args after successfully creating a thread."
                   :send-message)))))
     (plist-put info :openai-assistant-await nil)
     (when (gptel-openai-assistant-p (plist-get info :backend))
+      (with-current-buffer (plist-get (gptel-fsm-info fsm) :buffer)
+        (gptel--update-status " Waiting..." 'warning))
       ;; This tells us await manual is happening from after the init
       (pcase await-manual-state
         (:send-message
@@ -314,7 +324,9 @@ CALLBACK is invoked without any args after successfully creating a thread."
                        (gptel-openai-assistant-add-message
                         info
                         (lambda ()
-                          (plist-put info :openai-assistant-wait t)
+                          (if (plist-get info :stream)
+                              (plist-put info :openai-assistant-wait t)
+                            (plist-put info :openai-assistant-await :openai-assistant-runs))
                           (gptel--fsm-transition fsm)))))
            (if gptel-openai-assistant-thread-id
                (send-message)
@@ -324,9 +336,47 @@ CALLBACK is invoked without any args after successfully creating a thread."
                 (if (plist-get info :error)
                     (gptel--fsm-transition fsm)
                   (send-message)))))))
-        (:openai-assistant-await-runs-complete
-         ;; TODO: The polling can happen here
-         (error "Not implemented yet"))
+        (:openai-assistant-runs
+         (gptel-openai-assistant--url-retrive
+          "POST"
+          (encode-coding-string
+           (gptel--json-encode `(:assistant_id ,gptel-openai-assistant-assistant-id))
+           'utf-8)
+          (with-current-buffer
+              (plist-get info :buffer)
+            (if gptel-openai-assistant-thread-id
+                (format "https://api.openai.com/v1/threads/%s/runs"
+                        gptel-openai-assistant-thread-id)
+              (user-error "No thread in current buffer to add messages!")))
+          info
+          (lambda (response)
+            (unless (plist-get info :error)
+              (plist-put info :openai-assistant-run-id (plist-get response :id))
+              (plist-put info :openai-assistant-await :openai-assistant-runs-completed-p)
+              (plist-put info :openai-assistant-delay 0.5))
+            (gptel--fsm-transition fsm))))
+        (:openai-assistant-runs-completed-p
+         (gptel-openai-assistant--url-retrive
+          "GET"
+          nil
+          (with-current-buffer
+              (plist-get info :buffer)
+            (if gptel-openai-assistant-thread-id
+                (format "https://api.openai.com/v1/threads/%s/runs/%s"
+                        gptel-openai-assistant-thread-id
+                        (plist-get info :openai-assistant-run-id))
+              (user-error "No thread in current buffer to add messages!")))
+          info
+          (lambda (response)
+            (unless (plist-get info :error)
+              (pcase (plist-get response :status)
+                ((or "in_progress" "queued")
+                 (plist-put info :openai-assistant-await :openai-assistant-runs-completed-p)
+                 (plist-put info :openai-assistant-delay 0.5))
+                ("completed"
+                 (plist-put info :openai-assistant-wait t))
+                (status (error "Unhandle state for run %s" status))))
+            (gptel--fsm-transition fsm))))
         (_ (error "Unknown await state %s" await-manual-state))))))
 
 ;;;###autoload
@@ -385,11 +435,21 @@ CALLBACK is invoked without any args after successfully creating a thread."
   (and (gptel-openai-assistant--backend-is-oaia-p info)
        (plist-get info :openai-assistant-await)))
 
-(defun gptel-openai-assistant--handle-wait-again (fsm)
+(defun gptel-openai-assistant--handle-wait (fsm)
   "Handle wait-again."
   (let ((info (gptel-fsm-info fsm)))
-    (and (gptel-openai-assistant--backend-is-oaia-p info)
-         (plist-put info :openai-assistant-wait nil))))
+    (when (gptel-openai-assistant--backend-is-oaia-p info)
+      (unless gptel-openai-assistant-thread-id
+        (user-error "No thread in current buffer to add messages!"))
+      (plist-put info :openai-assistant-wait nil)
+      (setf (gptel-backend-url (plist-get info :backend))
+            (if (plist-get info :stream)
+                (format "https://api.openai.com/v1/threads/%s/runs" gptel-openai-assistant-thread-id)
+              ;; FIXME: Does not work becuase gptel-always sends POST
+              (error "not implemented yet!")
+              (format "https://api.openai.com/v1/threads/%s/messages?run_id=%s"
+                      gptel-openai-assistant-thread-id
+                      (plist-get info :openai-assistant-run-id)))))))
 
 (defun gptel-openai-assistant--handle-delay (fsm)
   "Handle the delay state."
@@ -408,15 +468,15 @@ CALLBACK is invoked without any args after successfully creating a thread."
 ;; WAIT should be tested right before DONE
 (setf (alist-get 'TYPE gptel-request--transitions)
       (append 
-      '((gptel-openai-assistant--await-p . AWAIT)
-        (gptel-openai-assistant--delay-p . DELAY))
-      ;; *sigh*
-      (cl-loop for transition in (alist-get 'TYPE gptel-request--transitions)
-               ;; Insert the wait again, right before DONE
-               if (eq (cdr transition) 'DONE)
-                 collect '(gptel-openai-assistant--wait-again-p . WAIT) into retval
-               collect transition into retval
-               finally return retval)))
+       '((gptel-openai-assistant--delay-p . DELAY)
+         (gptel-openai-assistant--await-p . AWAIT))
+       ;; *sigh*
+       (cl-loop for transition in (alist-get 'TYPE gptel-request--transitions)
+                ;; Insert the wait again, right before DONE
+                if (eq (cdr transition) 'DONE)
+                collect '(gptel-openai-assistant--wait-again-p . WAIT) into retval
+                collect transition into retval
+                finally return retval)))
 
 ;; From DELAY go to what was expected
 ;; Same as TYPE but without the DELAY itself!
@@ -424,11 +484,8 @@ CALLBACK is invoked without any args after successfully creating a thread."
                                                              unless (eq (cdr transition) 'DELAY)
                                                              collect transition))
 
-;; From AWAIT go to what was expected
-;; Same as TYPE but without the AWAIT itself!
-(setf (alist-get 'AWAIT gptel-request--transitions) (cl-loop for transition in (alist-get 'TYPE gptel-request--transitions)
-                                                             unless (eq (cdr transition) 'AWAIT)
-                                                             collect transition))
+;; From AWAIT go to what was expected. Same as TYPE
+(setf (alist-get 'AWAIT gptel-request--transitions) (alist-get 'TYPE gptel-request--transitions))
 
 ;; AWAIT should be tested for first in WAIT and TOOL
 (push '(gptel-openai-assistant--await-p . AWAIT) (alist-get 'WAIT gptel-request--transitions))
@@ -438,7 +495,7 @@ CALLBACK is invoked without any args after successfully creating a thread."
 (push '(DELAY gptel-openai-assistant--handle-delay) gptel-request--handlers)
 
 ;; Handle the wait-again in WAIT
-(push 'gptel-openai-assistant--handle-wait-again (alist-get 'WAIT gptel-request--handlers))
+(push 'gptel-openai-assistant--handle-wait (alist-get 'WAIT gptel-request--handlers))
 
 ;; Handle AWAIT
 (push '(AWAIT gptel-openai-assistant--handle-await) gptel-request--handlers)
