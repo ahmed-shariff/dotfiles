@@ -1979,8 +1979,14 @@ the type of the link."
   (org-roam-ql-add-saved-query 'pr "Projects" '(file-like "project_boards"))
   (org-roam-ql-add-saved-query 'tg "Tags" '(and (file-like "brain/tags.org") (level= 1)))
   (org-roam-ql-add-saved-query 'tp "All topics"
-    `([:select id :from nodes :where (and (> level 0) (or (like file $s1) (like file $s2) (like file $s3) (like file $s4) (like file $s5)))]
-      "%index.org%" "%misc_topics.org%" "%People.org%" "%research topics.org%" "%tags.org%"))
+    `([:select id :from nodes :where (and (> level 0)
+                                          (or (like file $s1)
+                                              (like file $s2)
+                                              (like file $s3)
+                                              (like file $s4)
+                                              (like file $s5)
+                                              (and (like file $s6) (like title $s7))))]
+      "%index.org%" "%misc_topics.org%" "%People.org%" "%research topics.org%" "%tags.org%" "%project_boards/%.org%" "%literature%"))
   (org-roam-ql-add-saved-query 'lvl0 "file nodes" '(level= 0))
   (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level= 1))
   (org-roam-ql-add-saved-query 'inp "inprogress" '(todo-like "INPROGRESS" t))
