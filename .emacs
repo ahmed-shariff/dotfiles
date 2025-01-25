@@ -1338,11 +1338,15 @@ targets."
   (prog-mode . smerge-mode))
 
 (use-package magit-gptcommit
-  :straight (:type git :host github :repo "douo/magit-gptcommit" :branch "gptel")
+  :straight (:type git :host github :repo "douo/magit-gptcommit" :branch "gptel"
+                   :fork (:host github :repo "ahmed-shariff/magit-gptcommit" :branch "add-custom-backend"))
   :demand t
   :after (gptel magit)
   :bind (:map git-commit-mode-map
               ("C-c C-g" . magit-gptcommit-commit-accept))
+  :custom
+  (magit-gptcommit-gptel-backend gptel--openai)
+  (magit-gptcommit-gptel-model 'gpt-4o-mini)
   :config
 
   ;; Enable magit-gptcommit-mode to watch staged changes and generate commit message automatically in magit status buffer
