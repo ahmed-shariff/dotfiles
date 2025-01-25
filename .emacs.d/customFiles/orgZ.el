@@ -929,22 +929,25 @@ Copied  from `org-roam-backlink-get'."
 
   (defun org-roam-subtree-aware-preview-function ()
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
-    (if 
-        (--> (org-roam-node-at-point)
+    (if (--> (org-roam-node-at-point)
              (org-roam-node-file it)
              (or (s-matches-p "brain/work/notes" it)
                  (s-matches-p "brain/personal/notes" it)
                  (s-matches-p "brain/roam-notes" it)
                  (f-ancestor-of-p bibtex-completion-notes-path it)))
-        (let ((beg (progn (if (org-id-get)
-                              (org-roam-end-of-meta-data t)
-                            (org-beginning-of-line))
-                          (point)))
-              (end (progn (when (org-id-get)
-                            (org-previous-visible-heading 1)
-                            (org-beginning-of-line))
-                          (org-end-of-subtree)
-                          (point))))
+        (let* ((full-file (< (point) 5)) ;; means we are trying to display the whole file, I think!
+               ;; Even when displaying full file, we skip the initial meta data
+               (beg (progn (if (org-id-get)
+                               (org-roam-end-of-meta-data t)
+                             (org-beginning-of-line))
+                           (point)))
+               (end (if full-file
+                        (point-max)
+                      (progn (when (org-id-get)
+                               (org-previous-visible-heading 1)
+                               (org-beginning-of-line))
+                             (org-end-of-subtree)
+                             (point)))))
           (-reduce 
            (lambda (str el)
              ;; remove properties not interested. If prop drawer is empty at the end, remove drawer itself
