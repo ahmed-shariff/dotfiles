@@ -1298,6 +1298,7 @@ targets."
   (gptel-backend gptel--openai)
   (gptel-model 'gpt-4o)
   (gptel-org-branching-context t)
+  (gptel-expert-commands t)
   :config
   (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
         (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n")

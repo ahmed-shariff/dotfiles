@@ -524,13 +524,13 @@ CALLBACK is invoked without any args after successfully creating a thread."
 (push '(gptel-openai-assistant--await-p . AWAIT) (alist-get 'TOOL gptel-request--transitions))
 
 ;; Adding DELAY handler
-(push '(DELAY gptel-openai-assistant--handle-delay) gptel-request--handlers)
+(push '(DELAY gptel-openai-assistant--handle-delay) gptel-send--handlers)
 
 ;; Handle the wait-again in WAIT
-(push 'gptel-openai-assistant--handle-wait (alist-get 'WAIT gptel-request--handlers))
+(push 'gptel-openai-assistant--handle-wait (alist-get 'WAIT gptel-send--handlers))
 
 ;; Handle AWAIT
-(push '(AWAIT gptel-openai-assistant--handle-await) gptel-request--handlers)
+(push '(AWAIT gptel-openai-assistant--handle-await) gptel-send--handlers)
 
 (provide 'gptel-extensions)
 ;;; orgZ.el ends here
