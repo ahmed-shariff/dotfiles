@@ -934,6 +934,7 @@ Copied  from `org-roam-backlink-get'."
              (or (s-matches-p "brain/work/notes" it)
                  (s-matches-p "brain/personal/notes" it)
                  (s-matches-p "brain/roam-notes" it)
+                 (s-matches-p "brain/research_papers" it)
                  (f-ancestor-of-p bibtex-completion-notes-path it)))
         (let* ((full-file (< (point) 5)) ;; means we are trying to display the whole file, I think!
                ;; Even when displaying full file, we skip the initial meta data
@@ -1978,6 +1979,7 @@ the type of the link."
   (org-roam-ql-add-saved-query 'rt "Research topics" '(file-like "research topics.org"))
   (org-roam-ql-add-saved-query 'pr "Projects" '(file-like "project_boards"))
   (org-roam-ql-add-saved-query 'tg "Tags" '(and (file-like "brain/tags.org") (level= 1)))
+  (org-roam-ql-add-saved-query 'repo "Repositories" '(file-like "repositories.org"))
   (org-roam-ql-add-saved-query 'tp "All topics"
     `([:select id :from nodes :where (and (> level 0)
                                           (or (like file $s1)
