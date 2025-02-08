@@ -46,7 +46,9 @@
     "DATA exepcts to be an alist with keys :url and :filename."
     (message "Trying to add: %s" data)
     (let* ((url (s-replace-regexp "\\(https:/\\)[^/]" "https://" (plist-get data :url) nil nil 1))
-           (file-name (format "file:///%s" (expand-file-name (plist-get data :filename))))
+           (file-name-entry (plist-get data :filename))
+           (file-name (when file-name-entry
+                        (format "file:///%s" (expand-file-name (plist-get data :filename)))))
            (doi (plist-get data :doi)))
       (save-match-data 
         (cond
@@ -71,7 +73,8 @@
               (while (not (>= 1 (org-outline-level)))
                 (org-up-element))
               ;; add link if not already set
-              (-if-let* ((link (org-entry-get (point) "LINK"))
+              (-if-let* ((_ file-name)
+                         (link (org-entry-get (point) "LINK"))
                          (l (> (length link) 0)))
                   nil  ;; do nothing
                 (org-set-property "LINK" file-name))
