@@ -409,7 +409,7 @@
                             title)
                     title
                     (org-roam-node-id it)))
-            (org-roam-ql-nodes '(and (level= 1) (file-like "project_boards"))))))
+            (org-roam-ql-nodes '([(and (= level 1) (like file $s1))] "%project_boards%")))))
          (target (progn
                    (assoc (completing-read "Select task: " targets nil t) targets))))
     (if (cdr target)
@@ -782,10 +782,12 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
   (org-roam-dailies-capture-templates
    '(("d" "default" entry "%(okm-board-task-location)"
       :target (file+head
-               "~/Documents/org/brain/work/notes/%<%Y-%m-%d-%A>.org" "#+title: %<%Y-%m-%d-%A>\n\n"))
+               "~/Documents/org/brain/work/notes/%<%Y-%m-%d-%A>.org" "#+title: %<%Y-%m-%d-%A>\n\n")
+      :jump-to-captured t)
      ("p" "personal" entry "%(okm-board-task-location)"
       :target (file+head
-               "~/Documents/org/brain/personal/notes/%<%Y-%m-%d-%A>.org" "#+title: %<%Y-%m-%d-%A>\n\n"))))
+               "~/Documents/org/brain/personal/notes/%<%Y-%m-%d-%A>.org" "#+title: %<%Y-%m-%d-%A>\n\n")
+      :jump-to-captured t)))
   (org-roam-capture-templates
    '(("d" "default" entry "* ${title}%?
   :PROPERTIES:
@@ -1119,6 +1121,7 @@ Copied  from `org-roam-backlink-get'."
       (let* ((style (consult--async-split-style))
              (fn (plist-get style :function))
              (corfu-auto nil)
+             (consult-async-input-debounce 1)
              split-pos
              mb-str
              ;; Override how the empty string is handled!
@@ -1996,6 +1999,8 @@ the type of the link."
   (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level= 1))
   (org-roam-ql-add-saved-query 'inp "inprogress" '(todo-like "INPROGRESS" t))
   (org-roam-ql-add-saved-query 'todo "todo" '(todo-like "TODO" t))
+  (org-roam-ql-add-saved-query 'l10rp "last 10 papers" '(last-n-papers 10))
+  (org-roam-ql-add-saved-query 'l20rp "last 20 papers" '(last-n-papers 20))
 
   (org-roam-ql-defexpansion 'backlink-to-recursive
                             "Recursive backlinks (heading, backlink & refs)"
