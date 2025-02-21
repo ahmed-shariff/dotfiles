@@ -1300,6 +1300,13 @@ targets."
   (gptel-org-branching-context t)
   (gptel-expert-commands t)
   :config
+  (gptel-make-openai "OpenRouter"               ;Any name you want
+    :host "openrouter.ai"
+    :endpoint "/api/v1/chat/completions"
+    :stream t
+    :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
+    :models '(deepseek/deepseek-r1-distill-llama-70b:free))
+
   (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
         (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n")
   (add-to-list 'gptel-post-response-functions
