@@ -2365,7 +2365,8 @@ T - tag prefix
          ("C-c p" . projectile-command-map))
   :config
   (projectile-mode +1)
-  (setq projectile-git-command "git ls-files --recurse-submodules -zc"
+  (setq projectile-git-command "git ls-files --recurse-submodules --exclude-standard -zc"
+        projectile-cleanup-known-projects nil
         projectile-project-root-functions '(projectile-root-local
                                             projectile-root-marked
                                             amsha/get-project-root-overlooking-submodules
