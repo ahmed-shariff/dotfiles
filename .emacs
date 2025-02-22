@@ -134,14 +134,14 @@
 ;; (setq company-quickhelp-delay nil)
 
 
-(defvar my-package-list '(org org-contrib elgrep dired+
+(defvar my-package-list '(org org-contrib elgrep
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
 					   org-bullets latex-math-preview csproj-mode plantuml-mode
 					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
 					   expand-region diminish amx flx
 					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
-					   dired-sidebar stumpwm-mode all-the-icons-dired hledger-mode vlf elpy
+					   dired-sidebar stumpwm-mode hledger-mode vlf elpy
 					   yasnippet jedi sr-speedbar latex-preview-pane slime slim-mode))
 
 (mapcar #'straight-use-package
@@ -2095,16 +2095,16 @@ See `pdf-annot-activate-created-annotations' for more details."
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
 
-(use-package dired-sort
-  :straight nil
-  :after dired)
+;; (use-package dired-sort
+;;   :straight nil
+;;   :after dired)
 
-(use-package dired+
-  :after dired
-  :config
-  (diredp-toggle-find-file-reuse-dir 1)
-  ;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
-  (add-hook 'dired-mode-hook (lambda () (dired-omit-mode))))
+;; (use-package dired+
+;;   :after dired
+;;   :config
+;;   (diredp-toggle-find-file-reuse-dir 1)
+;;   ;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+;;   (add-hook 'dired-mode-hook (lambda () (dired-omit-mode))))
 
 (use-package dired
   :straight nil
@@ -2170,17 +2170,65 @@ T - tag prefix
   ("q" nil)
   ("." nil :color blue)))
 
-(use-package ranger
-  :hook
-  ((dired-mode ranger-mode) . (lambda () (visual-line-mode -1)))
+(use-package dirvish
+  :init
+  (dirvish-override-dired-mode)
   :custom
-  (dired-mouse-drag-files t)
-  (ranger-override-dired 'ranger)
-  (ranger-preview-delay 0.5)
-  (ranger-width-preview 0.4)
-  (ranger-return-to-ranger t)
+  (dirvish-quick-access-entries ; It's a custom option, `setq' won't work
+   '(("h" "~/"                          "Home")
+     ("d" "~/Downloads/"                "Downloads")
+     ("t" "~/.local/share/Trash/files/" "TrashCan")))
   :config
-  (ranger-override-dired-mode t))
+  (dirvish-peek-mode)             ; Preview files in minibuffer
+  ;; (dirvish-side-follow-mode)      ; similar to `treemacs-follow-mode'
+  (setq dirvish-mode-line-format
+        '(:left (sort symlink) :right (omit yank index)))
+  (setq dirvish-attributes
+        '(nerd-icons file-time file-size collapse subtree-state vc-state git-msg))
+  (setq delete-by-moving-to-trash t)
+  (setq dired-listing-switches
+        "-l --almost-all --human-readable --group-directories-first --no-group")
+  :bind ; Bind `dirvish-fd|dirvish-side|dirvish-dwim' as you see fit
+  (("C-c f" . dirvish)
+   :map dirvish-mode-map          ; Dirvish inherits `dired-mode-map'
+   ("?"   . dirvish-dispatch)     ; contains most of sub-menus in dirvish extensions
+   ("a"   . dirvish-quick-access)
+   ("f"   . dirvish-file-info-menu)
+   ("y"   . dirvish-yank-menu)
+   ("N"   . dirvish-narrow)
+   ("^"   . dirvish-history-last)
+   ("h"   . dirvish-history-jump) ; remapped `describe-mode'
+   ("s"   . dirvish-quicksort)    ; remapped `dired-sort-toggle-or-edit'
+   ("v"   . dirvish-vc-menu)      ; remapped `dired-view-file'
+   ("TAB" . dirvish-subtree-toggle)
+   ("M-f" . dirvish-history-go-forward)
+   ("M-b" . dirvish-history-go-backward)
+   ("M-l" . dirvish-ls-switches-menu)
+   ("M-m" . dirvish-mark-menu)
+   ("M-t" . dirvish-layout-toggle)
+   ("M-s" . dirvish-setup-menu)
+   ("M-e" . dirvish-emerge-menu)
+   ("M-j" . dirvish-fd-jump)))
+
+(use-package diredfl
+  :hook
+  ((dired-mode . diredfl-mode)
+   ;; highlight parent and directory preview as well
+   (dirvish-directory-view-mode . diredfl-mode))
+  :config
+  (set-face-attribute 'diredfl-dir-name nil :bold t))
+
+;; (use-package ranger
+;;   :hook
+;;   ((dired-mode ranger-mode) . (lambda () (visual-line-mode -1)))
+;;   :custom
+;;   (dired-mouse-drag-files t)
+;;   (ranger-override-dired 'ranger)
+;;   (ranger-preview-delay 0.5)
+;;   (ranger-width-preview 0.4)
+;;   (ranger-return-to-ranger t)
+;;   :config
+;;   (ranger-override-dired-mode t))
 
 ;;ibuffer****************************************************************
 (use-package ibuffer
