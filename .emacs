@@ -579,6 +579,14 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
   (advice-add 'magit-process-environment
               :filter-return #'home-dir-magit-process-environment)
 
+  (transient-append-suffix 'magit-commit '(1 0 -1)
+    '("/m" "commit with gm"
+      (lambda ()
+        (interactive)
+        (let ((msg (git-message)))
+          (when (y-or-n-p (format "Commit with message \"%s\" " (propertize msg 'face 'magit-tag)))
+            (magit-git-string-ng "commit" "-m" msg))))))
+
   (defmacro magit-sync-repo (name git-directory git-message &optional add-directories)
     "Creats an interactive function with name `sync-<NAME>'.
 Calling the function will execute pull inside the GIT-DIRECORY, commit any changes
@@ -1291,6 +1299,7 @@ targets."
 (use-package gptel
   :bind
   (("C-c o q m" . gptel-menu)
+   ("C-c o q b" . gptel)
    ("C-c o q Q" . gptel-send))
   :custom
   (gptel-api-key (gethash 'openai-apk configurations))
