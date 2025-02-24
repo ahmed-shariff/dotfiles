@@ -1309,12 +1309,13 @@ targets."
   (gptel-org-branching-context t)
   (gptel-expert-commands t)
   :config
-  (gptel-make-openai "OpenRouter"               ;Any name you want
-    :host "openrouter.ai"
-    :endpoint "/api/v1/chat/completions"
-    :stream t
-    :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
-    :models '(deepseek/deepseek-r1-distill-llama-70b:free))
+  (defvar amsha/gptel--openrouter
+    (gptel-make-openai "OpenRouter"               ;Any name you want
+      :host "openrouter.ai"
+      :endpoint "/api/v1/chat/completions"
+      :stream t
+      :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
+      :models '(deepseek/deepseek-r1-distill-llama-70b:free)))
 
   (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
         (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n")
@@ -1362,8 +1363,8 @@ targets."
   :bind (:map git-commit-mode-map
               ("C-c C-g" . magit-gptcommit-commit-accept))
   :custom
-  (magit-gptcommit-gptel-backend gptel--openai)
-  (magit-gptcommit-gptel-model 'gpt-4o-mini)
+  (magit-gptcommit-gptel-backend amsha/gptel--openrouter)
+  (magit-gptcommit-gptel-model 'deepseek/deepseek-r1-distill-llama-70b:free)
   :config
 
   ;; Enable magit-gptcommit-mode to watch staged changes and generate commit message automatically in magit status buffer
