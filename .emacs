@@ -585,7 +585,7 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
         (interactive)
         (let ((msg (git-message)))
           (when (y-or-n-p (format "Commit with message \"%s\" " (propertize msg 'face 'magit-tag)))
-            (magit-git-string-ng "commit" "-m" msg))))))
+            (magit-run-git-with-editor "commit" "-m" msg))))))
 
   (defmacro magit-sync-repo (name git-directory git-message &optional add-directories)
     "Creats an interactive function with name `sync-<NAME>'.
