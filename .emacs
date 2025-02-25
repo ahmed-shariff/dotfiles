@@ -3040,6 +3040,22 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
     "."
     (outline-minor-mode 1))
 
+  (defun extract-bib-from-master-bibfile ()
+    (interactive)
+    (let ((new-buffer-name (format "bibliography-%s.bib" (gensym)))
+          (results '()))
+      (goto-char (point-min))
+      (while (re-search-forward "\\\\bibitem.*\n.*{\\(.*\\)}" nil t)
+        (let ((key (match-string 1)))
+          (save-window-excursion
+            (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
+              (bibtex-completion-show-entry (list key))
+              (bibtex-copy-entry-as-kill)
+              (push (pop bibtex-entry-kill-ring) results)))))
+      (with-current-buffer (get-buffer-create new-buffer-name)
+        (insert (string-join results)))
+      (pop-to-buffer new-buffer-name)))
+
   ;; After changing this value, run (font-latex-make-user-keywords) and (font-lock-fontify-buffer)
   (setq font-latex-user-keyword-classes '(("positive-comment"
                                            (("p" "{"))
