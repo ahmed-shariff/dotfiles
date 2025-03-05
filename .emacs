@@ -1918,14 +1918,25 @@ targets."
 
 ;;   )
 
-(use-package lsp-ltex
-  :after lsp-mode
+;; (use-package lsp-ltex
+;;   :after lsp-mode
+;;   :ensure t
+;;   ;; :hook (text-mode . (lambda ()
+;;   ;;                      (require 'lsp-ltex)
+;;   ;;                      (lsp)))  ; or lsp-deferred
+;;   :init
+;;   (setq lsp-ltex-version "16.0.0"
+;;         lsp-ltex-enabled t))  ; make sure you have set this, see below
+
+(use-package lsp-ltex-plus
   :ensure t
+  :straight (lsp-ltex-plus :type git :host github :repo "emacs-languagetool/lsp-ltex-plus")
   ;; :hook (text-mode . (lambda ()
-  ;;                      (require 'lsp-ltex)
+  ;;                      (require 'lsp-ltex-plus)
   ;;                      (lsp)))  ; or lsp-deferred
   :init
-  (setq lsp-ltex-version "16.0.0"))  ; make sure you have set this, see below
+  (setq lsp-ltex-plus-version "18.4.0"
+        lsp-ltex-plus-enabled t))  ; make sure you have set this, see below
 
 ;; (use-package lsp-origami
 ;;   :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
@@ -3081,7 +3092,8 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
 
 (use-package lsp-latex
   :config
-  (setq lsp-latex-texlab-executable "~/.emacs.d/var/texlab.exe"))
+  (setq lsp-tex-server 'texlab
+        lsp-latex-texlab-executable "~/.emacs.d/var/texlab.exe"))
 
 ;; (defun activate-preview-mode ()
 ;;   (load "preview-latex.el" nil t t))
