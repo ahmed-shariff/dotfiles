@@ -251,6 +251,22 @@ CALLBACK is invoked without any args after successfully creating a thread."
    (lambda (response)
      (when callback (funcall callback)))))
 
+(cl-defmethod gptel--inject-prompt ((_ gptel-openai-assistant) data new-prompt &optional _position)
+  ;; The tool calls are handled differently in oai
+  ;; FIXME: What are the other use cases for inject?
+  (let ((prompts (plist-get data :tool_outputs)))
+    (plist-put data :tool_outputs (vconcat prompts new-prompt))))
+
+(cl-defmethod gptel--parse-tool-results ((_ gptel-openai-assistant) tool-use)
+  "Return a prompt containing tool call results in TOOL-USE."
+  ;; (declare (side-effect-free t))
+  (mapcar
+   (lambda (tool-call)
+     (list
+      :output (plist-get tool-call :result)
+      :tool_call_id (plist-get tool-call :id)))
+   tool-use))
+
 (cl-defmethod gptel--request-data ((backend gptel-openai-assistant) prompts)
   (setf (gptel-openai-assistant-messages-data backend)
         (list :role "user"
@@ -299,20 +315,56 @@ CALLBACK is invoked without any args after successfully creating a thread."
     (condition-case err
         (while (re-search-forward "^data:" nil t)
           (save-match-data
-            (unless (looking-at " *\\[DONE\\]")
-              (when-let* ((response (gptel--json-read))
-                          (content (map-nested-elt
-                                    response '(:delta :content 0 :text :value)))
-                          )
-                (if-let* ((annotations (map-nested-elt
-                                        response '(:delta :content 0 :text :annotations)))
-                          (_ (length> annotations 0)))
-                    (cl-loop for annotation across annotations
-                             for file-id = (map-nested-elt
-                                            annotation '(:file_citation :file_id))
-                             if file-id
-                             do (push (format "[file_citation:%s]" file-id content) content-strs))
-                  (push content content-strs))))))
+            (if (looking-at " *\\[DONE\\]")
+                ;; The stream has ended, so we do the following thing (if we found tool calls)
+                ;; - pack tool calls into the messages prompts list to send (INFO -> :data -> :messages)
+                ;; - collect tool calls (formatted differently) into (INFO -> :tool-use)
+                (when-let* ((tool-use (plist-get info :tool-use))
+                            (args (apply #'concat (nreverse (plist-get info :partial_json))))
+                            (func (plist-get (car tool-use) :function)))
+                  (plist-put func :arguments args) ;Update arguments for last recorded tool
+                  (plist-put info :data (list :stream (plist-get info :stream)))
+                  (cl-loop
+                   for tool-call in tool-use ; Construct the call specs for running the function calls
+                   for spec = (plist-get tool-call :function)
+                   collect (list :id (plist-get tool-call :id)
+                                 :name (plist-get spec :name)
+                                 :args (ignore-errors (gptel--json-read-string
+                                                       (plist-get spec :arguments))))
+                   into call-specs
+                   finally (plist-put info :tool-use call-specs)))
+              (when-let* ((response (gptel--json-read)))
+                (when (and (null (plist-get info :openai-assistant-run-id))
+                           (string-equal (plist-get response :object) "thread.run"))
+                  (plist-put info :openai-assistant-run-id (plist-get response :id)))
+                (if-let* ((content (map-nested-elt response '(:delta :content 0 :text :value)))
+                          ((not (eq content :null))))
+                    (if-let* ((annotations (map-nested-elt
+                                            response '(:delta :content 0 :text :annotations)))
+                              (_ (length> annotations 0)))
+                        (cl-loop for annotation across annotations
+                                 for file-id = (map-nested-elt
+                                                annotation '(:file_citation :file_id))
+                                 if file-id
+                                 do (push (format "[file_citation:%s]" file-id content) content-strs))
+                      (push content content-strs))
+                  ;; No text content, so look for tool calls
+                  (when-let* ((tool-call (map-nested-elt response '(:delta :step_details :tool_calls 0)))
+                              (func (plist-get tool-call :function)))
+                    (if (plist-get func :name) ;new tool block begins
+                        (progn
+                          (when-let* ((partial (plist-get info :partial_json)))
+                            (let* ((prev-tool-call (car (plist-get info :tool-use)))
+                                   (prev-func (plist-get prev-tool-call :function)))
+                              (plist-put prev-func :arguments ;update args for old tool block
+                                         (apply #'concat (nreverse (plist-get info :partial_json)))))
+                            (plist-put info :partial_json nil)) ;clear out finished chain of partial args
+                          ;; Start new chain of partial argument strings
+                          (plist-put info :partial_json (list (plist-get func :arguments)))
+                          ;; NOTE: Do NOT use `push' for this, it prepends and we lose the reference
+                          (plist-put info :tool-use (cons tool-call (plist-get info :tool-use))))
+                      ;; old tool block continues, so continue collecting arguments in :partial_json 
+                      (push (plist-get func :arguments) (plist-get info :partial_json)))))))))
       ((json-parse-error json-end-of-file search-failed)
        (goto-char (match-beginning 0)))
       (error
@@ -475,13 +527,23 @@ CALLBACK is invoked without any args after successfully creating a thread."
         (user-error "No thread in current buffer to add messages!"))
       (plist-put info :openai-assistant-wait nil)
       (setf (gptel-backend-url (plist-get info :backend))
-            (if (plist-get info :stream)
-                (format "https://api.openai.com/v1/threads/%s/runs" gptel-openai-assistant-thread-id)
-              ;; FIXME: gptel-always sends POST. Ideally, this should be the GET endpoint
-              ;; So using the endpoint for updating messages to get messages related to a run.
-              (format "https://api.openai.com/v1/threads/%s/messages/%s"
-                      gptel-openai-assistant-thread-id
-                      (plist-get info :openai-assistant-message-id)))))))
+            (if (plist-get info :openai-assistant-function-call)
+                (progn
+                  (plist-put info :openai-assistant-function-call nil)
+                  (format "https://api.openai.com/v1/threads/%s/runs/%s/submit_tool_outputs"
+                        gptel-openai-assistant-thread-id
+                        (plist-get info :openai-assistant-run-id)))
+              (if (plist-get info :stream)
+                  (format "https://api.openai.com/v1/threads/%s/runs" gptel-openai-assistant-thread-id)
+                ;; FIXME: gptel-always sends POST. Ideally, this should be the GET endpoint
+                ;; So using the endpoint for updating messages to get messages related to a run.
+                (format "https://api.openai.com/v1/threads/%s/messages/%s"
+                        gptel-openai-assistant-thread-id
+                        (plist-get info :openai-assistant-message-id))))))))
+
+(defun gptel-openai-assistant--handle-tool-use (fsm)
+  "Make sure the submit-tool-outputs get triggered next."
+  (plist-put (gptel-fsm-info fsm) :openai-assistant-function-call t))
 
 (defun gptel-openai-assistant--handle-delay (fsm)
   "Handle the delay state."
@@ -531,6 +593,9 @@ CALLBACK is invoked without any args after successfully creating a thread."
 
 ;; Handle AWAIT
 (push '(AWAIT gptel-openai-assistant--handle-await) gptel-send--handlers)
+
+;; Handler for TOOL use
+(push 'gptel-openai-assistant--handle-tool-use (alist-get 'TOOL gptel-send--handlers))
 
 (provide 'gptel-extensions)
 ;;; orgZ.el ends here
