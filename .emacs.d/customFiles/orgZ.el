@@ -1980,28 +1980,6 @@ resulting node from source-or-query, it will return an error.  TYPE is
 the type of the link."
     (org-roam-ql--expand-recursive-link source-or-query nil type inlcude-refs))
 
-  (org-roam-ql-add-saved-query 'rp "Research papers" '(file-like "research_papers"))
-  (org-roam-ql-add-saved-query 'pe "People" '(file-like "People.org"))
-  (org-roam-ql-add-saved-query 'rt "Research topics" '(file-like "research topics.org"))
-  (org-roam-ql-add-saved-query 'pr "Projects" '(file-like "project_boards"))
-  (org-roam-ql-add-saved-query 'tg "Tags" '(and (file-like "brain/tags.org") (level= 1)))
-  (org-roam-ql-add-saved-query 'repo "Repositories" '(file-like "repositories.org"))
-  (org-roam-ql-add-saved-query 'tp "All topics"
-    `([:select id :from nodes :where (and (> level 0)
-                                          (or (like file $s1)
-                                              (like file $s2)
-                                              (like file $s3)
-                                              (like file $s4)
-                                              (like file $s5)
-                                              (and (like file $s6) (like title $s7))))]
-      "%index.org%" "%misc_topics.org%" "%People.org%" "%research topics.org%" "%tags.org%" "%project_boards/%.org%" "%literature%"))
-  (org-roam-ql-add-saved-query 'lvl0 "file nodes" '(level= 0))
-  (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level= 1))
-  (org-roam-ql-add-saved-query 'inp "inprogress" '(todo-like "INPROGRESS" t))
-  (org-roam-ql-add-saved-query 'todo "todo" '(todo-like "TODO" t))
-  (org-roam-ql-add-saved-query 'l10rp "last 10 papers" '(last-n-papers 10))
-  (org-roam-ql-add-saved-query 'l20rp "last 20 papers" '(last-n-papers 20))
-
   (org-roam-ql-defexpansion 'backlink-to-recursive
                             "Recursive backlinks (heading, backlink & refs)"
                             #'org-roam-ql-recursive-backlink-to)
@@ -2087,6 +2065,29 @@ the type of the link."
   (org-roam-ql-register-sort-fn "key-order" (lambda (el1 el2)
                                               (string< (cdr (assoc "KEY_ORDER" (org-roam-node-properties el1)))
                                                        (cdr (assoc "KEY_ORDER" (org-roam-node-properties el2))))))
+
+  (org-roam-ql-add-saved-query 'rp "Research papers" '(file-like "research_papers"))
+  (org-roam-ql-add-saved-query 'pe "People" '(file-like "People.org"))
+  (org-roam-ql-add-saved-query 'rt "Research topics" '(file-like "research topics.org"))
+  (org-roam-ql-add-saved-query 'pr "Projects" '(file-like "project_boards"))
+  (org-roam-ql-add-saved-query 'tg "Tags" '(and (file-like "brain/tags.org") (level= 1)))
+  (org-roam-ql-add-saved-query 'repo "Repositories" '(file-like "repositories.org"))
+  (org-roam-ql-add-saved-query 'tp "All topics"
+    `([:select id :from nodes :where (and (> level 0)
+                                          (or (like file $s1)
+                                              (like file $s2)
+                                              (like file $s3)
+                                              (like file $s4)
+                                              (like file $s5)
+                                              (and (like file $s6) (like title $s7))))]
+      "%index.org%" "%misc_topics.org%" "%People.org%" "%research topics.org%" "%tags.org%" "%project_boards/%.org%" "%literature%"))
+  (org-roam-ql-add-saved-query 'lvl0 "file nodes" '(level= 0))
+  (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level= 1))
+  (org-roam-ql-add-saved-query 'inp "inprogress" '(todo-like "INPROGRESS" t))
+  (org-roam-ql-add-saved-query 'todo "todo" '(todo-like "TODO" t))
+  (org-roam-ql-add-saved-query 'l10rp "last 10 papers" '(last-n-papers 10))
+  (org-roam-ql-add-saved-query 'l20rp "last 20 papers" '(last-n-papers 20))
+
 
   (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
     :body
