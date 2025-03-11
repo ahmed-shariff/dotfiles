@@ -2516,11 +2516,13 @@ HASHTABLEs keys are names of perspectives. values are lists of file-names."
                (or buffer-table
                    (map-into persp-harpoon-buffers 'hash-table))
                hashtable)
-      (with-temp-buffer
-        (json-insert hashtable)
-        (set-visited-file-name persp-harpoon-cache-file t)
-        (let (message-log-max)
-          (save-buffer)))))
+      ;; (with-temp-buffer
+      ;;   (json-insert hashtable)
+      ;;   (set-visited-file-name persp-harpoon-cache-file t)
+      ;;   (let (message-log-max)
+      ;;     (save-buffer)))))
+      (with-temp-file persp-harpoon-cache-file
+        (json-insert hashtable))))
 
   (defun persp-harpoon-load (&optional persp-name)
     "Get the stored persp-harpoon state as a hashtable."
