@@ -1318,25 +1318,7 @@ targets."
       :models '(deepseek/deepseek-r1-distill-llama-70b:free)))
 
   (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
-        (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n")
-  (add-to-list 'gptel-post-response-functions
-               (lambda (start end)
-                 "Updating annotations strings."
-                 (save-excursion
-                   (goto-char start)
-                   (let ((nodes (--map
-                                 (cons
-                                  (alist-get "OPENAI_FILE_ID" (org-roam-node-properties it) nil nil #'equal)
-                                  (cons (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'equal)
-                                        (org-roam-node-id it)))
-                                 (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
-                     (condition-case err
-                         (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
-                           (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'equal))
-                                       (newtext (format " [cite:%s]" (car elt))))
-                             (setq end (+ end (- (length newtext) (length (match-string 0)))))
-                             (replace-match newtext)))
-                       (search-failed nil)))))))
+        (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"))
 
 (use-package gptel-extensions
   :straight nil

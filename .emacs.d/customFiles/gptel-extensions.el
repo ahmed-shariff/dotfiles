@@ -136,7 +136,28 @@
   (setf (alist-get "openai-assistant" gptel--known-backends
                    nil nil #'equal)
         (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key))
-        gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations)))
+        gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
+
+  (defun amsha/gptel--replace-file-id-with-cite (start end)
+    "Updating annotations strings."
+    (save-excursion
+      (goto-char start)
+      (let ((nodes (--map
+                    (cons
+                     (alist-get "OPENAI_FILE_ID" (org-roam-node-properties it) nil nil #'equal)
+                     (cons (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'equal)
+                           (org-roam-node-id it)))
+                    (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
+        (condition-case err
+            (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
+              (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'equal))
+                          (newtext (format " [cite:%s]" (car elt))))
+                (setq end (+ end (- (length newtext) (length (match-string 0)))))
+                (replace-match newtext)))
+          (search-failed nil)))))
+  ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
+
+  (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite))
 
 
 
