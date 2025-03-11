@@ -987,9 +987,11 @@ Copied  from `org-roam-backlink-get'."
 
   (defun org-roam-node-annotator (cand)
     "Annotate org-roam-nodes in completions"
-    (when-let* ((node (condition-case err
-                          (org-roam-node-from-title-or-alias (org-no-properties cand))
-                        (error nil)))
+    (when-let* ((node (or
+                       (get-text-property 0 'node cand)
+                       (condition-case err
+                           (org-roam-node-from-title-or-alias (org-no-properties cand))
+                         (error nil))))
                 (file (concat (s-replace ".org" "" (f-relative (org-roam-node-file node) okm-base-directory))
                               (when (> (org-roam-node-level node) 1) (concat "::" (string-join (org-roam-node-olp node) " > "))))))
       (marginalia--fields
@@ -1105,6 +1107,28 @@ Copied  from `org-roam-backlink-get'."
             consult-ripgrep-args)))
       (consult-ripgrep)))
 
+  (defun amsha/consult-org-roam--node-preview (filter-fn)
+    "Create preview function for nodes.
+FILTER-FN takes a node and return non-nil if it should be previewed."
+    (let ((open (consult--temporary-files))
+          (preview (consult--buffer-preview))
+          (state  (window-state-get)))
+      (lambda (action cand)
+        (when (eq action 'exit)
+          (progn
+            ;; Restore saved window state
+            ;; To move point to the original position
+            (window-state-put state)
+            (funcall open)))
+        (if (and (org-roam-node-p cand) (funcall filter-fn cand))
+            (funcall preview action
+                     (and cand
+                          (eq action 'preview)
+                          (set-window-start
+                           (selected-window)
+                           (org-roam-node-point cand))
+                          (funcall open (org-roam-node-file cand))))))))
+
   (defvar consult-org-roam-ql--history nil)
 
   ;; TODO: filter-fn and sort-fn does notthing now!
@@ -1188,7 +1212,9 @@ Copied  from `org-roam-backlink-get'."
           :category 'org-roam-node
           :sort nil ;; TODO
           :require-match require-match
-          :state (consult-org-roam--node-preview)
+          :state (amsha/consult-org-roam--node-preview
+                  (lambda (node)
+                    (not (string-match "research_papers" (org-roam-node-file node)))))
           :history 'consult-org-roam-ql--history
           ;; Taken from consult-org-roam
           ;; Uses the DEFAULT argument of alist-get to return input in case the input is not found as key.
