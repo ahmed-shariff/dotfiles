@@ -1804,7 +1804,15 @@ word count of the response."
   (defun amsha/lsp-mode-setup-completion ()
     (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
           '(orderless))) ;; Configure orderless
+  (setq lsp-client-packages (seq-remove (lambda (pkg) (equal pkg 'lsp-tex)) lsp-client-packages))
   :config
+
+  ;; Removing unnecessary clients
+  (ht-remove lsp-clients 'texlab)
+  (ht-remove lsp-clients 'texlab-tramp)
+  (ht-remove lsp-clients 'digestif)
+  (ht-remove lsp-clients 'digestif-tramp)
+
   ;; (lsp-register-client
   
   ;;  (make-lsp-client :new-connection (lsp-tramp-connection "pyls")
@@ -1934,7 +1942,9 @@ word count of the response."
   ;;                      (lsp)))  ; or lsp-deferred
   :init
   (setq lsp-ltex-plus-version "18.4.0"
-        lsp-ltex-plus-enabled t))  ; make sure you have set this, see below
+        lsp-ltex-plus-enabled t
+        lsp-ltex-plus-java-maximum-heap-size 2000
+        lsp-ltex-plus-sentence-cache-size 2000))
 
 ;; (use-package lsp-origami
 ;;   :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
@@ -2010,6 +2020,8 @@ word count of the response."
 ;; pdf
 (use-package pdf-tools
   :defer t
+  :straight (pdf-tools :type git :host github :repo "vedang/pdf-tools"
+                       :fork (:host github :repo "ahmed-shariff/pdf-tools" :branch "windows-fix-308"))
   :config
   (when (gethash 'use-pdf-tools configurations t)
     (when (eq system-type 'gnu/linux)
