@@ -1309,6 +1309,7 @@ targets."
   (gptel-org-branching-context t)
   (gptel-expert-commands t)
   :config
+  (require 'gptel-extensions)
   (defvar amsha/gptel--openrouter
     (gptel-make-openai "OpenRouter"               ;Any name you want
       :host "openrouter.ai"
@@ -1317,12 +1318,13 @@ targets."
       :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
       :models '(deepseek/deepseek-r1-distill-llama-70b:free)))
 
-  (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
-        (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"))
+  (add-to-list 'yank-excluded-properties 'gptel)
 
-(use-package gptel-extensions
-  :straight nil
-  :after gptel)
+  (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
+        (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"
+        (alist-get "openai-assistant" gptel--known-backends
+                   nil nil #'equal)
+        (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key))))
 
 (use-package elysium
   :bind (("C-c o q c" . elysium-query))
@@ -1363,7 +1365,21 @@ targets."
   :straight (:type git :host github :repo "karthink/gptel-quick")
   :after gptel
   :bind
-  (("C-c o q q" . gptel-quick)))
+  (("C-c o q q" . gptel-quick)
+   ("C-c o q c" . gptel-quick-check))
+  :config
+  (setq gptel-quick-backend gptel--openai
+        gptel-quick-model 'gpt-4o)
+  (defun gptel-quick-check ()
+    "Check the region or thing at point with an LLM.
+
+QUERY-TEXT is the text being explained.  COUNT is the approximate
+word count of the response."
+    (interactive)
+    (let ((gptel-quick-system-message
+           (lambda (count)
+             (format "Is the sentence correct. Explain %d words or fewer." count))))
+      (call-interactively #'gptel-quick))))
 
 
 ;; (use-package consult-gh

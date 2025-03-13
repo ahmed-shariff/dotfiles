@@ -133,10 +133,7 @@
   :after gptel
   :straight (gptel-openai-assistant :type git :host github :repo "ahmed-shariff/gptel-openai-assistant")
   :config
-  (setf (alist-get "openai-assistant" gptel--known-backends
-                   nil nil #'equal)
-        (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key))
-        gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
+  (setf gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
 
   (defun amsha/gptel--replace-file-id-with-cite (start end)
     "Updating annotations strings."
