@@ -107,6 +107,8 @@
       tramp-terminal-type "dumb"
       initial-buffer-choice "*splash*"
       inhibit-startup-screen t
+      split-width-threshold 0
+      split-height-threshold nil
       banner-text-list (string-split
                         (with-temp-buffer
                          (insert-file "~/.emacs.d/customFiles/banner_text.txt")
@@ -1310,6 +1312,8 @@ targets."
   (gptel-expert-commands t)
   :config
   (require 'gptel-extensions)
+  ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
+
   (defvar amsha/gptel--openrouter
     (gptel-make-openai "OpenRouter"               ;Any name you want
       :host "openrouter.ai"
