@@ -157,6 +157,28 @@
   (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite))
 
 
+(defun amsha/gptel-get-bib-entry-from-citation (citation)
+  (interactive "sCitation: ")
+  (let ((buf
+         (get-buffer-create (format "*gptel-cite-%s*" (gensym))))
+        author-check title-check)
+    (switch-to-buffer buf)
+    (with-current-buffer buf
+      (markdown-mode)
+      (gptel-mode)
+      (insert citation "\n\n")
+      (gptel-request (format "Extract the bib entry from the following citation:\n%s" citation)
+        :callback (lambda (response info)
+                    (goto-char (point-max))
+                    (insert response)
+                    (goto-char (point-min))
+                    (search-forward-regexp "author *= *{\\(.*\\)}" nil t)
+                    (setq author-check (--all-p (string-match it citation) (s-split " and " (match-string 1))))
+                    (search-forward-regexp "title *= *{\\(.*\\)}" nil t)
+                    (setq title-check (not (null (string-match (match-string 1) citation))))
+                    (goto-char (point-max))
+                    (insert (format "\n\n---------------\nauthor-check: %s\ntitle-check: %s" author-check title-check)))))))
+
 
 (provide 'gptel-extensions)
 ;;; orgZ.el ends here
