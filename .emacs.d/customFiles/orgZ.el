@@ -699,23 +699,44 @@
 
   (defun amsha/bibtex-completion-apa-get-value (old-fun &rest args)
     "Override the downcase situation."
-    (if (and (stringp (car args)) (string-equal (car args) "title"))
-        (if-let (value (bibtex-completion-get-value (car args) entry))
-            (replace-regexp-in-string ; remove braces
-             "[{}]"
-             ""
-             (replace-regexp-in-string ; remove macros
-              "\\\\[[:alpha:]]+{"
-              ""
-              (replace-regexp-in-string ; upcase initial letter
-               "^[[:alpha:]]"
-               'upcase
-               (replace-regexp-in-string ; preserve stuff in braces from being downcased
-                "\\(^[^{]*{\\)\\|\\(}[^{]*{\\)\\|\\(}.*$\\)\\|\\(^[^{}]*$\\)"
-                (lambda (x) (s-replace "\\" "\\\\" x))
-                value))))
-          (apply old-fun args))
-      (apply old-fun args)))
+    ;; (if (and (stringp (car args)) (string-equal (car args) "title"))
+    ;;     (if-let (value (bibtex-completion-get-value (car args) entry))
+    ;;         (replace-regexp-in-string ; remove braces
+    ;;          "[{}]"
+    ;;          ""
+    ;;          (replace-regexp-in-string ; remove macros
+    ;;           "\\\\[[:alpha:]]+{"
+    ;;           ""
+    ;;           (replace-regexp-in-string ; upcase initial letter
+    ;;            "^[[:alpha:]]"
+    ;;            'upcase
+    ;;            (replace-regexp-in-string ; preserve stuff in braces from being downcased
+    ;;             "\\(^[^{]*{\\)\\|\\(}[^{]*{\\)\\|\\(}.*$\\)\\|\\(^[^{}]*$\\)"
+    ;;             (lambda (x) (s-replace "\\" "\\\\" x))
+    ;;             value))))
+    ;;       (apply old-fun args))
+    ;;   (apply old-fun args)))
+    (let* ((field (car args))
+           (entry (cadr args))
+           (value (bibtex-completion-get-value field entry)))
+      (cond
+       ((and (stringp value) (string= "title" field))
+        (replace-regexp-in-string ; remove braces
+         "[{}]"
+         ""
+         (replace-regexp-in-string ; remove macros
+          "\\\\[[:alpha:]]+{"
+          ""
+          (replace-regexp-in-string ; upcase initial letter
+           "^[[:alpha:]]"
+           'upcase
+           (replace-regexp-in-string ; preserve stuff in braces from being downcased
+            "\\(^[^{]*{\\)\\|\\(}[^{]*{\\)\\|\\(}.*$\\)\\|\\(^[^{}]*$\\)"
+            (lambda (x) (s-replace "\\" "\\\\" x))
+            value)))))
+       ((and (stringp value) (string= "pages" field))
+        (s-join "–" (s-split "[^0-9:]+" value t)))
+       (t (em (apply old-fun args))))))
 
   (advice-add 'bibtex-completion-apa-get-value :around #'amsha/bibtex-completion-apa-get-value)
 

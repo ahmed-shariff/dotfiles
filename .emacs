@@ -809,7 +809,11 @@ that returns a string."
 (use-package evil-org
   :ensure t
   :after (org evil)
-  :hook (org-mode . (lambda () evil-org-mode))
+  :hook (org-mode . (lambda ()
+                      (evil-org-mode)
+                      (evil-define-key 'normal 'evil-org-mode
+                        (kbd "M-k") 'org-metaup
+                        (kbd "M-j") 'org-metadown)))
   :config
   (require 'evil-org-agenda)
   (evil-org-agenda-set-keys)
