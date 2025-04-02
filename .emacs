@@ -3415,17 +3415,31 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
     "Add the list of LIST-SIZE items."
     (let* ((files (org-agenda-files))
            (tasks (if files
-                      (org-ql-select files '(and (property "ID") (todo "INPROGRESS"))
-                        :action (lambda () (cons
-                                            (format "%s %-40s: %s"
+                      (--sort
+                       (string< (nth 2 it) (nth 2 other))
+                       (org-ql-select files '(and (property "ID") (todo "INPROGRESS"))
+                        :action (lambda () (list
+                                            (format "%s %s %-40s: %s"
                                                     (--> "‣";;(subseq (org-entry-get (point) "TODO") 0 2)
                                                          (propertize it 'face (org-get-todo-face "INPROGRESS")))
+                                                    (--> (alist-get "PRIORITY" (org-entry-properties) nil nil #'string-equal)
+                                                         (format "%s %s"
+                                                                 (pcase it
+                                                                   ("A" "❗")
+                                                                   ("B" "⬆")
+                                                                   ("C" "⬇"))
+                                                                 (propertize it 'face
+                                                                             (pcase it
+                                                                               ("A" '((:foreground "red4")))
+                                                                               ("B" '((:foreground "brown")))
+                                                                               ("C" '((:foreground "dark olive green")))))))
                                                     (--> (buffer-file-name)
                                                          (format "%s/%s" (f-base (f-parent (f-parent it))) (file-name-base it))
                                                          (propertize it 'face 'shadow))
                                                     (amsha/org-repalce-link-in-string
                                                      (org-no-properties (org-get-heading t t t t))))
-                                            (org-id-get))))
+                                            (org-id-get)
+                                            (alist-get "PRIORITY" (org-entry-properties) nil nil #'string-equal)))))
                     nil))
            (dashboard-set-file-icons nil))
       (amsha/dashboard-insert-section
@@ -3439,7 +3453,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
        'tasks
        (dashboard-get-shortcut 'tasks)
        `(lambda (&rest ignore)
-          (org-id-goto (cdr (quote ,el))))
+          (org-id-goto (cadr (quote ,el))))
        (format "%s" (car el)))))
 
   (defun dashboard-insert-day-to-day-task (list-size)
