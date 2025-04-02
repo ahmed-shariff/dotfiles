@@ -2134,7 +2134,10 @@ the type of the link."
   (org-roam-ql-add-saved-query 'todo "todo" '(todo-like "TODO" t))
   (org-roam-ql-add-saved-query 'l10rp "last 10 papers" '(last-n-papers 10))
   (org-roam-ql-add-saved-query 'l20rp "last 20 papers" '(last-n-papers 20))
-
+  (org-roam-ql-add-saved-query 'dailies-today "dailies today" '(dailies-range "-1d"))
+  (org-roam-ql-add-saved-query 'dailies-last-two-days "dailies last two days" '(dailies-range "-2d"))
+  (org-roam-ql-add-saved-query 'dailies-last-week "dailies last week" '(dailies-range "-8d"))
+  (org-roam-ql-add-saved-query 'dailies-yesterday "dailies yesterday" '(dailies-range "-2d" "-1d"))
 
   (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
     :body
