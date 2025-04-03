@@ -483,7 +483,7 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   (interactive)
   (shell-command
    (format "%s %s"
-           (if (eq system-type 'windows-nt) "wt -d" "tilix")
+           (if (eq system-type 'windows-nt) "wt -d" "tilix --window-style=disable-csd-hide-toolbar")
            (-->
              (file-truename
               (buffer-file-name (window-buffer
