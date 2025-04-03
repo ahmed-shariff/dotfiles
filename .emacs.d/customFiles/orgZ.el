@@ -1163,25 +1163,28 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
           (set-syntax-table emacs-lisp-mode-syntax-table)
           (add-hook 'completion-at-point-functions
                     #'org-roam-ql--completion-at-point nil t))
-      (let* ((style (consult--async-split-style))
-             (fn (plist-get style :function))
+      (let* ((consult-async-split-styles-alist
+              '((org-roam-ql :initial ?\;
+                             :function
+                             ;; Override how the empty string is handled!
+                             ;; When empty async-str should return default candidates
+                             (lambda (str style)
+                               (pcase-let* ((res (consult--split-perl str style))
+                                            (`(,async-str ,pos ,start-highlight . ,end-highlight) res)
+                                            (force (or (get-text-property 0 'consult--force async-str)
+                                                       (and (not (null start-highlight)) (not (null end-highlight))))))
+                                 ;; This gets called at severaal places. We only want the data when it is
+                                 ;; called with the force value!
+                                 (when force
+                                   (setq split-pos pos
+                                         mb-str str))
+                                 (when (and force (equal "" async-str))
+                                   (setf (car res) (propertize "-" 'consult--force end-highlight)))
+                                 res)))))
              (corfu-auto nil)
              (consult-async-input-debounce 1)
              split-pos
              mb-str
-             ;; Override how the empty string is handled!
-             ;; When empty async-str should return default candidates
-             (split (lambda (str)
-                      (pcase-let* ((res (funcall fn str style))
-                                   (`(,async-str ,pos ,force . ,_) res))
-                        ;; This gets called at severaal places. We only want the data when it is
-                        ;; called with the force value!
-                        (when force
-                          (setq split-pos pos
-                                mb-str str))
-                        (when (and force (equal "" async-str))
-                          (setf (car res) "-"))
-                        res)))
              ;; Default candidates
              (nodes (mapcar (lambda (node)
                               (cons (propertize (org-roam-node-title node) 'node node) node))
@@ -1209,22 +1212,24 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
         ;; Feeding initial set of candidates to sink
         (funcall sink nodes)
         (-->
-         (consult--dynamic-compute
-          sink
-          (lambda (input) 
-            (if (and (> (length input) 0) (not (equal input "-")))
-                ;; TODO: can I update the state/indicator somehow?
-                (condition-case err
-                    (mapcar
-                     (lambda (node)
-                       (cons (propertize (org-roam-node-title node) 'node node) node))
-                     (org-roam-ql-nodes (read input)))
-                  (user-error
-                   (minibuffer-message (propertize (cadr err) 'face 'consult-async-failed))
-                   nodes))
-              nodes)))
-         (consult--async-throttle it)
-         (consult--async-split it split)
+         (consult--async-pipeline
+          (consult--async-split 'org-roam-ql)
+          (consult--dynamic-collection
+              (lambda (input)
+                (if (and (> (length input) 0) (not (equal input "-")))
+                    ;; TODO: can I update the state/indicator somehow?
+                    (condition-case err
+                        (mapcar
+                         (lambda (node)
+                           (cons (propertize (org-roam-node-title node) 'node node) node))
+                         (org-roam-ql-nodes (read input)))
+                      (user-error
+                       (minibuffer-message (propertize (cadr err) 'face 'consult-async-failed))
+                       nodes))
+                  nodes)))
+          (consult--async-indicator)
+          (consult--async-refresh))
+         (funcall it sink)
          (consult--read
           it
           :prompt (or prompt "Node: ")
@@ -1233,6 +1238,7 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
           :category 'org-roam-node
           :sort nil ;; TODO
           :require-match require-match
+          :async-wrap nil
           :state (amsha/consult-org-roam--node-preview
                   (lambda (node)
                     (not (string-match "research_papers" (org-roam-node-file node)))))
