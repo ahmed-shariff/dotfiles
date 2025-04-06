@@ -2240,6 +2240,16 @@ If prefix arg used, search whole db."
   (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview)
 
   (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled> "+0")))
+
+  (defun okm-insert-paper-ids-for-query ()
+    "Prompt for nodes and print the file names a org style list."
+    (interactive)
+    (insert "\n")
+    (--map
+     (when-let* ((f (org-roam-node-file it))
+                 (_ (string-match "research_papers" f)))
+       (insert "- " (file-name-base f) "\n"))
+     (org-roam-ql-nodes (org-roam-ql--read-query))))
   )
 
 ;; (use-package org-roam-gocal
@@ -3364,11 +3374,12 @@ The format of the response should be as follows:
                               (let* ((res (s-split "* summary" response))
                                      (abstract (s-trim (s-replace "* abstract" "" (car res))))
                                      (summary (s-trim (cadr res))))
-                                (org-roam-node-open node)
-                                (goto-char (point-min))
-                                (org-entry-put (point) "ABSTRACT" abstract)
-                                (org-entry-put (point) "SUMMARY" summary)
-                                (em "added abstract and summary" abstract summary))
+                                (org-roam-with-file (org-roam-node-file node) nil
+                                  (goto-char (point-min))
+                                  (org-entry-put (point) "ABSTRACT" abstract)
+                                  (org-entry-put (point) "SUMMARY" summary)
+                                  (save-buffer)
+                                  (em "for" custom-id "added abstract and summary" abstract summary)))
                               (if tool-callback
                                   (funcall tool-callback response))))))
             (t (funcall tool-callback "Error occurred")))))
