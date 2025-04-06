@@ -2675,6 +2675,11 @@ With C-u C-u C-u prefix, force run all research-papers."
                                (plist-get
                                 (amsha/add-file-to-openai text-file-name)
                                 :id))))
+            (unless (or (org-entry-get pom "ABSTRACT") (string-empty-p (org-entry-get pom "ABSTRACT"))
+                        (org-entry-get pom "SUMMARY") (string-empty-p (org-entry-get pom "SUMMARY")))
+              (when (org-entry-get pom "PDF_TEXT_FILE")
+                (okm-gptel-get-paper-abstract-summary nil cite-key)))
+
             (when changes
               (save-buffer))
             (setq tags
@@ -3315,9 +3320,63 @@ Parent-child relation is defined by the brain-parent links."
 ;;                                              (f-glob "~/Documents/org/brain/personal/**/*.org")
 ;;                                              '("~/Documents/org/brain/google_calender_unlisted.org")))))
 
+(defun okm-get-pdf-txt (paper-id)
+  "Given the paper ID get the full text extracted using pdf-tools."
+  (with-temp-buffer
+    (insert-file-contents (file-truename (expand-file-name (format "%s.txt" paper-id) bibtex-completion-library-path)))
+    (buffer-string)))
+
+
+;; meant to be used as tool-call-function
+(defun okm-gptel-get-paper-abstract-summary (tool-callback custom-id)
+  "Given the custom-id, get the abstract and summary as a single string.
+Meant to be used for LLMs.
+The tool-callback should take one value, the result."
+  (unless (featurep 'gptel)
+    (require 'gptel))
+  (unless (featurep 'org-roam-ql)
+    (require 'org-roam-ql))
+  (if-let (node (car (org-roam-ql-nodes `(properties "Custom_ID" ,custom-id))))
+      (if-let* ((abstract (alist-get "ABSTRACT" (org-roam-node-properties node) nil nil #'string-equal))
+                (summary (alist-get "SUMMARY" (org-roam-node-properties node) nil nil #'string-equal)))
+          (if tool-callback
+              (funcall tool-callback (format "* abstract\n%s\n* summary\n%s" abstract summary))
+            (format "* abstract\n%s\n* summary\n%s" abstract summary))
+        (let ((gptel-backend gptel--openai)
+              (gptel-model 'gpt-4o-mini)
+              (gptel-tools nil))
+          (condition-case nil
+              (gptel-request (format "%s
+
+The above is the text extracted from a paper using pdf-tools.
+Extract the abstract from this. Also provide a summary of the paper which can be used as input for other LLMs.
+The format of the response should be as follows:
+* abstract
+<abstract text>
+* summary
+<summary text>"
+                                     (okm-get-pdf-txt custom-id))
+                :callback (lambda (response info)
+                            (cond
+                             ((null response)
+                              (funcall tool-callback (format "Error %s" info)))
+                             ((stringp response)
+                              (let* ((res (s-split "* summary" response))
+                                     (abstract (s-trim (s-replace "* abstract" "" (car res))))
+                                     (summary (s-trim (cadr res))))
+                                (org-roam-node-open node)
+                                (goto-char (point-min))
+                                (org-entry-put (point) "ABSTRACT" abstract)
+                                (org-entry-put (point) "SUMMARY" summary)
+                                (em "added abstract and summary" abstract summary))
+                              (if tool-callback
+                                  (funcall tool-callback response))))))
+            (t (funcall tool-callback "Error occurred")))))
+    (error "node not found")))
+
 (defun okm-org-agenda-recompute-org-roam-ql ()
   "Same as `okm-org-agenda-recompute', but uses org-roam-ql"
-  (when (not (featurep 'org-roam-ql))
+  (unless (featurep 'org-roam-ql)
     (require 'org-roam-ql))
   (with-temp-buffer
     (erase-buffer)

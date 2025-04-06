@@ -128,6 +128,24 @@
 	       :description "Path to the file to read.  Supports relative paths and ~."))
  :category "filesystem")
 
+(gptel-make-tool
+ :function #'okm-get-pdf-txt
+ :name "paper_full_text"
+ :description "Get the full text extracted using pdf-tools for a given paper"
+ :args (list '(:name "paper_id"
+               :type "string"
+               :description "The id of the paper"))
+ :category "emacs")
+
+(gptel-make-tool
+ :function #'okm-gptel-get-paper-abstract-summary
+ :name "paper_abstract_and_summary"
+ :description "Get the abstract and summary of the paper. The abstarct is extracted from the paper. The summary is an LLM summary of the paper."
+ :args (list '(:name "paper_id"
+               :type "string"
+               :description "The id of the paper"))
+ :category "emacs"
+ :async t)
 
 (use-package gptel-openai-assistant
   :after gptel
