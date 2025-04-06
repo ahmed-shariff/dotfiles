@@ -153,6 +153,9 @@
                 (replace-match newtext)))
           (search-failed nil)))))
   ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
+  (setf (alist-get "openai-assistant" gptel--known-backends
+             nil nil #'equal)
+        (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key)))
 
   (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite))
 

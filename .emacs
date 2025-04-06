@@ -1329,10 +1329,7 @@ targets."
   (add-to-list 'yank-excluded-properties 'gptel)
 
   (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
-        (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"
-        (alist-get "openai-assistant" gptel--known-backends
-                   nil nil #'equal)
-        (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key))))
+        (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"))
 
 (use-package elysium
   :bind (("C-c o q c" . elysium-query))
