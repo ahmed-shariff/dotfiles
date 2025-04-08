@@ -2806,7 +2806,7 @@ With C-u C-u C-u prefix, force run all research-papers."
           (lambda ()
             (em (format "Copied files to %s" okm-org-agenda-copy-research-papers-directory))
             ;; ranger looks for a file, not a directory
-            (ranger (expand-file-name "something.pdf" okm-org-agenda-copy-research-papers-directory))
+            (dired okm-org-agenda-copy-research-papers-directory)
             (setq okm-org-agenda-copy-research-papers-directory nil)))
     (condition-case nil
 	(make-directory okm-org-agenda-copy-research-papers-directory)
@@ -2817,11 +2817,13 @@ With C-u C-u C-u prefix, force run all research-papers."
 	 (make-directory out-dir)))))
   (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
                          (org-agenda-error))
-    (when-let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
-      (message "Copied %s" (file-name-nondirectory file-path))
-      (copy-file file-path
-        	 (expand-file-name (file-name-nondirectory file-path)
-        			   okm-org-agenda-copy-research-papers-directory)))))
+    (if-let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
+        (progn
+          (message "Copied %s" (file-name-nondirectory file-path))
+          (copy-file file-path
+        	     (expand-file-name (file-name-nondirectory file-path)
+        			       okm-org-agenda-copy-research-papers-directory)))
+      (message "FAILED to copy %s" file-path))))
 
 
 (defvar copy-notes-and-bib-function-org-buffer nil)
