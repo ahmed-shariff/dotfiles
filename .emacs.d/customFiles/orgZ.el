@@ -399,7 +399,7 @@
           (append
            '(("--None--"))
            (--map
-            (let* ((title (org-roam-node-title it))
+            (let* ((title (s-replace-regexp " \\[[0-9]+/[0-9]+\\]" "" (org-roam-node-title it)))
                    (full-file-name (org-roam-node-file it))
                    (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
                    (todo-state (or (org-roam-node-todo it) "")))
@@ -836,6 +836,7 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
   (org-roam-mode-sections (list #'org-roam-brain-children-section
                                 '(org-roam-backlinks-section :unique nil) ;; Setting to nil becuase when t it doesn't work too well with notes
                                 #'org-roam-reflinks-section))
+  (org-roam-node-formatter (lambda (node) (s-replace-regexp " \\[[0-9]+/[0-9]+\\]" "" (org-roam-node-title node))))
   :bind (("C-c n l" . org-roam-buffer-for-node)
          ("C-c n L" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
