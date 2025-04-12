@@ -3421,16 +3421,18 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
                                                     (--> "‣";;(subseq (org-entry-get (point) "TODO") 0 2)
                                                          (propertize it 'face (org-get-todo-face "INPROGRESS")))
                                                     (--> (alist-get "PRIORITY" (org-entry-properties) nil nil #'string-equal)
-                                                         (format "%s %s"
-                                                                 (pcase it
-                                                                   ("A" "❗")
-                                                                   ("B" "⬆")
-                                                                   ("C" "⬇"))
-                                                                 (propertize it 'face
-                                                                             (pcase it
-                                                                               ("A" '((:foreground "red4")))
-                                                                               ("B" '((:foreground "brown")))
-                                                                               ("C" '((:foreground "dark olive green")))))))
+                                                         (format "%s "
+                                                                 (propertize
+                                                                  (concat
+                                                                   (pcase it
+                                                                     ("A" "★ ")
+                                                                     ("B" "☆ ")
+                                                                     ("C" "ℹ "))
+                                                                   it)
+                                                                  'face (pcase it
+                                                                          ("A" '((:foreground "SeaGreen2")))
+                                                                          ("B" '((:foreground "DarkOrange")))
+                                                                          ("C" '((:foreground "pink4")))))))
                                                     (--> (buffer-file-name)
                                                          (format "%s/%s" (f-base (f-parent (f-parent it))) (file-name-base it))
                                                          (propertize it 'face 'shadow))
