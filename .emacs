@@ -1348,12 +1348,13 @@ targets."
   :straight (:type git :host github :repo "douo/magit-gptcommit" :branch "gptel"
                    :fork (:host github :repo "ahmed-shariff/magit-gptcommit" :branch "add-custom-backend"))
   :demand t
-  :after (gptel magit)
+  :after (magit)
   :bind (:map git-commit-mode-map
               ("C-c C-g" . magit-gptcommit-commit-accept))
   :custom
-  (magit-gptcommit-gptel-backend amsha/gptel--openrouter)
-  (magit-gptcommit-gptel-model 'deepseek/deepseek-r1-distill-llama-70b:free)
+  (magit-gptcommit-backend 'gptel)
+  ;; (magit-gptcommit-gptel-backend amsha/gptel--openrouter)
+  ;; (magit-gptcommit-gptel-model 'deepseek/deepseek-r1-distill-llama-70b:free)
   :config
 
   ;; Enable magit-gptcommit-mode to watch staged changes and generate commit message automatically in magit status buffer
