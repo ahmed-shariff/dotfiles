@@ -380,8 +380,9 @@
   "."
   (okm--ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
 
-(defun okm-ask-task-board ()
+(defun okm-goto-task-board ()
   "Move the cursor to a location in a task board."
+  (interactive)
   (let* ((project-boards (mapcar (lambda (file) (cons (format "%-10s %s"
                                                               (propertize (f-base (f-parent (f-parent file)))  'face 'marginalia-documentation)
                                                               (file-name-base file))
@@ -547,7 +548,7 @@
          :after-finalize okm-add-new-project-finalize
 	 :jump-to-captured t)
         ("et" "Add task"
-	 entry (function okm-ask-task-board)
+	 entry (function okm-goto-task-board)
 	 "* TODO %^{TITLE}
   :PROPERTIES:
   :ID:       %(org-id-new)
