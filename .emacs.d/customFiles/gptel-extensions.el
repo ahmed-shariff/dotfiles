@@ -200,6 +200,18 @@
                     (goto-char (point-max))
                     (insert (format "\n\n---------------\nauthor-check: %s\ntitle-check: %s" author-check title-check)))))))
 
+(defun amsha/explain-grammarly (sentence explanation)
+  (interactive "sSentence: \nsExplanation: ")
+  (let ((buf
+         (get-buffer-create (format "*gptel-grammarly-%s*" (gensym)))))
+    (switch-to-buffer buf)
+    (with-current-buffer buf
+      (markdown-mode)
+      (gptel-mode)
+      (insert (format "For the following sentence \"%s\" grammerly says \"%s\". How should I fix that?"
+                      sentence explanation))
+      (goto-char (point-max))
+      (gptel-send))))
 
 (provide 'gptel-extensions)
 ;;; orgZ.el ends here
