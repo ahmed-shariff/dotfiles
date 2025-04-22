@@ -677,6 +677,10 @@ that returns a string."
   ;; (set-face-attribute 'default nil
                       ;; :family "Consolas" :height 105))
 
+(use-package topspace
+  :custom
+  (topspace-empty-line-indicator (propertize "~" :forground "gray33")))
+
 ;;enable ido mode
 ;; (require 'ido)
 ;; (ido-mode t)
