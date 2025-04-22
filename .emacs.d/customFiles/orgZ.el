@@ -2047,7 +2047,7 @@ the type of the link."
   (org-roam-ql-defexpansion 'child-of
                             "Child of node with a specific title"
                             (lambda (title)
-                              (org-roam-ql--expand-backlinks `(title-like ,title t) :type okm-parent-id-type-name)))
+                              (org-roam-ql--expand-backlinks `(title ,title t) :type okm-parent-id-type-name)))
   (org-roam-ql-defexpansion 'regexp-rg
                             "Regex on all org files."
                             (lambda (regexp)
@@ -2122,12 +2122,12 @@ the type of the link."
                                               (string< (cdr (assoc "KEY_ORDER" (org-roam-node-properties el1)))
                                                        (cdr (assoc "KEY_ORDER" (org-roam-node-properties el2))))))
 
-  (org-roam-ql-add-saved-query 'rp "Research papers" '(file-like "research_papers"))
-  (org-roam-ql-add-saved-query 'pe "People" '(file-like "People.org"))
-  (org-roam-ql-add-saved-query 'rt "Research topics" '(file-like "research topics.org"))
-  (org-roam-ql-add-saved-query 'pr "Projects" '(file-like "project_boards"))
-  (org-roam-ql-add-saved-query 'tg "Tags" '(and (file-like "brain/tags.org") (level= 1)))
-  (org-roam-ql-add-saved-query 'repo "Repositories" '(file-like "repositories.org"))
+  (org-roam-ql-add-saved-query 'rp "Research papers" '(file "research_papers"))
+  (org-roam-ql-add-saved-query 'pe "People" '(file "People.org"))
+  (org-roam-ql-add-saved-query 'rt "Research topics" '(file "research topics.org"))
+  (org-roam-ql-add-saved-query 'pr "Projects" '(file "project_boards"))
+  (org-roam-ql-add-saved-query 'tg "Tags" '(and (file "brain/tags.org") (level= 1)))
+  (org-roam-ql-add-saved-query 'repo "Repositories" '(file "repositories.org"))
   (org-roam-ql-add-saved-query 'tp "All topics"
     `([:select id :from nodes :where (and (> level 0)
                                           (or (like file $s1)
@@ -2139,8 +2139,8 @@ the type of the link."
       "%index.org%" "%misc_topics.org%" "%People.org%" "%research topics.org%" "%tags.org%" "%project_boards/%.org%" "%literature%"))
   (org-roam-ql-add-saved-query 'lvl0 "file nodes" '(level= 0))
   (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level= 1))
-  (org-roam-ql-add-saved-query 'inp "inprogress" '(todo-like "INPROGRESS" t))
-  (org-roam-ql-add-saved-query 'todo "todo" '(todo-like "TODO" t))
+  (org-roam-ql-add-saved-query 'inp "inprogress" '(todo "INPROGRESS" t))
+  (org-roam-ql-add-saved-query 'todo "todo" '(todo "TODO" t))
   (org-roam-ql-add-saved-query 'l10rp "last 10 papers" '(last-n-papers 10))
   (org-roam-ql-add-saved-query 'l20rp "last 20 papers" '(last-n-papers 20))
   (org-roam-ql-add-saved-query 'dailies-today "dailies today" '(dailies-range "-1d"))
