@@ -200,10 +200,37 @@
                     (goto-char (point-max))
                     (insert (format "\n\n---------------\nauthor-check: %s\ntitle-check: %s" author-check title-check)))))))
 
+(defvar amsha/explain-grammarly--explanations-cache "~/.emacs.d/.cache/amsha-explain-grammarly--explanations")
+
 (defun amsha/explain-grammarly (sentence explanation)
-  (interactive "sSentence: \nsExplanation: ")
+  (interactive (list (read-from-minibuffer "Sentence: ")
+                     (completing-read "Explanation: "
+                                      (when (f-exists-p amsha/explain-grammarly--explanations-cache)
+                                        (with-temp-buffer
+                                          (insert-file-contents amsha/explain-grammarly--explanations-cache)
+                                          (when (length> (buffer-string) 0)
+                                            (read (current-buffer))))))))
   (let ((buf
          (get-buffer-create (format "*gptel-grammarly-%s*" (gensym)))))
+
+    (unless (f-exists-p amsha/explain-grammarly--explanations-cache)
+      (f-touch amsha/explain-grammarly--explanations-cache))
+    (with-temp-file amsha/explain-grammarly--explanations-cache
+      (let ((current-content
+             (when (f-exists-p amsha/explain-grammarly--explanations-cache)
+               (with-temp-buffer
+                 (insert-file-contents amsha/explain-grammarly--explanations-cache)
+                 (when (length> (buffer-string) 0)
+                   (read (current-buffer))))))
+            (print-level nil)
+            (print-length nil)
+            (pp-default-function 'pp-28)
+            (fill-column 999))
+        (pp (append current-content
+                    (unless (--any-p (string= explanation it) current-content)
+                      (list explanation)))
+            (current-buffer))))
+
     (switch-to-buffer buf)
     (with-current-buffer buf
       (markdown-mode)
