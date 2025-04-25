@@ -1165,7 +1165,8 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
           (set-syntax-table emacs-lisp-mode-syntax-table)
           (add-hook 'completion-at-point-functions
                     #'org-roam-ql--completion-at-point nil t))
-      (let* ((consult-async-split-styles-alist
+      (let* (split-pos mb-str
+             (consult-async-split-styles-alist
               `((org-roam-ql
                  ;; :initial ?\;  ;; this was interacting with the embark
                  :function
@@ -1186,8 +1187,6 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
                       res)))))
              (corfu-auto nil)
              (consult-async-input-debounce 1)
-             split-pos
-             mb-str
              ;; Default candidates
              (nodes (mapcar (lambda (node)
                               (cons (propertize (org-roam-node-title node) 'node node) node))
