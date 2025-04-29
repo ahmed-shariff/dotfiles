@@ -2333,18 +2333,27 @@ If prefix arg used, search whole db."
 (defun okm-search-papers-by-pdf-string (regexp)
   "Search without opening org files."
   (interactive "xRegexp: ")
-  (let ((results (--filter
-                  (cdr it)
-                  (-map (lambda (f)
-                          (cons (f-base f)
-                                (okm--test-regexp-on-file f regexp)))
-                        (f-glob "*.txt" bibtex-completion-library-path)))))
-    (cl-letf (((symbol-function 'org-roam-preview-get-contents)
-               (lambda (f point)
-                 (propertize (s-join "\n" (--map (format " - %s" it) (assoc (f-base f) results))) 'face 'org-tag))))
-      (org-roam-ql-search
-       `(pdf-string ,(format "%s" regexp))
-       (prin1-to-string regexp)))))
+  (let* ((results (--filter
+                   (cdr it)
+                   (-map (lambda (f)
+                           (cons (f-base f)
+                                 (okm--test-regexp-on-file f regexp)))
+                         (f-glob "*.txt" bibtex-completion-library-path))))
+         (nodes (--map (cons
+                        (org-roam-node-id it)
+                        (assoc (f-base (org-roam-node-file it)) results))
+                       (bibtex-keys-to-nodes (map-keys results))))
+         (temp-preview-function 
+          (lambda ()
+            (propertize (s-join "\n" (--map (format " - %s" it) (assoc (org-id-get-closest) nodes))) 'face 'org-tag)))
+         (org-roam-preview-function temp-preview-function))
+  
+    (with-current-buffer (window-buffer (org-roam-ql-search
+                                         `(pdf-string ,(format "%s" regexp))
+                                         (prin1-to-string regexp)
+                                         "title"))
+      ;; FIXME: This doesn't work!!!
+      (setq-local org-roam-preview-function temp-preview-function))))
 
 (defun amsha/get-sprints (states)
   "Return sprints based on STATUS."
