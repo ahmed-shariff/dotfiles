@@ -78,7 +78,7 @@
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 5))
+      (bootstrap-version 7))
   (unless (file-exists-p bootstrap-file)
     (with-current-buffer
         (url-retrieve-synchronously
@@ -1822,7 +1822,7 @@ word count of the response."
   (defun amsha/lsp-mode-setup-completion ()
     (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
           '(orderless))) ;; Configure orderless
-  (setq lsp-client-packages (seq-remove (lambda (pkg) (equal pkg 'lsp-tex)) lsp-client-packages))
+  ;; (setq lsp-client-packages (seq-remove (lambda (pkg) (equal pkg 'lsp-tex)) lsp-client-packages))
   :config
 
   ;; Removing unnecessary clients

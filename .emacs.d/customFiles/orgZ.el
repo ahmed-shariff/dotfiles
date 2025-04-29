@@ -1806,7 +1806,7 @@ Else create a text annotations at point."
   (org-super-agenda-groups '((:name "dates" :auto-ts t))))
 
 (use-package org-ql
-  :straight (org-ql :type git :host github :repo "alphapapa/org-ql" :fork t)
+  :straight (org-ql :type git :host github :repo "alphapapa/org-ql")
   :bind (:map org-agenda-mode-map
               ("C-c o s" . org-ql-view-topics)
               ("C-c o o" . org-ql-view-noter)
@@ -2245,7 +2245,7 @@ If prefix arg used, search whole db."
 
   (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview)
 
-  (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled> "+0")))
+  (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled-is-after "+0")))
 
   (defun okm-insert-paper-ids-for-query ()
     "Prompt for nodes and print the file names a org style list."
