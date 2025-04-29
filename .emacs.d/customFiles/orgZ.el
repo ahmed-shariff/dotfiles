@@ -569,13 +569,17 @@
 
 (defun org-summary-todo (n-done n-not-done)
   "Switch entry to DONE when all subentries are done, to TODO otherwise."
-  (let* (org-log-done
-         org-log-states
-         (inprogress 0)
-         (level (1+ (org-outline-level)))
+  (let* ((n-inprogress (-sum
+                        (org-map-entries
+                         (lambda ()
+                           (if (string= (org-get-todo-state) "INPROGRESS")
+                               1
+                             0))
+                         (format "LEVEL=%s" (1+ (org-outline-level)))
+                         'tree)))
          (target-state (cond
                         ((= n-not-done 0) "DONE")
-                        ((> n-done 0) "INPROGRESS")
+                        ((or (> n-done 0) n-inprogress) "INPROGRESS")
                         (t "TODO"))))
     (unless (string= (org-get-todo-state) target-state)
       (org-todo target-state))))
