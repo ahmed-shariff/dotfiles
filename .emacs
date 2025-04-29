@@ -1709,6 +1709,14 @@ word count of the response."
   (add-hook 'java-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'python-mode-hook #'rainbow-delimeters-mode))
 
+;;volatile-highlights*****************************************************************
+(use-package volatile-highlights
+  :config
+  (vhl/define-extension 'evil 'evil-paste-after 'evil-paste-before
+                        'evil-paste-pop 'evil-move)
+  (vhl/install-extension 'evil)
+  (volatile-highlights-mode t))
+
 ;;highlight-indent-mode***************************************************************
 (use-package highlight-indent-guides
   :hook (prog-mode . highlight-indent-guides-mode)
