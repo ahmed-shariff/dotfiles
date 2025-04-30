@@ -959,9 +959,9 @@ Copied  from `org-roam-backlink-get'."
            :properties (org-roam-backlink-properties backlink)))
         (insert ?\n))))
 
-  (defun org-roam-subtree-aware-preview-function ()
+  (defun org-roam-subtree-aware-preview-function (&optional node query)
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
-    (if (--> (org-roam-node-at-point)
+    (if (--> (or node (org-roam-node-at-point))
              (org-roam-node-file it)
              (or (s-matches-p "brain/work/notes" it)
                  (s-matches-p "brain/personal/notes" it)
@@ -1929,6 +1929,7 @@ Either show all or filter based on a sprint."
           ("C-c n i" . org-roam-ql-insert-node-title)))
   :custom
   (org-roam-ql-default-org-roam-buffer-query (lambda () `(backlink-to (id ,(org-roam-node-id org-roam-buffer-current-node)) :type nil)))
+  (org-roam-ql-preview-function #'org-roam-subtree-aware-preview-function)
   :config
   ;; (defun okm-roam-view-query (source-or-query)
   ;;   "View source or query in org-roam buffer."
@@ -2344,16 +2345,14 @@ If prefix arg used, search whole db."
                         (assoc (f-base (org-roam-node-file it)) results))
                        (bibtex-keys-to-nodes (map-keys results))))
          (temp-preview-function 
-          (lambda ()
-            (propertize (s-join "\n" (--map (format " - %s" it) (assoc (org-id-get-closest) nodes))) 'face 'org-tag)))
-         (org-roam-preview-function temp-preview-function))
+          (lambda (node _)
+            (propertize (s-join "\n" (--map (format " - %s" it) (assoc (org-roam-node-id node) nodes))) 'face 'org-tag))))
   
-    (with-current-buffer (window-buffer (org-roam-ql-search
-                                         `(pdf-string ,(format "%s" regexp))
-                                         (prin1-to-string regexp)
-                                         "title"))
-      ;; FIXME: This doesn't work!!!
-      (setq-local org-roam-preview-function temp-preview-function))))
+    (org-roam-ql-search
+     `(pdf-string ,(format "%s" regexp))
+     (prin1-to-string regexp)
+     "title"
+     temp-preview-function)))
 
 (defun amsha/get-sprints (states)
   "Return sprints based on STATUS."
