@@ -2703,7 +2703,7 @@ With C-u C-u C-u prefix, force run all research-papers."
             (unless (or (org-entry-get pom "ABSTRACT") (string-empty-p (org-entry-get pom "ABSTRACT"))
                         (org-entry-get pom "SUMMARY") (string-empty-p (org-entry-get pom "SUMMARY")))
               (when (org-entry-get pom "PDF_TEXT_FILE")
-                (okm-gptel-get-paper-abstract-summary nil cite-key)))
+                (okm-gptel-get-paper-abstract-summary)))
 
             (when changes
               (save-buffer))
@@ -3355,25 +3355,32 @@ Parent-child relation is defined by the brain-parent links."
 
 
 ;; meant to be used as tool-call-function
-(defun okm-gptel-get-paper-abstract-summary (tool-callback custom-id)
+(defun okm-gptel-get-paper-abstract-summary (&optional tool-callback custom-id)
   "Given the custom-id, get the abstract and summary as a single string.
 Meant to be used for LLMs.
-The tool-callback should take one value, the result."
+The tool-callback should take one value, the result.
+If CUSTOM-ID is not provided, assume the point it at the corresponding node."
   (unless (featurep 'gptel)
     (require 'gptel))
   (unless (featurep 'org-roam-ql)
     (require 'org-roam-ql))
-  (if-let (node (car (org-roam-ql-nodes `(properties "Custom_ID" ,custom-id))))
-      (if-let* ((abstract (alist-get "ABSTRACT" (org-roam-node-properties node) nil nil #'string-equal))
-                (summary (alist-get "SUMMARY" (org-roam-node-properties node) nil nil #'string-equal)))
-          (if tool-callback
-              (funcall tool-callback (format "* abstract\n%s\n* summary\n%s" abstract summary))
-            (format "* abstract\n%s\n* summary\n%s" abstract summary))
-        (let ((gptel-backend gptel--openai)
-              (gptel-model 'gpt-4o-mini)
-              (gptel-tools nil))
-          (condition-case nil
-              (gptel-request (format "%s
+  (let ((node (and custom-id (car (org-roam-ql-nodes `(properties "Custom_ID" ,custom-id)))))
+        (custom-id (or custom-id (org-entry-get (point) "Custom_ID")))
+        (buf (current-buffer)))
+    (if-let* ((abstract (or
+                         (and node (alist-get "ABSTRACT" (org-roam-node-properties node) nil nil #'string-equal))
+                         (org-entry-get (point) "ABSTRACT")))
+              (summary (or
+                        (and node (alist-get "SUMMARY" (org-roam-node-properties node) nil nil #'string-equal))
+                        (org-entry-get (point) "SUMMARY"))))
+        (if tool-callback
+            (funcall tool-callback (format "* abstract\n%s\n* summary\n%s" abstract summary))
+          (format "* abstract\n%s\n* summary\n%s" abstract summary))
+      (let ((gptel-backend gptel--openai)
+            (gptel-model 'gpt-4o-mini)
+            (gptel-tools nil))
+        (condition-case err
+            (gptel-request (format "%s
 
 The above is the text extracted from a paper using pdf-tools.
 Extract the abstract from this. Also provide a summary of the paper which can be used as input for other LLMs.
@@ -3382,25 +3389,32 @@ The format of the response should be as follows:
 <abstract text>
 * summary
 <summary text>"
-                                     (okm-get-pdf-txt custom-id))
-                :callback (lambda (response info)
-                            (cond
-                             ((null response)
-                              (funcall tool-callback (format "Error %s" info)))
-                             ((stringp response)
-                              (let* ((res (s-split "* summary" response))
-                                     (abstract (s-trim (s-replace "* abstract" "" (car res))))
-                                     (summary (s-trim (cadr res))))
-                                (org-roam-with-file (org-roam-node-file node) nil
-                                  (goto-char (point-min))
-                                  (org-entry-put (point) "ABSTRACT" abstract)
-                                  (org-entry-put (point) "SUMMARY" summary)
-                                  (save-buffer)
-                                  (em "for" custom-id "added abstract and summary" abstract summary)))
-                              (if tool-callback
-                                  (funcall tool-callback response))))))
-            (t (funcall tool-callback "Error occurred")))))
-    (error "node not found")))
+                                   (okm-get-pdf-txt custom-id))
+              :callback (lambda (response info)
+                          (cond
+                           ((null response)
+                            (funcall tool-callback (format "Error %s" info)))
+                           ((stringp response)
+                            (let* ((res (s-split "* summary" response))
+                                   (abstract (s-trim (s-replace "* abstract" "" (car res))))
+                                   (summary (s-trim (cadr res)))
+                                   (process-data
+                                    (lambda ()
+                                      (goto-char (point-min))
+                                      (org-entry-put (point) "ABSTRACT" abstract)
+                                      (org-entry-put (point) "SUMMARY" summary)
+                                      (save-buffer)
+                                      (em "for" custom-id "added abstract and summary" abstract summary))))
+                              (if node
+                                  (org-roam-with-file (org-roam-node-file node) nil
+                                    (funcall process-data))
+                                (with-current-buffer buf
+                                  (funcall process-data))))
+                            (if tool-callback
+                                (funcall tool-callback response))))))
+          (t (if tool-callback
+                 (funcall tool-callback (format "Error occurred %s" err))
+               (user-error (format "Error occurred %s" err)))))))))
 
 (defun okm-org-agenda-recompute-org-roam-ql ()
   "Same as `okm-org-agenda-recompute', but uses org-roam-ql"
