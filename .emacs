@@ -1315,7 +1315,7 @@ targets."
   (gptel-api-key (gethash 'openai-apk configurations))
   (gptel-use-curl t)
   (gptel-backend gptel--openai)
-  (gptel-model 'gpt-4o)
+  (gptel-model 'o4-mini)
   (gptel-org-branching-context t)
   (gptel-expert-commands t)
   :config
@@ -1332,7 +1332,9 @@ targets."
 
   (add-to-list 'yank-excluded-properties 'gptel)
 
-  (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
+  (setf (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
+                                                     '(gpt-4o-search-preview gpt-4o-mini-search-preview))
+        (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
         (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"))
 
 (use-package elysium
