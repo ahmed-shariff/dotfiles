@@ -2127,6 +2127,7 @@ the type of the link."
                                                        (cdr (assoc "KEY_ORDER" (org-roam-node-properties el2))))))
 
   (org-roam-ql-add-saved-query 'rp "Research papers" '(file "research_papers"))
+  (org-roam-ql-add-saved-query 'nrp "Research papers" '([:select id :from nodes :where (not (like file $s1))] "%research_papers%"))
   (org-roam-ql-add-saved-query 'pe "People" '(file "People.org"))
   (org-roam-ql-add-saved-query 'rt "Research topics" '(file "research topics.org"))
   (org-roam-ql-add-saved-query 'pr "Projects" '(file "project_boards"))
