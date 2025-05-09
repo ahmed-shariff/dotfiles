@@ -1360,6 +1360,54 @@ targets."
               ("C-c C-g" . magit-gptcommit-commit-accept))
   :custom
   (magit-gptcommit-backend 'gptel)
+  (magit-gptcommit-prompt "You are an expert programmer writing a Git commit message.
+You have carefully reviewed every file diff included in this commit.
+
+First, write a high-level one-line summary of the commit.
+- Keep it to a single line, no more than 50 characters
+- Use the imperative tense (e.g., 'Add logging' not 'Added logging')
+- Ensure the message reflects a clear and cohesive change
+- Do not end the summary with a period
+- Do not use backticks (`) anywhere in the response
+
+Finally, provide a detail of the changes being made.
+The detailed summary should contain, at a high-level, what changes were made, why they were made.
+
+Here's an example diff:
+```
+modified   gptel-openai.el
+@@ -289,8 +289,8 @@ Mutate state INFO with response metadata.
+            :stream ,(or gptel-stream :json-false)))
+-        (reasoning-model-p ; TODO: Embed this capability in the model's properties
+-         (memq gptel-model '(o1 o1-preview o1-mini o3-mini o3 o4-mini))))
++        (reasoning-model-p
++         (gptel--model-capable-p 'reasoning)))
+     (when (and gptel-temperature (not reasoning-model-p))
+       (plist-put prompts-plist :temperature gptel-temperature))
+```
+
+The one-line summary of the above diff would look like:
+\"gptel--request-data get reasoning capability from prop\"
+
+Here's an example of the detailed summary that may follow the above one-line summary:
+\"The models with reasoning capabilities were hard coded in openai's
+`gptel--request-data`. This commit replaces it with
+`gptel--model-capable-p` to get the reasoning capabilitie from the
+model properties.\"
+
+If there are parts in the detailed summary that I need to provide more details for, include them as follows
+\"[TODO: provide reason for X]\", where X is the part that needs more clarification.
+
+The number of charachters in a single line should never exceed 80 charachters.
+
+THE FILE DIFFS:
+```
+%s
+```
+Now, write the commit message using this format:
+[summary]
+
+[detailed summary]]")
   ;; (magit-gptcommit-gptel-backend amsha/gptel--openrouter)
   ;; (magit-gptcommit-gptel-model 'deepseek/deepseek-r1-distill-llama-70b:free)
   :config
