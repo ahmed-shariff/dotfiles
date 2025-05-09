@@ -147,6 +147,17 @@
  :category "emacs"
  :async t)
 
+(defun gptel-extensions--modeline ()
+  (propertize (format "🧠 %s-%s "
+                      (gptel-backend-name gptel-backend)
+                      (gptel--model-name gptel-model))
+              'face '(:foregorund "red" :background "#000033")))
+
+(defun gptel-extensions--run-on-load ()
+  (let ((mode-line-string '(:eval (gptel-extensions--modeline))))
+    (unless (memql mode-line-string global-mode-string)
+      (add-to-list 'global-mode-string mode-line-string))))
+
 (use-package gptel-openai-assistant
   :after gptel
   :straight (gptel-openai-assistant :type git :host github :repo "ahmed-shariff/gptel-openai-assistant")

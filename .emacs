@@ -1321,6 +1321,7 @@ targets."
   :config
   (require 'gptel-extensions)
   ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
+  (gptel-extensions--run-on-load)
 
   (defvar amsha/gptel--openrouter
     (gptel-make-openai "OpenRouter"               ;Any name you want
