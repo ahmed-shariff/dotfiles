@@ -1333,7 +1333,7 @@ targets."
   (add-to-list 'yank-excluded-properties 'gptel)
 
   (setf (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
-                                                     (--map (put it :capabilities '(reasoning))
+                                                     (--map (prog1 it (put it :capabilities '(reasoning)))
                                                             '(gpt-4o-search-preview gpt-4o-mini-search-preview)))
         (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
         (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"))
