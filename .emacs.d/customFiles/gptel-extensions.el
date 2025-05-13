@@ -188,6 +188,26 @@
 
   (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite))
 
+(use-package mcp
+  :straight (mcp :type git :host github :repo "lizqwerscott/mcp.el"
+                 :files (:defaults "mcp-hub")))
+
+(use-package mcp-hub
+  :after mcp
+  :ensure nil
+  :straight nil
+  :config
+  (setq mcp-hub-servers
+        '(("context7" . (:command "npx" :args ("-y" "@upstash/context7-mcp@latest")))
+          ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" "~/temp"))))))
+
+(use-package gptel-mcp
+  :ensure t
+  :straight (gptel-mcp :type git :host github :repo "lizqwerscott/gptel-mcp.el")
+  ;; :bind (:map gptel-mode-map
+  ;;             ("C-c m" . gptel-mcp-dispatch)))
+
+  )
 
 (defun amsha/gptel-get-bib-entry-from-citation (citation)
   (interactive "sCitation: ")
