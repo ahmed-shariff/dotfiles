@@ -3667,12 +3667,12 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
         dashboard-image-banner-max-height 200
         dashboard-image-banner-max-width 200
         dashboard-items '((quick-links . 5)
-                          (recents  . 5)
-                          (projects . 5)
-                          (tasks . 50)
                           (day-to-day . 50)
                           ;; (sprints . 50)
                           (agenda . 50)
+                          (tasks . 50)
+                          (projects . 5)
+                          (recents  . 5)
                           (registers . 5)
                           (bookmarks . 5))
         dashboard-set-navigator t
