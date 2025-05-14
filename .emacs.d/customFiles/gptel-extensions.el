@@ -5,6 +5,7 @@
 ;;; Code:
 
 (require 'gptel)
+(require 'gptel-integrations)
 
 ;; Tool use ******************************************************************************
 (gptel-make-tool
@@ -135,7 +136,7 @@
  :args (list '(:name "paper_id"
                :type "string"
                :description "The id of the paper"))
- :category "emacs")
+ :category "okm")
 
 (gptel-make-tool
  :function #'okm-gptel-get-paper-abstract-summary
@@ -144,7 +145,7 @@
  :args (list '(:name "paper_id"
                :type "string"
                :description "The id of the paper"))
- :category "emacs"
+ :category "okm"
  :async t)
 
 (defun gptel-extensions--modeline ()
