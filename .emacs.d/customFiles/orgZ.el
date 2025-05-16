@@ -1169,7 +1169,7 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
           (set-syntax-table emacs-lisp-mode-syntax-table)
           (add-hook 'completion-at-point-functions
                     #'org-roam-ql--completion-at-point nil t))
-      (let* (split-pos mb-str
+      (let* (split-pos mb-str is-highlight
              (consult-async-split-styles-alist
               `((org-roam-ql
                  ;; :initial ?\;  ;; this was interacting with the embark
@@ -1183,11 +1183,19 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
                                             (and (not (null start-highlight)) (not (null end-highlight))))))
                       ;; This gets called at severaal places. We only want the data when it is
                       ;; called with the force value!
+                      (setq is-highlight (or start-highlight end-highlight))
                       (when force
                         (setq split-pos pos
                               mb-str str))
-                      (when (and force (equal "" async-str))
+                      (cond
+                       ((and force (equal "" async-str))
                         (setf (car res) (propertize "-" 'consult--force end-highlight)))
+                       ;; when no leading char split-perl can use, just fallback to normal matching
+                       ((and (not (or is-highlight
+                                      (string-empty-p async-str))))
+                        (setf res (list (propertize (car res) 'consult--org-roam-ql-state 'no-narrow)
+                                        ;; forcing the actual matching to work
+                                        0 '(0 . 0) '(0 . 0)))))
                       res)))))
              (corfu-auto nil)
              (consult-async-input-debounce 1)
@@ -1201,9 +1209,12 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
              (delete-minibuffer-override
               (lambda ()
                 (interactive)
-                (when (and mb-str split-pos)
+                (cond
+                 ((and mb-str split-pos)
                   (delete-minibuffer-contents)
-                  (insert (substring mb-str 0 split-pos))))))
+                  (insert (substring mb-str 0 split-pos)))
+                 ((not is-highlight)
+                  (delete-minibuffer-contents))))))
 
         (define-key overriden-keymap "\M-d" delete-minibuffer-override)
         (define-key overriden-keymap "\M-D" #'delete-minibuffer-contents)
@@ -1222,17 +1233,20 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
           (consult--async-split 'org-roam-ql)
           (consult--dynamic-collection
               (lambda (input)
-                (if (and (> (length input) 0) (not (equal input "-")))
-                    ;; TODO: can I update the state/indicator somehow?
-                    (condition-case err
-                        (mapcar
-                         (lambda (node)
-                           (cons (propertize (org-roam-node-title node) 'node node) node))
-                         (org-roam-ql-nodes (read input)))
-                      (user-error
-                       (minibuffer-message (propertize (cadr err) 'face 'consult-async-failed))
-                       nodes))
-                  nodes)))
+                (if (or (length= input 0)
+                        (equal input "-")
+                        (eq (get-text-property 0 'consult--org-roam-ql-state input)
+                            'no-narrow))
+                    nodes
+                  ;; TODO: can I update the state/indicator somehow?
+                  (condition-case err
+                    (mapcar
+                     (lambda (node)
+                       (cons (propertize (org-roam-node-title node) 'node node) node))
+                     (org-roam-ql-nodes (read input)))
+                    (user-error
+                     (minibuffer-message (propertize (cadr err) 'face 'consult-async-failed))
+                     nodes)))))
           (consult--async-indicator)
           (consult--async-refresh))
          (funcall it sink)
@@ -2127,7 +2141,7 @@ the type of the link."
                                                        (cdr (assoc "KEY_ORDER" (org-roam-node-properties el2))))))
 
   (org-roam-ql-add-saved-query 'rp "Research papers" '(file "research_papers"))
-  (org-roam-ql-add-saved-query 'nrp "Research papers" '([:select id :from nodes :where (not (like file $s1))] "%research_papers%"))
+  (org-roam-ql-add-saved-query 'nrp "not Research papers" '([:select id :from nodes :where (not (like file $s1))] "%research_papers%"))
   (org-roam-ql-add-saved-query 'pe "People" '(file "People.org"))
   (org-roam-ql-add-saved-query 'rt "Research topics" '(file "research topics.org"))
   (org-roam-ql-add-saved-query 'pr "Projects" '(file "project_boards"))
