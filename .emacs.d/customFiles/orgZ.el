@@ -2235,7 +2235,7 @@ If prefix arg used, search whole db."
                                                         :properties properties))
                         (insert ?\n))
                       (run-hooks 'org-roam-buffer-postrender-functions)))))
-       title buffer-name nil "title")))
+       title buffer-name nil "title" org-roam-ql-preview-function)))
 
   (defvar okm-org-roam-preview-kills '())
 
