@@ -149,16 +149,17 @@
 (mapcar #'straight-use-package
 	my-package-list)
 
-(defun straight-visit-package-projectile (&rest args)
-  "Open projectile after visiting straight repo."
-  (let ((b (current-buffer))
-        (p (persp-current-name)))
-    (projectile-find-file)
-    (persp-add-buffer b)
-    (with-perspective p
-      (persp-remove-buffer b))))
+;; (defun straight-visit-package-projectile (&rest args)
+;;   "Open projectile after visiting straight repo."
+;;   (let ((b (current-buffer))
+;;         (p (persp-current-name)))
+;;     (projectile-find-file)
+;;     (persp-add-buffer b)
+;;     (with-perspective p
+;;       (persp-remove-buffer b))))
 
-(advice-add 'straight-visit-package :after #'straight-visit-package-projectile)
+;; (advice-add 'straight-visit-package :after #'straight-visit-package-projectile)
+;; (advice-remove 'straight-visit-package #'straight-visit-package-projectile)
 
 ;; custom variables*******************************************
 (custom-set-variables
@@ -743,7 +744,7 @@ that returns a string."
   (evil-global-set-key 'normal "\M-q" 'evil-force-normal-state)
   (evil-global-set-key 'replace "\M-q" 'evil-force-normal-state)
 
-  (evil-set-initial-state 'dired-mode 'emacs)
+  (evil-set-initial-state 'dired-mode 'normal)
   (evil-set-initial-state 'pdf-view-mode 'emacs)
   (evil-set-initial-state 'messages-buffer-mode 'emacs)
   (evil-set-initial-state 'special-mode 'emacs)
@@ -2275,11 +2276,12 @@ T - tag prefix
   :init
   (dirvish-override-dired-mode)
   :custom
-  (dirvish-quick-access-entries ; It's a custom option, `setq' won't work
-   '(("h" "~/"                          "Home")
-     ("d" "~/Downloads/"                "Downloads")
-     ("t" "~/.local/share/Trash/files/" "TrashCan")))
+  (dirvish-quick-access-entries
+   '(("h" "~/"           "Home")
+     ("p" "~/Project"    "Home")
+     ("d" "~/Downloads/" "Downloads")))
   :config
+  (require 'vc)
   (dirvish-peek-mode)             ; Preview files in minibuffer
   ;; (dirvish-side-follow-mode)      ; similar to `treemacs-follow-mode'
   (setq dirvish-mode-line-format
@@ -2289,6 +2291,7 @@ T - tag prefix
   (setq delete-by-moving-to-trash t)
   (setq dired-listing-switches
         "-l --almost-all --human-readable --group-directories-first --no-group")
+  (evil-make-overriding-map dirvish-mode-map 'normal)
   :bind ; Bind `dirvish-fd|dirvish-side|dirvish-dwim' as you see fit
   (("C-c f" . dirvish)
    :map dirvish-mode-map          ; Dirvish inherits `dired-mode-map'
