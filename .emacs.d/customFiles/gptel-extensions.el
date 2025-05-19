@@ -7,7 +7,60 @@
 (require 'gptel)
 (require 'gptel-integrations)
 
-;; Tool use ******************************************************************************
+;;;; Other packages ************************************************************************
+(use-package gptel-openai-assistant
+  :after gptel
+  :straight (gptel-openai-assistant :type git :host github :repo "ahmed-shariff/gptel-openai-assistant")
+  :config
+  (setf gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
+
+  (defun amsha/gptel--replace-file-id-with-cite (start end)
+    "Updating annotations strings."
+    (save-excursion
+      (goto-char start)
+      (let ((nodes (--map
+                    (cons
+                     (alist-get "OPENAI_FILE_ID" (org-roam-node-properties it) nil nil #'equal)
+                     (cons (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'equal)
+                           (org-roam-node-id it)))
+                    (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
+        (condition-case err
+            (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
+              (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'equal))
+                          (newtext (format " [cite:%s]" (car elt))))
+                (setq end (+ end (- (length newtext) (length (match-string 0)))))
+                (replace-match newtext)))
+          (search-failed nil)))))
+  ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
+  (setf (alist-get "openai-assistant" gptel--known-backends
+             nil nil #'equal)
+        (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key)))
+
+  (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
+
+  )
+
+(use-package mcp
+  :straight (mcp :type git :host github :repo "lizqwerscott/mcp.el"
+                 :files (:defaults "mcp-hub")))
+
+(use-package mcp-hub
+  :after mcp
+  :ensure nil
+  :straight nil
+  :config
+  (setq mcp-hub-servers
+        '(("context7" . (:command "npx" :args ("-y" "@upstash/context7-mcp@latest")))
+          ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" "~/temp"))))))
+
+(use-package gptel-mcp
+  :ensure t
+  :straight (gptel-mcp :type git :host github :repo "lizqwerscott/gptel-mcp.el")
+  ;; :bind (:map gptel-mode-map
+  ;;             ("C-c m" . gptel-mcp-dispatch)))
+  )
+
+;;;; Tool use ******************************************************************************
 (gptel-make-tool
  :function (lambda (url)
              (with-current-buffer (url-retrieve-synchronously url)
@@ -135,7 +188,7 @@
  :description "Get the full text extracted using pdf-tools for a given paper"
  :args (list '(:name "paper_id"
                :type "string"
-               :description "The id of the paper"))
+               :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
  :category "okm")
 
 (gptel-make-tool
@@ -144,73 +197,53 @@
  :description "Get the abstract and summary of the paper. The abstarct is extracted from the paper. The summary is an LLM summary of the paper."
  :args (list '(:name "paper_id"
                :type "string"
-               :description "The id of the paper"))
+               :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
  :category "okm"
  :async t)
 
+;;;; Presets *******************************************************************************
+
+(gptel-make-preset 'default
+  :description "Preset with defaults"
+  :backend "ChatGPT"
+  :model 'o4-mini
+  :system 'default
+  :tools nil
+  :stream t
+  :temperature 1.0
+  :use-context 'system
+  :include-reasoning t)
+
+(gptel-make-preset 'openai-assistant
+  :parent 'default
+  :description "Search using openai assistant"
+  :backend "openai-assistant"
+  :model 'o4-mini)
+
+(gptel-make-preset 'search-mini
+  :parent 'default
+  :description "Search using gpt-4o-mini-search-preview"
+  :backend "ChatGPT"
+  :model 'gpt-4o-mini-search-preview
+  :temperature nil)
+
+(gptel-make-preset 'search
+  :parent 'default
+  :description "Search using gpt-4o-search-preview"
+  :backend "ChatGPT"
+  :model 'gpt-4o-search-preview
+  :temperature nil)
+
+;;;; misc-functions ************************************************************************
 (defun gptel-extensions--modeline ()
+  "Add modelines showing current model."
   (propertize (format "🧠 %s-%s "
                       (gptel-backend-name gptel-backend)
                       (gptel--model-name gptel-model))
-              'face '(:foregorund "red" :background "#000033")))
-
-(defun gptel-extensions--run-on-load ()
-  (let ((mode-line-string '(:eval (gptel-extensions--modeline))))
-    (unless (memql mode-line-string global-mode-string)
-      (add-to-list 'global-mode-string mode-line-string))))
-
-(use-package gptel-openai-assistant
-  :after gptel
-  :straight (gptel-openai-assistant :type git :host github :repo "ahmed-shariff/gptel-openai-assistant")
-  :config
-  (setf gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
-
-  (defun amsha/gptel--replace-file-id-with-cite (start end)
-    "Updating annotations strings."
-    (save-excursion
-      (goto-char start)
-      (let ((nodes (--map
-                    (cons
-                     (alist-get "OPENAI_FILE_ID" (org-roam-node-properties it) nil nil #'equal)
-                     (cons (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'equal)
-                           (org-roam-node-id it)))
-                    (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
-        (condition-case err
-            (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
-              (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'equal))
-                          (newtext (format " [cite:%s]" (car elt))))
-                (setq end (+ end (- (length newtext) (length (match-string 0)))))
-                (replace-match newtext)))
-          (search-failed nil)))))
-  ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
-  (setf (alist-get "openai-assistant" gptel--known-backends
-             nil nil #'equal)
-        (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key)))
-
-  (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite))
-
-(use-package mcp
-  :straight (mcp :type git :host github :repo "lizqwerscott/mcp.el"
-                 :files (:defaults "mcp-hub")))
-
-(use-package mcp-hub
-  :after mcp
-  :ensure nil
-  :straight nil
-  :config
-  (setq mcp-hub-servers
-        '(("context7" . (:command "npx" :args ("-y" "@upstash/context7-mcp@latest")))
-          ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" "~/temp"))))))
-
-(use-package gptel-mcp
-  :ensure t
-  :straight (gptel-mcp :type git :host github :repo "lizqwerscott/gptel-mcp.el")
-  ;; :bind (:map gptel-mode-map
-  ;;             ("C-c m" . gptel-mcp-dispatch)))
-
-  )
+              'face '(:foreground "gray80" :background "#000033")))
 
 (defun amsha/gptel-get-bib-entry-from-citation (citation)
+  "Function to take in a citation and turn that into a bib entry."
   (interactive "sCitation: ")
   (let ((buf
          (get-buffer-create (format "*gptel-cite-%s*" (gensym))))
@@ -234,7 +267,9 @@
 
 (defvar amsha/explain-grammarly--explanations-cache "~/.emacs.d/.cache/amsha-explain-grammarly--explanations")
 
+;;;###autoload
 (defun amsha/explain-grammarly (sentence explanation)
+  "Function to take in grammarly error and provide explanation."
   (interactive (list (read-from-minibuffer "Sentence: ")
                      (completing-read "Explanation: "
                                       (when (f-exists-p amsha/explain-grammarly--explanations-cache)
@@ -271,6 +306,19 @@
                       sentence explanation))
       (goto-char (point-max))
       (gptel-send))))
+
+;;;; More setup ****************************************************************************
+(defvar amsha/gptel--openrouter
+  (gptel-make-openai "OpenRouter"               ;Any name you want
+    :host "openrouter.ai"
+    :endpoint "/api/v1/chat/completions"
+    :stream t
+    :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
+    :models '(deepseek/deepseek-r1-distill-llama-70b:free)))
+
+(let ((mode-line-string '(:eval (gptel-extensions--modeline))))
+  (unless (memql mode-line-string global-mode-string)
+    (add-to-list 'global-mode-string mode-line-string)))
 
 (provide 'gptel-extensions)
 ;;; orgZ.el ends here

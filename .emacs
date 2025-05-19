@@ -1322,15 +1322,6 @@ targets."
   :config
   (require 'gptel-extensions)
   ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
-  (gptel-extensions--run-on-load)
-
-  (defvar amsha/gptel--openrouter
-    (gptel-make-openai "OpenRouter"               ;Any name you want
-      :host "openrouter.ai"
-      :endpoint "/api/v1/chat/completions"
-      :stream t
-      :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
-      :models '(deepseek/deepseek-r1-distill-llama-70b:free)))
 
   (add-to-list 'yank-excluded-properties 'gptel)
 
