@@ -2586,23 +2586,10 @@ Used with atomic-chrome."
 
 (use-package persp-harpoon
   :straight (persp-harpoon :type git :host github :repo "ahmed-shariff/persp-harpoon")
-  :bind (("C-c h <return>" . persp-harpoon-add-buffer)
-         ("C-c h r"        . persp-harpoon-remove-buffer)
-         ("C-c h m"        . persp-harpoon-show-list)
-         ("C-c h c"        . persp-harpoon-clear-buffers)
-         ("C-c h o"        . persp-harpoon-switch-other)
-         ("C-c h k"        . persp-harpoon-kill-non-harpoon-buffers)
-         ("C-c h 1"        . persp-harpoon-jump-to-1)
-         ("C-c h 2"        . persp-harpoon-jump-to-2)
-         ("C-c h 3"        . persp-harpoon-jump-to-3)
-         ("C-c h 4"        . persp-harpoon-jump-to-4)
-         ("C-c h 5"        . persp-harpoon-jump-to-5)
-         ("C-c h 6"        . persp-harpoon-jump-to-6)
-         ("C-c h 7"        . persp-harpoon-jump-to-7)
-         ("C-c h 8"        . persp-harpoon-jump-to-8)
-         ("C-c h 9"        . persp-harpoon-jump-to-9)
-         ("C-c h h"        . persp-harpoon-switch-to))
+  :custom
+  (persp-harpoon-mode-prefix-key (kbd "C-c h"))
   :config
+  (persp-harpoon-mode t)
   (persp-harpoon-configure-for-perspective))
 
 ;; popper ****************************************************************************************************************
