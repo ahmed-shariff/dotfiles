@@ -234,6 +234,21 @@
   :model 'gpt-4o-search-preview
   :temperature nil)
 
+(gptel-make-preset 'g41
+  :parent 'default
+  :description "Search using gpt-4.1"
+  :model 'gpt-4.1)
+
+(gptel-make-preset 'g41m
+  :parent 'default
+  :description "Search using gpt-4.1-mini"
+  :model 'gpt-4.1-mini)
+
+(gptel-make-preset 'readurl
+  :parent 'default
+  :description "Tool: read url"
+  :tools '("read_url"))
+
 ;;;; misc-functions ************************************************************************
 (defun gptel-extensions--modeline ()
   "Add modelines showing current model."
@@ -306,6 +321,64 @@
                       sentence explanation))
       (goto-char (point-max))
       (gptel-send))))
+
+(defvar amsha/gptel-highlight-preset-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c o q p") #'amsha/gptel-insert-preset)
+    map))
+
+(defun amsha/gptel-insert-preset ()
+  "Insert a gptel preset anywhere."
+  (interactive)
+  (let ((completion-extra-properties `(:annotation-function ,(lambda (comp)
+                                                               (concat ": "
+                                                                       (map-nested-elt
+                                                                        gptel--known-presets
+                                                                        `(,(intern-soft comp)
+                                                                          :description)))))))
+    (insert "@" (string-join (seq-uniq (completing-read-multiple "Preset: " gptel--known-presets nil t)
+                                       #'string-equal)
+                             " @"))))
+
+(define-minor-mode amsha/gptel-highlight-preset-mode
+  "Highlight presets in any buffer"
+  :group 'amsha/gptel
+  :keymap amsha/gptel-highlight-preset-mode-map
+  (let ((keywords '(("\\(@\\([^[:blank:]\n]+\\)\\)"
+                           1 (when-let* ((comps (all-completions (match-string 2)
+                                                                 gptel--known-presets))
+                                         ((member (match-string 2) comps)))
+                               '(:box -1 :inherit secondary-selection))
+                           prepend))))
+    (cond
+     (amsha/gptel-highlight-preset-mode
+      (font-lock-add-keywords nil keywords t))
+     (t
+      (font-lock-remove-keywords nil keywords)))))
+
+(define-global-minor-mode amsha/global-gptel-highlight-preset-mode
+  amsha/gptel-highlight-preset-mode
+  (lambda ()
+    (amsha/gptel-highlight-preset-mode 1)))
+
+(amsha/global-gptel-highlight-preset-mode)
+
+(defun amsha/gptel--transform-apply-preset (_fsm)
+  "Apply a gptel preset to the buffer depending on the prompt.
+
+If the user prompt ends with @foo, the preset foo is applied."
+  (while-let (((looking-back "@\\([^[:blank:]]+\\)\\s-*[[:blank:]\n]*\\s-*"))
+              (name (match-string 1))
+              (preset (or (gptel-get-preset (intern-soft name))
+                          (gptel-get-preset name))))
+    (delete-region (match-beginning 0) (match-end 0))
+    (gptel--apply-preset (cons name preset)
+                         (lambda (sym val)
+                           (set (make-local-variable sym) val)))
+    (message "Sending request with preset %s applied!"
+             (propertize name 'face 'mode-line-emphasis))))
+
+(advice-add 'gptel--transform-apply-preset :after #'amsha/gptel--transform-apply-preset)
 
 ;;;; More setup ****************************************************************************
 (defvar amsha/gptel--openrouter
