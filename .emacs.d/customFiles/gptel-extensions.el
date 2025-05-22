@@ -6,6 +6,7 @@
 
 (require 'gptel)
 (require 'gptel-integrations)
+(require 'gptel-org)
 
 ;;;; Other packages ************************************************************************
 (use-package gptel-openai-assistant
@@ -356,12 +357,15 @@
      (t
       (font-lock-remove-keywords nil keywords)))))
 
-(define-global-minor-mode amsha/global-gptel-highlight-preset-mode
-  amsha/gptel-highlight-preset-mode
-  (lambda ()
-    (amsha/gptel-highlight-preset-mode 1)))
+;; (define-global-minor-mode amsha/global-gptel-highlight-preset-mode
+;;   amsha/gptel-highlight-preset-mode
+;;   (lambda ()
+;;     (amsha/gptel-highlight-preset-mode 1)))
 
-(amsha/global-gptel-highlight-preset-mode)
+;; (amsha/global-gptel-highlight-preset-mode)
+
+(add-hook 'prog-mode-hook #'amsha/gptel-highlight-preset-mode)
+(add-hook 'text-mode-hook #'amsha/gptel-highlight-preset-mode)
 
 (defun amsha/gptel--transform-apply-preset (_fsm)
   "Apply a gptel preset to the buffer depending on the prompt.

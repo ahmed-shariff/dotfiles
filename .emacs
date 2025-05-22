@@ -1317,15 +1317,16 @@ targets."
   (gptel-use-curl t)
   (gptel-backend gptel--openai)
   (gptel-model 'o4-mini)
-  (gptel-org-branching-context t)
-  (gptel-expert-commands t)
   :config
   (require 'gptel-extensions)
   ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
 
+
   (add-to-list 'yank-excluded-properties 'gptel)
 
-  (setf (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
+  (setf gptel-org-branching-context t
+        gptel-expert-commands t
+        (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
                                                      (--map (prog1 it (put it :capabilities '(reasoning)))
                                                             '(gpt-4o-search-preview gpt-4o-mini-search-preview)))
         (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
