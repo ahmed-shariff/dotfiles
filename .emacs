@@ -2588,7 +2588,7 @@ Used with atomic-chrome."
 (use-package persp-harpoon
   :straight (persp-harpoon :type git :host github :repo "ahmed-shariff/persp-harpoon")
   :custom
-  (persp-harpoon-mode-prefix-key (kbd "C-c h"))
+  (persp-harpoon-keymap-prefix-key "C-c h")
   :config
   (persp-harpoon-mode t)
   (persp-harpoon-configure-for-perspective))
