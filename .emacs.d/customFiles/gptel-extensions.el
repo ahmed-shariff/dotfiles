@@ -216,40 +216,37 @@
   :include-reasoning t)
 
 (gptel-make-preset 'openai-assistant
-  :parent 'default
   :description "Search using openai assistant"
   :backend "openai-assistant"
   :model 'o4-mini)
 
 (gptel-make-preset 'search-mini
-  :parent 'default
   :description "Search using gpt-4o-mini-search-preview"
   :backend "ChatGPT"
   :model 'gpt-4o-mini-search-preview
   :temperature nil)
 
 (gptel-make-preset 'search
-  :parent 'default
   :description "Search using gpt-4o-search-preview"
   :backend "ChatGPT"
   :model 'gpt-4o-search-preview
   :temperature nil)
 
 (gptel-make-preset 'g41
-  :parent 'default
   :description "Search using gpt-4.1"
   :model 'gpt-4.1)
 
 (gptel-make-preset 'g41m
-  :parent 'default
   :description "Search using gpt-4.1-mini"
   :model 'gpt-4.1-mini)
 
 (gptel-make-preset 'readurl
-  :parent 'default
   :description "Tool: read url"
   :tools '("read_url"))
 
+(gptel-make-preset 'notools
+  :description "no tools"
+  :tools nil)
 ;;;; misc-functions ************************************************************************
 (defun gptel-extensions--modeline ()
   "Add modelines showing current model."
