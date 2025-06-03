@@ -7,6 +7,7 @@
 (require 'gptel)
 (require 'gptel-integrations)
 (require 'gptel-org)
+(require 'gptel-transient)
 
 ;;;; Other packages ************************************************************************
 (use-package gptel-openai-assistant
