@@ -381,6 +381,75 @@ If the user prompt ends with @foo, the preset foo is applied."
 
 (advice-add 'gptel--transform-apply-preset :after #'amsha/gptel--transform-apply-preset)
 
+(defvar gptel-persistent-context-dir "~/.emacs.d/.cache/gptel-temp-context")
+
+(dolist (context-file (directory-files gptel-persistent-context-dir
+                                       nil
+                                       directory-files-no-dot-files-regexp))
+  (gptel-make-preset (intern (format "%s-c" (f-base context-file)))
+    :description (format "Use persistent context %s" (f-base context-file))
+    :context--alist `((,context-file))))
+
+(defun amsha/gptel--get-persistent-context ()
+  (completing-read "Context name: "
+                   (-map #'f-base
+                         (directory-files gptel-persistent-context-dir
+                                          nil
+                                          directory-files-no-dot-files-regexp))))
+
+(defun amsha/gptel--get-context-file (context-name)
+  (file-truename
+   (expand-file-name context-name
+                     gptel-persistent-context-dir)))
+
+(defun amsha/gptel-add-region-to-persistent-context (context-name)
+  "Adding the region to the persistent context CONTEXT-NAME."
+  (interactive (list (amsha/gptel--get-persistent-context)))
+  (if (not (use-region-p))
+      (user-error "Nor regions highligted")
+    (let ((content (buffer-substring (region-beginning) (region-end)))
+          (context-file (amsha/gptel--get-context-file context-name)))
+      (make-directory gptel-persistent-context-dir t)
+      (with-temp-file context-file
+        (when (file-exists-p context-file)
+          (insert-file-contents context-file))
+        (goto-char (point-max))
+        (unless (bobp)
+          (insert "\n---------\n"))
+        (insert content))
+      (gptel-make-preset (intern (format "%s-c" context-name))
+        :description (format "Use persistent context %s" context-name)
+        :context--alist `((,context-file))))))
+
+(defun amsha/gptel-clear-persistent-context (context-name)
+  "Clear persistent context CONTEXT-NAME."
+  (interactive (list (amsha/gptel--get-persistent-context)))
+  (let ((context-file (amsha/gptel--get-context-file context-name)))
+    (when (y-or-n-p (format "Clear the context %s" context-name))
+      (with-temp-file context-file))))
+
+(defun amsha/gptel-visit-persistent-context (context-name)
+  "Visit persistent context CONTEXT-NAME."
+  (interactive (list (amsha/gptel--get-persistent-context)))
+  (let ((context-file (amsha/gptel--get-context-file context-name)))
+    (find-file context-file)))
+
+(defun amsha/gptel-delete-persistent-context (context-name)
+  "Delete context CONTEXT-NAME."
+  (interactive (list (amsha/gptel--get-persistent-context)))
+  (let ((context-file (amsha/gptel--get-context-file context-name)))
+    (when (y-or-n-p (format "Delete the context file for context %s" context-name))
+      (delete-file context-file)
+      (setf (alist-get (intern context-name) gptel--known-presets nil 'remove) nil))))
+
+(transient-append-suffix 'gptel-menu '(0 -1)
+  [""
+   "Persistent context"
+   ("pa" "Append region" amsha/gptel-add-region-to-persistent-context :transient t)
+   ("pc" "Clear" amsha/gptel-clear-persistent-context :transient t)
+   ("pv" "Visit" amsha/gptel-visit-persistent-context :transient nil)
+   ("pd" "Delete" amsha/gptel-delete-persistent-context :transient t)])
+
 ;;;; More setup ****************************************************************************
 (defvar amsha/gptel--openrouter
   (gptel-make-openai "OpenRouter"               ;Any name you want
