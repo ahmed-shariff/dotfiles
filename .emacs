@@ -530,9 +530,10 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
                     :height 105
                     :weight 'normal)
 
-(when (member "Segoe UI Emoji" (font-family-list))
+(setq font-name-used "Noto Emoji")
+(when (member font-name-used (font-family-list))
   (set-fontset-font
-   t 'unicode (font-spec :family "Segoe UI Emoji") nil 'prepend))
+   t 'unicode (font-spec :family font-name-used) nil 'prepend))
 
 (use-package exec-path-from-shell
   :demand
