@@ -2492,13 +2492,12 @@ T - tag prefix
 
 
 ;;arduino-mode***********************************************************
-(use-package arduino-mode
-  :defer t)
+(use-package arduino-mode)
 
 (use-package arduino-cli-mode
   :ensure t
   :hook arduino-mode
-  :mode "\\.ino\\'"
+  ;; :mode "\\.ino\\'"
   :custom
   (arduino-cli-warnings 'all)
   (arduino-cli-verify t))
