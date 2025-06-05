@@ -2131,9 +2131,9 @@ See `pdf-annot-activate-created-annotations' for more details."
 
 ;;ispell
 ;; for hunspell on windows: http://www.nextpoint.se/?p=656
-;; (use-package ispell
-;;   :config
-;;   (setq ispell-program-name "hunspell"))
+(use-package ispell
+  :config
+  (setq ispell-program-name "hunspell"))
 
 (use-package flyspell)
 
@@ -2141,10 +2141,10 @@ See `pdf-annot-activate-created-annotations' for more details."
 ;; 1. install https://packages.msys2.org/packages/mingw-w64-x86_64-enchant
 ;; 2. from the jinx dir in builds:
 ;;    gcc -I. -O2 -Wall -Wextra -fPIC -shared -o jinx-mod.dll jinx-mod.c -I/mingw64/include/enchant-2 -L/mingw64/lib -L/mingw64/lib/enchant-2 -lenchant-2
-(use-package jinx
-  :hook (emacs-startup . global-jinx-mode)
-  :bind (("M-$" . jinx-correct)
-         ("C-M-$" . jinx-languages)))
+;;(use-package jinx
+;;  :hook (emacs-startup . global-jinx-mode)
+;;  :bind (("M-$" . jinx-correct)
+;;         ("C-M-$" . jinx-languages)))
 
 ;; (require 'micgoline)
 ;; (setq powerline-default-separator 'arrow-fade)
