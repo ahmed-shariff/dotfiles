@@ -507,6 +507,12 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
 	(push el formated-link)))
     (kill-new (s-join "/" (reverse formated-link)))))
 
+(defun amsha/erase-buffer-with-confirmation ()
+  "erase buffer with confirmation."
+  (interactive)
+  (when (y-or-n-p "Erase buffer? ")
+    (erase-buffer)))
+
 ;; font setup****************************************************
 (use-package mixed-pitch
   :hook
@@ -1312,16 +1318,18 @@ targets."
   :bind
   (("C-c o q m" . gptel-menu)
    ("C-c o q b" . gptel)
-   ("C-c o q Q" . gptel-send))
+   ("C-c o q Q" . gptel-send)
+   :map gptel-mode-map
+   ("C-c DEL" . amsha/erase-buffer-with-confirmation))
   :custom
   (gptel-api-key (gethash 'openai-apk configurations))
   (gptel-use-curl t)
   (gptel-backend gptel--openai)
   (gptel-model 'o4-mini)
+  (gptel-default-mode #'org-mode)
   :config
   (require 'gptel-extensions)
   ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
-
 
   (add-to-list 'yank-excluded-properties 'gptel)
 
