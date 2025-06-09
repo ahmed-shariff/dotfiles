@@ -3371,6 +3371,20 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
                    (propertize it 'face 'highlight)))))
 
   (advice-add 'dashboard-agenda--formatted-time :around #'amsha/dashboard-agenda--formatted-time)
+
+  ;; Handling opening too many files on windows and mode not being set correctly
+  (defun amsha/dashboard-get-agenda-wrapper (oldfun)
+    (condition-case err
+        (funcall oldfun)
+      (error (--map (when-let* ((buf-name (buffer-file-name it))
+                          (_ (f-ext-p buf-name "org")))
+                (with-current-buffer it
+                  (unless (derived-mode-p 'org-mode)
+                    (org-mode))))
+                (buffer-list))
+             (run-with-timer 1 nil #'dashboard-open))))
+
+  (advice-add 'dashboard-get-agenda :around #'amsha/dashboard-get-agenda-wrapper)
   
   (setq dashboard-startup-banner "~/.emacs.d/customFiles/banner.png"
         dashboard-banner-logo-title nil
