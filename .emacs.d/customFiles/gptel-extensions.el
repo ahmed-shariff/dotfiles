@@ -214,7 +214,9 @@
   :stream t
   :temperature 1.0
   :use-context 'system
-  :include-reasoning t)
+  :context--alist nil
+  :include-reasoning t
+  :prompt-transform-functions `(gptel--transform-apply-preset gptel--transform-add-context))
 
 (gptel-make-preset 'openai-assistant
   :description "Search using openai assistant"
@@ -248,6 +250,12 @@
 (gptel-make-preset 'notools
   :description "no tools"
   :tools nil)
+
+(gptel-make-preset 'cite-add-abstract-summary
+  :description "Add abstract and summary for `cite:`"
+  :prompt-transform-functions `(gptel--transform-apply-preset
+                                amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary
+                                gptel--transform-add-context))
 ;;;; misc-functions ************************************************************************
 (defun gptel-extensions--modeline ()
   "Add modelines showing current model."
@@ -384,6 +392,7 @@ If the user prompt ends with @foo, the preset foo is applied."
 
 (defvar gptel-persistent-context-dir "~/.emacs.d/.cache/gptel-temp-context")
 
+(make-directory gptel-persistent-context-dir t)
 (dolist (context-file (directory-files gptel-persistent-context-dir
                                        nil
                                        directory-files-no-dot-files-regexp))
@@ -450,6 +459,24 @@ If the user prompt ends with @foo, the preset foo is applied."
    ("pc" "Clear" amsha/gptel-clear-persistent-context :transient t)
    ("pv" "Visit" amsha/gptel-visit-persistent-context :transient nil)
    ("pd" "Delete" amsha/gptel-delete-persistent-context :transient t)])
+
+;;; * okm replace cite with context
+(defun amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary ()
+  "Add respective abstract and summary of  cite:... references."
+  (-->
+   (buffer-substring-no-properties (point-min) (point-max))
+   (s-match-strings-all "cite:\\([a-z0-9-_]*\\)" it)
+   (--map (cadr it) it)
+   (--filter (not (string-empty-p it)) it)
+   (-uniq it)
+   (--map
+    (with-current-buffer (get-buffer-create (format "*abstract-summary-%s*" it))
+      (erase-buffer)
+      (insert
+       "* cite key:" it "\n\n"
+       (okm-gptel-get-paper-abstract-summary nil it))
+      (gptel-context-add))
+    it)))
 
 ;;;; More setup ****************************************************************************
 (defvar amsha/gptel--openrouter

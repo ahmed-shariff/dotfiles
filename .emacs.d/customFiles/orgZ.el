@@ -3407,7 +3407,9 @@ The format of the response should be as follows:
               :callback (lambda (response info)
                           (cond
                            ((null response)
-                            (funcall tool-callback (format "Error %s" info)))
+                            (em "ERROR" info)
+                            (if tool-callback
+                              (funcall tool-callback (format "Error %s" info))))
                            ((stringp response)
                             (let* ((res (s-split "* summary" response))
                                    (abstract (s-trim (s-replace "* abstract" "" (car res))))
