@@ -463,20 +463,26 @@ If the user prompt ends with @foo, the preset foo is applied."
 ;;; * okm replace cite with context
 (defun amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary ()
   "Add respective abstract and summary of  cite:... references."
-  (-->
-   (buffer-substring-no-properties (point-min) (point-max))
-   (s-match-strings-all "cite:\\([a-z0-9-_]*\\)" it)
-   (--map (cadr it) it)
-   (--filter (not (string-empty-p it)) it)
-   (-uniq it)
-   (--map
-    (with-current-buffer (get-buffer-create (format "*abstract-summary-%s*" it))
-      (erase-buffer)
-      (insert
-       "* cite key:" it "\n\n"
-       (okm-gptel-get-paper-abstract-summary nil it))
-      (gptel-context-add))
-    it)))
+  (let (reset)
+   (-->
+    (buffer-substring-no-properties (point-min) (point-max))
+    (s-match-strings-all "cite:\\([a-z0-9-_]*\\)" it)
+    (--map (cadr it) it)
+    (--filter (not (string-empty-p it)) it)
+    (-uniq it)
+    (--map
+     (let ((abs-summary (okm-gptel-get-paper-abstract-summary nil it)))
+       (if (gptel-fsm-p abs-summary)
+           (cl-incf reset)
+         (with-current-buffer (get-buffer-create (format "*abstract-summary-%s*" it))
+           (erase-buffer)
+           (insert
+            "* cite key:" it "\n\n"
+            abs-summary)
+           (gptel-context-add))))
+     it))
+   (when reset
+     (error "Need to wait for abstracts and summaries"))))
 
 ;;;; More setup ****************************************************************************
 (defvar amsha/gptel--openrouter
