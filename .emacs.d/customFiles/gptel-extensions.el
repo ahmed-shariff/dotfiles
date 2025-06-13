@@ -8,6 +8,7 @@
 (require 'gptel-integrations)
 (require 'gptel-org)
 (require 'gptel-transient)
+(require 'gptel-context)
 
 ;;;; Other packages ************************************************************************
 (use-package gptel-openai-assistant
@@ -256,6 +257,13 @@
   :prompt-transform-functions `(gptel--transform-apply-preset
                                 amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary
                                 gptel--transform-add-context))
+
+(gptel-make-preset 'cite-add-pdf-txt
+  :description "Add pdf txt for `cite:`"
+  :prompt-transform-functions `(gptel--transform-apply-preset
+                                amsha/okm-gptel-transform-add-pdf-txt
+                                gptel--transform-add-context))
+
 ;;;; misc-functions ************************************************************************
 (defun gptel-extensions--modeline ()
   "Add modelines showing current model."
@@ -463,7 +471,7 @@ If the user prompt ends with @foo, the preset foo is applied."
 ;;; * okm replace cite with context
 (defun amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary ()
   "Add respective abstract and summary of  cite:... references."
-  (let (reset)
+  (let ((reset 0))
    (-->
     (buffer-substring-no-properties (point-min) (point-max))
     (s-match-strings-all "cite:\\([a-z0-9-_]*\\)" it)
@@ -471,7 +479,13 @@ If the user prompt ends with @foo, the preset foo is applied."
     (--filter (not (string-empty-p it)) it)
     (-uniq it)
     (--map
-     (let ((abs-summary (okm-gptel-get-paper-abstract-summary nil it)))
+     (let ((abs-summary
+            (okm-gptel-get-paper-abstract-summary
+             (lambda (val)
+               (when (> reset 0)
+                 (org-roam-db-sync))
+               val)
+             it)))
        (if (gptel-fsm-p abs-summary)
            (cl-incf reset)
          (with-current-buffer (get-buffer-create (format "*abstract-summary-%s*" it))
@@ -481,7 +495,24 @@ If the user prompt ends with @foo, the preset foo is applied."
             abs-summary)
            (gptel-context-add))))
      it))
-   (when reset
+   (when (> reset 0)
+     (error "Need to wait for abstracts and summaries"))))
+
+;;; * okm add pdf to context
+(defun amsha/okm-gptel-transform-add-pdf-txt ()
+  "Add the pdf txt files of cite keys."
+  (let ((reset 0))
+   (-->
+    (buffer-substring-no-properties (point-min) (point-max))
+    (s-match-strings-all "cite:\\([a-z0-9-_]*\\)" it)
+    (--map (cadr it) it)
+    (--filter (not (string-empty-p it)) it)
+    (-uniq it)
+    (--map
+     (gptel-context-add-file
+      (file-truename (expand-file-name (format "%s.txt" it) bibtex-completion-library-path)))
+     it))
+   (when (> reset 0)
      (error "Need to wait for abstracts and summaries"))))
 
 ;;;; More setup ****************************************************************************
