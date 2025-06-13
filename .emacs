@@ -2288,7 +2288,7 @@ T - tag prefix
   :custom
   (dirvish-quick-access-entries
    '(("h" "~/"           "Home")
-     ("p" "~/Project"    "Home")
+     ("p" "~/Projects/"    "Home")
      ("d" "~/Downloads/" "Downloads")))
   :config
   (require 'vc)
@@ -3562,6 +3562,16 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   :config
   (autoload 'processing-snippets-initialize "processing-snippets" nil nil nil)
   (processing-snippets-initialize))
+
+;; format-all ***********************************************************
+(use-package format-all
+  :commands format-all-mode
+  :hook (prog-mode . format-all-mode)
+  :config
+  ;; (setq-default format-all-formatters
+  ;;               '(("C"     (astyle "--mode=c"))
+  ;;                 ("Shell" (shfmt "-i" "4" "-ci"))))
+  )
 
 ;;code to run at the end!************************************************
 
