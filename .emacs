@@ -198,7 +198,6 @@
  '(magit-todos-insert-after '(bottom) nil nil "Changed by setter of obsolete option `magit-todos-insert-at'")
  '(org-export-backends '(ascii html icalendar latex md))
  '(prolog-system 'swi)
- '(python-shell-interpreter "python3")
  '(safe-local-variable-values
    '((eval font-lock-add-keywords nil
            '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
@@ -1964,10 +1963,11 @@ word count of the response."
   :ensure nil
   :config
   (setq
-   python-shell-interpreter "poetry"
-   python-shell-completion-setup-code ""
-   python-shell-interpreter-interactive-arg ""
-   python-shell-interpreter-args "run python -i"))
+   python-shell-interpreter "python"
+   ;; python-shell-completion-setup-code ""
+   ;; python-shell-interpreter-interactive-arg "-i"
+   ;; python-shell-interpreter-args "-i"))
+   ))
 
 (use-package lsp-pyright
   :defer t
@@ -2426,6 +2426,7 @@ T - tag prefix
 ;;   (with-venv-advice-add 'lsp-pylsp-get-pyenv-environment)
 ;;   (with-venv-advice-add 'dap-python--pyenv-executable-find))
 
+;; In windows, poetry is not correctly picked up: https://github.com/cybniv/poetry.el/pull/61
 (use-package poetry
   :defer t
   :straight (poetry :type git :host github :repo "cybniv/poetry.el"
