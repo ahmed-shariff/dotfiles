@@ -528,5 +528,11 @@ If the user prompt ends with @foo, the preset foo is applied."
   (unless (memql mode-line-string global-mode-string)
     (add-to-list 'global-mode-string mode-line-string)))
 
+(condition-case err
+    (setf (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
+                                                   (--map (prog1 it (put it :capabilities '(reasoning)))
+                                                          '(gpt-4o-search-preview gpt-4o-mini-search-preview))))
+  (error (message "ERROR %s" err)))
+
 (provide 'gptel-extensions)
 ;;; orgZ.el ends here
