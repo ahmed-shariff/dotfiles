@@ -2201,6 +2201,7 @@ If prefix arg used, search whole db."
            (ids (apply #'vector (--map (org-roam-node-id it) entries))))
       ;; NOTE: Not using org-roam-ql-search because it works on nodes, we need it to work on links here.
       ;; i.e., it will show just the first node....
+      ;; Using org-roam-ql-search will show entire nodes, not just the links
       (org-roam-ql--render-roam-buffer
        (list (--> (apply #'org-roam-db-query
                          (append (list (vector :select :distinct [links:source links:pos links:properties]
@@ -3398,6 +3399,8 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
 
 The above is the text extracted from a paper using pdf-tools.
 Extract the abstract from this. Also provide a summary of the paper which can be used as input for other LLMs.
+The summary of the paper should contain the motivation and the gap the paper is addressing, how they address this,
+and the main results and disucssions points, all in one paragraph.
 The format of the response should be as follows:
 * abstract
 <abstract text>
