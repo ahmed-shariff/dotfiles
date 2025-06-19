@@ -1445,6 +1445,35 @@ word count of the response."
              (format "Is the sentence correct. Explain %d words or fewer." count))))
       (call-interactively #'gptel-quick))))
 
+(use-package evedel
+  :after gptel
+  :config
+  (customize-set-variable 'evedel-empty-tag-query-matches-all nil)
+  (defvar evedel-keymap nil)
+  (define-prefix-command 'evedel-keymap)
+  (define-key evedel-keymap (kbd "r") #'evedel-create-reference)
+  (define-key evedel-keymap (kbd "d") #'evedel-create-directive)
+  (define-key evedel-keymap (kbd "s") #'evedel-save-instructions)
+  (define-key evedel-keymap (kbd "l") #'evedel-load-instructions)
+  (define-key evedel-keymap (kbd "p") #'evedel-process-directives)
+  (define-key evedel-keymap (kbd "m") #'evedel-modify-directive)
+  (define-key evedel-keymap (kbd "C") #'evedel-modify-reference-commentary)
+  (define-key evedel-keymap (kbd "x") #'evedel-delete-instructions)
+  (define-key evedel-keymap (kbd "c") #'evedel-convert-instructions)
+  (define-key evedel-keymap (kbd "j") #'evedel-next-instruction)
+  (define-key evedel-keymap (kbd "k") #'evedel-previous-instruction)
+  (define-key evedel-keymap (kbd "J") #'evedel-cycle-instructions-at-point)
+  (define-key evedel-keymap (kbd "t") #'evedel-add-tags)
+  (define-key evedel-keymap (kbd "T") #'evedel-remove-tags)
+  (define-key evedel-keymap (kbd "D") #'evedel-modify-directive-tag-query)
+  (define-key evedel-keymap (kbd "P") #'evedel-preview-directive-prompt)
+  (define-key evedel-keymap (kbd "/") #'evedel-directive-undo)
+  (define-key evedel-keymap (kbd "?") #'(lambda ()
+                                                (interactive)
+                                                (evedel-directive-undo t)))
+  (repeatize 'evedel-keymap)
+  (define-key global-map (kbd "C-c o e") evedel-keymap))
+
 
 ;; (use-package consult-gh
 ;;   :straight (consult-gh :type git :host github :repo "armindarvish/consult-gh")
