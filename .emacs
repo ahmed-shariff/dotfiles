@@ -1962,6 +1962,11 @@ word count of the response."
   :straight (:type built-in)
   :ensure nil
   :config
+  (defun amsha/add-python-outline ()
+    (outline-minor-mode)
+    (setq-local outline-regexp
+                (python-rx (or (seq (* space) block-start) (seq "#" space "*" space)))))
+  (add-hook 'python-mode-hook #'amsha/add-python-outline)
   (setq
    python-shell-interpreter "python"
    ;; python-shell-completion-setup-code ""
