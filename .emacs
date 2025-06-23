@@ -3605,6 +3605,12 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   ;;                 ("Shell" (shfmt "-i" "4" "-ci"))))
   )
 
+;; transaction-tables ***************************************************
+(use-package transactions-tables
+  :straight nil
+  :config
+  (evil-set-initial-state 'transactions-tables-mode 'emacs))
+
 ;;code to run at the end!************************************************
 
 ;; (defun company-mode/backend-with-yas (backend)
