@@ -2223,7 +2223,7 @@ See `pdf-annot-activate-created-annotations' for more details."
   ;; Global settings (defaults)
   (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
         doom-themes-enable-italic t) ; if nil, italics is universally disabled
-  (load-theme 'doom-peacock t)
+  (load-theme 'doom-tomorrow-night t)
   (custom-set-faces
    `(org-block-begin-line ((t (:background "#112424"))))
    `(org-block-end-line ((t (:background "#112424")))))
