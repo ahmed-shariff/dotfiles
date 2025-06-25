@@ -1,4 +1,3 @@
-
 ;;; textops.el --- Text Operations: Tense, Tone, Merger, etc via LLM -*- lexical-binding: t; -*-
 
 ;; Requires: gptel.el
@@ -29,21 +28,15 @@
     (message "No response: %s" response)))
 
 ;;;; TextTenseChanger
-
-(defun textops-text-tense-changer (start end text tense)
+(defun textops-text-tense-changer (text tense)
   "Rewrite using TEXT, changing segment between START and END to TENSE."
   (interactive
    (let* ((main-text (textops--region-or-line))
-          (start (read-string "Text before part to change (empty for none): "))
           (target (read-string "Text to change tense: "))
-          (end   (read-string "Text after part to change (empty for none): "))
           (tense (completing-read "Tense: " '("past" "present" "future"))))
      (list start end target tense)))
   (let* ((label (format "PART_TO_%s" (upcase tense)))
-         (prompt (format "%s %s %s\n\n%s: %s\n\nRewrite this text by changing %s to the %s tense."
-                         (string-trim start)
-                         label
-                         (string-trim end)
+         (prompt (format "%s: %s\n\nRewrite this text by changing %s to the %s tense."
                          label
                          (string-trim text)
                          label
@@ -51,7 +44,6 @@
     (gptel-request prompt :callback #'textops--insert-or-show)))
 
 ;;;; TextConsolidater
-
 (defun textops-text-consolidater ()
   "Combine region/line into one sentence."
   (interactive)
@@ -59,17 +51,15 @@
          (prompt (format "%s\n\nCombine this text into one sentence." text)))
     (gptel-request prompt :callback #'textops--insert-or-show)))
 
-;;;; TextReorganizer
-
-(defun textops-text-reorganizer ()
-  "Reorganize words in region/line in 4 ways."
-  (interactive)
-  (let* ((text (textops--region-or-line))
-         (prompt (format "%s\n\nReorganize the words in 4 different ways." text)))
-    (gptel-request prompt :callback #'textops--insert-or-show)))
+;; ;;;; TextReorganizer
+;; (defun textops-text-reorganizer ()
+;;   "Reorganize words in region/line in 4 ways."
+;;   (interactive)
+;;   (let* ((text (textops--region-or-line))
+;;          (prompt (format "%s\n\nReorganize the words in 4 different ways." text)))
+;;     (gptel-request prompt :callback #'textops--insert-or-show)))
 
 ;;;; TextToneChanger
-
 (defun textops-text-tone-changer ()
   "Rewrite sentence with different tones."
   (interactive)
@@ -105,7 +95,6 @@
                        (textops--insert-or-show response nil)))))
 
 ;;;; TextDistributer
-
 (defun textops-text-distributer ()
   "Break text into sentences, one per idea."
   (interactive)
@@ -114,7 +103,6 @@
     (gptel-request prompt :callback #'textops--insert-or-show)))
 
 ;;;; TextTonePicker
-
 (defun textops-text-tone-picker ()
   "Rate a sentence on N scales."
   (interactive)
@@ -136,7 +124,6 @@
     (gptel-request prompt :callback (lambda (resp _info) (insert resp)))))
 
 ;;;; TextPluralizer
-
 (defun textops-text-pluralizer (start end text to-plural)
   "Pluralize or singularize a segment."
   (interactive
@@ -155,30 +142,28 @@
                          opword label)))
     (gptel-request prompt :callback #'textops--insert-or-show)))
 
-;;;; TextPrompter
+;; gptel-rewrite?
+;; ;;;; TextPrompter
+;; (defun textops-text-prompter ()
+;;   "Rewrite <blank> in a text as per instruction."
+;;   (interactive)
+;;   (let* ((previousText (read-string "Text before blank: "))
+;;          (input (read-string "Text for <blank>: "))
+;;          (followingText (read-string "Text after blank: "))
+;;          (action (read-string "INSTRUCTION: ")))
+;;     (let ((prompt (format "%s <blank> %s\n<blank>: %s\n\nINSTRUCTION: %s\nRewrite <blank>. Follow INSTRUCTION\n<blank>:"
+;;                           previousText followingText input action)))
+;;       (gptel-request prompt :callback #'textops--insert-or-show))))
 
-(defun textops-text-prompter ()
-  "Rewrite <blank> in a text as per instruction."
-  (interactive)
-  (let* ((previousText (read-string "Text before blank: "))
-         (input (read-string "Text for <blank>: "))
-         (followingText (read-string "Text after blank: "))
-         (action (read-string "INSTRUCTION: ")))
-    (let ((prompt (format "%s <blank> %s\n<blank>: %s\n\nINSTRUCTION: %s\nRewrite <blank>. Follow INSTRUCTION\n<blank>:"
-                          previousText followingText input action)))
-      (gptel-request prompt :callback #'textops--insert-or-show))))
-
-;;;; TextSmudger
-
-(defun textops-text-smudger ()
-  "Return a rewritten version of text."
-  (interactive)
-  (let* ((text (textops--region-or-line))
-         (prompt (format "%s\n\nReturn a rewritten version." text)))
-    (gptel-request prompt :callback #'textops--insert-or-show)))
+;; ;;;; TextSmudger
+;; (defun textops-text-smudger ()
+;;   "Return a rewritten version of text."
+;;   (interactive)
+;;   (let* ((text (textops--region-or-line))
+;;          (prompt (format "%s\n\nReturn a rewritten version." text)))
+;;     (gptel-request prompt :callback #'textops--insert-or-show)))
 
 ;;;; TextResizer
-
 (defun textops-text-resizer ()
   "Shorten or lengthen each sentence in region/line to a target length."
   (interactive)
@@ -201,7 +186,6 @@
       (gptel-request prompt :callback #'textops--insert-or-show))))
 
 ;;;; TextRepair
-
 (defun textops-text-repair ()
   "Fix the grammar of region or line."
   (interactive)
@@ -210,7 +194,6 @@
     (gptel-request prompt :callback #'textops--insert-or-show)))
 
 ;;;; TextMerger
-
 (defun textops-text-merger ()
   "Merge region/line with other text."
   (interactive)
@@ -231,16 +214,18 @@
       (gptel-request prompt :callback #'textops--insert-or-show)))
 
 ;;;; TextEraser
-
-(defun textops-text-eraser (start end)
+(defun textops-text-eraser ()
   "Remove a segment without adding new words."
-  (interactive
-   (let* ((start (read-string "Text before part to delete (empty for none): "))
-          (end   (read-string "Text after (empty for none): ")))
-     (list start end)))
-  (let* ((prompt (format "%s %s\n\nFix this sentence without adding new words. You can reorganize the words and the sentence, but you can't add new words."
+  (interactive)
+  (cl-assert (use-region-p) nil "No region selected.")
+  (let* ((start (read-string "Text before part to delete (empty for none): "))
+         (end   (read-string "Text after (empty for none): "))
+         (part-to-remove (buffer-substring-no-properties (region-beginning) (region-end)))
+         (full-sentence (thing-at-point 'line t))
+         (prompt (format "PART_TO_REMOVE: %s FULL_SENTENCE: %s\n\nRemove PART_TO_REMOVE from the FULL_SENTENCE without adding new words. You can reorganize the words and the sentence, but you can't add new words."
                          (string-trim start)
                          (string-trim end))))
+    ;; TODO: set the region to replace to the whole sentence.
     (gptel-request prompt :callback #'textops--insert-or-show)))
 
 ;;; Command menu
@@ -248,19 +233,17 @@
 ;;;###autoload
 (defvar textops-command-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "t t") #'textops-text-tense-changer)
-    (define-key map (kbd "t c") #'textops-text-consolidater)
-    (define-key map (kbd "t r") #'textops-text-reorganizer)
-    (define-key map (kbd "t o") #'textops-text-tone-changer)
-    (define-key map (kbd "t d") #'textops-text-distributer)
-    (define-key map (kbd "t p") #'textops-text-prompter)
-    (define-key map (kbd "t g") #'textops-text-repair)
-    (define-key map (kbd "t m") #'textops-text-merger)
-    (define-key map (kbd "t l") #'textops-text-pluralizer)
-    (define-key map (kbd "t s") #'textops-text-smudger)
-    (define-key map (kbd "t e") #'textops-text-eraser)
-    (define-key map (kbd "t z") #'textops-text-resizer)
-    (define-key map (kbd "t k") #'textops-text-tone-picker)
+    (define-key map (kbd "t") #'textops-text-tense-changer)
+    (define-key map (kbd "c") #'textops-text-consolidater)
+    (define-key map (kbd "o") #'textops-text-tone-changer)
+    (define-key map (kbd "d") #'textops-text-distributer)
+    (define-key map (kbd "g") #'textops-text-repair)
+    (define-key map (kbd "m") #'textops-text-merger)
+    (define-key map (kbd "l") #'textops-text-pluralizer)
+    (define-key map (kbd "s") #'textops-text-smudger)
+    (define-key map (kbd "e") #'textops-text-eraser)
+    (define-key map (kbd "z") #'textops-text-resizer)
+    (define-key map (kbd "k") #'textops-text-tone-picker)
     map)
   "Keymap for TextOps commands.")
 
@@ -273,7 +256,7 @@
          (choice (completing-read "Text operation: " cmpl nil t)))
     (call-interactively (lookup-key textops-command-map (kbd choice)))))
 
-(global-set-key (kbd "C-c o q T") textops-command-map)
+(global-set-key (kbd "C-c o q t") textops-command-map)
 
 (provide 'textops)
 
