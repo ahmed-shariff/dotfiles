@@ -139,7 +139,7 @@
 (defvar my-package-list '(org org-contrib elgrep
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
-					   org-bullets latex-math-preview csproj-mode plantuml-mode
+					   latex-math-preview csproj-mode plantuml-mode
 					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
 					   expand-region diminish amx flx
 					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
