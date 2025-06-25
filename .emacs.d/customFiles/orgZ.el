@@ -3133,7 +3133,6 @@ Parent-child relation is defined by the brain-parent links."
       (delete-file (buffer-file-name))
       (kill-buffer))))
 
-(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
 (add-hook 'org-mode-hook
 	  (lambda ()
