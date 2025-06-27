@@ -49,7 +49,8 @@
            (file-name-entry (plist-get data :filename))
            (file-name (when file-name-entry
                         (format "file:///%s" (expand-file-name (plist-get data :filename)))))
-           (doi (plist-get data :doi)))
+           (doi (plist-get data :doi))
+           (bibtex-entry-format (remove 'required-fields bibtex-entry-format)))
       (save-match-data 
         (cond
          ((or doi
@@ -64,9 +65,7 @@
               (with-current-buffer (find-file-noselect (car bibtex-completion-bibliography))
                 (goto-char (point-max))
                 (when (not (looking-at "^")) (insert "\n\n")))
-              (condition-case err
-                  (doi-add-bibtex-entry doi (car bibtex-completion-bibliography))
-                (error (signal (car err) (cdr err))))
+              (doi-add-bibtex-entry doi (car bibtex-completion-bibliography))
               (doi-utils-open-bibtex doi)
               (org-ref-open-bibtex-notes)
               ;; make sure at the top most level
@@ -3399,7 +3398,8 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
 The above is the text extracted from a paper using pdf-tools.
 Extract the abstract from this. Also provide a summary of the paper which can be used as input for other LLMs.
 The summary of the paper should contain the motivation and the gap the paper is addressing, how they address this,
-and the main results and disucssions points, all in one paragraph.
+and the main results and disucssions points, all in one paragraph. This should mainly highlight details that
+are not clearly available in the abstract which could be useulf to better understand the paper.
 The format of the response should be as follows:
 * abstract
 <abstract text>

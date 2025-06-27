@@ -2843,6 +2843,12 @@ Used with atomic-chrome."
   :config
   (keymap-set reftex-mode-map "C-c [" nil))
 
+(use-package bibtex
+  :custom
+  ;; Removing required-fields
+  (bibtex-entry-format '(opts-or-alts numerical-fields))
+  (bibtex-autokey-year-title-separator "_"))
+
 (use-package latex
   :straight auctex
   :defer t
