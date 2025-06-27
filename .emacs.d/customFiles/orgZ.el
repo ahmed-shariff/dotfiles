@@ -3391,6 +3391,7 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
           (format "* abstract\n%s\n* summary\n%s" abstract summary))
       (let ((gptel-backend gptel--openai)
             (gptel-model 'gpt-4o-mini)
+            (gptel-context--alist nil)
             (gptel-tools nil))
         (condition-case err
             (gptel-request (format "%s
