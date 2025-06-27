@@ -254,17 +254,31 @@
 
 (gptel-make-preset 'cite-add-abstract-summary
   :description "Add abstract and summary for `cite:`"
-  :prompt-transform-functions `(gptel--transform-apply-preset
-                                amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary
-                                gptel--transform-add-context))
+  :prompt-transform-functions
+  (lambda ()
+    (add-before-special-or-append gptel-prompt-transform-functions
+                                  #'amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary
+                                  #'gptel--transform-add-context)))
 
 (gptel-make-preset 'cite-add-pdf-txt
   :description "Add pdf txt for `cite:`"
-  :prompt-transform-functions `(gptel--transform-apply-preset
-                                amsha/okm-gptel-transform-add-pdf-txt
-                                gptel--transform-add-context))
+  :prompt-transform-functions
+  (lambda ()
+    (add-before-special-or-append gptel-prompt-transform-functions
+                                  #'amsha/okm-gptel-transform-add-pdf-txt
+                                  #'gptel--transform-add-context)))
 
 ;;;; misc-functions ************************************************************************
+(defun add-before-special-or-append (lst elem special)
+  "If last element of LST is SPECIAL, add ELEM before it.
+Otherwise, add ELEM as the last element."
+  (let* ((len (length lst)))
+    (cond
+     ((and (> len 0) (equal (nth (1- len) lst) special))
+      (append (butlast lst) (list elem) (last lst)))
+     (t
+      (append lst (list elem))))))
+
 (defun gptel-extensions--modeline ()
   "Add modelines showing current model."
   (propertize (format "🧠 %s-%s "
