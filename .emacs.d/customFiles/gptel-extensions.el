@@ -281,10 +281,16 @@ Otherwise, add ELEM as the last element."
 
 (defun gptel-extensions--modeline ()
   "Add modelines showing current model."
-  (propertize (format "🧠 %s-%s "
-                      (gptel-backend-name gptel-backend)
-                      (gptel--model-name gptel-model))
-              'face '(:foreground "gray80" :background "#000033")))
+  (concat
+   (propertize (format "🧠 %s-%s "
+                       (gptel-backend-name gptel-backend)
+                       (gptel--model-name gptel-model))
+               'face '(:foreground "gray80" :background "#000033"))
+   (if gptel-context--alist
+       (propertize (format "(%s) "
+                           (length gptel-context--alist))
+                   'face '(:foreground "red3" :background "#000033"))
+     "")))
 
 (defun amsha/gptel-get-bib-entry-from-citation (citation)
   "Function to take in a citation and turn that into a bib entry."
