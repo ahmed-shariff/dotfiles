@@ -1889,6 +1889,7 @@ word count of the response."
          (latex-mode . lsp)
          (rust-mode . lsp)
          (go-mode . lsp)
+         (hy-mode .lsp)
 	 (lsp-mode . lsp-enable-which-key-integration)
          (lsp-completion-mode . amsha/lsp-mode-setup-completion))
   
@@ -1916,6 +1917,7 @@ word count of the response."
   ;;                   :major-modes '(python-mode)
   ;;                   :remote? t
   ;;                   :server-id 'pyls))
+  (require 'lsp-hy)
 
   (defhydra flycheck-lsp-action (lsp-command-map "f")
     ("n" flycheck-next-error)
@@ -1973,6 +1975,8 @@ word count of the response."
    ;; python-shell-interpreter-interactive-arg "-i"
    ;; python-shell-interpreter-args "-i"))
    ))
+
+(use-package hy-mode)
 
 (use-package lsp-pyright
   :defer t
