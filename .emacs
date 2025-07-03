@@ -670,6 +670,11 @@ that returns a string."
   :config
   (beacon-mode))
 
+(use-package symbol-overlay
+  :hook (prog-mode org-mode)
+  :config
+  (evil-define-key 'normal 'global (kbd "g s") symbol-overlay-map))
+
 (use-package visual-fill-column
   :defer 2
   :hook ((org-mode LaTeX-mode latex-mode markdown-mode org-roam-mode) . amsha/visual-fill))
