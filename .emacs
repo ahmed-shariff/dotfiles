@@ -671,7 +671,8 @@ that returns a string."
   (beacon-mode))
 
 (use-package symbol-overlay
-  :hook (prog-mode org-mode)
+  :after evil-mode
+  :hook (lisp-mode lisp-data-mode)
   :config
   (evil-define-key 'normal 'global (kbd "g s") symbol-overlay-map))
 
