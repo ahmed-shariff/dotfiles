@@ -674,6 +674,8 @@ that returns a string."
   :after evil
   :hook ((lisp-mode lisp-data-mode emacs-lisp-mode hy-mode) . symbol-overlay-mode)
   :config
+  (repeatize 'symbol-overlay-map)
+
   (evil-define-key 'normal 'global (kbd "g s") symbol-overlay-map))
 
 (use-package visual-fill-column
