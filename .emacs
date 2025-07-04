@@ -671,8 +671,8 @@ that returns a string."
   (beacon-mode))
 
 (use-package symbol-overlay
-  :after evil-mode
-  :hook (lisp-mode lisp-data-mode)
+  :after evil
+  :hook ((lisp-mode lisp-data-mode emacs-lisp-mode hy-mode) . symbol-overlay-mode)
   :config
   (evil-define-key 'normal 'global (kbd "g s") symbol-overlay-map))
 
@@ -1982,7 +1982,9 @@ word count of the response."
    ;; python-shell-interpreter-args "-i"))
    ))
 
-(use-package hy-mode)
+(use-package hy-mode
+  :config
+  (setq hy-jedhy--enable? nil))
 
 (use-package lsp-pyright
   :defer t
