@@ -23,7 +23,13 @@
                                                                                   (1+ (length okm-parent-id-type-name))))))))
 
 (with-eval-after-load 'magit
-  (magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers" "brain/roam-notes" "brain/work/figures" "brain/work/notes" "brain/personl/work" "brain/work/project_boards")))
+  (magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers"
+                                                        "brain/roam-notes"
+                                                        "brain/personl/work"
+                                                        "brain/personl/notes"
+                                                        "brain/work/figures"
+                                                        "brain/work/notes"
+                                                        "brain/work/project_boards")))
 
 (use-package org-capture-pop-frame
   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
