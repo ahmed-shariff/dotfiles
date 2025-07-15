@@ -8,12 +8,30 @@
 (require 'map)
 (require 'configurations)
 
-(define-derived-mode transactions-tables-mode tabulated-list-mode "MyTable"
-  "boo"
+(defvar-keymap transactions-tables-mode-map
+  :doc "Keymap for `transactions-tables-mode'."
+  ;; :parent tabulated-list-mode-map
+  "n" #'next-line
+  "p" #'previous-line
+  "j" #'next-line
+  "k" #'previous-line
+  "s" #'transactions-tables-set-category-table
+  "c" #'transactions-tables-category-clear
+  "1" #'transactions-tables-category-1
+  "2" #'transactions-tables-category-2
+  "3" #'transactions-tables-category-3
+  "4" #'transactions-tables-category-4
+  "5" #'transactions-tables-category-5
+  "6" #'transactions-tables-category-6
+  "7" #'transactions-tables-category-7
+  "8" #'transactions-tables-category-8
+  "9" #'transactions-tables-category-9)
+
+(define-derived-mode transactions-tables-mode tabulated-list-mode "transactions-tables-mode"
  (setq tabulated-list-format [("Date" 20 t)
                                ("Logo SRC" 10 t)
                                ("Logo ALT" 20 t)
-                               ("Details" 40 t)
+                               ("Details" 70 t)
                                ("Amount" 20 t)])
  (setq tabulated-list-padding 3)
  (tabulated-list-print)
@@ -27,24 +45,6 @@
                                       (format "%s - %s; " (cl-incf idx) el))
                                     (em transactions-tables-current-categories)))
                      'details t)))))
-
-(defvar-keymap transactions-tables-mode-map
-  :doc "Keymap for `transactions-tables-mode'."
-  ;; :parent tabulated-list-mode-map
-  "n" #'next-line
-  "p" #'previous-line
-  "j" #'next-line
-  "k" #'previous-line
-  "s" #'transactions-tables-set-category-table
-  "1" #'transactions-tables-category-1
-  "2" #'transactions-tables-category-2
-  "3" #'transactions-tables-category-3
-  "4" #'transactions-tables-category-4
-  "5" #'transactions-tables-category-5
-  "6" #'transactions-tables-category-6
-  "7" #'transactions-tables-category-7
-  "8" #'transactions-tables-category-8
-  "9" #'transactions-tables-category-9)
 
 (defvar transactions-tables-categories (gethash 'transactions-tables-categories-alist configurations))
 
@@ -67,6 +67,11 @@
     (bookmark-bmenu-ensure-position)
     (while (not (eobp))
       (tabulated-list-put-tag " " t))))
+
+;;;###autoload
+(defun transactions-tables-category-clear ()
+  (interactive nil transactions-tables-mode)
+  (tabulated-list-put-tag " " t))
 
 ;;;###autoload
 (defun transactions-tables-category-1 ()
@@ -121,26 +126,28 @@
 ;;;###autoload
 (defun amsha/transactions-table ()
   (interactive)
-  (when-let (buff (get-buffer "*transactions table*"))
-    (kill-buffer buff))
-  (switch-to-buffer "*transactions table*")
-  (let ((items))
-    (with-temp-buffer
-      (clipboard-yank)
-      (goto-char (point-min))
-      (condition-case nil
-          (while (re-search-forward "\\(.*\\);\\(.*\\);\\(.*\\);\\(.*\\);\\(.*\\)")
-            (unless (string= "Date" (match-string 1))
-              (push (list (match-string 0)
-                          (vector (match-string 1)
-                                  (match-string 2)
-                                  (match-string 3)
-                                  (match-string 4)
-                                  (match-string 5)))
-                    items)))
-        (search-failed nil)))
-    (setq tabulated-list-entries items))
-  (transactions-tables-mode))
+  (let* ((idx 1)
+         (buffer-name "*transactions table*"))
+    (while (get-buffer buffer-name)
+      (setq buffer-name (format "*transactions table (%s)*" (cl-incf idx))))
+    (switch-to-buffer buffer-name)
+    (let ((items))
+      (with-temp-buffer
+        (clipboard-yank)
+        (goto-char (point-min))
+        (condition-case nil
+            (while (re-search-forward "\\(.*\\);\\(.*\\);\\(.*\\);\\(.*\\);\\(.*\\)")
+              (unless (string= "Date" (match-string 1))
+                (push (list (match-string 0)
+                            (vector (match-string 1)
+                                    (match-string 2)
+                                    (match-string 3)
+                                    (match-string 4)
+                                    (match-string 5)))
+                      items)))
+          (search-failed nil)))
+      (setq tabulated-list-entries items))
+    (transactions-tables-mode)))
 
 (defun amsha/transactions-table-process ()
   (interactive)
@@ -165,7 +172,7 @@
      (forward-line))
    (with-current-buffer (get-buffer-create new-buf)
      (setq tabulated-list-format [("Category" 20 t)
-                                  ("Items" 40 t)
+                                  ("Items" 100 t)
                                   ("Sum" 20 t)])
      (setq tabulated-list-entries
            (--map
