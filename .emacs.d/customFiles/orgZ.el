@@ -2267,7 +2267,8 @@ If prefix arg used, search whole db."
 
   (define-key org-roam-preview-map "w" #'okm-org-roam-ql-copy-preview)
 
-  (add-to-list 'org-agenda-custom-commands '("ca" "Agenda from roam" org-roam-ql-agenda-block '(scheduled-is-after "+0")))
+  (add-to-list 'org-agenda-custom-commands '("ca" "All upcoming agenda (roam)" org-roam-ql-agenda-block '(or (scheduled-is-after "+0")
+                                                                                                             (deadline-is-after "+0"))))
 
   (defun okm-insert-paper-ids-for-query ()
     "Prompt for nodes and print the file names a org style list."
