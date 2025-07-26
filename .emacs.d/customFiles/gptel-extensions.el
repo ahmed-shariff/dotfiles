@@ -480,13 +480,20 @@ If the user prompt ends with @foo, the preset foo is applied."
       (delete-file context-file)
       (setf (alist-get (intern context-name) gptel--known-presets nil 'remove) nil))))
 
+(defun amsha/gptel-add-persistent-context-to-context (context-name)
+  "Add persistent-context to context."
+  (interactive (list (amsha/gptel--get-persistent-context)))
+  (let ((context-file (amsha/gptel--get-context-file context-name)))
+    (gptel-context-add-file context-file)))
+
 (transient-append-suffix 'gptel-menu '(0 -1)
   [""
    "Persistent context"
    ("pa" "Append region" amsha/gptel-add-region-to-persistent-context :transient t)
    ("pc" "Clear" amsha/gptel-clear-persistent-context :transient t)
    ("pv" "Visit" amsha/gptel-visit-persistent-context :transient nil)
-   ("pd" "Delete" amsha/gptel-delete-persistent-context :transient t)])
+   ("pd" "Delete" amsha/gptel-delete-persistent-context :transient t)
+   ("pA" "Add to context" amsha/gptel-add-persistent-context-to-context :transient t)])
 
 ;;; * okm replace cite with context
 (defun amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary ()
