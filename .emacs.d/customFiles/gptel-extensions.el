@@ -68,12 +68,29 @@
                 (append
                  (plist-get info :reasoning)
                  (list (map-nested-elt output-item '(:summary :text))))))
-    (x `("Boooo" ,x))))
+    (_ ;; TODO handle others
+     )))
+
+(defun gptel-openai-response--process-annotation (annotation info)
+  "Returns string that can be added to content or nil."
+  (pcase (plist-get annotation :type)
+    ("file_citation"
+     (format "[file_citation:%s]" (plist-get annotation :file_id)))
+    (_ ;; TODO handle otheres
+     )))
 
 (cl-defmethod gptel--request-data ((backend gptel-openai-responses) prompts)
   "JSON encode PROMPTS for sending to ChatGPT."
   (let* ((prompts (cl-call-next-method))
          (p prompts))
+    ;; Adding built-in tools
+    (when gptel-openai-responses--tools
+      (plist-put prompts :tools (vconcat (plist-get prompts :tools)
+                                         (mapcar (lambda (built-in-tool)
+                                                   (if (functionp built-in-tool)
+                                                       (funcall built-in-tool)
+                                                     built-in-tool))
+                                                 gptel-openai-responses--tools))))
     (while p
       (when (eq (car p) :messages)
         (setcar p :input))
@@ -106,6 +123,9 @@ information if the stream contains it."
                 ;;  )
                 ("response.output_text.delta"
                  (push (plist-get json-response :delta) content-strs))
+                ("response.output_text.annotation.added"
+                 (let ((annotation (plist-get json-response :annotation)))
+                   (push (gptel-openai-response--process-annotation annotation info) content-strs)))
                 ("response.output_item.done"
                  (let ((output-item (plist-get json-response :item)))
                    (gptel-openai-response--process-output output-item info)))))))
@@ -124,7 +144,16 @@ Mutate state INFO with response metadata."
 
   (cl-loop for output-item across (plist-get response :output)
            if (equal (plist-get output-item :type) "message")
-             collect (map-nested-elt output-item '(:content 0 :text)) into return-val
+             collect
+             (string-join
+              (list (map-nested-elt output-item '(:content 0 :text))
+                    (string-join
+                     (mapcar (lambda (annotation)
+                               (gptel-openai-response--process-annotation annotation info))
+                             (map-nested-elt output-item '(:content 0 :annotations)))
+                     "\n"))
+              "\n")
+             into return-val
            else
              do (gptel-openai-response--process-output output-item info)
            finally return (funcall #'string-join return-val)))
@@ -147,6 +176,23 @@ Mutate state INFO with response metadata."
         (gptel-tools (list (cdar (alist-get "boo" gptel--known-tools nil nil #'equal)))))
     (gptel-request "What is the temperature in kelowna" :callback (lambda (r i) (print r i)))))
 
+;;;; Supporting built-in tools for responses ***********************************************
+(defvar gptel-openai-responses--known-tools '(("web_search_preview" . (lambda ()
+                                                                        (list :type "web_search_preview" :search-context-size "low")))))
+
+(defvar gptel-openai-responses--tools nil)
+
+;; (cl-defmethod gptel--parse-tools :around (backend tools)
+;;   "Remove tools not of type `gptel-tool'"
+;;   (cl-call-next-method backend (seq-filter (lambda (tool) (gptel-tool-p tool)) tools)))
+
+;; (cl-defmethod gptel--parse-tools :around ((backend gptel-openai-responses) tools)
+;;   (vconcat (cl-call-next-method backend tools)
+;;            (mapcar (lambda (built-in-tool)
+;;                      (if (functionp built-in-tool)
+;;                          (funcall built-in-tool)
+;;                        built-in-tool))
+;;                    gptel-openai-responses--tools)))
 
 ;;;; Other packages ************************************************************************
 (use-package gptel-openai-assistant
