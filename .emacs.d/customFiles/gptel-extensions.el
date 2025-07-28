@@ -187,10 +187,84 @@ Mutate state INFO with response metadata."
     (gptel-request "What is the temperature in kelowna" :callback (lambda (r i) (print r i)))))
 
 ;;;; Supporting built-in tools for responses ***********************************************
-(defvar gptel-openai-responses--known-tools '(("web_search_preview" . (lambda ()
-                                                                        (list :type "web_search_preview" :search-context-size "low")))))
+(defclass amsha/add-to-list-switch (transient-variable)
+  ((target-value :initarg :target-value)
+   (target-list  :initarg :target-list)
+   (format       :initarg :format      :initform " %k %d")
+   ))
+
+(cl-defmethod transient-infix-read ((obj amsha/add-to-list-switch))
+  ;;Do nothing
+  )
+
+(cl-defmethod transient-infix-set ((obj amsha/add-to-list-switch) _)
+  (if (member (oref obj target-value) (symbol-value (oref obj target-list)))
+      (set (oref obj target-list)
+           (delete (oref obj target-value) (symbol-value (oref obj target-list))))
+    (set (oref obj target-list)
+         (append (symbol-value (oref obj target-list))
+                 (list (oref obj target-value)))))
+  (transient-setup))
+
+(cl-defmethod transient-format-description ((obj amsha/add-to-list-switch))
+  (propertize (transient--get-description obj) 'face
+              (if (member (oref obj target-value) (symbol-value (oref obj target-list)))
+                  'transient-value
+                'transient-inactive-value)))
+
+(defvar gptel-openai-responses--known-tools '(("web_search_preview" .
+                                                 (lambda ()
+                                                   (list :type "web_search_preview" :search-context-size "low")))))
 
 (defvar gptel-openai-responses--tools nil)
+
+(transient-define-prefix gptel-openai-response-built-in-tools ()
+  [["Built in tools"
+    ("wl" "web search (low context)" ""
+     :class amsha/add-to-list-switch
+     :target-value (:type "web_search_preview" :search-context-size "low")
+     :target-list gptel-openai-responses--tools)
+    ("wm" "web search (medium context)" ""
+     :class amsha/add-to-list-switch
+     :target-value (:type "web_search_preview" :search-context-size "medium")
+     :target-list gptel-openai-responses--tools)
+    ("wh" "web search (high context)" ""
+     :class amsha/add-to-list-switch
+     :target-value (:type "web_search_preview" :search-context-size "high")
+     :target-list gptel-openai-responses--tools)
+    ("fo" "File search (org)" ""
+     :class amsha/add-to-list-switch
+     :target-value (:type "file_search"
+                          :vector_store_ids (vconcat (list (gethash 'openai-org-vector-store configurations))))
+     :target-list gptel-openai-responses--tools)
+    ""
+    ("DEL" "Remove all" (lambda ()
+                          (interactive)
+                          (setq gptel-openai-responses--tools nil)
+                          (transient-setup))
+     :transient t
+     :if (lambda () gptel-openai-responses--tools))
+    ("RET" "Done" transient-quit-one)
+    ]])
+   ;; ["Actions"
+   ;;  ("RET" "Show X list" (lambda ()
+   ;;                         (interactive)
+   ;;                         (message "my-x-list: %S" my-x-list)))]])
+
+(transient-append-suffix 'gptel-menu '(0 -1)
+  [:if (lambda () (gptel-openai-responses-p gptel-backend))
+   ""
+   (:info
+    (lambda ()
+      (concat
+       "Built-in tools"
+       (and gptel-openai-responses--tools
+            (concat " (" (propertize (format "%d"
+                                             (length gptel-openai-responses--tools))
+                                     'face 'warning)
+                    ")"))))
+    :format "%d" :face transient-heading)
+   (gptel-openai-response-built-in-tools :key "T" :description "Select")])
 
 ;; (cl-defmethod gptel--parse-tools :around (backend tools)
 ;;   "Remove tools not of type `gptel-tool'"
