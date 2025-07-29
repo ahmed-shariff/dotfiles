@@ -68,6 +68,9 @@
                 (append
                  (plist-get info :reasoning)
                  (list (map-nested-elt output-item '(:summary :text))))))
+    ("file_search_call"
+     (plist-put info :file-search-call-queries (plist-get output-item :queries))
+     (plist-put info :file-search-call-results (plist-get output-item :results)))
     (_ ;; TODO handle others
      )))
 
@@ -79,10 +82,17 @@
     (_ ;; TODO handle otheres
      )))
 
+(defcustom gptel-openai-response-inlcude-file-search-results t
+  "Include file-search-results?"
+  :type 'boolean)
+
 (cl-defmethod gptel--request-data ((backend gptel-openai-responses) prompts)
   "JSON encode PROMPTS for sending to ChatGPT."
   (let* ((prompts (cl-call-next-method))
          (p prompts))
+    (when gptel-openai-response-inlcude-file-search-results
+      (plist-put prompts :include (vconcat (plist-get prompts :include)
+                                          '("file_search_call.results"))))
     ;; Adding built-in tools
     (when gptel-openai-responses--tools
       (plist-put prompts :tools (vconcat (plist-get prompts :tools)
@@ -193,6 +203,22 @@ Mutate state INFO with response metadata."
 ;;                          (funcall built-in-tool)
 ;;                        built-in-tool))
 ;;                    gptel-openai-responses--tools)))
+
+(defun amsha/gptel-oai-response-insert-file-search-query-and-results ()
+  (interactive)
+  (if gptel--fsm-last
+      (let ((queries (plist-get (gptel-fsm-info gptel--fsm-last) :file-search-call-queries))
+            (results (plist-get (gptel-fsm-info gptel--fsm-last) :file-search-call-results)))
+        (insert "\n * Queries:\n- " (string-join queries "\n- "))
+        (insert "\n * Results:\n- "
+                (string-join (--map (format "id: ~%s~  name: ~%s~  score: ~%s~\n  #+BEGIN_QUOTE\n%s\n  #+END_QUOTE"
+                                            (plist-get it :file_id)
+                                            (plist-get it :filename)
+                                            (plist-get it :score)
+                                            (plist-get it :text))
+                                    results)
+                             "\n\n- ")))
+    (user-error "No last fsm.")))
 
 ;;;; Other packages ************************************************************************
 (use-package gptel-openai-assistant
