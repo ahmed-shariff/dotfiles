@@ -827,6 +827,16 @@ If the user prompt ends with @foo, the preset foo is applied."
    (when (> reset 0)
      (error "Need to wait for abstracts and summaries"))))
 
+(defun amsha/gptel--replace-* (start end)
+  "Updating annotations strings."
+  (save-excursion
+    (goto-char start)
+    (while (re-search-forward "^*" end t)
+      (goto-char (match-beginning 0))
+      (insert ? ))))
+
+(add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-*)
+
 ;;;; More setup ****************************************************************************
 (defvar amsha/gptel--openrouter
   (gptel-make-openai "OpenRouter"               ;Any name you want
