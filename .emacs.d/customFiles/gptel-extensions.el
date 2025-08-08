@@ -827,13 +827,18 @@ If the user prompt ends with @foo, the preset foo is applied."
    (when (> reset 0)
      (error "Need to wait for abstracts and summaries"))))
 
-(defun amsha/gptel--replace-* (start end)
+(defun amsha/gptel--replace-* (beg end)
   "Updating annotations strings."
-  (save-excursion
-    (goto-char start)
-    (while (re-search-forward "^*" end t)
-      (goto-char (match-beginning 0))
-      (insert ? ))))
+  (when (derived-mode-p 'org-mode)
+    (save-excursion
+      (goto-char beg)
+      (while (re-search-forward org-heading-regexp end t)
+        (forward-line 0)
+        (delete-char (1+ (length (match-string 1))))
+        (insert-and-inherit "*")
+        (end-of-line)
+        (skip-chars-backward " \t\r")
+        (insert-and-inherit "*")))))
 
 (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-*)
 

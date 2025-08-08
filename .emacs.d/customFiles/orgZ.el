@@ -3444,6 +3444,7 @@ The format of the response should be as follows:
 
 (defun okm-org-agenda-recompute-org-roam-ql ()
   "Same as `okm-org-agenda-recompute', but uses org-roam-ql"
+  (interactive)
   (unless (featurep 'org-roam-ql)
     (require 'org-roam-ql))
   (with-temp-buffer
