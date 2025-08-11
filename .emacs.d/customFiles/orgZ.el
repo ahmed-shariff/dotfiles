@@ -3468,6 +3468,24 @@ The format of the response should be as follows:
     (write-region (point-min) (point-max)
                   (file-truename (expand-file-name "~/.emacs.d/org-agenda-org-roam-ql-cache")))))
 
+(defun okm-summarize-project-board ()
+  "A stripped down version of the board usable with LLMs."
+  (interactive)
+  (okm-goto-task-board)
+  (goto-char (point-min))
+  (--> (--map (concat (if (eq (org-element-property :level it) 1)
+                          "#" "##")
+                      " "
+                      (org-element-property :todo-keyword it)
+                      " "
+                      (car (org-element-property :title it)))
+              (org-ql-select (current-buffer) '(level <= 2)))
+       (with-current-buffer (get-buffer-create (format "* %s summary*" (buffer-name)))
+         (erase-buffer)
+         (insert (string-join it "\n"))
+         (markdown-mode)
+         (display-buffer (current-buffer)))))
+
 (defun amsha/org-repalce-link-in-string (str)
   "Replace the link in the string."
   (s-replace-regexp
