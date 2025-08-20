@@ -31,12 +31,12 @@
                                                         "brain/work/notes"
                                                         "brain/work/project_boards")))
 
-(use-package org-capture-pop-frame
-  :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
-                                   :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame"))
-  :config
-  (setf (alist-get 'width ocpf-frame-parameters) 170)
-  (setf (alist-get 'height ocpf-frame-parameters) 50))
+;; (use-package org-capture-pop-frame
+;;   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
+;;                                    :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame"))
+;;   :config
+;;   (setf (alist-get 'width ocpf-frame-parameters) 170)
+;;   (setf (alist-get 'height ocpf-frame-parameters) 50))
 
 (use-package org-protocol
   :ensure nil
@@ -419,7 +419,8 @@
          (target (progn
                    (assoc (completing-read "Select task: " targets nil t) targets))))
     (if (cdr target)
-        (format "**** [[id:%s][%s]]  %%?"
+        (format "**** [%s] [[id:%s][%s]]  %%?"
+                (format-time-string "%X" (current-time))
                 (nth 2 target)
                 (nth 1 target))
       "**** %?")))
@@ -626,18 +627,26 @@
 
 ;;(require 'org-bullets)
 (use-package org-modern
-    :straight (:type git :host github :repo "minad/org-modern")
-    :custom
-    (org-modern-star '("◉" " ○" "  ◈" "   ◇" "    •" "     ◦" "      ▸" "       ▹"))
-    (org-modern-block-fringe nil)
-    :hook ((org-mode . org-modern-mode)
-           (org-agenda-finalize . org-modern-agenda))
-    :custom-face
-    (org-modern-label ((t :height 0.9
+  :straight (:type git :host github :repo "minad/org-modern")
+  :custom
+  (org-modern-star '("◉" " ○" "  ◈" "   ◇" "    •" "     ◦" "      ▸" "       ▹"))
+  (org-modern-block-fringe nil)
+  :hook ((org-mode . org-modern-mode)
+         (org-agenda-finalize . org-modern-agenda))
+  :custom-face
+  (org-modern-label ((t :height 0.9
                         (:box
                          (:line-width
                           (1 . -1)
-                          :color "#777c80" :style nil))))))
+                          :color "#777c80" :style nil)))))
+
+  :config
+  (defun amsha/custom-time-only-highlight (oldfn)
+    (append
+     (funcall oldfn)
+     '(("\\[\\([0-9]\\{1,2\\}:[0-9]\\{2\\}:[0-9]\\{2\\} \\(?:AM\\|PM\\)\\)\\]" 0 'org-modern-time-inactive t))))
+
+  (advice-add 'org-modern--make-font-lock-keywords :around #'amsha/custom-time-only-highlight))
 
 (use-package org-modern-indent
   :straight (org-modern-indent :type git :host github :repo "jdtsmith/org-modern-indent")
