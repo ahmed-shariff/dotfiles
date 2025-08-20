@@ -347,6 +347,28 @@ Mutate state INFO with response metadata."
   ;;             ("C-c m" . gptel-mcp-dispatch)))
   )
 
+(use-package macher
+  :straight (macher :type git :host github :repo "kmontag/macher")
+
+  :custom
+  ;; The org UI has structured navigation and nice content folding.
+  (macher-action-buffer-ui 'org)
+
+  :config
+  ;; Adjust buffer positioning to taste.
+  ;; (add-to-list
+  ;;  'display-buffer-alist
+  ;;  '("\\*macher:.*\\*"
+  ;;    (display-buffer-in-side-window)
+  ;;    (side . bottom)))
+  ;; (add-to-list
+  ;;  'display-buffer-alist
+  ;;  '("\\*macher-patch:.*\\*"
+  ;;    (display-buffer-in-side-window)
+  ;;    (side . right)))
+  (macher-install)
+  )
+
 ;;;; Tool use ******************************************************************************
 (gptel-make-tool
  :function (lambda (url)
@@ -535,6 +557,10 @@ Mutate state INFO with response metadata."
 (gptel-make-preset 'notools
   :description "no tools"
   :tools nil)
+
+(gptel-make-preset 'nocontext
+  :description "no context"
+  :context-alist nil)
 
 (gptel-make-preset 'cite-add-abstract-summary
   :description "Add abstract and summary for `cite:`"
