@@ -420,7 +420,7 @@
                    (assoc (completing-read "Select task: " targets nil t) targets))))
     (if (cdr target)
         (format "**** [%s] [[id:%s][%s]]  %%?"
-                (format-time-string "%X" (current-time))
+                (format-time-string "%I:%M %p" (current-time))
                 (nth 2 target)
                 (nth 1 target))
       "**** %?")))
@@ -644,7 +644,7 @@
   (defun amsha/custom-time-only-highlight (oldfn)
     (append
      (funcall oldfn)
-     '(("\\[\\([0-9]\\{1,2\\}:[0-9]\\{2\\}:[0-9]\\{2\\} \\(?:AM\\|PM\\)\\)\\]" 0 'org-modern-time-inactive t))))
+     '(("\\[\\([0-9]\\{1,2\\}:[0-9]\\{2\\}\\(?::[0-9]\\{2\\}\\)? \\(?:AM\\|PM\\)\\)\\]" 0 'org-modern-time-inactive t))))
 
   (advice-add 'org-modern--make-font-lock-keywords :around #'amsha/custom-time-only-highlight))
 
