@@ -853,6 +853,7 @@ If the user prompt ends with @foo, the preset foo is applied."
    (when (> reset 0)
      (error "Need to wait for abstracts and summaries"))))
 
+;;; * handline headings in org response
 (defun amsha/gptel--replace-* (beg end)
   "Updating annotations strings."
   (when (derived-mode-p 'org-mode)
@@ -867,6 +868,14 @@ If the user prompt ends with @foo, the preset foo is applied."
         (insert-and-inherit "*")))))
 
 (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-*)
+
+;;; * Function to restore gptel states
+(defun amsha/gptel-set-region-as-response ()
+  "Set the selected region as a response (add text prop)."
+  (interactive)
+  (put-text-property
+   (region-beginning) (region-end)
+   'gptel 'response))
 
 ;;;; More setup ****************************************************************************
 (defvar amsha/gptel--openrouter
