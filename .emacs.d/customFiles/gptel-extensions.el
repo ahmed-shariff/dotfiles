@@ -1,14 +1,245 @@
 ;;; llm                     -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;;my custom org setup
+;; gptel and associated setup
 ;;; Code:
+(use-package gptel
+  :bind
+  (("C-c o q m" . gptel-menu)
+   ("C-c o q b" . gptel)
+   ("C-c o q Q" . gptel-send)
+   :map gptel-mode-map
+   ("C-c DEL" . amsha/erase-buffer-with-confirmation))
+  :custom
+  (gptel-api-key (gethash 'openai-apk configurations))
+  (gptel-use-curl t)
+  (gptel-backend gptel--openai)
+  (gptel-model 'o4-mini)
+  (gptel-default-mode #'org-mode)
+  :config
+  ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
+
+  (add-to-list 'yank-excluded-properties 'gptel)
+
+  (setf gptel-org-branching-context t
+        gptel-expert-commands t
+        (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
+        (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"))
 
 (require 'gptel)
 (require 'gptel-integrations)
 (require 'gptel-org)
 (require 'gptel-transient)
 (require 'gptel-context)
+
+;;;; packages ******************************************************************************
+(use-package elysium
+  :bind (("C-c o q c" . elysium-query))
+  :after gptel
+  :custom
+  ;; Below are the default values
+  (elysium-window-size 0.33) ; The elysium buffer will be 1/3 your screen
+  (elysium-window-style 'vertical)) ; Can be customized to horizontal
+
+(use-package smerge-mode
+  :ensure nil
+  :hook
+  (prog-mode . smerge-mode))
+
+(use-package magit-gptcommit
+  :straight (:type git :host github :repo "douo/magit-gptcommit" :branch "gptel"
+                   :fork (:host github :repo "ahmed-shariff/magit-gptcommit" :branch "add-custom-backend"))
+  :demand t
+  :after (magit)
+  :bind (:map git-commit-mode-map
+              ("C-c C-g" . magit-gptcommit-commit-accept))
+  :custom
+  (magit-gptcommit-backend 'gptel)
+  (magit-gptcommit-prompt "You are an expert programmer writing a Git commit message.
+You have carefully reviewed every file diff included in this commit.
+
+First, write a high-level one-line summary of the commit.
+- Keep it to a single line, no more than 50 characters
+- Use the imperative tense (e.g., 'Add logging' not 'Added logging')
+- Ensure the message reflects a clear and cohesive change
+- Do not end the summary with a period
+- Do not use backticks (`) anywhere in the response
+
+Finally, provide a detail of the changes being made.
+The detailed summary should contain, at a high-level, what changes were made, why they were made.
+
+Here's an example diff:
+```
+modified   gptel-openai.el
+@@ -289,8 +289,8 @@ Mutate state INFO with response metadata.
+            :stream ,(or gptel-stream :json-false)))
+-        (reasoning-model-p ; TODO: Embed this capability in the model's properties
+-         (memq gptel-model '(o1 o1-preview o1-mini o3-mini o3 o4-mini))))
++        (reasoning-model-p
++         (gptel--model-capable-p 'reasoning)))
+     (when (and gptel-temperature (not reasoning-model-p))
+       (plist-put prompts-plist :temperature gptel-temperature))
+```
+
+The one-line summary of the above diff would look like:
+\"gptel--request-data get reasoning capability from prop\"
+
+Here's an example of the detailed summary that may follow the above one-line summary:
+\"The models with reasoning capabilities were hard coded in openai's
+`gptel--request-data`. This commit replaces it with
+`gptel--model-capable-p` to get the reasoning capabilitie from the
+model properties.\"
+
+If there are parts in the detailed summary that I need to provide more details for, include them as follows
+\"[TODO: provide reason for X]\", where X is the part that needs more clarification.
+
+The number of charachters in a single line should never exceed 80 charachters.
+
+THE FILE DIFFS:
+```
+%s
+```
+Now, write the commit message using this format:
+[summary]
+
+[detailed summary]]")
+  ;; (magit-gptcommit-gptel-backend amsha/gptel--openrouter)
+  ;; (magit-gptcommit-gptel-model 'deepseek/deepseek-r1-distill-llama-70b:free)
+  :config
+
+  ;; Enable magit-gptcommit-mode to watch staged changes and generate commit message automatically in magit status buffer
+  ;; This mode is optional, you can also use `magit-gptcommit-generate' to generate commit message manually
+  ;; `magit-gptcommit-generate' should only execute on magit status buffer currently
+  ;; (magit-gptcommit-mode 1)
+
+  ;; Add gptcommit transient commands to `magit-commit'
+  ;; Eval (transient-remove-suffix 'magit-commit '(1 -1)) to remove gptcommit transient commands
+  (magit-gptcommit-status-buffer-setup)
+  )
+
+(use-package gptel-quick
+  :straight (:type git :host github :repo "karthink/gptel-quick")
+  :after gptel
+  :bind
+  (("C-c o q q" . gptel-quick)
+   ("C-c o q c" . gptel-quick-check))
+  :config
+  (setq gptel-quick-backend gptel--openai
+        gptel-quick-model 'gpt-4o)
+  (defun gptel-quick-check ()
+    "Check the region or thing at point with an LLM.
+
+QUERY-TEXT is the text being explained.  COUNT is the approximate
+word count of the response."
+    (interactive)
+    (let ((gptel-quick-system-message
+           (lambda (count)
+             (format "Is the sentence correct. Explain %d words or fewer." count))))
+      (call-interactively #'gptel-quick))))
+
+(use-package evedel
+  :after gptel
+  :config
+  (customize-set-variable 'evedel-empty-tag-query-matches-all nil)
+  (defvar evedel-keymap nil)
+  (define-prefix-command 'evedel-keymap)
+  (define-key evedel-keymap (kbd "r") #'evedel-create-reference)
+  (define-key evedel-keymap (kbd "d") #'evedel-create-directive)
+  (define-key evedel-keymap (kbd "s") #'evedel-save-instructions)
+  (define-key evedel-keymap (kbd "l") #'evedel-load-instructions)
+  (define-key evedel-keymap (kbd "p") #'evedel-process-directives)
+  (define-key evedel-keymap (kbd "m") #'evedel-modify-directive)
+  (define-key evedel-keymap (kbd "C") #'evedel-modify-reference-commentary)
+  (define-key evedel-keymap (kbd "x") #'evedel-delete-instructions)
+  (define-key evedel-keymap (kbd "c") #'evedel-convert-instructions)
+  (define-key evedel-keymap (kbd "j") #'evedel-next-instruction)
+  (define-key evedel-keymap (kbd "k") #'evedel-previous-instruction)
+  (define-key evedel-keymap (kbd "J") #'evedel-cycle-instructions-at-point)
+  (define-key evedel-keymap (kbd "t") #'evedel-add-tags)
+  (define-key evedel-keymap (kbd "T") #'evedel-remove-tags)
+  (define-key evedel-keymap (kbd "D") #'evedel-modify-directive-tag-query)
+  (define-key evedel-keymap (kbd "P") #'evedel-preview-directive-prompt)
+  (define-key evedel-keymap (kbd "/") #'evedel-directive-undo)
+  (define-key evedel-keymap (kbd "?") #'(lambda ()
+                                                (interactive)
+                                                (evedel-directive-undo t)))
+  (repeatize 'evedel-keymap)
+  (define-key global-map (kbd "C-c o e") evedel-keymap))
+
+(use-package gptel-openai-assistant
+  :after gptel
+  :straight (gptel-openai-assistant :type git :host github :repo "ahmed-shariff/gptel-openai-assistant")
+  :config
+  (setf gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
+
+  (defun amsha/gptel--replace-file-id-with-cite (start end)
+    "Updating annotations strings."
+    (save-excursion
+      (goto-char start)
+      (let ((nodes (--map
+                    (cons
+                     (alist-get "OPENAI_FILE_ID" (org-roam-node-properties it) nil nil #'string-equal)
+                     (cons (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'string-equal)
+                           (org-roam-node-id it)))
+                    (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
+        (condition-case err
+            (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
+              (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'string-equal))
+                          (newtext (format " [cite:%s]" (car elt))))
+                (setq end (+ end (- (length newtext) (length (match-string 0)))))
+                (replace-match newtext)))
+          (search-failed nil)))))
+  ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
+  (setf (alist-get "openai-assistant" gptel--known-backends
+             nil nil #'string-equal)
+        (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key)))
+
+  (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
+
+  )
+
+(use-package mcp
+  :straight (mcp :type git :host github :repo "lizqwerscott/mcp.el"
+                 :files (:defaults "mcp-hub")))
+
+(use-package mcp-hub
+  :after mcp
+  :ensure nil
+  :straight nil
+  :config
+  (setq mcp-hub-servers
+        '(("context7" . (:command "npx" :args ("-y" "@upstash/context7-mcp@latest")))
+          ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" "~/temp"))))))
+
+(use-package gptel-mcp
+  :ensure t
+  :straight (gptel-mcp :type git :host github :repo "lizqwerscott/gptel-mcp.el")
+  ;; :bind (:map gptel-mode-map
+  ;;             ("C-c m" . gptel-mcp-dispatch)))
+  )
+
+(use-package macher
+  :straight (macher :type git :host github :repo "kmontag/macher")
+
+  :custom
+  ;; The org UI has structured navigation and nice content folding.
+  (macher-action-buffer-ui 'org)
+
+  :config
+  ;; Adjust buffer positioning to taste.
+  ;; (add-to-list
+  ;;  'display-buffer-alist
+  ;;  '("\\*macher:.*\\*"
+  ;;    (display-buffer-in-side-window)
+  ;;    (side . bottom)))
+  ;; (add-to-list
+  ;;  'display-buffer-alist
+  ;;  '("\\*macher-patch:.*\\*"
+  ;;    (display-buffer-in-side-window)
+  ;;    (side . right)))
+  (macher-install)
+  )
+
 
 ;;;; openai reponse ************************************************************************
 (cl-defstruct (gptel-openai-responses
@@ -222,20 +453,25 @@ Mutate state INFO with response metadata."
   [["Built in tools"
     ("wl" "web search (low context)" ""
      :class amsha/add-to-list-switch
-     :target-value (:type "web_search_preview" :search-context-size "low")
+     :target-value (:type "web_search_preview")
      :target-list gptel-openai-responses--tools)
-    ("wm" "web search (medium context)" ""
-     :class amsha/add-to-list-switch
-     :target-value (:type "web_search_preview" :search-context-size "medium")
-     :target-list gptel-openai-responses--tools)
-    ("wh" "web search (high context)" ""
-     :class amsha/add-to-list-switch
-     :target-value (:type "web_search_preview" :search-context-size "high")
-     :target-list gptel-openai-responses--tools)
+    ;; ("wl" "web search (low context)" ""
+    ;;  :class amsha/add-to-list-switch
+    ;;  :target-value (:type "web_search_preview" :search-context-size "low")
+    ;;  :target-list gptel-openai-responses--tools)
+    ;; ("wm" "web search (medium context)" ""
+    ;;  :class amsha/add-to-list-switch
+    ;;  :target-value (:type "web_search_preview" :search-context-size "medium")
+    ;;  :target-list gptel-openai-responses--tools)
+    ;; ("wh" "web search (high context)" ""
+    ;;  :class amsha/add-to-list-switch
+    ;;  :target-value (:type "web_search_preview" :search-context-size "high")
+    ;;  :target-list gptel-openai-responses--tools)
     ("fo" "File search (org)" ""
      :class amsha/add-to-list-switch
-     :target-value (:type "file_search"
-                          :vector_store_ids (vconcat (list (gethash 'openai-org-vector-store configurations))))
+     :target-value (lambda ()
+                     `(:type "file_search"
+                             :vector_store_ids ,(vconcat (list (gethash 'openai-org-vector-store configurations)))))
      :target-list gptel-openai-responses--tools)
     ""
     ("DEL" "Remove all" (lambda ()
@@ -293,81 +529,6 @@ Mutate state INFO with response metadata."
                                     results)
                              "\n\n- ")))
     (user-error "No last fsm.")))
-
-;;;; Other packages ************************************************************************
-(use-package gptel-openai-assistant
-  :after gptel
-  :straight (gptel-openai-assistant :type git :host github :repo "ahmed-shariff/gptel-openai-assistant")
-  :config
-  (setf gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
-
-  (defun amsha/gptel--replace-file-id-with-cite (start end)
-    "Updating annotations strings."
-    (save-excursion
-      (goto-char start)
-      (let ((nodes (--map
-                    (cons
-                     (alist-get "OPENAI_FILE_ID" (org-roam-node-properties it) nil nil #'string-equal)
-                     (cons (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'string-equal)
-                           (org-roam-node-id it)))
-                    (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
-        (condition-case err
-            (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
-              (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'string-equal))
-                          (newtext (format " [cite:%s]" (car elt))))
-                (setq end (+ end (- (length newtext) (length (match-string 0)))))
-                (replace-match newtext)))
-          (search-failed nil)))))
-  ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
-  (setf (alist-get "openai-assistant" gptel--known-backends
-             nil nil #'string-equal)
-        (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key)))
-
-  (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
-
-  )
-
-(use-package mcp
-  :straight (mcp :type git :host github :repo "lizqwerscott/mcp.el"
-                 :files (:defaults "mcp-hub")))
-
-(use-package mcp-hub
-  :after mcp
-  :ensure nil
-  :straight nil
-  :config
-  (setq mcp-hub-servers
-        '(("context7" . (:command "npx" :args ("-y" "@upstash/context7-mcp@latest")))
-          ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" "~/temp"))))))
-
-(use-package gptel-mcp
-  :ensure t
-  :straight (gptel-mcp :type git :host github :repo "lizqwerscott/gptel-mcp.el")
-  ;; :bind (:map gptel-mode-map
-  ;;             ("C-c m" . gptel-mcp-dispatch)))
-  )
-
-(use-package macher
-  :straight (macher :type git :host github :repo "kmontag/macher")
-
-  :custom
-  ;; The org UI has structured navigation and nice content folding.
-  (macher-action-buffer-ui 'org)
-
-  :config
-  ;; Adjust buffer positioning to taste.
-  ;; (add-to-list
-  ;;  'display-buffer-alist
-  ;;  '("\\*macher:.*\\*"
-  ;;    (display-buffer-in-side-window)
-  ;;    (side . bottom)))
-  ;; (add-to-list
-  ;;  'display-buffer-alist
-  ;;  '("\\*macher-patch:.*\\*"
-  ;;    (display-buffer-in-side-window)
-  ;;    (side . right)))
-  (macher-install)
-  )
 
 ;;;; Tool use ******************************************************************************
 (gptel-make-tool
@@ -711,23 +872,6 @@ Otherwise, add ELEM as the last element."
 (add-hook 'prog-mode-hook #'amsha/gptel-highlight-preset-mode)
 (add-hook 'text-mode-hook #'amsha/gptel-highlight-preset-mode)
 
-(defun amsha/gptel--transform-apply-preset (_fsm)
-  "Apply a gptel preset to the buffer depending on the prompt.
-
-If the user prompt ends with @foo, the preset foo is applied."
-  (while-let (((looking-back "@\\([^[:blank:]]+\\)\\s-*[[:blank:]\n]*\\s-*"))
-              (name (match-string 1))
-              (preset (or (gptel-get-preset (intern-soft name))
-                          (gptel-get-preset name))))
-    (delete-region (match-beginning 0) (match-end 0))
-    (gptel--apply-preset (cons name preset)
-                         (lambda (sym val)
-                           (set (make-local-variable sym) val)))
-    (message "Sending request with preset %s applied!"
-             (propertize name 'face 'mode-line-emphasis))))
-
-(advice-add 'gptel--transform-apply-preset :after #'amsha/gptel--transform-apply-preset)
-
 (defvar gptel-persistent-context-dir "~/.emacs.d/.cache/gptel-temp-context")
 
 (make-directory gptel-persistent-context-dir t)
@@ -897,4 +1041,4 @@ If the user prompt ends with @foo, the preset foo is applied."
   (error (message "ERROR %s" err)))
 
 (provide 'gptel-extensions)
-;;; orgZ.el ends here
+;;; gptel-extensions.el ends here
