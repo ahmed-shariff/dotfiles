@@ -3,28 +3,6 @@
 ;;; Commentary:
 ;; gptel and associated setup
 ;;; Code:
-(use-package gptel
-  :bind
-  (("C-c o q m" . gptel-menu)
-   ("C-c o q b" . gptel)
-   ("C-c o q Q" . gptel-send)
-   :map gptel-mode-map
-   ("C-c DEL" . amsha/erase-buffer-with-confirmation))
-  :custom
-  (gptel-api-key (gethash 'openai-apk configurations))
-  (gptel-use-curl t)
-  (gptel-backend gptel--openai)
-  (gptel-model 'o4-mini)
-  (gptel-default-mode #'org-mode)
-  :config
-  ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
-
-  (add-to-list 'yank-excluded-properties 'gptel)
-
-  (setf gptel-org-branching-context t
-        gptel-expert-commands t
-        (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
-        (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"))
 
 (require 'gptel)
 (require 'gptel-integrations)
