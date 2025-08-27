@@ -1017,8 +1017,7 @@ Otherwise, add ELEM as the last element."
            :map gptel-mode-map
            ("C-c DEL" . amsha/erase-buffer-with-confirmation))
 
-(setf gptel-api-key (gethash 'openai-apk configurations)
-      gptel-use-curl t
+(setf gptel-use-curl t
       gptel-backend gptel-openai-response-backend
       gptel-model 'gpt-5-mini
       gptel-default-mode #'org-mode

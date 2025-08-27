@@ -1474,7 +1474,9 @@ targets."
 ;; gptel ***********************************************************
 (use-package gptel-extensions
   :straight nil
-  :defer 1)
+  :defer 1
+  :custom
+  (gptel-api-key (gethash 'openai-apk configurations)))
 
 ;;ivy-mode *********************************************************
 (use-package amx
