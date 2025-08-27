@@ -74,6 +74,9 @@ model properties.\"
 If there are parts in the detailed summary that I need to provide more details for, include them as follows
 \"[TODO: provide reason for X]\", where X is the part that needs more clarification.
 
+If there are any potentials bug or issues in the changes, include them as follows:
+\"FIX:\n X\", where X is the short explanation of the bugs/issues.
+
 The number of charachters in a single line should never exceed 80 charachters.
 
 THE FILE DIFFS:
@@ -682,6 +685,12 @@ Mutate state INFO with response metadata."
 (gptel-make-preset 'nocontext
   :description "no context"
   :context-alist nil)
+
+(gptel-make-preset 'filectx
+  :description "Current file as context"
+  :pre
+  (lambda ()
+    (gptel-context-add)))
 
 (gptel-make-preset 'cite-add-abstract-summary
   :description "Add abstract and summary for `cite:`"
