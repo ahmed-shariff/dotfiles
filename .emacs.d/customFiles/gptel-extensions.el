@@ -4,11 +4,14 @@
 ;; gptel and associated setup
 ;;; Code:
 
+(straight-use-package 'gptel)
 (require 'gptel)
 (require 'gptel-integrations)
 (require 'gptel-org)
 (require 'gptel-transient)
 (require 'gptel-context)
+(require 'gptel-curl)
+(require 'f)
 
 ;;;; packages ******************************************************************************
 (use-package elysium
@@ -150,30 +153,9 @@ word count of the response."
   :config
   (setf gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
 
-  (defun amsha/gptel--replace-file-id-with-cite (start end)
-    "Updating annotations strings."
-    (save-excursion
-      (goto-char start)
-      (let ((nodes (--map
-                    (cons
-                     (alist-get "OPENAI_FILE_ID" (org-roam-node-properties it) nil nil #'string-equal)
-                     (cons (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'string-equal)
-                           (org-roam-node-id it)))
-                    (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
-        (condition-case err
-            (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
-              (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'string-equal))
-                          (newtext (format " [cite:%s]" (car elt))))
-                (setq end (+ end (- (length newtext) (length (match-string 0)))))
-                (replace-match newtext)))
-          (search-failed nil)))))
-  ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
   (setf (alist-get "openai-assistant" gptel--known-backends
-             nil nil #'string-equal)
+                   nil nil #'string-equal)
         (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key)))
-
-  (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
-
   )
 
 (use-package mcp
@@ -1006,7 +988,50 @@ Otherwise, add ELEM as the last element."
    (region-beginning) (region-end)
    'gptel nil))
 
-;;;; More setup ****************************************************************************
+(defun amsha/gptel--replace-file-id-with-cite (start end)
+  "Updating annotations strings."
+  (save-excursion
+    (goto-char start)
+    (let ((nodes (--map
+                  (cons
+                   (alist-get "OPENAI_FILE_ID" (org-roam-node-properties it) nil nil #'string-equal)
+                   (cons (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'string-equal)
+                         (org-roam-node-id it)))
+                  (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
+      (condition-case err
+          (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
+            (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'string-equal))
+                        (newtext (format " [cite:%s]" (car elt))))
+              (setq end (+ end (- (length newtext) (length (match-string 0)))))
+              (replace-match newtext)))
+        (search-failed nil)))))
+;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
+(add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
+
+
+;;;; setup *********************************************************************************
+(bind-keys :package gptel
+           ("C-c o q m" . gptel-menu)
+           ("C-c o q b" . gptel)
+           ("C-c o q Q" . gptel-send)
+           :map gptel-mode-map
+           ("C-c DEL" . amsha/erase-buffer-with-confirmation))
+
+(setf gptel-api-key (gethash 'openai-apk configurations)
+      gptel-use-curl t
+      gptel-backend gptel-openai-response-backend
+      gptel-model 'gpt-5-mini
+      gptel-default-mode #'org-mode
+
+      gptel-org-branching-context t
+      gptel-expert-commands t
+      (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
+      (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n")
+
+;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
+
+(add-to-list 'yank-excluded-properties 'gptel)
+
 (defvar amsha/gptel--openrouter
   (gptel-make-openai "OpenRouter"               ;Any name you want
     :host "openrouter.ai"
