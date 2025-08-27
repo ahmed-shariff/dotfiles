@@ -999,6 +999,13 @@ Otherwise, add ELEM as the last element."
    (region-beginning) (region-end)
    'gptel 'response))
 
+(defun amsha/gptel-set-region-as-user ()
+  "Set the selected region as a user text (add text prop)."
+  (interactive)
+  (put-text-property
+   (region-beginning) (region-end)
+   'gptel nil))
+
 ;;;; More setup ****************************************************************************
 (defvar amsha/gptel--openrouter
   (gptel-make-openai "OpenRouter"               ;Any name you want
