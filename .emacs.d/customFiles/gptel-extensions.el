@@ -710,9 +710,51 @@ Otherwise, add ELEM as the last element."
      (t
       (append lst (list elem))))))
 
+(defvar amsha/gptel--current-status " ")
+
+(defun amsha/gptel--update-status (msg face)
+  (setq amsha/gptel--current-status (propertize msg 'face face)))
+
+(defun amsha/gptel--clear-update-status (_ _)
+  (amsha/gptel--update-status " " 'default))
+
+(defun amsha/gptel--WAIT-update-status (_)
+  (amsha/gptel--update-status "↑" 'warning))
+
+(defun amsha/gptel--TOOL-update-status (_)
+  (amsha/gptel--update-status "🔨" 'warning))
+
+(defun amsha/gptel--TYPE-update-status (_)
+  (amsha/gptel--update-status "↓" 'diary))
+
+(defun amsha/gptel--ERROR-update-status (_)
+  (amsha/gptel--update-status "❌" 'error))
+
+(add-hook 'gptel-post-response-functions #'amsha/gptel--clear-update-status)
+
+(unless (memq 'amsha/gptel--WAIT-update-status (alist-get 'WAIT gptel-send--handlers))
+  (push 'amsha/gptel--WAIT-update-status (alist-get 'WAIT gptel-send--handlers)))
+(unless (memq 'amsha/gptel--WAIT-update-status (alist-get 'WAIT gptel-request--handlers))
+  (push 'amsha/gptel--WAIT-update-status (alist-get 'WAIT gptel-request--handlers)))
+
+(unless (memq 'amsha/gptel--TOOL-update-status (alist-get 'TOOL gptel-send--handlers))
+  (push 'amsha/gptel--TOOL-update-status (alist-get 'TOOL gptel-send--handlers)))
+(unless (memq 'amsha/gptel--TOOL-update-status (alist-get 'TOOL gptel-request--handlers))
+  (push 'amsha/gptel--TOOL-update-status (alist-get 'TOOL gptel-request--handlers)))
+
+(unless (memq 'amsha/gptel--TYPE-update-status (alist-get 'TYPE gptel-send--handlers))
+  (push 'amsha/gptel--TYPE-update-status (alist-get 'TYPE gptel-send--handlers)))
+
+(unless (memq 'amsha/gptel--ERROR-update-status (alist-get 'ERROR gptel-send--handlers))
+  (push 'amsha/gptel--ERROR-update-status (alist-get 'ERROR gptel-send--handlers)))
+
 (defun gptel-extensions--modeline ()
   "Add modelines showing current model."
   (concat
+   (propertize amsha/gptel--current-status
+               'face `(:inherit ,(or (get-text-property 0 'face amsha/gptel--current-status)
+                                     'default)
+                                :background "#000033"))
    (propertize (format "🧠 %s-%s "
                        (gptel-backend-name gptel-backend)
                        (gptel--model-name gptel-model))
