@@ -719,49 +719,38 @@ Otherwise, add ELEM as the last element."
      (t
       (append lst (list elem))))))
 
-(defvar amsha/gptel--current-status " ")
+;; from karthink https://github.com/karthink/gptel/issues/858
+(defvar gptel--mode-line-format " ")
 
-(defun amsha/gptel--update-status (msg face)
-  (setq amsha/gptel--current-status (propertize msg 'face face)))
+(defun gptel--mode-line-format (msg &optional face)
+  (setq gptel--mode-line-format
+        (if face (propertize msg 'face face) msg)))
 
-(defun amsha/gptel--clear-update-status (_ _)
-  (amsha/gptel--update-status " " 'default))
+;; Update according to current state
+(defun gptel--mode-line-update (fsm)
+  (pcase (gptel-fsm-state fsm)
+    ('WAIT (gptel--mode-line-format "↑" 'warning))
+    ('TYPE (gptel--mode-line-format "↓" 'success))
+    ('TOOL (gptel--mode-line-format "🔨" 'warning))
+    ('ERRS (gptel--mode-line-format "❌" 'error))
+    (_     (gptel--mode-line-format " "))))
 
-(defun amsha/gptel--WAIT-update-status (_)
-  (amsha/gptel--update-status "↑" 'warning))
+;; Add to `gptel-send' FSM handlers
+(dolist (state '(WAIT TYPE TOOL ERRS DONE))
+  (cl-pushnew 'gptel--mode-line-update
+              (alist-get state gptel-send--handlers)))
 
-(defun amsha/gptel--TOOL-update-status (_)
-  (amsha/gptel--update-status "🔨" 'warning))
-
-(defun amsha/gptel--TYPE-update-status (_)
-  (amsha/gptel--update-status "↓" 'diary))
-
-(defun amsha/gptel--ERROR-update-status (_)
-  (amsha/gptel--update-status "❌" 'error))
-
-(add-hook 'gptel-post-response-functions #'amsha/gptel--clear-update-status)
-
-(unless (memq 'amsha/gptel--WAIT-update-status (alist-get 'WAIT gptel-send--handlers))
-  (push 'amsha/gptel--WAIT-update-status (alist-get 'WAIT gptel-send--handlers)))
-(unless (memq 'amsha/gptel--WAIT-update-status (alist-get 'WAIT gptel-request--handlers))
-  (push 'amsha/gptel--WAIT-update-status (alist-get 'WAIT gptel-request--handlers)))
-
-(unless (memq 'amsha/gptel--TOOL-update-status (alist-get 'TOOL gptel-send--handlers))
-  (push 'amsha/gptel--TOOL-update-status (alist-get 'TOOL gptel-send--handlers)))
-(unless (memq 'amsha/gptel--TOOL-update-status (alist-get 'TOOL gptel-request--handlers))
-  (push 'amsha/gptel--TOOL-update-status (alist-get 'TOOL gptel-request--handlers)))
-
-(unless (memq 'amsha/gptel--TYPE-update-status (alist-get 'TYPE gptel-send--handlers))
-  (push 'amsha/gptel--TYPE-update-status (alist-get 'TYPE gptel-send--handlers)))
-
-(unless (memq 'amsha/gptel--ERROR-update-status (alist-get 'ERROR gptel-send--handlers))
-  (push 'amsha/gptel--ERROR-update-status (alist-get 'ERROR gptel-send--handlers)))
+;; Optional: Also add to `gptel-request' FSM handlers
+;; (i.e. for all gptel commands, not just `gptel-send')
+(dolist (state '(WAIT TYPE TOOL ERRS DONE))
+  (cl-pushnew 'gptel--mode-line-update
+              (alist-get state gptel-request--handlers)))
 
 (defun gptel-extensions--modeline ()
   "Add modelines showing current model."
   (concat
-   (propertize amsha/gptel--current-status
-               'face `(:inherit ,(or (get-text-property 0 'face amsha/gptel--current-status)
+   (propertize gptel--mode-line-format
+               'face `(:inherit ,(or (get-text-property 0 'face gptel--mode-line-format)
                                      'default)
                                 :background "#000033"))
    (propertize (format "🧠 %s-%s "
