@@ -720,48 +720,59 @@ Otherwise, add ELEM as the last element."
       (append lst (list elem))))))
 
 ;; from karthink https://github.com/karthink/gptel/issues/858
-(defvar gptel--mode-line-format " ")
+(defvar gptel--mode-line-status " ")
+(defvar gptel--mode-line-format "")
 
-(defun gptel--mode-line-format (msg &optional face)
-  (setq gptel--mode-line-format
+(defun gptel--mode-line-status (msg &optional face)
+  (setq gptel--mode-line-status
         (if face (propertize msg 'face face) msg)))
 
 ;; Update according to current state
-(defun gptel--mode-line-update (fsm)
+(defun gptel--mode-line-status-update (fsm)
   (pcase (gptel-fsm-state fsm)
-    ('WAIT (gptel--mode-line-format "↑" 'warning))
-    ('TYPE (gptel--mode-line-format "↓" 'success))
-    ('TOOL (gptel--mode-line-format "🔨" 'warning))
-    ('ERRS (gptel--mode-line-format "❌" 'error))
-    (_     (gptel--mode-line-format " "))))
+    ('WAIT (gptel--mode-line-status "↑" 'warning))
+    ('TYPE (gptel--mode-line-status "↓" 'success))
+    ('TOOL (gptel--mode-line-status "🔨" 'warning))
+    ('ERRS (gptel--mode-line-status "❌" 'error))
+    (_     (gptel--mode-line-status " ")))
+  (gptel--update-mode-line))
 
 ;; Add to `gptel-send' FSM handlers
 (dolist (state '(WAIT TYPE TOOL ERRS DONE))
-  (cl-pushnew 'gptel--mode-line-update
+  (cl-pushnew 'gptel--mode-line-status-update
               (alist-get state gptel-send--handlers)))
 
 ;; Optional: Also add to `gptel-request' FSM handlers
 ;; (i.e. for all gptel commands, not just `gptel-send')
 (dolist (state '(WAIT TYPE TOOL ERRS DONE))
-  (cl-pushnew 'gptel--mode-line-update
+  (cl-pushnew 'gptel--mode-line-status-update
               (alist-get state gptel-request--handlers)))
 
-(defun gptel-extensions--modeline ()
-  "Add modelines showing current model."
-  (concat
-   (propertize gptel--mode-line-format
-               'face `(:inherit ,(or (get-text-property 0 'face gptel--mode-line-format)
-                                     'default)
-                                :background "#000033"))
-   (propertize (format "🧠 %s-%s "
-                       (gptel-backend-name gptel-backend)
-                       (gptel--model-name gptel-model))
-               'face '(:foreground "gray80" :background "#000033"))
-   (if gptel-context--alist
-       (propertize (format "(%s) "
-                           (length gptel-context--alist))
-                   'face '(:foreground "red3" :background "#000033"))
-     "")))
+(defun gptel--update-mode-line (&rest _)
+  "Add modelines showing current model, status and context."
+  (setq gptel--mode-line-format
+        (concat (propertize gptel--mode-line-status
+                            'face `(:inherit ,(or (get-text-property 0 'face gptel--mode-line-status)
+                                                  'default)
+                                             :background "#000033"))
+                (propertize (format "🧠 %s-%s "
+                                    (gptel-backend-name gptel-backend)
+                                    (gptel--model-name gptel-model))
+                            'face '(:foreground "gray80" :background "#000033"))
+                (if gptel-context--alist
+                    (propertize (format "(%s) "
+                                        (length gptel-context--alist))
+                                'face '(:foreground "red3" :background "#000033"))
+                  ""))))
+
+(run-with-idle-timer 3 t #'gptel--update-mode-line)
+
+(advice-add 'gptel--infix-provider :after #'gptel--update-mode-line)
+(advice-add 'gptel-context--at-point :after #'gptel--update-mode-line)
+(advice-add 'gptel-add :after #'gptel--update-mode-line)
+(advice-add 'gptel-context-add-current-kill :after #'gptel--update-mode-line)
+
+(cl-pushnew '((:eval gptel--mode-line-format)) global-mode-string)
 
 (defun amsha/gptel-get-bib-entry-from-citation (citation)
   "Function to take in a citation and turn that into a bib entry."
@@ -1078,10 +1089,6 @@ Otherwise, add ELEM as the last element."
     :stream t
     :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
     :models '(deepseek/deepseek-r1-distill-llama-70b:free)))
-
-(let ((mode-line-string '(:eval (gptel-extensions--modeline))))
-  (unless (memql mode-line-string global-mode-string)
-    (add-to-list 'global-mode-string mode-line-string)))
 
 (condition-case err
     (setf (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
