@@ -1082,6 +1082,10 @@ Otherwise, add ELEM as the last element."
 
 (add-to-list 'yank-excluded-properties 'gptel)
 
+;; Add fsm-last to the request handlers
+(cl-pushnew 'gptel--fsm-last (alist-get 'DONE gptel-request--handlers))
+(cl-pushnew 'gptel--fsm-last (alist-get 'ERRS gptel-request--handlers))
+
 (defvar amsha/gptel--openrouter
   (gptel-make-openai "OpenRouter"               ;Any name you want
     :host "openrouter.ai"
