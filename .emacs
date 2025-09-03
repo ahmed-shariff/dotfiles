@@ -2504,6 +2504,12 @@ Used with atomic-chrome."
   (persp-harpoon-mode t)
   (persp-harpoon-configure-for-perspective))
 
+;; burly *****************************************************************************************************************
+(use-package burly
+  :bind (("C-c o b f" . burly-bookmark-frames)
+         ("C-c o b w" . burly-bookmark-windows)
+         ("C-c o b o" . burly-open-bookmark)))
+
 ;; popper ****************************************************************************************************************
 
 (use-package popper
