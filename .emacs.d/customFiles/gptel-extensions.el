@@ -108,8 +108,6 @@ Now, write the commit message using this format:
   (("C-c o q q" . gptel-quick)
    ("C-c o q c" . gptel-quick-check))
   :config
-  (setq gptel-quick-backend gptel--openai
-        gptel-quick-model 'gpt-4o)
   (defun gptel-quick-check ()
     "Check the region or thing at point with an LLM.
 
@@ -298,6 +296,8 @@ word count of the response."
     (while p
       (when (eq (car p) :messages)
         (setcar p :input))
+      (when (memq (car p) '(:max_completion_tokens :max_tokens))
+        (setcar p :max_output_tokens))
       (setq p (cddr p)))
     prompts))
 
@@ -1076,7 +1076,12 @@ Otherwise, add ELEM as the last element."
       gptel-org-branching-context t
       gptel-expert-commands t
       (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
-      (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n")
+      (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"
+
+      gptel-quick-backend gptel-openai-response-backend
+      ;; the gpt 5 models are reasoning models and the max tokens set is too small with quick.
+      ;; See https://github.com/openai/openai-python/issues/2546
+      gptel-quick-model 'gpt-4.1-mini)
 
 ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
 
