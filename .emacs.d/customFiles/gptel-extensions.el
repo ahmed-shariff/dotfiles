@@ -782,13 +782,15 @@ Otherwise, add ELEM as the last element."
                                 'face '(:foreground "red3" :background "#000033")))
                   ""))))
 
-(run-with-idle-timer 3 t #'gptel--update-mode-line)
+(run-with-idle-timer 5 t #'gptel--update-mode-line)
 
 (advice-add 'gptel--infix-provider :after #'gptel--update-mode-line)
 (advice-add 'gptel-context--at-point :after #'gptel--update-mode-line)
 (advice-add 'gptel-add :after #'gptel--update-mode-line)
 (advice-add 'gptel-context-add-current-kill :after #'gptel--update-mode-line)
 (advice-add 'gptel-abort :after #'gptel--update-mode-line)
+
+(add-hook 'transient-exit-hook #'gptel--update-mode-line)
 
 (cl-pushnew '((:eval gptel--mode-line-format)) global-mode-string)
 
