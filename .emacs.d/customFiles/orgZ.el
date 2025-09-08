@@ -3406,7 +3406,8 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
             (funcall tool-callback (format "* abstract\n%s\n* summary\n%s" abstract summary))
           (format "* abstract\n%s\n* summary\n%s" abstract summary))
       (let ((gptel-context--alist nil)
-            (gptel-tools nil))
+            (gptel-tools nil)
+            (gptel-openai-responses--tools nil))
         (condition-case err
             (gptel-request (format "%s
 

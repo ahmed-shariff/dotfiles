@@ -759,10 +759,27 @@ Otherwise, add ELEM as the last element."
                                     (gptel-backend-name gptel-backend)
                                     (gptel--model-name gptel-model))
                             'face '(:foreground "gray80" :background "#000033"))
-                (if gptel-context--alist
-                    (propertize (format "(%s) "
-                                        (length gptel-context--alist))
-                                'face '(:foreground "red3" :background "#000033"))
+                (if (or gptel-context--alist gptel-tools gptel-openai-responses--tools)
+                    (let ((context-string
+                           (when gptel-context--alist
+                             (format "C:%s" (length gptel-context--alist))))
+                          (tool-string
+                           (when (or gptel-tools gptel-openai-responses--tools)
+                             (format "T:%s"
+                                     (+ (if gptel-tools
+                                            (length gptel-tools)
+                                          0)
+                                        (if gptel-openai-responses--tools
+                                            (length gptel-openai-responses--tools)
+                                          0))))))
+                      (propertize (format "(%s) "
+                                          (cond
+                                           ((and context-string tool-string)
+                                            (concat context-string "/" tool-string))
+                                           ((or context-string tool-string)
+                                            (or context-string tool-string))
+                                           (t "huh")))
+                                'face '(:foreground "red3" :background "#000033")))
                   ""))))
 
 (run-with-idle-timer 3 t #'gptel--update-mode-line)
@@ -771,6 +788,7 @@ Otherwise, add ELEM as the last element."
 (advice-add 'gptel-context--at-point :after #'gptel--update-mode-line)
 (advice-add 'gptel-add :after #'gptel--update-mode-line)
 (advice-add 'gptel-context-add-current-kill :after #'gptel--update-mode-line)
+(advice-add 'gptel-abort :after #'gptel--update-mode-line)
 
 (cl-pushnew '((:eval gptel--mode-line-format)) global-mode-string)
 
