@@ -25,8 +25,8 @@
 (with-eval-after-load 'magit
   (magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers"
                                                         "brain/roam-notes"
-                                                        "brain/personl/work"
-                                                        "brain/personl/notes"
+                                                        "brain/personal/work"
+                                                        "brain/personal/notes"
                                                         "brain/work/figures"
                                                         "brain/work/notes"
                                                         "brain/work/project_boards")))
