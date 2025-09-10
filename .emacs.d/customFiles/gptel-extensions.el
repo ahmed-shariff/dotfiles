@@ -1079,14 +1079,24 @@ Otherwise, add ELEM as the last element."
 ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
 (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
 
+;;;###autoload
+(defun amsha/gptel-yank (arg)
+  "Yank without excluding 'gptel prop."
+  (interactive "p")
+  (let ((yank-excluded-properties (remove 'gptel yank-excluded-properties)))
+    (yank arg)))
 
 ;;;; setup *********************************************************************************
 (bind-keys :package gptel
            ("C-c o q m" . gptel-menu)
            ("C-c o q b" . gptel)
            ("C-c o q Q" . gptel-send)
+           ("C-c o q y" . amsha/gptel-yank)
            :map gptel-mode-map
            ("C-c DEL" . amsha/erase-buffer-with-confirmation))
+
+;; Not sure where this is getting bound! 🤷
+(evil-define-key '(normal visual) gptel-mode-map (kbd "RET") nil)
 
 (setf gptel-use-curl t
       gptel-backend gptel-openai-response-backend

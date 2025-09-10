@@ -757,6 +757,7 @@ that returns a string."
   (evil-global-set-key 'visual "\M-q" 'evil-force-normal-state)
   (evil-global-set-key 'normal "\M-q" 'evil-force-normal-state)
   (evil-global-set-key 'replace "\M-q" 'evil-force-normal-state)
+  (evil-global-set-key 'motion (kbd "C-S-o") 'evil-jump-forward)
 
   (evil-set-initial-state 'dired-mode 'normal)
   (evil-set-initial-state 'pdf-view-mode 'emacs)
@@ -3500,3 +3501,4 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 ;;yasnippets company conflict resolution
 ;(provide .emacs)
 ;;; .emacs ends here
+(put 'erase-buffer 'disabled nil)
