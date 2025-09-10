@@ -1060,7 +1060,7 @@ Otherwise, add ELEM as the last element."
    'gptel nil))
 
 (defun amsha/gptel--replace-file-id-with-cite (start end)
-  "Updating annotations strings."
+  "Updating annotations strings, preserving text properties of replaced text."
   (save-excursion
     (goto-char start)
     (let ((nodes (--map
@@ -1070,12 +1070,26 @@ Otherwise, add ELEM as the last element."
                          (org-roam-node-id it)))
                   (org-roam-ql-nodes `(properties "OPENAI_FILE_ID" ".+")))))
       (condition-case err
-          (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
-            (when-let* ((elt (alist-get (match-string 1) nodes nil nil #'string-equal))
-                        (newtext (format " [cite:%s]" (car elt))))
-              (setq end (+ end (- (length newtext) (length (match-string 0)))))
-              (replace-match newtext)))
+          (save-match-data
+            (while (re-search-forward "\\[file_citation:\\([a-zA-Z0-9\\-]*\\)\\]" end)
+              (when-let* ((key (match-string 1))
+                          (elt (alist-get key nodes nil nil #'string-equal)))
+                (let* ((oldstr (match-string 0))
+                       (oldlen (length oldstr))
+                       (newtext (format " [cite:%s]" (car elt)))
+                       (newlen (length newtext))
+                       (beg (match-beginning 0))
+                       (props (and (< beg (match-end 0))
+                                   (text-properties-at beg))))
+                  ;; Perform replacement treating NEWTEXT literally.
+                  (replace-match newtext nil t)
+                  ;; Adjust `end' to account for change in buffer length.
+                  (setq end (+ end (- newlen oldlen)))
+                  ;; Restore text properties from the original match's start to the newly inserted text.
+                  (when props
+                    (add-text-properties beg (+ beg newlen) props))))))
         (search-failed nil)))))
+
 ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
 (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
 
