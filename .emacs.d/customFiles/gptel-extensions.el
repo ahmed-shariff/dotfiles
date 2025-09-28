@@ -10,7 +10,7 @@
 (require 'gptel-org)
 (require 'gptel-transient)
 (require 'gptel-context)
-(require 'gptel-curl)
+(require 'gptel-request)
 (require 'f)
 
 ;;;; packages ******************************************************************************
@@ -684,7 +684,7 @@ Mutate state INFO with response metadata."
 
 (gptel-make-preset 'nocontext
   :description "no context"
-  :context-alist nil)
+  :context nil)
 
 (gptel-make-preset 'filectx
   :description "Current file as context"
