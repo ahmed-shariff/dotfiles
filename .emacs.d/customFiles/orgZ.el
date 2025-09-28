@@ -48,9 +48,19 @@
                  :function add-doi-and-pdf
                  :kill-client t))
 
-  (defun add-doi-and-pdf (data)
+  (defvar previous-add-doi-and-pdf-data nil)
+
+  (defun okm-retry-last-add-doi-and-pdf ()
+    (interactive)
+    (if previous-add-doi-and-pdf-data
+        (add-doi-and-pdf previous-add-doi-and-pdf-data t)
+      (user-error "No previous data")))
+
+  (defun add-doi-and-pdf (data &optional no-save-data)
     "DATA exepcts to be an alist with keys :url and :filename."
     (message "Trying to add: %s" data)
+    (unless no-save-data 
+      (setq previous-add-doi-and-pdf-data data))
     (let* ((url (s-replace-regexp "\\(https:/\\)[^/]" "https://" (plist-get data :url) nil nil 1))
            (file-name-entry (plist-get data :filename))
            (file-name (when file-name-entry
@@ -862,6 +872,7 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
          ;;("C-c n g" . org-roam-graph)
          ("C-c n i" . org-roam-node-insert)
          ("C-c n c" . org-roam-capture)
+         ("C-c n t" . okm-org-roam-quick-capture-topic)
          ("C-c n y" . amsha/org-roam-db-sync)
          ;; Dailies
          ("C-c n j" . org-roam-dailies-capture-today)
@@ -914,6 +925,14 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
     (okm-add-parent-topic))
   ;; (org-roam-node-action org-roam-node-ref-hydra
   ;;   (org-ref-citation-hydra/body))
+
+  (defun okm-org-roam-quick-capture-topic (topic)
+    "Quick add a topic to unclassified indices."
+    (interactive (list (read-string "Topic: " (when (region-active-p) (buffer-substring (region-beginning) (region-end))))))
+    (org-roam-with-file (file-truename (expand-file-name "unclassified_index.org" okm-base-directory)) t
+      (goto-char (marker-position (org-roam-capture-find-or-create-olp (list topic))))
+      (org-id-get-create)
+      (org-roam-db-update-file)))
 
   (defun amsha/backup-org-roam-db ()
     (interactive)
@@ -2169,7 +2188,7 @@ the type of the link."
                                               (like file $s4)
                                               (like file $s5)
                                               (and (like file $s6) (like title $s7))))]
-      "%index.org%" "%misc_topics.org%" "%People.org%" "%research topics.org%" "%tags.org%" "%project_boards/%.org%" "%literature%"))
+      "%index.org%" "%misc_topics.org%" "%People.org%" "%research topics.org%" "%tags.org%" "%project_boards/%.org%" "%literature%" "%unclassified_index.org%"))
   (org-roam-ql-add-saved-query 'lvl0 "file nodes" '(level= 0))
   (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level= 1))
   (org-roam-ql-add-saved-query 'inp "inprogress" '(todo "INPROGRESS" t))
