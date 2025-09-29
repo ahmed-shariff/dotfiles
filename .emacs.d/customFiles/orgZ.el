@@ -411,7 +411,8 @@
 
 (defun okm-board-task-location ()
   "Return a org title with board task after prompting for it."
-  (let* ((targets
+  (let* ((ts (format-time-string "%I:%M %p" (current-time)))
+         (targets
           (append
            '(("--None--"))
            (--map
@@ -430,10 +431,14 @@
                    (assoc (completing-read "Select task: " targets nil t) targets))))
     (if (cdr target)
         (format "**** [%s] [[id:%s][%s]]  %%?"
-                (format-time-string "%I:%M %p" (current-time))
+                ts
                 (nth 2 target)
                 (nth 1 target))
-      "**** %?")))
+      (format "**** [%s] %%?" ts))))
+
+(defun okm-insert-timestamp ()
+  (interactive)
+  (insert "[" (format-time-string "%I:%M %p" (current-time)) "]"))
     
 (defun okm-add-repository ()
   "Take a repo link and add that to the file as a node."
