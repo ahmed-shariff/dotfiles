@@ -13,6 +13,9 @@
 (require 'gptel-request)
 (require 'f)
 
+;;; Some top level defaults*****************************************************************
+(defvar amsha/gptel-default-prompt-transform-functions gptel-prompt-transform-functions)
+
 ;;;; packages ******************************************************************************
 (use-package elysium
   :bind (("C-c o q c" . elysium-query))
@@ -638,16 +641,17 @@ Mutate state INFO with response metadata."
 
 (gptel-make-preset 'default
   :description "Preset with defaults"
-  :backend "ChatGPT"
-  :model 'o4-mini
+  ;; :backend '(:eval amsha/gptel-default-backend)
+  :backend gptel-openai-response-backend
+  :model 'gpt-5-mini
   :system 'default
   :tools nil
   :stream t
   :temperature 1.0
   :use-context 'system
-  :context--alist nil
+  :context nil
   :include-reasoning t
-  :prompt-transform-functions `(gptel--transform-apply-preset gptel--transform-add-context))
+  :prompt-transform-functions '(:eval amsha/gptel-default-prompt-transform-functions))
 
 (gptel-make-preset 'openai-assistant
   :description "Search using openai assistant"
@@ -695,7 +699,7 @@ Mutate state INFO with response metadata."
 (gptel-make-preset 'cite-add-abstract-summary
   :description "Add abstract and summary for `cite:`"
   :prompt-transform-functions
-  (lambda ()
+  '(:eval
     (add-before-special-or-append gptel-prompt-transform-functions
                                   #'amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary
                                   #'gptel--transform-add-context)))
@@ -703,7 +707,7 @@ Mutate state INFO with response metadata."
 (gptel-make-preset 'cite-add-pdf-txt
   :description "Add pdf txt for `cite:`"
   :prompt-transform-functions
-  (lambda ()
+  '(:eval
     (add-before-special-or-append gptel-prompt-transform-functions
                                   #'amsha/okm-gptel-transform-add-pdf-txt
                                   #'gptel--transform-add-context)))
@@ -759,10 +763,10 @@ Otherwise, add ELEM as the last element."
                                     (gptel-backend-name gptel-backend)
                                     (gptel--model-name gptel-model))
                             'face '(:foreground "gray80" :background "#000033"))
-                (if (or gptel-context--alist gptel-tools gptel-openai-responses--tools)
+                (if (or gptel-context gptel-tools gptel-openai-responses--tools)
                     (let ((context-string
-                           (when gptel-context--alist
-                             (format "C:%s" (length gptel-context--alist))))
+                           (when gptel-context
+                             (format "C:%s" (length gptel-context))))
                           (tool-string
                            (when (or gptel-tools gptel-openai-responses--tools)
                              (format "T:%s"
@@ -911,7 +915,7 @@ Otherwise, add ELEM as the last element."
                                        directory-files-no-dot-files-regexp))
   (gptel-make-preset (intern (format "%s-c" (f-base context-file)))
     :description (format "Use persistent context %s" (f-base context-file))
-    :context--alist `((,context-file))))
+    :context `((,context-file))))
 
 (defun amsha/gptel--get-persistent-context ()
   (completing-read "Context name: "
@@ -942,7 +946,7 @@ Otherwise, add ELEM as the last element."
         (insert content))
       (gptel-make-preset (intern (format "%s-c" context-name))
         :description (format "Use persistent context %s" context-name)
-        :context--alist `((,context-file))))))
+        :context `((,context-file))))))
 
 (defun amsha/gptel-clear-persistent-context (context-name)
   "Clear persistent context CONTEXT-NAME."
