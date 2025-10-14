@@ -431,7 +431,7 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
     (require 'magit))
   (let ((default-directory (magit--safe-default-directory (or filename default-directory))))
     (when-let (project-root (magit-git-string "rev-parse" "--show-superproject-working-tree" "--show-toplevel"))
-      (format "%s/" project-root))))
+      (file-truename (format "%s/" project-root)))))
 
 (defun copy-buffer-file-name (buffer-file-name)
   "Copy the file name without the directory. If directory, copy the directory-name.
@@ -2419,6 +2419,8 @@ T - tag prefix
   :demand t
   :bind (:map projectile-mode-map
          ("C-c p" . projectile-command-map))
+  :custom
+  (projectile-indexing-method 'alien)
   :config
   (projectile-mode +1)
   (setq projectile-git-command "git ls-files --recurse-submodules --exclude-standard -zc"
