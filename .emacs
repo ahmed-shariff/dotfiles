@@ -645,7 +645,51 @@ that returns a string."
                                          (magit-run-git-with-editor "push"))
                                      t)))
                         "success"
-                      "failed")))))))
+                      "failed"))))))
+
+
+  (defvar amsha/magit-status-keybinds
+    `((staged . "g s")
+      (unstaged . "g u")
+      (untracked . "g n")
+      (stashes . "g z")
+      (todos . "g T")
+      ))
+
+  (defun amsha/clear-magit-keybind-overlays ()
+    "Remove overlays created by `amsha/magit-visualize-keybinds'."
+    (remove-overlays (point-min) (point-max) 'amsha/magit-keybind-overlay t))
+
+  (defun amsha/magit-visualize-keybinds ()
+    "Show small overlays with keybinds at the beginning of configured magit sections.
+
+Uses `amsha/magit-status-keybinds', which should be a list whose elements are
+either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
+    (interactive)
+    (unless (derived-mode-p 'magit-status-mode)
+      (user-error "This command must be run in a magit-status buffer"))
+    (save-excursion
+      (amsha/clear-magit-keybind-overlays)
+      (dolist (item amsha/magit-status-keybinds)
+        (let* ((section (magit-get-section
+                         (cons `(,(car item))
+                               (magit-section-ident magit-root-section))))
+               (key (cdr item)))
+          (when (and section key)
+            (condition-case _err
+                (progn
+                  ;; move to section heading
+                  (magit-section-goto section)
+                  (let* ((pos (line-beginning-position))
+                         (ov (make-overlay pos pos nil t t)))
+                    (overlay-put ov 'after-string
+                                 (propertize (concat " [" key "] ")
+                                             'face 'font-lock-keyword-face))
+                    ;; (overlay-put ov 'evaporate t)
+                    (overlay-put ov 'amsha/magit-keybind-overlay t)))
+              (error (em "oops" _err))))))))
+
+  (add-hook 'magit-status-sections-hook #'amsha/magit-visualize-keybinds 99))
 
 ;; (use-package forge
 ;;   :after magit)
