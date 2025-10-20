@@ -552,6 +552,7 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   :custom
   (magit-clone-always-transient t)
   (magit-git-executable "git")
+  (magit-format-file-function #'magit-format-file-nerd-icons)
   (transient-default-level 7)
   :config
 
@@ -646,8 +647,8 @@ that returns a string."
                         "success"
                       "failed")))))))
 
-(use-package forge
-  :after magit)
+;; (use-package forge
+;;   :after magit)
 
 (use-package hl-todo
   :hook prog-mode-hook)
