@@ -649,11 +649,15 @@ that returns a string."
 
 
   (defvar amsha/magit-status-keybinds
-    `((staged . "g s")
-      (unstaged . "g u")
-      (untracked . "g n")
-      (stashes . "g z")
-      (todos . "g T")
+    `(((staged) . "g s")
+      ((unstaged) . "g u")
+      ((untracked) . "g n")
+      ((stashes) . "g z")
+      ((todos) . "g T")
+      ((unpulled . "..@{upstream}") . "g f u")
+      ((unpulled . "..@{push}") . "g f p")
+      ((unpushed . "@{upstream}..") . "g p u")
+      ((unpushed . "@{push}..") . "g p p")
       ))
 
   (defun amsha/clear-magit-keybind-overlays ()
@@ -672,7 +676,7 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
       (amsha/clear-magit-keybind-overlays)
       (dolist (item amsha/magit-status-keybinds)
         (let* ((section (magit-get-section
-                         (cons `(,(car item))
+                         (cons (car item)
                                (magit-section-ident magit-root-section))))
                (key (cdr item)))
           (when (and section key)
@@ -2927,7 +2931,14 @@ Used with atomic-chrome."
   :after (magit)
   :config
   (add-to-list 'magit-todos-exclude-globs "*.ipynb")
-  (magit-todos-mode))
+  (magit-todos-mode)
+
+  (cl-defun amsha/magit-todos--insert-items-refresh-keybind (magit-status-buffer &rest _)
+    (with-current-buffer magit-status-buffer
+      (amsha/magit-visualize-keybinds)))
+
+  (advice-add 'magit-todos--insert-items :after #'amsha/magit-todos--insert-items-refresh-keybind))
+  
 
 (use-package blamer
   :bind (("s-i" . blamer-show-commit-info))
