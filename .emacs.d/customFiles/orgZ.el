@@ -867,9 +867,10 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
                         "#+title: ${title}\n")
      :unnarrowed t)))
   (org-roam-node-display-template "${title}")
-  (org-roam-mode-sections (list #'org-roam-brain-children-section
-                                '(org-roam-backlinks-section :unique nil) ;; Setting to nil becuase when t it doesn't work too well with notes
-                                #'org-roam-reflinks-section))
+  ;; Configured in org-roam-ql-setup
+  ;; (org-roam-mode-sections (list #'org-roam-brain-children-section
+  ;;                               '(org-roam-backlinks-section :unique nil) ;; Setting to nil becuase when t it doesn't work too well with notes
+  ;;                               #'org-roam-reflinks-section))
   (org-roam-node-formatter (lambda (node) (s-replace-regexp " \\[[0-9]+/[0-9]+\\]" "" (org-roam-node-title node))))
   :bind (("C-c n l" . org-roam-buffer-for-node)
          ("C-c n L" . org-roam-buffer-toggle)
@@ -986,16 +987,36 @@ prompt when used interactively"
 
   (defun org-roam-brain-children-section (node)
     "The brain children section for NODE.
-Copied  from `org-roam-backlink-get'."
-    (when-let ((backlinks (seq-sort #'org-roam-backlinks-sort (okm-links-get node))))
-      (magit-insert-section (org-roam-brain-children)
-        (magit-insert-heading "Brain children:")
+Copied  from `org-roam-backlink-get'.
+see also `org-roam-backlinks-section-with-ql-filter'.
+"
+    (let* ((backlinks (seq-sort #'org-roam-backlinks-sort (okm-links-get node)))
+           (filter org-roam-ql--filter-for-roam)
+           (filter-node-ids (and filter
+                                 (condition-case _err
+                                     (-map #'org-roam-node-id (org-roam-ql-nodes filter))
+                                   (user-error
+                                    (message "Cannot apply filter: %s" _err))))))
+      (when backlinks
+        (if filter-node-ids
+            (setq backlinks 
+                  (--filter (member (org-roam-node-id (org-roam-backlink-source-node it)) filter-node-ids)
+                            backlinks))
+          (setq filter nil))
+        (magit-insert-section (org-roam-brain-children)
+          (magit-insert-heading (if filter
+                                    (concat "Brain Children (filter: "
+                                            (-->
+                                             (format "%s" filter)
+                                             (substring it 0 (min 40 (length it))))
+                                            "):")
+                                "Brain Children:"))
         (dolist (backlink backlinks)
           (org-roam-node-insert-section
            :source-node (org-roam-backlink-source-node backlink)
            :point (org-roam-backlink-point backlink)
            :properties (org-roam-backlink-properties backlink)))
-        (insert ?\n))))
+        (insert ?\n)))))
 
   (defun org-roam-subtree-aware-preview-function (&optional node query)
     "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
@@ -1982,6 +2003,9 @@ Either show all or filter based on a sprint."
   :custom
   (org-roam-ql-default-org-roam-buffer-query (lambda () `(backlink-to (id ,(org-roam-node-id org-roam-buffer-current-node)) :type nil)))
   (org-roam-ql-preview-function #'org-roam-subtree-aware-preview-function)
+  (org-roam-mode-sections (list #'org-roam-brain-children-section
+                                '(org-roam-backlinks-section-with-ql-filter :unique nil) ;; Setting to nil becuase when t it doesn't work too well with notes
+                                #'org-roam-reflinks-section-with-ql-filter))
   :config
   ;; (defun okm-roam-view-query (source-or-query)
   ;;   "View source or query in org-roam buffer."
@@ -2275,6 +2299,100 @@ If prefix arg used, search whole db."
                         (insert ?\n))
                       (run-hooks 'org-roam-buffer-postrender-functions)))))
        title buffer-name nil "title" org-roam-ql-preview-function)))
+
+  (defvar org-roam-ql--filter-for-roam nil)
+
+  (transient-define-infix org-roam-ql-view--filter-roam ()
+    :class 'transient-lisp-variable
+    :argument nil
+    :variable 'org-roam-ql--filter-for-roam
+    :prompt "Filter: "
+    :always-read t
+    :reader (lambda (&rest _)
+              (org-roam-ql--read-query (when org-roam-ql--filter-for-roam
+                                         (format "%S" org-roam-ql--filter-for-roam)))))
+
+  (transient-append-suffix 'org-roam-ql-buffer-dispatch '(-1)
+    [["Roam filer"
+      ("F" org-roam-ql-view--filter-roam
+       :if (lambda () (string-match "\\*org-roam\\(: .*<.*>\\)?\\*" (buffer-name)))
+       )]])
+
+  (cl-defun org-roam-backlinks-section-with-ql-filter (node &key (unique nil) (show-backlink-p nil)
+                                                            (section-heading "Backlinks:"))
+    "Same as `org-roam-backlinks-section', but considers the filter (`org-roam-ql--filter-for-roam') of the current buffer.
+
+When UNIQUE is nil, show all positions where references are found.
+When UNIQUE is t, limit to unique sources.
+
+When SHOW-BACKLINK-P is not null, only show backlinks for which
+this predicate is not nil.
+
+SECTION-HEADING is the string used as a heading for the backlink section."
+    (let* ((backlinks (seq-sort #'org-roam-backlinks-sort (org-roam-backlinks-get node :unique unique)))
+           (filter org-roam-ql--filter-for-roam)
+           (filter-node-ids (and filter
+                                  (condition-case _err
+                                      (-map #'org-roam-node-id (org-roam-ql-nodes filter))
+                                    (user-error
+                                     (message "Cannot apply filter: %s" _err))))))
+      (when backlinks
+        (if filter-node-ids
+            (setq backlinks 
+                  (--filter (member (org-roam-node-id (org-roam-backlink-source-node it)) filter-node-ids)
+                            backlinks))
+          (setq filter nil))
+        (magit-insert-section (org-roam-backlinks)
+          (magit-insert-heading (if filter
+                                    (let ((has-colon (string-suffix-p ":" section-heading))
+                                          (filter-string (format "%s" filter)))
+                                      (concat (string-trim section-heading nil ":")
+                                              " (filter: "
+                                              (substring filter-string 0 (min 40 (length filter-string)))
+                                              ")"
+                                              (when has-colon ":")))
+                                  section-heading))
+          (dolist (backlink backlinks)
+            (when (or (null show-backlink-p)
+                      (and (not (null show-backlink-p))
+                           (funcall show-backlink-p backlink)))
+              (org-roam-node-insert-section
+               :source-node (org-roam-backlink-source-node backlink)
+               :point (org-roam-backlink-point backlink)
+               :properties (org-roam-backlink-properties backlink))))
+          (insert ?\n)))))
+
+  (defun org-roam-reflinks-section-with-ql-filter (node)
+    "The reflinks section for NODE with org-roam-ql filter (`org-roam-ql--filter-for-roam').
+
+Same as `org-roam-reflinks-section'."
+    (when-let ((refs (org-roam-node-refs node))
+               (reflinks (seq-sort #'org-roam-reflinks-sort (org-roam-reflinks-get node))))
+      (let* ((filter org-roam-ql--filter-for-roam)
+             (filter-node-ids (and filter
+                                   (condition-case _err
+                                       (-map #'org-roam-node-id (org-roam-ql-nodes filter))
+                                     (user-error
+                                      (message "Cannot apply filter: %s" _err))))))
+        (if filter-node-ids
+            (setq reflinks 
+                  (--filter (member (org-roam-node-id (org-roam-reflink-source-node it)) filter-node-ids)
+                            reflinks))
+          (setq filter nil))
+        (magit-insert-section (org-roam-reflinks)
+          (magit-insert-heading (if filter
+                                    (concat "Reflinks (filter:"
+                                            (-->
+                                             (format "%s" filter)
+                                             (substring it 0 (min 40 (length it))))
+                                            "):")
+                                  "Reflinks:")
+          (dolist (reflink reflinks)
+            (org-roam-node-insert-section
+             :source-node (org-roam-reflink-source-node reflink)
+             :point (org-roam-reflink-point reflink)
+             :properties (org-roam-reflink-properties reflink)))
+          (insert ?\n))))))
 
   (defvar okm-org-roam-preview-kills '())
 
