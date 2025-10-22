@@ -803,6 +803,7 @@ Otherwise, add ELEM as the last element."
   (interactive "sCitation: ")
   (let ((buf
          (get-buffer-create (format "*gptel-cite-%s*" (gensym))))
+        (citation (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" citation)))
         author-check title-check)
     (switch-to-buffer buf)
     (with-current-buffer buf
