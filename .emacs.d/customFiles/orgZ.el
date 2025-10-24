@@ -2302,8 +2302,11 @@ If prefix arg used, search whole db."
 
   (defvar org-roam-ql--filter-for-roam nil)
 
+  ;; See `kill-all-local-variables'
+  (put 'org-roam-ql--filter-for-roam 'permanent-local t)
+
   (transient-define-infix org-roam-ql-view--filter-roam ()
-    :class 'transient-lisp-variable
+    :class 'org-roam-ql--variable
     :argument nil
     :variable 'org-roam-ql--filter-for-roam
     :prompt "Filter: "
