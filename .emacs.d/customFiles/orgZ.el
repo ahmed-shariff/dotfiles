@@ -50,22 +50,46 @@
       org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)" "IDEA(i)" "|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
 			  (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" ))
 
-      org-src-tab-acts-natively t
-      org-babel-load-languages
-      (append org-babel-load-languages '((ruby . t)
-				         (plantuml . t)
-				         (emacs-lisp . t)
-				         (python . t)
-                                         (R . t)
-				         (shell . t)))
+      org-babel-load-languages (append org-babel-load-languages '((ruby . t)
+				                                  (plantuml . t)
+				                                  (emacs-lisp . t)
+				                                  (python . t)
+                                                                  (R . t)
+				                                  (shell . t)))
 
       org-confirm-babel-evaluate nil;;'my-org-confirm-babel-evaluate)
       org-latex-image-default-width ""
       org-startup-with-inline-images t
       org-tag-persistent-alist '(("@work" . ?w) ("@home" . ?h) ("@mobile" . ?m))
       org-default-notes-file "~/Documents/org/notes.org"
+      org-log-done 'note
+      org-log-into-drawer t
+      org-deadline-warning-days 2
+      org-startup-indented t
+      org-clock-idle-time 10
+      org-return-follows-link t
+      org-refile-use-outline-path "file"
+      org-outline-path-complete-in-steps t
+      org-completion-use-ido t
+      org-attach-directory "~/Documents/org/documents/"
+      org-clock-continuously t
+      org-agenda-span 10
+      org-agenda-start-on-weekday nil
+      org-agenda-start-day "-3d"
+      org-image-actual-width (list 650)
+      org-tag-alist '(("TEMP_BIB"))
+      org-export-with-broken-links t
+      org-agenda-persistent-marks t
+      org-agenda-files (when (f-exists-p "~/.emacs.d/org-agenda-org-roam-ql-cache")
+                         (string-split
+                          (with-temp-buffer
+                            (insert-file "~/.emacs.d/org-agenda-org-roam-ql-cache")
+                            (buffer-string))
+                          "\n")
       org-refile-targets '((org-agenda-files :maxlevel . 6))
                                         ;(org-c-refile-targets :maxlevel . 6)))
+      org-export-allow-bind-keywords t
+      org-latex-image-default-option "scale=0.6")
       org-capture-templates
       '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
 	 entry (file+olp+datetree "~/Documents/org/notes.org")
@@ -164,9 +188,6 @@
 	 entry (file "~/Documents/org/brain/repositories.org")
 	 "* %(okm-add-repository)"
 	 :jump-to-captured t)))
-
-
-(add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
 
 (repeatize 'org-babel-map)
 
@@ -2061,6 +2082,7 @@ The format of the response should be as follows:
      "Copy APA short" :column "Copy")))
 
 
+(add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
   
 (when (gethash 'use-pdf-tools configurations t)
   (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
@@ -2069,35 +2091,6 @@ The format of the response should be as follows:
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
-(setq org-log-done 'note
-      org-log-into-drawer t
-      org-deadline-warning-days 2
-      org-startup-indented t
-      org-clock-idle-time 10
-      org-return-follows-link t
-      org-return-follows-link t
-      org-refile-use-outline-path "file"
-      org-outline-path-complete-in-steps t
-      org-completion-use-ido t
-      org-attach-directory "~/Documents/org/documents/"
-      org-clock-continuously t
-      org-clock-idle-time 10
-      org-agenda-span 10
-      org-agenda-start-on-weekday nil
-      org-agenda-start-day "-3d"
-      org-image-actual-width (list 650)
-      org-tag-alist '(("TEMP_BIB"))
-      org-export-with-broken-links t
-      org-agenda-persistent-marks t
-      org-agenda-files (when (f-exists-p "~/.emacs.d/org-agenda-org-roam-ql-cache")
-                         (string-split
-                          (with-temp-buffer
-                            (insert-file "~/.emacs.d/org-agenda-org-roam-ql-cache")
-                            (buffer-string))
-                          "\n"))
-
-      org-export-allow-bind-keywords t
-      org-latex-image-default-option "scale=0.6")
 
 (add-hook 'org-babel-after-execute-hook 'org-babel-ansi-color-result)
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
