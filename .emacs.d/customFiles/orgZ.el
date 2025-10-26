@@ -7,7 +7,6 @@
 (require 'org-capture)
 (require 'org-tempo)
 (require 'org-ref-arxiv)
-(require 'org-roam-gocal)
 (require 'ox-extra)
 ;; (require 'org-capture-pop-frame)
 ;(ido-mode)
@@ -192,6 +191,11 @@
 (repeatize 'org-babel-map)
 
 ;; use package defs *************************************************************************
+(use-package org-roam-gocal
+  :straight nil
+  :config
+  (setq org-roam-gocal-new-node-file (f-expand "google_calender_unlisted.org" okm-base-directory)))
+
 (use-package org-protocol
   :ensure nil
   :straight nil

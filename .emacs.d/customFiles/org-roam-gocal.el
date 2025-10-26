@@ -2,7 +2,7 @@
 
 (defvar org-roam-gocal-path "~/Projects/gocal/")
 (defvar org-roam-gocal-out-buffer "*gocal-out*")
-(defvar org-roam-gocal-new-node-file (f-expand "google_calender_unlisted.org" okm-base-directory))
+(defvar org-roam-gocal-new-node-file nil) ;; Set outside
 (defvar org-roam-gocal-ignore-summaries-regexp (rx (seq string-start "Jumma" string-end)))
 
 (defun org-roam-gocal--clear-out-buffer ()
