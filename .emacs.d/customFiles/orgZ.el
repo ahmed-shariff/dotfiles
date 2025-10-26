@@ -6,6 +6,9 @@
 (require 'org)
 (require 'org-capture)
 (require 'org-tempo)
+(require 'org-ref-arxiv)
+(require 'org-roam-gocal)
+(require 'ox-extra)
 ;; (require 'org-capture-pop-frame)
 ;(ido-mode)
 
@@ -33,13 +36,141 @@
                                                         "brain/work/notes"
                                                         "brain/work/project_boards")))
 
-;; (use-package org-capture-pop-frame
-;;   :straight (org-capture-pop-frame :type git :host github :repo "tumashu/org-capture-pop-frame"
-;;                                    :fork (:host github :repo "ahmed-shariff/org-capture-pop-frame"))
-;;   :config
-;;   (setf (alist-get 'width ocpf-frame-parameters) 170)
-;;   (setf (alist-get 'height ocpf-frame-parameters) 50))
+(ox-extras-activate '(ignore-headlines))
 
+(setq org-ellipsis " ▾"
+      org-hide-emphasis-markers t
+      org-src-fontify-natively t
+      org-src-tab-acts-natively t
+      org-startup-folded 'content
+      org-id-track-globally t
+      org-id-locations-file "~/.emacs.d/.org-id-locations"
+      org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id
+
+      org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)" "IDEA(i)" "|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
+			  (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" ))
+
+      org-src-tab-acts-natively t
+      org-babel-load-languages
+      (append org-babel-load-languages '((ruby . t)
+				         (plantuml . t)
+				         (emacs-lisp . t)
+				         (python . t)
+                                         (R . t)
+				         (shell . t)))
+
+      org-confirm-babel-evaluate nil;;'my-org-confirm-babel-evaluate)
+      org-latex-image-default-width ""
+      org-startup-with-inline-images t
+      org-tag-persistent-alist '(("@work" . ?w) ("@home" . ?h) ("@mobile" . ?m))
+      org-default-notes-file "~/Documents/org/notes.org"
+      org-refile-targets '((org-agenda-files :maxlevel . 6))
+                                        ;(org-c-refile-targets :maxlevel . 6)))
+      org-capture-templates
+      '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
+	 entry (file+olp+datetree "~/Documents/org/notes.org")
+	 "* NOTE %^g\n\tAdded: %U\n\t%?")
+	("t" "A thing i have to do(a wonderfull epiphany? 3:))->LIFE HAPPENS"
+	 entry (file "~/Documents/org/brain/personal/life.org")
+	 "* TODO %^{Description}
+  :PROPERTIES:
+  :ID:       %(org-id-new)
+  :END:")
+	("j" "Journal entry")
+	;; ("jg" "Journal entry general"
+	;;  entry (file+olp+datetree "~/Documents/org/journal.org")
+	;;  "* %?")
+	("jw" "Journal entry work"
+	 entry (file+olp+datetree "~/Documents/org/brain/work/project_boards/day-to-day.org")
+	 "* TODO %?")
+	("js" "Journal entry work-scrum"
+	 entry (file+olp+datetree "~/Documents/org/brain/work/scrum.org")
+	 "* Y:\n1. %?\n* T:\n1. "
+	 :jump-to-captured t)
+	;; ("jt" "Journal sub entry"
+	;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
+	;;  "1. %?")
+	("e" "Experiment setup information")
+	("ej" "Add Journal entry")
+        ;; ("ejt" "for task"
+	;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
+	;;  "%(okm-board-task-location)")
+        ;;       ("eje" "for experiment"
+        ;;        entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
+        ;;        "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
+        ;;       ("el" "Add experiment"
+        ;;        entry (file "~/Documents/org/brain/work/experiments_log.org")
+        ;;        "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp_%^{Project_id}:\n  :PROPERTIES:
+        ;; :CUSTOM_ID:       %\\1
+        ;; :PROJECT: [[file:projects.org::#%\\3][%\\3]]
+        ;; :PROJECT_ID: %\\3
+        ;; :SPRINT: %^{Sprint ID}
+        ;; :END:\n- %^{Description}\n\n** Notes\n\n** TODO %?\n** TODO Conclusions"
+        ;;        :jump-to-captured t)
+        ;; 	("es" "Add sprint"
+        ;; 	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
+        ;; 	 "** TODO Sprint %(okm--org-templates-get-sprint-id): %^{TITLE}
+        ;;    :PROPERTIES:
+        ;;    :EXPORT_TOC: nil
+        ;;    :EXPORT_TITLE: %\\1
+        ;;    :EXPORT_OPTIONS: H:2
+        ;;    :EXPORT_AUTHOR:
+        ;;    :START_DATE: %u
+        ;;    :END_DATE:
+        ;;    :ID:       %(org-id-new)
+        ;;    :END:
+        ;; *** From previous:
+        ;;     - %?
+        ;; *** Sprint goal:
+        ;; *** Related experiments:
+        ;; *** Remarks:
+        ;; " :jump-to-captured t)
+        ;; 	("ep" "Add project"
+        ;; 	 entry (file "~/Documents/org/brain/work/projects.org")
+        ;; 	 "* TODO <<%(okm--org-templates-get-project-id)>> %^{TITLE}
+        ;;   :PROPERTIES:
+        ;;   :CUSTOM_ID: %(okm--org-templates-get-project-id)
+        ;;   :ID:       %(org-id-new)
+        ;;   :END:
+        ;; ** Related repos:
+        ;; ** %\\1 literature
+        ;;    :PROPERTIES:
+        ;;    :ID:       %(org-id-new)
+        ;;    :END:
+        ;; %?
+        ;; "
+        ;; 	 :jump-to-captured t)
+        ("ep" "Add project board"
+         plain (function okm-add-new-project-board)
+         "%?"
+         :after-finalize okm-add-new-project-finalize
+	 :jump-to-captured t)
+        ("et" "Add task"
+	 entry (function okm-goto-task-board)
+	 "* TODO %^{TITLE}
+  :PROPERTIES:
+  :ID:       %(org-id-new)
+  :END:
+%?
+"
+	 :jump-to-captured t)
+	("b" "Org brain")
+	("bp" "Add research paper"
+	 entry (function (lambda () (org-id-goto okm-research-papers-id)));(file "~/Documents/org/brain/research_papers.org")
+	 "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :LINK: %^{LINK\}n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
+  \n  - %^{LINK}"
+	 :jump-to-captured t)
+        ("er" "Add repository"
+	 entry (file "~/Documents/org/brain/repositories.org")
+	 "* %(okm-add-repository)"
+	 :jump-to-captured t)))
+
+
+(add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
+
+(repeatize 'org-babel-map)
+
+;; use package defs *************************************************************************
 (use-package org-protocol
   :ensure nil
   :straight nil
@@ -107,51 +238,6 @@
     ;; returning nil to avoid a file buffer being opened
     nil))
 
-(setq org-ellipsis " ▾"
-      org-hide-emphasis-markers t
-      org-src-fontify-natively t
-      org-src-tab-acts-natively t
-      org-startup-folded 'content
-      org-id-track-globally t
-      org-id-locations-file "~/.emacs.d/.org-id-locations"
-      org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
-
-
-(setq org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)" "IDEA(i)" "|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
-			  (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" )))
-
-;;(set-register ("~/Documents/org/uniwork.org"
-;;			     "~/Documents/org/uni_research.org")
-
-;; (setq org-agenda-custom-commands
-;;       '(("c" . "My custom queries")
-;; 	("ci" tags-todo "LEVEL=1&+exp/!INPROGRESS"
-;; 	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
-;; 	  (org-agenda-filter-by-top-headline)))
-;; 	("ct" tags-todo "LEVEL=1&+exp/!TODO|WAIT"
-;; 	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
-;; 	  (org-agenda-filter-by-top-headline)))
-;; 	("ca" tags-todo "LEVEL=1&+exp"
-;; 	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
-;; 	  (org-agenda-filter-by-top-headline)))
-;; 	("cd" tags-todo "LEVEL=1&+exp/!DONE"
-;; 	 ((org-agenda-files `("~/Research/FoodClassification/experiment_log.org"))
-;; 	  (org-agenda-filter-by-top-headline)))))
-
-(add-to-list
- 'org-src-lang-modes '("plantuml" . plantuml))
-(setq org-src-tab-acts-natively t)
-
-(repeatize 'org-babel-map)
-
-(setq org-babel-load-languages
-      (append org-babel-load-languages '((ruby . t)
-				         (plantuml . t)
-				         (emacs-lisp . t)
-				         (python . t)
-                                         (R . t)
-				         (shell . t))))
-
 (when (gethash 'use-jupyter configurations t)
   (use-package jupyter
     :straight (jupyter :includes (jupyter-org-client)
@@ -177,472 +263,11 @@
   (use-package ox-ipynb
     :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb")))
 
-;; from https://emacs.stackexchange.com/questions/44664/apply-ansi-color-escape-sequences-for-org-babel-results
-(defun org-babel-ansi-color-result ()
-  (when-let ((beg (org-babel-where-is-src-block-result nil nil)))
-    (save-excursion
-      (goto-char beg)
-      (when (looking-at org-babel-result-regexp)
-        (let ((end (org-babel-result-end))
-              (ansi-color-context-region nil))
-          (ansi-color-apply-on-region beg end))))))
-(add-hook 'org-babel-after-execute-hook 'org-babel-ansi-color-result)
-
-
-;; from https://emacs.stackexchange.com/questions/42471/how-to-export-markdown-from-org-mode-with-syntax
-(defun org-md-example-block-with-syntax (example-block _content info)
-  "Transcode element EXAMPLE-BLOCK as ```lang ...'''."
-  (format "```%s\n%s\n```"
-          (org-element-property :language example-block)
-          (org-remove-indentation
-           (org-export-format-code-default example-block info))))
-
-(advice-add 'org-md-example-block :override #'org-md-example-block-with-syntax)
-
-;; (defun org-md-link-github-syntax (link desc info)
-;;   "Transcode LINK object into Markdown format.
-;; DESC is the description part of the link, or the empty string.
-;; INFO is a plist holding contextual information.  See
-;; `org-export-data'."
-;;   (let* ((link-org-files-as-md
-;; 	  (lambda (raw-path)
-;; 	    ;; Treat links to `file.org' as links to `file.md'.
-;; 	    (if (string= ".org" (downcase (file-name-extension raw-path ".")))
-;; 		(concat (file-name-sans-extension raw-path) ".md")
-;; 	      raw-path)))
-;; 	 (type (org-element-property :type link))
-;; 	 (raw-path (org-element-property :path link))
-;; 	 (path (cond
-;; 		((member type '("http" "https" "ftp" "mailto"))
-;; 		 (concat type ":" raw-path))
-;; 		((string-equal  type "file")
-;; 		 (org-export-file-uri (funcall link-org-files-as-md raw-path)))
-;; 		(t raw-path))))
-;;     (cond
-;;      ;; Link type is handled by a special function.
-;;      ((org-export-custom-protocol-maybe link desc 'md info))
-;;      ((member type '("custom-id" "id" "fuzzy"))
-;;       (let ((destination (if (string= type "fuzzy")
-;; 			     (org-export-resolve-fuzzy-link link info)
-;; 			   (org-export-resolve-id-link link info))))
-;; 	(pcase (org-element-type destination)
-;; 	  (`plain-text			; External file.
-;; 	   (let ((path (funcall link-org-files-as-md destination)))
-;; 	     (if (not desc) (format "<%s>" path)
-;; 	       (format "[%s](%s)" desc path))))
-;; 	  (`headline
-;; 	    ;; Description.
-;; 	    (let ((-description (cond ((org-string-nw-p desc))
-;; 		                      ((org-export-numbered-headline-p destination info)
-;; 		                       (mapconcat #'number-to-string
-;; 			                          (org-export-get-headline-number destination info)
-;; 			                          "."))
-;; 		                      (t (org-export-data (org-element-property :title destination)
-;; 				                          info))))
-;; 	          ;; Reference.
-;;                   (-ref (->>
-;;                             (org-export-data (org-element-property :title destination)
-;; 				             info)
-;;                           (s-replace-regexp "[^[:alnum:]-\(\_\|\s\)]" "" )
-;;                           (s-replace-regexp "\s" "-")
-;;                           (s-downcase))))
-;;               (format
-;; 	       "[%s](#%s)" -description -ref)))
-;; 	  (_
-;; 	   (let ((description
-;; 		  (or (org-string-nw-p desc)
-;; 		      (let ((number (org-export-get-ordinal destination info)))
-;; 			(cond
-;; 			 ((not number) nil)
-;; 			 ((atom number) (number-to-string number))
-;; 			 (t (mapconcat #'number-to-string number ".")))))))
-;; 	     (when description
-;; 	       (format "[%s](#%s)"
-;; 		       description
-;; 		       (org-export-get-reference destination info))))))))
-;;      ((org-export-inline-image-p link org-html-inline-image-rules)
-;;       (let ((path (cond ((not (string-equal type "file"))
-;; 			 (concat type ":" raw-path))
-;; 			((not (file-name-absolute-p raw-path)) raw-path)
-;; 			(t (expand-file-name raw-path))))
-;; 	    (caption (org-export-data
-;; 		      (org-export-get-caption
-;; 		       (org-export-get-parent-element link))
-;; 		      info)))
-;; 	(format "![img](%s)"
-;; 		(if (not (org-string-nw-p caption)) path
-;; 		  (format "%s \"%s\"" path caption)))))
-;;      ((string= type "coderef")
-;;       (format (org-export-get-coderef-format path desc)
-;; 	      (org-export-resolve-coderef path info)))
-;;      ((string= type "radio")
-;;       (let ((destination (org-export-resolve-radio-link link info)))
-;; 	(if (not destination) desc
-;; 	  (format "<a href=\"#%s\">%s</a>"
-;; 		  (org-export-get-reference destination info)
-;; 		  desc))))
-;;      (t (if (not desc) (format "<%s>" path)
-;; 	  (format "[%s](%s)" desc path))))))
-
-;; (advice-add 'org-md-link :override #'org-md-link-github-syntax)
-
-(defun amsha/reload-org-babel-langs ()
-  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
-
-(with-eval-after-load 'org
-  (amsha/reload-org-babel-langs))
-
-;; (defun my-org-confirm-babel-evaluate (lang bdy)
-;;   "Function to eval plantuml blocks.
-;; LANG
-;; BDY"
-;;   (not (string= lang "plantuml")))
-(setq org-confirm-babel-evaluate nil);;'my-org-confirm-babel-evaluate)
-(setq org-latex-image-default-width "")
-(setq org-startup-with-inline-images t)
-
-(setq org-tag-persistent-alist '(("@work" . ?w) ("@home" . ?h) ("@mobile" . ?m)))
-
-(setq org-default-notes-file "~/Documents/org/notes.org")
-
-(setq org-refile-targets '((org-agenda-files :maxlevel . 6)))
-			   ;(org-c-refile-targets :maxlevel . 6)))
-
 (use-package orglink
   :config
   (add-to-list 'orglink-activate-in-modes 'prog-mode)
   (global-orglink-mode))
 
-(defun org-id-get-closest ()
-  "move up the tree until an el with id is found"
-  (ignore-error user-error (cl-do () ((org-id-get) (org-id-get)) (org-up-element))))
-
-
-;;**********************bulk action wrappers***********************
-(defvar org-agenda-bulk-action-started nil)
-(defvar org-agenda-bulk-action-post-execution-function nil)
-
-(defun org-agenda-bulk-action-wrapper (original &rest args)
-  (setq org-agenda-bulk-action-started t)
-  (condition-case nil
-      (apply original args)
-    (error nil))
-  (setq org-agenda-bulk-action-started nil)
-  (when org-agenda-bulk-action-post-execution-function
-    (funcall org-agenda-bulk-action-post-execution-function))
-  (setq org-agenda-bulk-action-post-execution-function nil))
-
-(advice-add 'org-agenda-bulk-action :around #'org-agenda-bulk-action-wrapper)
-
-;;  ***************************************************************
-
-(defun org-ask-title-location (&optional prompt)
-  "From  https://stackoverflow.com/questions/9005843/interactively-enter-headline-under-which-to-place-an-entry-using-capture."
-  (let* ((prompt (or prompt "Project "))
-	 (org-refile-targets '((nil :maxlevel . 1)))
-         (hd (condition-case nil
-                 (car (let ((in (org-refile-get-location prompt nil t)))
-			(message "%s" in)
-			in))
-               (error (car org-refile-history)))))
-    (goto-char (point-min))
-    (re-search-forward
-         (format org-complex-heading-regexp-format (regexp-quote hd))
-         nil t)
-        (goto-char (point-at-bol))))
-
-;;  ***************************************************************
-
-(defun okm--ask-id (file prompt property)
-  "."
-  (save-window-excursion
-    (find-file file)
-    (org-ask-title-location prompt)
-    (org-entry-get (point) property)))
-
-(defun okm--org-templates-get-project-id ()
-  "Get the new project id."
-  (number-to-string
-   (1+ (apply #'max
-              (org-ql-select (expand-file-name "work/projects.org" okm-base-directory) `(level 1)
-                :action (lambda ()
-                          (condition-case nil
-                              (string-to-number (cadr (s-match "<<\\([0-9]+\\)>>" (org-get-heading t t t t))))
-                            (wrong-type-argument 0))))))))
-
-(defun okm--org-templates-get-sprint-id ()
-  "Get the new sprint id."
-  (number-to-string
-   (1+
-    (apply #'max
-           (org-ql-select
-             (expand-file-name "work/projects.org" okm-base-directory)
-             `(parent (heading ,(s-replace-regexp "/$" "" (car org-refile-history))))
-             :action  (lambda ()
-                        (condition-case nil
-                            (string-to-number (cadr (s-match "Sprint \\([0-9]+\\):"
-                                                             (org-get-heading t t t t))))
-                          (wrong-type-argument 0))))))))
-
-(defun okm-ask-experiment-id ()
-  "."
-  (save-window-excursion
-    (find-file "~/Documents/org/brain/work/experiments_log.org")
-    (org-ask-title-location  "Experiment ")
-    (org-entry-get (point) "CUSTOM_ID"))
-  ;;(okm--ask-id "~/Documents/org/brain/work/experiments_log.org"  "Experiment " "CUSTOM_ID"))
-)
-
-(defun okm-ask-project-id ()
-  "."
-  (okm--ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
-
-(defun okm-goto-task-board ()
-  "Move the cursor to a location in a task board."
-  (interactive)
-  (let* ((project-boards (mapcar (lambda (file) (cons (format "%-10s %s"
-                                                              (propertize (f-base (f-parent (f-parent file)))  'face 'marginalia-documentation)
-                                                              (file-name-base file))
-                                                       file))
-                                 (--keep
-                                  (when (not (s-contains-p "#" it)) it)
-                                  (f-glob "*/project_boards/*.org" okm-base-directory))))
-         (board-file (cdr (assoc (completing-read "Select poject board: " project-boards) project-boards))))
-    (find-file board-file)
-    (goto-char (point-max))))
-
-(defun okm-board-task-location ()
-  "Return a org title with board task after prompting for it."
-  (let* ((ts (format-time-string "%I:%M %p" (current-time)))
-         (targets
-          (append
-           '(("--None--"))
-           (--map
-            (let* ((title (s-replace-regexp " \\[[0-9]+/[0-9]+\\]" "" (org-roam-node-title it)))
-                   (full-file-name (org-roam-node-file it))
-                   (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
-                   (todo-state (or (org-roam-node-todo it) "")))
-              (list (format "%-10s  %-30s %s"
-                            (propertize todo-state 'face (org-get-todo-face todo-state))
-                            (propertize file-name 'face 'marginalia-documentation)
-                            title)
-                    title
-                    (org-roam-node-id it)))
-            (org-roam-ql-nodes '([(and (= level 1) (like file $s1))] "%project_boards%")))))
-         (target (progn
-                   (assoc (completing-read "Select task: " targets nil t) targets))))
-    (if (cdr target)
-        (format "**** [%s] [[id:%s][%s]]  %%?"
-                ts
-                (nth 2 target)
-                (nth 1 target))
-      (format "**** [%s] %%?" ts))))
-
-(defun okm-insert-timestamp ()
-  (interactive)
-  (insert "[" (format-time-string "%I:%M %p" (current-time)) "]"))
-    
-(defun okm-add-repository ()
-  "Take a repo link and add that to the file as a node."
-  (let* ((link (read-string "Repository url: "))
-         (title (cond
-                 ((s-match "github" link)
-                  (format "github/%s"
-                          (s-replace ".git" "" (car (last (s-split "/" link))))))
-                 (t (read-string "Title: " link)))))
-    (format "%s
-  :PROPERTIES:
-  :ID:      %s
-  :END:
-- %s" title (org-id-new) link)))
-          
-;; (defun org-ask-location ()
-;;   org-project-sprint-target-heading) 
-
-(defun okm-add-new-project-board ()
-  (let* ((title (read-string "title: "))
-         (new-file (file-truename
-                    (format
-                     "~/Documents/org/brain/work/project_boards/%s.org"
-                     (read-string "board name: " (s-replace " " "_" (downcase title)))))))
-    (if (file-exists-p new-file)
-        (user-error "File exists %s" (em new-file "boooooooooo"))
-      (org-capture-put :new-buffer t)
-      (find-file new-file)
-      (setq org-capture-plist
-            (plist-put org-capture-plist
-                       :amsha-file-created
-                       new-file))
-      (goto-char (point-min))
-      (org-id-get-create)
-      (goto-char (point-max))
-      (insert (format "\n#+title: %s\n
-* Meta data
-** Related repos:
-** %s literature" title title))
-      (org-id-get-create)
-      (goto-char (point-max)))))
-
-(defun okm-add-new-project-finalize ()
-  (when org-note-abort
-    (when-let* ((new-file (plist-get org-capture-plist :amsha-file-created))
-                (_ (yes-or-no-p "Delete file for aborted capture?")))
-      (when (find-buffer-visiting new-file)
-        (kill-buffer (find-buffer-visiting new-file)))
-      (delete-file new-file))))
-
-(setq org-capture-templates
-      '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
-	 entry (file+olp+datetree "~/Documents/org/notes.org")
-	 "* NOTE %^g\n\tAdded: %U\n\t%?")
-	("t" "A thing i have to do(a wonderfull epiphany? 3:))->LIFE HAPPENS"
-	 entry (file "~/Documents/org/brain/personal/life.org")
-	 "* TODO %^{Description}
-  :PROPERTIES:
-  :ID:       %(org-id-new)
-  :END:")
-	("j" "Journal entry")
-	;; ("jg" "Journal entry general"
-	;;  entry (file+olp+datetree "~/Documents/org/journal.org")
-	;;  "* %?")
-	("jw" "Journal entry work"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/project_boards/day-to-day.org")
-	 "* TODO %?")
-	("js" "Journal entry work-scrum"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/scrum.org")
-	 "* Y:\n1. %?\n* T:\n1. "
-	 :jump-to-captured t)
-	;; ("jt" "Journal sub entry"
-	;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-	;;  "1. %?")
-	("e" "Experiment setup information")
-	("ej" "Add Journal entry")
-        ;; ("ejt" "for task"
-	;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-	;;  "%(okm-board-task-location)")
-  ;;       ("eje" "for experiment"
-  ;;        entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-  ;;        "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
-  ;;       ("el" "Add experiment"
-  ;;        entry (file "~/Documents/org/brain/work/experiments_log.org")
-  ;;        "\n\n* TODO <<%^{ID}>> %^{Experiment} [%] :@work:exp_%^{Project_id}:\n  :PROPERTIES:
-  ;; :CUSTOM_ID:       %\\1
-  ;; :PROJECT: [[file:projects.org::#%\\3][%\\3]]
-  ;; :PROJECT_ID: %\\3
-  ;; :SPRINT: %^{Sprint ID}
-  ;; :END:\n- %^{Description}\n\n** Notes\n\n** TODO %?\n** TODO Conclusions"
-  ;;        :jump-to-captured t)
-;; 	("es" "Add sprint"
-;; 	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
-;; 	 "** TODO Sprint %(okm--org-templates-get-sprint-id): %^{TITLE}
-;;    :PROPERTIES:
-;;    :EXPORT_TOC: nil
-;;    :EXPORT_TITLE: %\\1
-;;    :EXPORT_OPTIONS: H:2
-;;    :EXPORT_AUTHOR:
-;;    :START_DATE: %u
-;;    :END_DATE:
-;;    :ID:       %(org-id-new)
-;;    :END:
-;; *** From previous:
-;;     - %?
-;; *** Sprint goal:
-;; *** Related experiments:
-;; *** Remarks:
-;; " :jump-to-captured t)
-;; 	("ep" "Add project"
-;; 	 entry (file "~/Documents/org/brain/work/projects.org")
-;; 	 "* TODO <<%(okm--org-templates-get-project-id)>> %^{TITLE}
-;;   :PROPERTIES:
-;;   :CUSTOM_ID: %(okm--org-templates-get-project-id)
-;;   :ID:       %(org-id-new)
-;;   :END:
-;; ** Related repos:
-;; ** %\\1 literature
-;;    :PROPERTIES:
-;;    :ID:       %(org-id-new)
-;;    :END:
-;; %?
-;; "
-;; 	 :jump-to-captured t)
-        ("ep" "Add project board"
-         plain (function okm-add-new-project-board)
-         "%?"
-         :after-finalize okm-add-new-project-finalize
-	 :jump-to-captured t)
-        ("et" "Add task"
-	 entry (function okm-goto-task-board)
-	 "* TODO %^{TITLE}
-  :PROPERTIES:
-  :ID:       %(org-id-new)
-  :END:
-%?
-"
-	 :jump-to-captured t)
-	("b" "Org brain")
-	("bp" "Add research paper"
-	 entry (function (lambda () (org-id-goto okm-research-papers-id)));(file "~/Documents/org/brain/research_papers.org")
-	 "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :LINK: %^{LINK\}n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
-  \n  - %^{LINK}"
-	 :jump-to-captured t)
-        ("er" "Add repository"
-	 entry (file "~/Documents/org/brain/repositories.org")
-	 "* %(okm-add-repository)"
-	 :jump-to-captured t)))
-
-(defun org-summary-todo (n-done n-not-done)
-  "Switch entry to DONE when all subentries are done, to TODO otherwise."
-  (let* ((n-inprogress (-sum
-                        (org-map-entries
-                         (lambda ()
-                           (if (string= (org-get-todo-state) "INPROGRESS")
-                               1
-                             0))
-                         (format "LEVEL=%s" (1+ (org-outline-level)))
-                         'tree)))
-         (target-state (cond
-                        ((= n-not-done 0) "DONE")
-                        ((or (> n-done 0) n-inprogress) "INPROGRESS")
-                        (t "TODO"))))
-    (unless (string= (org-get-todo-state) target-state)
-      (org-todo target-state))))
-
-
-;; ;; from https://stackoverflow.com/questions/13967876/how-to-restrict-a-function-to-a-subtree-in-emacs-org-mode
-;; (defun my-ido-find-org-attach ()
-;;   "Find files in org-attachment directory"
-;;   (interactive)
-;;   (let* ((enable-recursive-minibuffers t)
-;;          (files (find-lisp-find-files org-attach-directory "."))
-;;          (file-assoc-list
-;;           (mapcar (lambda (x)
-;;                     (cons (file-name-nondirectory x)
-;;                           x))
-;;                   files))
-;;          (filename-list
-;;           (remove-duplicates (mapcar #'car file-assoc-list)
-;;                              :test #'string=))
-;;          (filename (ido-completing-read "Org attachments: " filename-list nil t))
-;;          (longname (cdr (assoc filename file-assoc-list))))
-;;     (ido-set-current-directory
-;;      (if (file-directory-p longname)
-;;          longname
-;;        (file-name-directory longname)))
-;;     (setq ido-exit 'refresh
-;;           ido-text-init ido-text
-;;           ido-rotate-temp t)
-;;     (exit-minibuffer)))
-
-; taken from https://emacs.stackexchange.com/questions/48533/calling-a-fuction-after-org-capturing
-;; (defun amsha/org-capture-finalize ()
-;;   (let ((key  (plist-get org-capture-plist :key))
-;;         (desc (plist-get org-capture-plist :description)))
-;;     (unless org-note-abort
-;;       (message "Template with key %s and description “%s” run successfully" org-capture-plist desc))))
-
-;; (add-hook 'org-capture-mode-hook 'amsha/org-capture-finalize)
-
-;;(require 'org-bullets)
 (use-package org-modern
   :straight (:type git :host github :repo "minad/org-modern")
   :custom
@@ -1005,46 +630,8 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
         (-difference bibtex-keys-1 bibtex-keys-2))
       (switch-to-buffer "*comparison-of-keys*"))))
 
-
-;; Moved out of use-pacakge to avoid errors with loading
-(with-eval-after-load 'org-ref-citation-links
-  (defhydra+ org-ref-citation-hydra ()
-    ("t" (lambda ()
-           (interactive)
-           (save-excursion
-             (org-ref-open-notes-at-point)
-             (org-noter)))
-     "open noter" :column "Open")
-    ("l" (lambda ()
-           (interactive)
-           (-if-let (url (org-ref-get-url-at-point))
-               (kill-new url)
-             (user-error "No url copied")))
-     "Copy url" :column "Copy")
-    ("A" (save-window-excursion
-	   (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
-	         (entry (bibtex-completion-get-entry (org-ref-get-bibtex-key-under-cursor))))
-             (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
-     "Copy APA short" :column "Copy")))
-
-
 (use-package org-fragtog
   :hook (org-mode . org-fragtog-mode))
-
-(defun doi-add-bibtex-entry-with-note (doi)
-  "."
-  (interactive
-   (list (read-string
-          "DOI: "
-          ;; now set initial input
-          (doi-utils-maybe-doi-from-region-or-current-kill))))
-  (doi-utils-add-bibtex-entry-from-doi doi)
-  (find-file (car bibtex-completion-bibliography))
-  (org-ref-open-bibtex-notes)
-  (org-set-property "LINK" (completing-read "LINK: " nil nil nil (when (s-starts-with-p "file://" (car kill-ring))
-                                                                   (car kill-ring))))
-  (research-papers-configure t))
-
 ;; (use-package org-noter ;;:quelpa (org-noter :fetcher github :repo "ahmed-shariff/org-noter")
 ;;   :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
 ;;                        :fork (:host github :repo "ahmed-shariff/org-noter"))
@@ -1138,220 +725,6 @@ Else create a text annotations at point."
 
   (define-key org-noter-notes-mode-map (kbd "C-M->") 'org-noter-append-title-at-point-to-highlight))
 
-
-;; (use-package org-brain ;;:quelpa (org-brain :fetcher github :repo "ahmed-shariff/org-brain" :branch "fix322/symlink_fix")
-;;   :straight (org-brain :type git :host github :repo "Kungsgeten/org-brain"
-;;                        :fork (:host github :repo "ahmed-shariff/org-brain"))
-;;   :demand
-;;   :init
-;;   (setq org-brain-path (file-truename "~/Documents/org/brain"))
-;;   :bind (("C-c v" . org-brain-visualize)
-;; 	 :map org-brain-visualize-mode-map
-;; 	 ("\C-coo" . org-brain-open-org-noter)
-;; 	 ("\C-cop" . okm-add-parent-topic)
-;;          ("\C-cob" . org-brain-goto-button-at-pt)
-;;          ("\C-cos". okm-print-parents))
-;;   :config
-;;   ;;(define-key org-brain-visualize-mode-map "")
-;;   (defmacro org-brain-function-on-entry (fn)
-;;   "Macro that generates a function which takes an entry and executes the fn while on a file entry."
-;;   `(lambda (entry)
-;;      (if (org-brain-filep entry)
-;;          ""
-;;        (org-with-point-at (org-brain-entry-marker entry)
-;;          (or (funcall ,fn entry)
-;; 	     "")))))
-
-;;   (setq org-id-track-globally t
-;;         org-id-locations-file "~/.emacs.d/.org-id-locations"
-;;         org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id
-;;         org-brain-completion-system (lambda (&rest args) (s-join org-brain-entry-separator (apply #'completing-read-multiple args))))
-;;   (push '("b" "Brain" plain (function org-brain-goto-end)
-;;           "* %i%?" :empty-lines 1)
-;;         org-capture-templates)
-;;   (setq org-brain-visualize-default-choices 'all)
-;;   (setq org-brain-title-max-length 50)
-  ;; (setq org-brain-vis-title-prepend-functions (list
-  ;;                                              (org-brain-function-on-entry 'org-brain-entry-todo-state-colored)
-  ;;                                              (org-brain-function-on-entry 'org-brain-entry-priority)))
-  ;; (defun org-brain-insert-resource-icon (link)
-  ;;   "Insert an icon, based on content of org-mode LINK."
-  ;;   (insert (format "%s "
-  ;;                   (cond ((string-prefix-p "http" link)
-  ;;                          (cond ((string-match "wikipedia\\.org" link)
-  ;;                                 (all-the-icons-faicon "wikipedia-w"))
-  ;;       			 ((string-match "github\\.com" link)
-  ;;                                 (all-the-icons-octicon "mark-github"))
-  ;;       			 ((string-match "vimeo\\.com" link)
-  ;;                                 (all-the-icons-faicon "vimeo"))
-  ;;       			 ((string-match "youtube\\.com" link)
-  ;;                                 (all-the-icons-faicon "youtube"))
-  ;;       			 (t
-  ;;                                 (all-the-icons-faicon "globe"))))
-  ;;                         ((string-prefix-p "brain:" link)
-  ;;                          (all-the-icons-fileicon "brain"))
-  ;;                         (t
-  ;;                          (all-the-icons-icon-for-file link))))))
-  ;; (defun org-brain--targets-with-metadata (collection)
-  ;;   "To use with completing read to allow having additional annotations with marginalia."
-  ;;   (lambda (string predicate action)
-  ;;     (if (eq action 'metadata)
-  ;;         `(metadata
-  ;;           (category . org-brain-node))
-  ;;       (complete-with-action action collection string predicate))))
-
-  ;; (defun org-brain-completing-read--metadata (args)
-  ;;   (append (list (nth 0 args)
-  ;;                 (org-brain--targets-with-metadata (nth 1 args)))
-  ;;           (cddr args)))
-  
-  ;; (advice-add #'org-brain-completing-read :filter-args 'org-brain-completing-read--metadata)
-  ;; (advice-remove #'org-brain-completing-read 'org-brain-completing-read--metadata)
-  
-  ;; (add-hook 'org-brain-after-resource-button-functions #'org-brain-insert-resource-icon)
-  ;; (defface aa2u-face '((t . nil))
-  ;;   "Face for aa2u box drawing characters")
-  ;; (advice-add #'aa2u-1c :filter-return
-  ;;             (lambda (str) (propertize str 'face 'aa2u-face)))
-  ;; (defun aa2u-org-brain-buffer ()
-  ;;   (let ((inhibit-read-only t))
-  ;;     (make-local-variable 'face-remapping-alist)
-  ;;     (add-to-list 'face-remapping-alist
-  ;;                  '(aa2u-face . org-brain-wires))
-  ;;     (ignore-errors (aa2u (point-min) (point-max)))))  
-  ;; (with-eval-after-load 'org-brain
-  ;;   (add-hook 'org-brain-after-visualize-hook #'aa2u-org-brain-buffer))
-
-;; (defun org-brain-open-org-noter ()
-;;   (interactive)
-;;   (let ((entry (condition-case nil
-;; 		   (car (org-brain-button-at-point))
-;; 		 (user-error (org-brain-entry-at-pt)))))
-;;     (if (org-brain-filep entry)
-;; 	(user-error "Noter cannot be opened for file entry")
-;;       (org-with-point-at (org-brain-entry-marker entry)
-;; 	(if (string= "research_papers" (file-name-base (org-entry-get (point) "FILE")))
-;; 	    (org-noter)
-;; 	  (user-error "Noter only for the entries in research_paper"))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet begin
-;; (defun org-brain-insert-visualize-button-tags (old-func &rest args)
-;;   "."
-;;   (unless (org-brain-filep (car args))
-;;     (message "-- %s" (org-brain-keywords (car args)))) ;(cadar args)))
-;;   (apply old-func args))
-;; (advice-add 'org-brain-insert-visualize-button :around #'org-brain-insert-visualize-button-tags)
-
-;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-tags)
-;; (defun org-brain--vis-children-with-tags (entry)
-;;   "Insert children of ENTRY.
-;; Helper function for `org-brain-visualize'.
-;; Appends the first letter of the todo state of the entry"
-;;   (let ((tags (org-brain-get-tags entry t)))
-;;     (when-let ((children (org-brain-children entry))
-;;                (fill-col (if (member org-brain-each-child-on-own-line-tag
-;;                                      (org-brain-get-tags entry))
-;;                              0
-;;                            (eval org-brain-child-linebreak-sexp))))
-;;       (insert "\n\n")
-;;       (dolist (child (if (member org-brain-no-sort-children-tag tags)
-;;                          children
-;;                        (sort children org-brain-visualize-sort-function)))
-;;         (let ((child-title (org-brain-title child))
-;;               (face (if (member entry (org-brain-local-parent child))
-;;                         'org-brain-local-child
-;;                       'org-brain-child)))
-;;           (when (> (+ (current-column) (length child-title)) fill-col)
-;;             (insert "\n"))
-;; 	  (let ((kwd-setting
-;; 		 (unless (org-brain-filep child)
-;; 		   (org-with-point-at
-;; 		       (org-brain-entry-marker child)
-;; 		     (let ((kwd (org-entry-get (point) "TODO")))
-;; 		       (if kwd
-;; 			   (list kwd (org-get-todo-face kwd))
-;; 			 nil))))))
-;; 	    (when kwd-setting
-;; 	      (insert (propertize (substring (first kwd-setting) 0 1) 'face (second kwd-setting)) " ")))
-;;           (org-brain-insert-visualize-button child face)
-;;           (insert "  "))))))
-;; (advice-add 'org-brain--vis-children :override #'org-brain--vis-children-with-tags)
-
-;;(advice-remove 'org-brain--vis-children #'org-brain--vis-children-with-tags)
-
-;; (defun org-brain-insert-visualize-button-with-tags (entry &optional face edge)
-;;   "Insert a button, running `org-brain-visualize' on ENTRY when clicked.
-;; FACE is sent to `org-brain-display-face' and sets the face of the button.
-;; Appends the todo state of the entry being visualized."
-;;   (let ((annotation (org-brain-get-edge-annotation org-brain--vis-entry
-;;                                                    entry
-;;                                                    org-brain--vis-entry-keywords)))
-;;     (let ((kwd-setting
-;; 	   (unless (org-brain-filep entry)
-;; 	     (org-with-point-at
-;; 		 (org-brain-entry-marker entry)
-;; 	       (let ((kwd (org-entry-get (point) "TODO")))
-;; 		 (if kwd
-;; 		     (list kwd (org-get-todo-face kwd))
-;; 		   nil))))))
-;;       (when kwd-setting
-;; 	(insert (propertize (substring (first kwd-setting) 0 1) 'face (second kwd-setting)) " ")))
-;;     (insert-text-button
-;;      (org-brain-title entry)
-;;      'action (lambda (_x) (org-brain-visualize entry))
-;;      'id (org-brain-entry-identifier entry)
-;;      'follow-link t
-;;      'help-echo annotation
-;;      'aa2u-text t
-;;      'face (org-brain-display-face entry face annotation))))
-
-;; (defun org-brain-entry-todo-state-colored (entry)
-;;   "Get todo state of ENTRY with colors."
-;;   (let ((kwd (org-entry-get (point) "TODO")))
-;;     (if kwd
-;; 	(propertize (substring kwd 0 1) 'face (org-get-todo-face kwd))
-;;       nil)))
-
-;; (defun org-brain-entry-priority (entry)
-;;   "Get priority state of ENTRY with colors."
-;;   (let ((priority (org-priority-to-value (org-priority-show))))
-;;     (cond
-;;      ((= priority 2000) "[#A]")
-;;      (t nil))))
-
-
-;; (advice-add 'org-brain-insert-visualize-button :override #'org-brain-insert-visualize-button-with-tags)
-
-;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-with-tags)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
-
-  (defun ripgrep (pattern directory type)
-    (-non-nil
-     (--map
-      (pcase-let ((`(,file ,line ,match) (s-split ":" (f-relative it directory))))
-        `(,(expand-file-name file directory), (string-to-number line) ,match))
-      (--filter
-       (< 0 (length it))
-       (s-split "\n"
-                (with-temp-buffer
-                  (call-process "rg" nil t "--null"
-                                "--line-buffered"
-                                "--color=never"
-                                "--max-columns=10000"
-                                "--max-columns-preview"
-                                "--path-separator" "/"
-                                "--smart-case"
-                                "--no-heading"
-                                "--with-filename"
-                                "--line-number"
-                                "--search-zip"
-                                "-j5"
-                                (format "-t%s" type)
-                                pattern
-                                directory)
-                  (buffer-string)))))))
-
 (use-package org-super-agenda
   :custom
   (org-super-agenda-groups '((:name "dates" :auto-ts t))))
@@ -1428,6 +801,309 @@ Either show all or filter based on a sprint."
                      #'okm-query-boards)))
 
 
+(use-package org-download
+  :straight (org-download :type git :host github :repo "abo-abo/org-download"
+                          :fork (:host github :repo "ahmed-shariff/org-download"))
+  :custom
+  (org-download-image-dir (f-join okm-base-directory "work/figures/"))
+  (org-download-screenshot-method (if (eq system-type 'windows-nt) "magick convert clipboard: %s" "scrot"))
+
+  :config
+  (defun org-download--dir-2-use-id (oldfun &rest args)
+    "Use ID if one of the parents has an ID or use the default behaviour of dir-2"
+    (-if-let (id (save-excursion
+                   (or (org-id-get-closest)
+                       (progn
+                         (goto-char 0)
+                         (org-id-get)))))
+        id
+      ;; args not used
+      (funcall oldfun)))
+
+  (defun org-download--dir-1-get-relative-path (&rest args)
+    "Get relative path to `org-download-image-dir'."
+    (or (when org-download-image-dir
+          (f-relative org-download-image-dir))
+        "."))
+  (advice-add 'org-download--dir-1 :override #'org-download--dir-1-get-relative-path)
+  (advice-add 'org-download--dir-2 :around #'org-download--dir-2-use-id)
+
+  (defun download-screenshot (file-name)
+    "Capture screenshot and yank the resulting file name.
+The screenshot tool is determined by `org-download-screenshot-method'."
+    (interactive (list (file-truename (car (find-file-read-args "File to save in:" nil)))))
+    (let* ((screenshot-dir (file-name-directory file-name)))
+      (make-directory screenshot-dir t)
+      (if (functionp org-download-screenshot-method)
+          (funcall org-download-screenshot-method
+                   file-name)
+        (shell-command-to-string
+         (format org-download-screenshot-method
+                 file-name)))
+      (when (file-exists-p file-name)
+        (kill-new file-name)))))
+
+;; Functions ********************************************************************************
+
+;; from https://emacs.stackexchange.com/questions/44664/apply-ansi-color-escape-sequences-for-org-babel-results
+(defun org-babel-ansi-color-result ()
+  (when-let ((beg (org-babel-where-is-src-block-result nil nil)))
+    (save-excursion
+      (goto-char beg)
+      (when (looking-at org-babel-result-regexp)
+        (let ((end (org-babel-result-end))
+              (ansi-color-context-region nil))
+          (ansi-color-apply-on-region beg end))))))
+
+;; from https://emacs.stackexchange.com/questions/42471/how-to-export-markdown-from-org-mode-with-syntax
+(defun org-md-example-block-with-syntax (example-block _content info)
+  "Transcode element EXAMPLE-BLOCK as ```lang ...'''."
+  (format "```%s\n%s\n```"
+          (org-element-property :language example-block)
+          (org-remove-indentation
+           (org-export-format-code-default example-block info))))
+
+(defun amsha/reload-org-babel-langs ()
+  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
+
+(defun org-id-get-closest ()
+  "move up the tree until an el with id is found"
+  (ignore-error user-error (cl-do () ((org-id-get) (org-id-get)) (org-up-element))))
+
+;;**********************bulk action wrappers***********************
+(defvar org-agenda-bulk-action-started nil)
+(defvar org-agenda-bulk-action-post-execution-function nil)
+
+(defun org-agenda-bulk-action-wrapper (original &rest args)
+  (setq org-agenda-bulk-action-started t)
+  (condition-case nil
+      (apply original args)
+    (error nil))
+  (setq org-agenda-bulk-action-started nil)
+  (when org-agenda-bulk-action-post-execution-function
+    (funcall org-agenda-bulk-action-post-execution-function))
+  (setq org-agenda-bulk-action-post-execution-function nil))
+
+(advice-add 'org-agenda-bulk-action :around #'org-agenda-bulk-action-wrapper)
+
+;;  ***************************************************************
+
+(defun org-ask-title-location (&optional prompt)
+  "From  https://stackoverflow.com/questions/9005843/interactively-enter-headline-under-which-to-place-an-entry-using-capture."
+  (let* ((prompt (or prompt "Project "))
+	 (org-refile-targets '((nil :maxlevel . 1)))
+         (hd (condition-case nil
+                 (car (let ((in (org-refile-get-location prompt nil t)))
+			(message "%s" in)
+			in))
+               (error (car org-refile-history)))))
+    (goto-char (point-min))
+    (re-search-forward
+         (format org-complex-heading-regexp-format (regexp-quote hd))
+         nil t)
+        (goto-char (point-at-bol))))
+
+;;  ***************************************************************
+
+(defun okm--ask-id (file prompt property)
+  "."
+  (save-window-excursion
+    (find-file file)
+    (org-ask-title-location prompt)
+    (org-entry-get (point) property)))
+
+(defun okm--org-templates-get-project-id ()
+  "Get the new project id."
+  (number-to-string
+   (1+ (apply #'max
+              (org-ql-select (expand-file-name "work/projects.org" okm-base-directory) `(level 1)
+                :action (lambda ()
+                          (condition-case nil
+                              (string-to-number (cadr (s-match "<<\\([0-9]+\\)>>" (org-get-heading t t t t))))
+                            (wrong-type-argument 0))))))))
+
+(defun okm--org-templates-get-sprint-id ()
+  "Get the new sprint id."
+  (number-to-string
+   (1+
+    (apply #'max
+           (org-ql-select
+             (expand-file-name "work/projects.org" okm-base-directory)
+             `(parent (heading ,(s-replace-regexp "/$" "" (car org-refile-history))))
+             :action  (lambda ()
+                        (condition-case nil
+                            (string-to-number (cadr (s-match "Sprint \\([0-9]+\\):"
+                                                             (org-get-heading t t t t))))
+                          (wrong-type-argument 0))))))))
+
+(defun okm-ask-experiment-id ()
+  "."
+  (save-window-excursion
+    (find-file "~/Documents/org/brain/work/experiments_log.org")
+    (org-ask-title-location  "Experiment ")
+    (org-entry-get (point) "CUSTOM_ID"))
+  ;;(okm--ask-id "~/Documents/org/brain/work/experiments_log.org"  "Experiment " "CUSTOM_ID"))
+)
+
+(defun okm-ask-project-id ()
+  "."
+  (okm--ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
+
+(defun okm-goto-task-board ()
+  "Move the cursor to a location in a task board."
+  (interactive)
+  (let* ((project-boards (mapcar (lambda (file) (cons (format "%-10s %s"
+                                                              (propertize (f-base (f-parent (f-parent file)))  'face 'marginalia-documentation)
+                                                              (file-name-base file))
+                                                       file))
+                                 (--keep
+                                  (when (not (s-contains-p "#" it)) it)
+                                  (f-glob "*/project_boards/*.org" okm-base-directory))))
+         (board-file (cdr (assoc (completing-read "Select poject board: " project-boards) project-boards))))
+    (find-file board-file)
+    (goto-char (point-max))))
+
+(defun okm-board-task-location ()
+  "Return a org title with board task after prompting for it."
+  (let* ((ts (format-time-string "%I:%M %p" (current-time)))
+         (targets
+          (append
+           '(("--None--"))
+           (--map
+            (let* ((title (s-replace-regexp " \\[[0-9]+/[0-9]+\\]" "" (org-roam-node-title it)))
+                   (full-file-name (org-roam-node-file it))
+                   (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
+                   (todo-state (or (org-roam-node-todo it) "")))
+              (list (format "%-10s  %-30s %s"
+                            (propertize todo-state 'face (org-get-todo-face todo-state))
+                            (propertize file-name 'face 'marginalia-documentation)
+                            title)
+                    title
+                    (org-roam-node-id it)))
+            (org-roam-ql-nodes '([(and (= level 1) (like file $s1))] "%project_boards%")))))
+         (target (progn
+                   (assoc (completing-read "Select task: " targets nil t) targets))))
+    (if (cdr target)
+        (format "**** [%s] [[id:%s][%s]]  %%?"
+                ts
+                (nth 2 target)
+                (nth 1 target))
+      (format "**** [%s] %%?" ts))))
+
+(defun okm-insert-timestamp ()
+  (interactive)
+  (insert "[" (format-time-string "%I:%M %p" (current-time)) "]"))
+    
+(defun okm-add-repository ()
+  "Take a repo link and add that to the file as a node."
+  (let* ((link (read-string "Repository url: "))
+         (title (cond
+                 ((s-match "github" link)
+                  (format "github/%s"
+                          (s-replace ".git" "" (car (last (s-split "/" link))))))
+                 (t (read-string "Title: " link)))))
+    (format "%s
+  :PROPERTIES:
+  :ID:      %s
+  :END:
+- %s" title (org-id-new) link)))
+          
+;; (defun org-ask-location ()
+;;   org-project-sprint-target-heading) 
+
+(defun okm-add-new-project-board ()
+  (let* ((title (read-string "title: "))
+         (new-file (file-truename
+                    (format
+                     "~/Documents/org/brain/work/project_boards/%s.org"
+                     (read-string "board name: " (s-replace " " "_" (downcase title)))))))
+    (if (file-exists-p new-file)
+        (user-error "File exists %s" (em new-file "boooooooooo"))
+      (org-capture-put :new-buffer t)
+      (find-file new-file)
+      (setq org-capture-plist
+            (plist-put org-capture-plist
+                       :amsha-file-created
+                       new-file))
+      (goto-char (point-min))
+      (org-id-get-create)
+      (goto-char (point-max))
+      (insert (format "\n#+title: %s\n
+* Meta data
+** Related repos:
+** %s literature" title title))
+      (org-id-get-create)
+      (goto-char (point-max)))))
+
+(defun okm-add-new-project-finalize ()
+  (when org-note-abort
+    (when-let* ((new-file (plist-get org-capture-plist :amsha-file-created))
+                (_ (yes-or-no-p "Delete file for aborted capture?")))
+      (when (find-buffer-visiting new-file)
+        (kill-buffer (find-buffer-visiting new-file)))
+      (delete-file new-file))))
+
+(defun org-summary-todo (n-done n-not-done)
+  "Switch entry to DONE when all subentries are done, to TODO otherwise."
+  (let* ((n-inprogress (-sum
+                        (org-map-entries
+                         (lambda ()
+                           (if (string= (org-get-todo-state) "INPROGRESS")
+                               1
+                             0))
+                         (format "LEVEL=%s" (1+ (org-outline-level)))
+                         'tree)))
+         (target-state (cond
+                        ((= n-not-done 0) "DONE")
+                        ((or (> n-done 0) n-inprogress) "INPROGRESS")
+                        (t "TODO"))))
+    (unless (string= (org-get-todo-state) target-state)
+      (org-todo target-state))))
+
+
+(defun doi-add-bibtex-entry-with-note (doi)
+  "."
+  (interactive
+   (list (read-string
+          "DOI: "
+          ;; now set initial input
+          (doi-utils-maybe-doi-from-region-or-current-kill))))
+  (doi-utils-add-bibtex-entry-from-doi doi)
+  (find-file (car bibtex-completion-bibliography))
+  (org-ref-open-bibtex-notes)
+  (org-set-property "LINK" (completing-read "LINK: " nil nil nil (when (s-starts-with-p "file://" (car kill-ring))
+                                                                   (car kill-ring))))
+  (research-papers-configure t))
+
+
+
+(defun ripgrep (pattern directory type)
+  (-non-nil
+   (--map
+    (pcase-let ((`(,file ,line ,match) (s-split ":" (f-relative it directory))))
+      `(,(expand-file-name file directory), (string-to-number line) ,match))
+    (--filter
+     (< 0 (length it))
+     (s-split "\n"
+              (with-temp-buffer
+                (call-process "rg" nil t "--null"
+                              "--line-buffered"
+                              "--color=never"
+                              "--max-columns=10000"
+                              "--max-columns-preview"
+                              "--path-separator" "/"
+                              "--smart-case"
+                              "--no-heading"
+                              "--with-filename"
+                              "--line-number"
+                              "--search-zip"
+                              "-j5"
+                              (format "-t%s" type)
+                              pattern
+                              directory)
+                (buffer-string)))))))
+
+
 (defmacro org-agenda-action (name &rest body)
   (declare (indent defun))
   `(defun ,name ()
@@ -1468,56 +1144,6 @@ Either show all or filter based on a sprint."
 
 (defun okm-is-research-paper (path)
   (f-descendant-of-p (file-truename path) (file-truename (f-join okm-base-directory "research_papers"))))
-
-;; (use-package org-roam-gocal
-;;   :after (org-roam-ql)
-;;   :straight nil
-;;   :init
-(require 'org-roam-gocal)
-;; :commands (org-roam-gocal-pull org-roam-gocal-push))
-
-;; (defun okm-query-papers-by-topics (&optional topic-ids)
-;;   "Query papers based on topics."
-;;   (interactive)
-;;   (let* ((topics (if topic-ids
-;;                      (-map #'org-roam-node-from-id topic-ids)
-;;                    (org-roam-node-read-multiple "Query topics: ")))
-;;          (topic-queries (--map `(child-of ,(org-roam-node-title it)) topics)))
-;;     (org-roam-ql-search
-;;      `(and (file "research_papers")
-;;            ,(if (eq 1 (length topic-queries))
-;;                (car topic-queries)
-;;               `(,(pcase (completing-read "connector: " '(and or) nil t)
-;;                    ("or" 'or)
-;;                    ("and" 'and))
-;;             ,@topic-queries)))
-;;      (format "(%s)" (s-join ", " (-map #'org-roam-node-title topics))))))
-
-;; ;; TODO: allow mulitiple combinations of brain-parent to be used (eg: (and (or ..) (or ..)))
-;; (defun okm-query-papers-by-topic-with-ql ()
-;;   "CONNECTOR."
-;;   (interactive)
-;;   (let* ((topics 
-;;           (org-roam-node-read-multiple "Query topics: "))
-;;          (connector (if (> (length topics) 1)
-;;                         (pcase (completing-read "connector: " '(and or) nil t)
-;;                           ("or" 'or)
-;;                           ("and" 'and))
-;;                       'and))
-;;          (topic-ids (list (append `(okm-parent (quote ,connector))
-;;                                   (mapcar
-;;                                    (lambda (topic)
-;;                                      `(quote ,(cons (org-roam-node-title topic) (org-roam-node-id topic))))
-;;                                    topics))))
-;;          (query (append '(and (level <= 1)) topic-ids))
-;;          (after-change-major-mode-hook nil))
-;;     (org-ql-search (f-glob "*.org" (f-join okm-base-directory "research_papers"))  query)))
-
-;; (defun okm-query-papers-by-pdf-string (regexp)
-;;   "query with org-ql REGEXP."
-;;   (interactive "sRegexp: ")
-;;   (let* ((query `(and (level <= 1) (pdf-regexp ,regexp))))
-;;     (org-ql-search '("~/Documents/org/brain/research_papers/")  query)))
 
 (defun okm--test-regexp-on-file (f regexp)
   (if (f-exists-p f)
@@ -1702,51 +1328,6 @@ Currently written to work in org-ql buffer."
                                                (list "research topics.org" "People.org" "Projects.org")))))))
 
 
-(require 'ox-extra)
-(ox-extras-activate '(ignore-headlines))
-
-(use-package org-download
-  :straight (org-download :type git :host github :repo "abo-abo/org-download"
-                          :fork (:host github :repo "ahmed-shariff/org-download"))
-  :custom
-  (org-download-image-dir (f-join okm-base-directory "work/figures/"))
-  (org-download-screenshot-method (if (eq system-type 'windows-nt) "magick convert clipboard: %s" "scrot"))
-
-  :config
-  (defun org-download--dir-2-use-id (oldfun &rest args)
-    "Use ID if one of the parents has an ID or use the default behaviour of dir-2"
-    (-if-let (id (save-excursion
-                   (or (org-id-get-closest)
-                       (progn
-                         (goto-char 0)
-                         (org-id-get)))))
-        id
-      ;; args not used
-      (funcall oldfun)))
-
-  (defun org-download--dir-1-get-relative-path (&rest args)
-    "Get relative path to `org-download-image-dir'."
-    (or (when org-download-image-dir
-          (f-relative org-download-image-dir))
-        "."))
-  (advice-add 'org-download--dir-1 :override #'org-download--dir-1-get-relative-path)
-  (advice-add 'org-download--dir-2 :around #'org-download--dir-2-use-id)
-
-  (defun download-screenshot (file-name)
-    "Capture screenshot and yank the resulting file name.
-The screenshot tool is determined by `org-download-screenshot-method'."
-    (interactive (list (file-truename (car (find-file-read-args "File to save in:" nil)))))
-    (let* ((screenshot-dir (file-name-directory file-name)))
-      (make-directory screenshot-dir t)
-      (if (functionp org-download-screenshot-method)
-          (funcall org-download-screenshot-method
-                   file-name)
-        (shell-command-to-string
-         (format org-download-screenshot-method
-                 file-name)))
-      (when (file-exists-p file-name)
-        (kill-new file-name)))))
- 
   
 (defun pdf-crop-image (event &optional switch-back)
   "EVENT SWITCH-BACK."
@@ -1791,13 +1372,6 @@ The screenshot tool is determined by `org-download-screenshot-method'."
   "Paste a multiline segment (generally copied from pdf) as a single line."
   (interactive)
   (insert (amsha/format-multiline-from-kill-ring)))
-  
-(when (gethash 'use-pdf-tools configurations t)
-  (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
-  (define-key pdf-view-mode-map [C-M-S-down-mouse-1] 'pdf-crop-image-and-save))
-
-(setq org-export-allow-bind-keywords t
-      org-latex-image-default-option "scale=0.6")
 
 (defun set-property-for-level-in-region (level property value)
   "."
@@ -1979,8 +1553,6 @@ With C-u C-u C-u prefix, force run all research-papers."
     (when url
       (amsha/get-uml-link url))))
 
-(advice-add #'doi-utils-get-pdf-url :around #'amsha/doi-utils-get-pdf-url-uml)
-
 (defun copy-related-research-papers (parent-id)
   "PARENT-ID."
   (interactive (list
@@ -2142,7 +1714,6 @@ With C-u C-u C-u prefix, force run all research-papers."
                                                (org-entry-get (point) "NODE_ID")))))
                       'org-roam))
 
-(require 'org-ref-arxiv)
 (defun arxiv-add-bibtex-entry-with-note (arxiv-link bibfile)
   "Add bibtex entry for ARXIV-LINK to BIBFILE."
   (interactive
@@ -2320,21 +1891,6 @@ Parent-child relation is defined by the brain-parent links."
       (delete-file (buffer-file-name))
       (kill-buffer))))
 
-(add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
-(add-hook 'org-mode-hook
-	  (lambda ()
-	    (define-key org-mode-map "\C-c!" 'org-time-stamp-inactive)
-	    (define-key org-mode-map "\C-coo" 'org-noter)
-	    (define-key org-mode-map "\C-cop" 'okm-add-parent-topic)
-	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
-            (define-key org-mode-map "\C-cos" 'okm-print-parents)
-            (define-key org-mode-map "\C-cor" 'org-ref-citation-hydra/body)
-            (define-key org-mode-map "\C-coa" 'org-asana-hydra/body)
-            (define-key org-mode-map (kbd "C-'") nil)
-            (define-key org-mode-map "\C-c/" nil)
-	    (flyspell-mode t)))
-(add-hook 'org-mode-hook 'visual-line-mode)
-
 (defun amsha/pdf-to-text (file-name)
   "FILE-NAME."
   (let* ((normalized-file-name (expand-file-name file-name)))
@@ -2347,173 +1903,6 @@ Parent-child relation is defined by the brain-parent links."
                                              (pdf-info-gettext (number-to-string page-number) '(0 0 1 1) nil normalized-file-name))
                                            (number-sequence 1 (pdf-info-number-of-pages normalized-file-name)) " "))))))
 
-(use-package asana
-  :straight (asana :type git :host github :repo "ahmed-shariff/emacs-asana")
-  :config
-  (setq asana-token (gethash 'asana-token configurations))
-
-  (defun org-asana-get-project-id ()
-    "Return the ASANA_ID from the file, which is the project ID."
-    (when (equalp major-mode 'org-mode)
-      (save-excursion
-        (org-entry-get 0 "ASANA_ID"))))
-
-  (defun org-asana-update-section-ids ()
-    ""
-    (interactive)
-    (-when-let (sections (asana-get (concat "/projects/" (org-asana-get-project-id) "/sections")))
-      (save-excursion
-        (org-entry-put 0 "ASANA_SECTIONS" (format "%s" (--map (cons (asana-assocdr 'name it) (asana-assocdr 'gid it)) sections))))))
-
-  (defun org-asana-get-todo-id (todo-state)
-    ""
-    (when todo-state (format "%s" (asana-assocdr (read todo-state) (read (org-entry-get 0 "ASANA_SECTIONS"))))))
-
-  (defun org-asana-get-todo-state (todo-id)
-    ""
-    (format "%s" (asana-rassocar (read todo-id) (read (org-entry-get 0 "ASANA_SECTIONS")))))
-
-  (defun org-asana-get-tasks ()
-    ""
-    (-when-let* ((project-id (org-asana-get-project-id))
-                 (task-ids (--map (asana-assocdr 'gid it) (asana-get (concat "/projects/" project-id "/tasks")))))
-      task-ids))
-  
-
-  (defun org-asana-push-new-tasks ()
-    (interactive)
-    (org-map-entries (lambda ()
-                       (unless (org-entry-get (point) "ASANA_ID")
-                         (-when-let (task-id (asana-assocdr 'gid (asana-post "/tasks" `(("projects" . (,(org-asana-get-project-id)))
-                                                                                        ("name" . ,(org-entry-get (point) "ITEM"))))))
-                           (asana-post (concat "/sections/"
-                                               (org-asana-get-todo-id
-                                                (org-entry-get (point) "TODO"))
-                                               "/addTask")
-                                       `(("task" . ,task-id)))
-                           (org-entry-put (point) "ASANA_ID" task-id))))
-                     "LEVEL=1"))
-
-  (defun org-asana--get-todo-state-from-task (task)
-    (org-asana-get-todo-state
-     (asana-assocdr 'gid
-                    (asana-assocdr 'section
-                                   (car (asana-assocdr 'memberships task))))))
-
-  (defun org-asana-pull-new-tasks ()
-    "Gets all tasks from the asnaa project board and create headings for tasks not already in the project org file."
-    (interactive)
-    (let ((existing-tasks (-non-nil (org-map-entries (lambda () (org-entry-get (point) "ASANA_ID")) "LEVEL=1"))))
-      (-map (lambda (task-id)
-              (unless (member task-id existing-tasks)
-                (-when-let (task (asana-get (format "/tasks/%s" task-id)))
-                  (save-excursion
-                    (goto-char (point-max))
-                    (insert (format "\n* %s %s"
-                                    (org-asana--get-todo-state-from-task task)
-                                    (asana-assocdr 'name task)))
-                    (org-id-get-create)
-                    (org-entry-put (point) "ASANA_ID" (asana-assocdr 'gid task))))))
-            (org-asana-get-tasks))))
-
-  (defun org-asana-push-states ()
-    (interactive)
-    (let ((local-tasks (org-ql-select (current-buffer) '(level 1) :action (lambda () (cons (org-entry-get (point) "ASANA_ID") (org-id-get))))))
-      (-map (lambda (task-id)
-              (-when-let (task (asana-get (format "/tasks/%s" task-id)))
-                (save-excursion
-                  (org-id-goto (asana-assocdr task-id local-tasks))
-                  (unless (equalp (org-entry-get (point) "TODO") (org-asana--get-todo-state-from-task task))
-                    (asana-post (concat "/sections/"
-                                        (org-asana-get-todo-id
-                                         (org-entry-get (point) "TODO"))
-                                        "/addTask")
-                                `(("task" . ,task-id))))
-                  (-when-let* ((local-scheduled (org-entry-get (point) "SCHEDULED"))
-                               (local-scheduled (parse-time-string local-scheduled)) ;; (SEC MIN HOUR DAY MON YEAR DOW DST TZ)
-                               (local-due-on (format "%s-%02d-%02d" (nth 5 local-scheduled) (nth 4 local-scheduled) (nth 3 local-scheduled))))
-                    (unless (equalp (asana-assocdr 'due_on task) local-due-on)
-                      (asana-put (format "/tasks/%s" task-id)
-                                 `(("due_on" . ,local-due-on)))))
-                  (when (and (org-entry-get (point) "CLOSED") (asana-assocdr 'due_on task))
-                    (asana-put (format "/tasks/%s" task-id)
-                               `(("completed" . t)))))))
-            (org-asana-get-tasks))))
-
-  (defun org-asana-pull-states ()
-    "Pull all tasks from the project org file and update the states (todo and schedule)."
-    (interactive)
-    (let ((local-tasks (org-ql-select (current-buffer) '(level 1) :action (lambda () (cons (org-entry-get (point) "ASANA_ID") (org-id-get))))))
-      (-map (lambda (task-id)
-              (-when-let (task (asana-get (format "/tasks/%s" task-id)))
-                (save-excursion
-                  (org-id-goto (asana-assocdr task-id local-tasks))
-                  ;; setting schedule info before todo state to avoid todostate changes being overwritten
-                  (-if-let (due-on (asana-assocdr 'due_on task))
-                      (unless (asana-assocdr 'completed task)
-                        (org-schedule :time due-on)))
-                  (let ((new-state (org-asana--get-todo-state-from-task task)))
-                    (unless (equalp (org-entry-get (point) "TODO") new-state)
-                      (org-entry-put (point) "TODO" new-state)
-                      (when (member new-state org-done-keywords)
-                        (org-entry-put (point) "SCHEDULED" nil)))))))
-            (org-asana-get-tasks))))
-
-  (defhydra org-asana-hydra (:color blue :hint nil :post (message "Asana call complete"))
-    "Asana actions."
-    ("pn" org-asana-push-new-tasks "Push new tasks" :column "Push")
-    ("ps" org-asana-push-states "Push states" :column "Push")
-    ("p" (lambda ()
-           (interactive)
-           (org-asana-push-new-tasks)
-           (org-asana-push-states)) "Push updates (tasks & states)" :column "Push")
-    ("fn" org-asana-pull-new-tasks "Pull new tasks" :column "Pull")
-    ("fs" org-asana-pull-states "Pull states" :column "Pull")
-    ("f" (lambda ()
-           (interactive)
-           (org-asana-pull-new-tasks)
-           (org-asana-pull-states)) "Pull updates (tasks & states)" :column "Pull")
-    ("s" org-asana-update-section-ids "Updates todo section ids" :column "Pull")))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet starts
-;; (defvar org-brain-insert-visualize-button-predicate nil)
-
-;; (defun org-brain-insert-visualize-button-predicate-drop-research-papers (entry)
-;;   (not (member (file-name-sans-extension (file-truename org-ref-bibliography-notes)) (org-brain-parents entry))))
-
-;; (defun org-brain-insert-visualize-button-with-predicate (entry &optional face category)
-;;   "Insert a button, running `org-brain-visualize' on ENTRY when clicked.
-;; FACE is sent to `org-brain-display-face' and sets the face of the button.
-;; CATEGORY is used to set the `brain-category` text property."
-;;   (when (and org-brain-insert-visualize-button-predicate
-;; 	     (funcall org-brain-insert-visualize-button-predicate entry))
-;;     (let ((annotation (org-brain-get-edge-annotation org-brain--vis-entry
-;; 						     entry
-;; 						     org-brain--vis-entry-keywords)))
-;;       (insert-text-button
-;;        (org-brain-vis-title entry)
-;;        'action (lambda (_x) (org-brain-visualize entry))
-;;        'id (org-brain-entry-identifier entry)
-;;        'follow-link t
-;;        'brain-category (or category 'default)
-;;        'help-echo annotation
-;;        'aa2u-text t
-;;        'face (org-brain-display-face entry face annotation)))))
-
-;; (defun orb-brain-visualize-show-research-papers ()
-;;   "."
-;;   (interactive)
-;;   (setq org-brain-insert-visualize-button-predicate
-;; 	(if org-brain-insert-visualize-button-predicate
-;; 	    nil
-;; 	  (function org-brain-insert-visualize-button-predicate-drop-research-papers))))
-
-;; (advice-add 'org-brain-insert-visualize-button :override #'org-brain-insert-visualize-button-with-predicate)
-
-;; (advice-remove 'org-brain-insert-visualize-button #'org-brain-insert-visualize-button-with-predicate)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;experimnet end
-
 (defun org-archive--compute-location-to-dir (computed-location)
   "See ORG-ARCHIVE--COMPUTE-LOCATION, makes the locations move to dir named archive."
   (cons (let* ((f (car computed-location))
@@ -2524,29 +1913,6 @@ Parent-child relation is defined by the brain-parent links."
         (cdr computed-location)))
 
 (advice-add 'org-archive--compute-location :filter-return #'org-archive--compute-location-to-dir)
-
-;; (defun okm-org-agenda-recompute ()
-;;   "Recompute the agenda list."
-;;   (interactive)
-;;   (setq org-agenda-files (flatten-tree (list (--map (f-files it (lambda (f)
-;;                                                                   (and (f-ext-p f "org")
-;;                                                                        (with-temp-buffer
-;;                                                                          (insert-file f)
-;;                                                                          (org-mode)
-;;                                                                          (if-let (kwds (org-collect-keywords '("filetags")))
-;;                                                                              (not (member "agendauntrack" (split-string (cadar kwds) ":" 'omit-nulls)))
-;;                                                                            t)))))
-;;                                                     (f-glob "~/Documents/org/brain/*/project_boards"))
-;;                                              (f-files "~/Documents/org/brain/roam-notes"
-;;                                                       (lambda (f)
-;;                                                         (and (f-ext-p f "org")
-;;                                                              (with-temp-buffer
-;;                                                                (insert-file f)
-;;                                                                (org-mode)
-;;                                                                (when-let (kwds (org-collect-keywords '("filetags")))
-;;                                                                  (member "agendatrack" (split-string (cadar kwds) ":" 'omit-nulls)))))))
-;;                                              (f-glob "~/Documents/org/brain/personal/**/*.org")
-;;                                              '("~/Documents/org/brain/google_calender_unlisted.org")))))
 
 (defun okm-get-pdf-txt (paper-id)
   "Given the paper ID get the full text extracted using pdf-tools."
@@ -2673,6 +2039,33 @@ The format of the response should be as follows:
    ""
    str))
 
+;; Moved out of use-pacakge to avoid errors with loading
+(with-eval-after-load 'org-ref-citation-links
+  (defhydra+ org-ref-citation-hydra ()
+    ("t" (lambda ()
+           (interactive)
+           (save-excursion
+             (org-ref-open-notes-at-point)
+             (org-noter)))
+     "open noter" :column "Open")
+    ("l" (lambda ()
+           (interactive)
+           (-if-let (url (org-ref-get-url-at-point))
+               (kill-new url)
+             (user-error "No url copied")))
+     "Copy url" :column "Copy")
+    ("A" (save-window-excursion
+	   (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
+	         (entry (bibtex-completion-get-entry (org-ref-get-bibtex-key-under-cursor))))
+             (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
+     "Copy APA short" :column "Copy")))
+
+
+  
+(when (gethash 'use-pdf-tools configurations t)
+  (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
+  (define-key pdf-view-mode-map [C-M-S-down-mouse-1] 'pdf-crop-image-and-save))
+
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
@@ -2701,7 +2094,32 @@ The format of the response should be as follows:
                           (with-temp-buffer
                             (insert-file "~/.emacs.d/org-agenda-org-roam-ql-cache")
                             (buffer-string))
-                          "\n")))
+                          "\n"))
+
+      org-export-allow-bind-keywords t
+      org-latex-image-default-option "scale=0.6")
+
+(add-hook 'org-babel-after-execute-hook 'org-babel-ansi-color-result)
+(add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
+(add-hook 'org-mode-hook
+	  (lambda ()
+	    (define-key org-mode-map "\C-c!" 'org-time-stamp-inactive)
+	    (define-key org-mode-map "\C-coo" 'org-noter)
+	    (define-key org-mode-map "\C-cop" 'okm-add-parent-topic)
+	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
+            (define-key org-mode-map "\C-cos" 'okm-print-parents)
+            (define-key org-mode-map "\C-cor" 'org-ref-citation-hydra/body)
+            ;; (define-key org-mode-map "\C-coa" 'org-asana-hydra/body)
+            (define-key org-mode-map (kbd "C-'") nil)
+            (define-key org-mode-map "\C-c/" nil)
+	    (flyspell-mode t)))
+(add-hook 'org-mode-hook 'visual-line-mode)
+
+(advice-add 'org-md-example-block :override #'org-md-example-block-with-syntax)
+(advice-add #'doi-utils-get-pdf-url :around #'amsha/doi-utils-get-pdf-url-uml)
+
+(with-eval-after-load 'org
+  (amsha/reload-org-babel-langs))
 
 (provide 'orgZ)
 ;;; orgZ.el ends here

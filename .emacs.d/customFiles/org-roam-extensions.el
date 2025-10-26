@@ -11,22 +11,6 @@
 (require 'org-roam)
 (require 'org-roam-ql)
 
-;; (use-package consult-notes
-;;   :straight (:type git :host github :repo "mclear-tools/consult-notes")
-;;   :bind (("C-c n n" . consult-notes-search-in-all-notes)
-;;          ("C-c n N" . consult-ripgrep-roam-notes)
-;;          ("C-c n v" . consult-notes-visit-relation))
-;;   :commands (consult-notes
-;;              consult-notes-search-in-all-notes
-;;              consult-notes-org-roam-find-node
-;;              consult-ripgrep-roam-notes
-;;              consult-notes-org-roam-find-node-relation)
-;;   :config
-;;   (setq consult-notes-sources `(("Org"  ?o  ,okm-base-directory)) ;; Set notes dir(s), see below
-;;         consult-notes-org-roam-template org-roam-node-display-template ;; To make sure I can use my marginalia approach.
-;;         consult-notes-org-roam-annotate-function nil)
-;;   (consult-notes-org-roam-mode) ;; Set org-roam integration
-
 (use-package consult-org-roam
   :ensure t
   :demand 3
@@ -303,38 +287,6 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
 (defun amsha/backup-org-roam-db ()
   (interactive)
   (copy-file org-roam-db-location (format "%s-backup" org-roam-db-location) t))
-
-;;   (defmacro org-roam-backlinks-get-brain-relation (relation-function node)
-;;     "Use `relation-function' to get the relations as backlinks for the given org-roam `node'.
-;; `relation-function' is any function that takes a org-brain entry and
-;; return a list of org-brain entries."
-;;     `(let* ((node-id (org-roam-node-id ,node))
-;;            (backlinks
-;;             ;; Getting brain-relation and convert them to roam backlinks.
-;;             (mapcar (lambda (entry)
-;;                       (--> (org-brain-entry-marker entry)
-;;                            (with-current-buffer (marker-buffer it)
-;;                              (goto-char (marker-position it))
-;;                              (list (org-id-get)
-;;                                    node-id
-;;                                    (point)
-;;                                    ;; This can error if link is not under any headline
-;;                                    ;; copied from `org-roam-db-insert-link'
-;;                                    (list
-;;                                     :outline
-;;                                     (ignore-errors
-;;                                       (org-get-outline-path 'with-self 'use-cache)))))))
-;;                     (,relation-function (save-excursion
-;;                                           (org-id-goto node-id)
-;;                                           (org-brain-entry-at-pt))))))
-;;       (cl-loop for backlink in backlinks
-;;                collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
-;;                          (org-roam-populate
-;;                           (org-roam-backlink-create
-;;                            :source-node (org-roam-node-create :id source-id)
-;;                            :target-node (org-roam-node-create :id dest-id)
-;;                            :point pos
-;;                            :properties properties))))))
 
 ;;;###autoload
 (defun org-roam-buffer-for-node (node)
