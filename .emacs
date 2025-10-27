@@ -731,15 +731,15 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   :defer 2
   :hook ((org-mode LaTeX-mode latex-mode markdown-mode org-roam-mode) . amsha/visual-fill))
 
-;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
-;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
-(unless (eq system-type 'windows-nt)
-    (progn
-      (setq symlink-overload-expand-file-name-p t)
-      (require 'symlink-fix)
-      (setq expand-file-name-resolve-symlinks-p t)))
-  ;; (set-face-attribute 'default nil
-                      ;; :family "Consolas" :height 105))
+;; ;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
+;; ;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
+;; (unless (eq system-type 'windows-nt)
+;;     (progn
+;;       (setq symlink-overload-expand-file-name-p t)
+;;       (require 'symlink-fix)
+;;       (setq expand-file-name-resolve-symlinks-p t)))
+;;   ;; (set-face-attribute 'default nil
+;;                       ;; :family "Consolas" :height 105))
 
 (use-package topspace
   :custom
