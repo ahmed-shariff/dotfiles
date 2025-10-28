@@ -3337,17 +3337,25 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 
   (advice-add 'dashboard-agenda--formatted-time :around #'amsha/dashboard-agenda--formatted-time)
 
+  (defvar amsha/dashboard-get-agenda-wrapper--calls 0)
+
   ;; Handling opening too many files on windows and mode not being set correctly
   (defun amsha/dashboard-get-agenda-wrapper (oldfun)
     (condition-case err
-        (funcall oldfun)
+        (prog1 (funcall oldfun)
+          (setq amsha/dashboard-get-agenda-wrapper--calls 0))
       (error (--map (when-let* ((buf-name (buffer-file-name it))
-                          (_ (f-ext-p buf-name "org")))
-                (with-current-buffer it
-                  (unless (derived-mode-p 'org-mode)
-                    (org-mode))))
-                (buffer-list))
-             (run-with-timer 1 nil #'dashboard-open))))
+                                (_ (f-ext-p buf-name "org")))
+                      (with-current-buffer it
+                        (unless (derived-mode-p 'org-mode)
+                          (org-mode))))
+                    (buffer-list))
+             (if (> amsha/dashboard-get-agenda-wrapper--calls 3)
+                 (progn
+                   (setq amsha/dashboard-get-agenda-wrapper--calls 0)
+                   (error "Retried 3 times and dashboard-open didn't work: %s" err))
+               (prog1 (run-with-timer 0.1 nil #'dashboard-open)
+                 (cl-incf amsha/dashboard-get-agenda-wrapper--calls))))))
 
   (advice-add 'dashboard-get-agenda :around #'amsha/dashboard-get-agenda-wrapper)
   
