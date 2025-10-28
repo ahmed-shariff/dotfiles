@@ -522,6 +522,30 @@ the type of the link."
 (defun okm-get-all-roam-nodes-in-file (f)
   (org-roam-ql-nodes (list [:select [id] :from nodes :where (= file $s1)] f)))
 
+
+(defun org-roam-ql-search-bib-files (regex)
+  "And org roam ql expansion function to regex search bib files.
+
+Returns the sql statement that can be used with `org-roam-ql-nodes'."
+  (let* ((files (bibtex-completion-normalize-bibliography 'bibtex))
+         (bibtex-completion-additional-search-fields '(booktitle journal))
+         entries)
+    (dolist (file files)
+      (with-temp-buffer
+        (insert-file-contents file)
+        (goto-char 0)
+        (while (re-search-forward regex nil t)
+          (save-excursion
+            (save-match-data
+              (bibtex-beginning-of-entry)
+              (if-let* ((_ (parsebib--char '(?@)))
+                        (type (parsebib--identifier))
+                        (open (parsebib--char '(?\{ ?\( )))
+                        (key (parsebib--key)))
+                  (push key entries)
+                (message "Error reading at point %s in " (point) file)))))))
+    (bibtex-keys-to-nodes entries)))
+
 ;;;###autoload
 (defun okm-org-roam-list-notes (entries)
   "Filter based on the list nodes in the notes files. Interactive only handles only one node.
@@ -719,10 +743,15 @@ Same as `org-roam-reflinks-section'."
   "Recursive backlinks (heading, backlink & refs)"
   #'org-roam-ql-recursive-backlink-from)
 
+(org-roam-ql-defexpansion 'bib
+  "Regex on bib files"
+  #'org-roam-ql-search-bib-files)
+
 (org-roam-ql-defexpansion 'child-of
   "Child of node with a specific title"
   (lambda (title)
     (org-roam-ql--expand-backlinks `(title ,title t) :type okm-parent-id-type-name)))
+
 (org-roam-ql-defexpansion 'regexp-rg
   "Regex on all org files."
   (lambda (regexp)
@@ -738,6 +767,7 @@ Same as `org-roam-reflinks-section'."
                           (goto-char (point-min))
                           (org-id-get)))))
                 (ripgrep regexp org-roam-directory "org"))))))
+
 (org-roam-ql-defexpansion 'dailies-range
   "Dailies in range"
   (lambda (&optional min max)
