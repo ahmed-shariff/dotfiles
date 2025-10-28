@@ -646,6 +646,7 @@ Mutate state INFO with response metadata."
   :model 'gpt-5-mini
   :system 'default
   :tools nil
+  :openai-responses--tools nil
   :stream t
   :temperature 1.0
   :use-context 'system
@@ -1180,6 +1181,7 @@ afterwards."
 
       gptel-org-branching-context t
       gptel-expert-commands t
+      gptel-highlight-methods '(fringe face)
       (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
       (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"
 
@@ -1188,9 +1190,13 @@ afterwards."
       ;; See https://github.com/openai/openai-python/issues/2546
       gptel-quick-model 'gpt-4.1-mini)
 
+(custom-set-faces
+ '(gptel-response-highlight ((t (:background "#112222")))))
+
 ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
 
 (add-to-list 'yank-excluded-properties 'gptel)
+(add-hook 'gptel-mode-hook (lambda () (gptel-highlight-mode +1)))
 
 ;; Add fsm-last to the request handlers
 (cl-pushnew 'gptel--fsm-last (alist-get 'DONE gptel-request--handlers))
