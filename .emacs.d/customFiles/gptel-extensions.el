@@ -1181,7 +1181,7 @@ afterwards."
 
       gptel-org-branching-context t
       gptel-expert-commands t
-      gptel-highlight-methods '(fringe face)
+      gptel-highlight-methods '(face)
       (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n"
       (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"
 
@@ -1191,7 +1191,7 @@ afterwards."
       gptel-quick-model 'gpt-4.1-mini)
 
 (custom-set-faces
- '(gptel-response-highlight ((t (:background "#112222")))))
+ '(gptel-response-highlight ((t (:background "#112233" :extend t)))))
 
 ;; (put 'o3-mini :request-params '(:reasoning_effort "high" :stream :json-false))
 
