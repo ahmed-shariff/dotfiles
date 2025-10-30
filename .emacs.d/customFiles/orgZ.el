@@ -84,11 +84,11 @@
                           (with-temp-buffer
                             (insert-file "~/.emacs.d/org-agenda-org-roam-ql-cache")
                             (buffer-string))
-                          "\n")
+                          "\n"))
       org-refile-targets '((org-agenda-files :maxlevel . 6))
                                         ;(org-c-refile-targets :maxlevel . 6)))
       org-export-allow-bind-keywords t
-      org-latex-image-default-option "scale=0.6")
+      org-latex-image-default-option "scale=0.6"
       org-capture-templates
       '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
 	 entry (file+olp+datetree "~/Documents/org/notes.org")
