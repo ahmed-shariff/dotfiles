@@ -166,6 +166,7 @@
                               tabulated-list-entries #'string-equal))
                       4)
                 (string-replace "$" "" it)
+                (string-replace "," "" it)
                 (push (* (if (eq (aref it 0) ?−) -1 1)
                              (string-to-number (string-replace "−" "" it)))
                       (nth idx items))))))
