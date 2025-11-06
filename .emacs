@@ -2225,6 +2225,32 @@ T - tag prefix
   ("q" nil)
   ("." nil :color blue)))
 
+(use-package wdired
+  :straight nil
+  :config
+  (defun amsha/wdired-get-filename (oldfn &optional no-dir old)
+    "If it is a line not propertized by wdired, then treat that as a
+line that creates a new file."
+    (if-let (retval (funcall oldfn no-dir old))
+        retval
+      (if old
+          ""
+        (expand-file-name (s-trim (buffer-substring (pos-bol) (pos-eol)))))))
+
+  (defun amsha/wdired-do-renames (oldfn renames)
+    "We are hijacking renames to do the file creation.
+
+If old name is empty, create the file, else let `wdired-do-renames' to
+its thing."
+    (funcall oldfn (cl-loop for rename in renames
+                            if (string-empty-p (car rename))
+                            do (make-empty-file (cdr rename) t)
+                            else collect rename)))
+
+  (advice-add 'wdired-get-filename :around #'amsha/wdired-get-filename)
+  (advice-add 'wdired-do-renames :around #'amsha/wdired-do-renames))
+
+
 (use-package dirvish
   :init
   (dirvish-override-dired-mode)
