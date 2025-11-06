@@ -142,8 +142,8 @@
 					   latex-math-preview csproj-mode plantuml-mode
 					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
 					   expand-region diminish amx flx
-					   dashboard dired-single ibuffer-vc projectile micgoline dired-hide-dotfiles
-					   dired-sidebar stumpwm-mode hledger-mode vlf elpy
+					   dashboard ibuffer-vc projectile micgoline 
+					   stumpwm-mode hledger-mode vlf elpy
 					   yasnippet jedi sr-speedbar latex-preview-pane slime slim-mode))
 
 (mapcar #'straight-use-package
@@ -2164,8 +2164,8 @@ See `pdf-annot-activate-created-annotations' for more details."
 (use-package dired
   :straight nil
   :bind (:map dired-mode-map
-              ([return] . 'dired-single-buffer)
-              ([mouse-1] . 'dired-single-buffer-mouse)
+              ;; ([return] . 'dired-single-buffer)
+              ;; ([mouse-1] . 'dired-single-buffer-mouse)
               ("." . 'hydra-dired/body)
               ("^" . 'amsha/dired-go-up))
   :config
@@ -2245,6 +2245,7 @@ T - tag prefix
   (setq dired-listing-switches
         "-l --almost-all --human-readable --group-directories-first --no-group")
   (evil-make-overriding-map dirvish-mode-map 'normal)
+  (evil-collection-define-key 'normal 'dirvish-mode-map "q" #'dirvish-quit)
   :bind ; Bind `dirvish-fd|dirvish-side|dirvish-dwim' as you see fit
   (("C-c f" . dirvish)
    :map dirvish-mode-map          ; Dirvish inherits `dired-mode-map'
@@ -2267,13 +2268,19 @@ T - tag prefix
    ("M-e" . dirvish-emerge-menu)
    ("M-j" . dirvish-fd-jump)))
 
-(use-package diredfl
-  :hook
-  ((dired-mode . diredfl-mode)
-   ;; highlight parent and directory preview as well
-   (dirvish-directory-view-mode . diredfl-mode))
-  :config
-  (set-face-attribute 'diredfl-dir-name nil :bold t))
+;; (use-package dired-single)
+
+;; (use-package dired-hide-dotfiles)
+
+;; (use-package dired-sidebar)
+
+;; (use-package diredfl
+;;   :hook
+;;   ((dired-mode . diredfl-mode)
+;;    ;; highlight parent and directory preview as well
+;;    (dirvish-directory-view-mode . diredfl-mode))
+;;   :config
+;;   (set-face-attribute 'diredfl-dir-name nil :bold t))
 
 ;; (use-package ranger
 ;;   :hook
@@ -2686,9 +2693,9 @@ Used with atomic-chrome."
 (use-package treemacs-projectile
   :after treemacs projectile)
 
-(use-package treemacs-icons-dired
-  :after treemacs dired
-  :config (treemacs-icons-dired-mode))
+;; (use-package treemacs-icons-dired
+;;   :after treemacs dired
+;;   :config (treemacs-icons-dired-mode))
 
 (use-package treemacs-magit
   :after treemacs magit
