@@ -998,6 +998,7 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   (corfu-on-exact-match nil)     ;; Configure handling of exact matches
   (corfu-scroll-margin 5)        ;; Use scroll margin
   (global-corfu-minibuffer t)
+  (corfu-popupinfo-delay nil)
 
   ;; Enable Corfu only for certain modes. See also `global-corfu-modes'.
   ;; :hook ((prog-mode . corfu-mode)
@@ -2084,6 +2085,13 @@ See `pdf-annot-activate-created-annotations' for more details."
 ;; for hunspell on windows: http://www.nextpoint.se/?p=656
 (use-package ispell
   :config
+  ;; downloaded from http://github.com/first20hours/google-10000-english/
+  (if-let ((dictionary-file (file-truename "~/.emacs.d/var/20k.txt"))
+           (_ (f-exists-p dictionary-file)))
+      (setq ispell-alternate-dictionary dictionary-file
+            text-mode-ispell-word-completion t)
+    (setq ispell-alternate-dictionary nil
+          text-mode-ispell-word-completion nil))
   (setq ispell-program-name "hunspell"))
 
 (use-package flyspell)
