@@ -892,18 +892,27 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
     (setq org-super-agenda-header-map (copy-keymap org-agenda-mode-map))))
 
 (use-package evil-textobj-tree-sitter
-  :defer t
+  :defer 2
   :after evil
   :straight (evil-textobj-tree-sitter :type git :host github :repo "meain/evil-textobj-tree-sitter"
                                       :files (:defaults "queries" "treesit-queries"))
   :config
+  (setf (alist-get 'csharp-mode evil-textobj-tree-sitter-major-mode-language-alist) "c-sharp"
+        (alist-get 'csharp-ts-mode evil-textobj-tree-sitter-major-mode-language-alist) "c-sharp")
+
   ;; bind `function.outer`(entire function block) to `f` for use in things like `vaf`, `yaf`
   (define-key evil-outer-text-objects-map "f" (evil-textobj-tree-sitter-get-textobj "function.outer"))
   ;; bind `function.inner`(function block without name and args) to `f` for use in things like `vif`, `yif`
   (define-key evil-inner-text-objects-map "f" (evil-textobj-tree-sitter-get-textobj "function.inner"))
 
   ;; You can also bind multiple items and we will match the first one we can find
-  (define-key evil-outer-text-objects-map "a" (evil-textobj-tree-sitter-get-textobj ("conditional.outer" "loop.outer")))
+  ;; (define-key evil-outer-text-objects-map "a" (evil-textobj-tree-sitter-get-textobj ("conditional.outer" "loop.outer")))
+
+  (define-key evil-outer-text-objects-map "a" (evil-textobj-tree-sitter-get-textobj "parameter.outer"))
+  (define-key evil-inner-text-objects-map "a" (evil-textobj-tree-sitter-get-textobj "parameter.inner"))
+
+  (define-key evil-outer-text-objects-map "c" (evil-textobj-tree-sitter-get-textobj "comment.outer"))
+  (define-key evil-inner-text-objects-map "c" (evil-textobj-tree-sitter-get-textobj "comment.inner"))
 
   ;; Goto start of next function
   (define-key evil-normal-state-map
