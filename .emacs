@@ -1685,6 +1685,7 @@ targets."
 
   (grugru-define-multiple
     (csharp-mode . ((symbol "private" "public" "internal" "protected")))
+    (csharp-ts-mode . ((symbol "private" "public" "internal" "protected")))
     (word . (--map (propertize (car it) 'face (cdr it)) hl-todo-keyword-faces))))
 
 ;;rainbow delimeters******************************************************************
@@ -1693,9 +1694,12 @@ targets."
   :config
   (add-hook 'emacs-lisp-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'csharp-mode-hook #'rainbow-delimeters-mode)
+  (add-hook 'csharp-ts-mode-hook #'rainbow-delimeters-mode)
   ;; (add-hook 'csharp-tree-sitter-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'java-mode-hook #'rainbow-delimeters-mode)
-  (add-hook 'python-mode-hook #'rainbow-delimeters-mode))
+  (add-hook 'java-ts-mode-hook #'rainbow-delimeters-mode)
+  (add-hook 'python-mode-hook #'rainbow-delimeters-mode)
+  (add-hook 'python-ts-mode-hook #'rainbow-delimeters-mode))
 
 ;;volatile-highlights*****************************************************************
 (use-package volatile-highlights
@@ -1769,6 +1773,7 @@ targets."
   :after (lsp-mode)
   :init
   (add-hook 'python-mode-hook #'lsp-ui-mode)
+  (add-hook 'python-ts-mode-hook #'lsp-ui-mode)
   :config
   (setq lsp-ui-sideline-show-hover t
 	lsp-ui-sideline-delay 1
@@ -1789,15 +1794,22 @@ targets."
 
 (use-package lsp-mode
   :hook ((python-mode . lsp)
+         (python-ts-mode . lsp)
          (csharp-mode . lsp)
+         (csharp-ts-mode . lsp)
          ;; (csharp-tree-sitter-mode . lsp)
 	 (java-mode . lsp)
+	 (java-ts-mode . lsp)
          (js2-mode . lsp)
+         ;; (js2-ts-mode . lsp)
          (web-mode . lsp)
+         ;; (web-ts-mode . lsp)
          (tex-mode . lsp)
          (latex-mode . lsp)
          (rust-mode . lsp)
+         (rust-ts-mode . lsp)
          (go-mode . lsp)
+         (go-ts-mode . lsp)
          (hy-mode .lsp)
 	 (lsp-mode . lsp-enable-which-key-integration)
          (lsp-completion-mode . amsha/lsp-mode-setup-completion))
@@ -1878,6 +1890,7 @@ targets."
     (setq-local outline-regexp
                 (python-rx (or (seq (* space) block-start) (seq "#" space "*" space)))))
   (add-hook 'python-mode-hook #'amsha/add-python-outline)
+  (add-hook 'python-ts-mode-hook #'amsha/add-python-outline)
   (setq
    python-shell-interpreter "python"
    ;; python-shell-completion-setup-code ""
@@ -1891,9 +1904,9 @@ targets."
 
 (use-package lsp-pyright
   :defer t
-  :hook (python-mode . (lambda ()
-                          (require 'lsp-pyright)
-                          (lsp)))
+  :hook ((python-mode python-ts-mode) . (lambda ()
+                                          (require 'lsp-pyright)
+                                          (lsp)))
   :config
   (with-eval-after-load "lsp-mode"
     (add-to-list 'lsp-disabled-clients 'pyls)
@@ -1923,8 +1936,8 @@ targets."
   :bind (:map lsp-command-map
          ("d" . dap-hydra))
   :hook ((dap-stopped . (lambda (arg) (call-interactively #'dap-hydra)))
-         (python-mode . dap-ui-mode)
-         (python-mode . dap-mode))
+         ((python-mode python-ts-mode) . dap-ui-mode)
+         ((python-mode python-ts-mode) . dap-mode))
   :config
   (dap-auto-configure-mode)
   (dap-mode 1)
@@ -3052,6 +3065,16 @@ Used with atomic-chrome."
 ;;   (global-tree-sitter-mode 1))
 
 ;; (use-package tree-sitter-langs)
+
+;; 1. Download language grammars from https://github.com/emacs-tree-sitter/tree-sitter-langs/releases
+;; 2. extract and rename all language grammar files to "libtree-sitter-<lang>[.dll|.so]"
+;; See https://www.johansivertsen.com/post/treesitter and https://cgit.git.savannah.gnu.org/cgit/emacs.git/tree/admin/notes/tree-sitter/starter-guide?h=feature/tree-sitter
+(use-package treesit
+  :straight nil
+  :config
+  (add-to-list 'treesit-extra-load-path "~/.emacs.d/treesit-langs")
+  (add-to-list 'major-mode-remap-alist '(python-mode . python-ts-mode))
+  (add-to-list 'major-mode-remap-alist '(csharp-mode . csharp-ts-mode)))
 
 (use-package ts-fold
   :straight (ts-fold :type git :host github :repo "emacs-tree-sitter/ts-fold")
