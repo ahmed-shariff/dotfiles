@@ -2836,6 +2836,10 @@ Used with atomic-chrome."
         reftex-plug-into-AUCTeX t
         reftex-ref-style-default-list '("Default" "Hyperref")
         TeX-PDF-from-DVI "Dvips")
+  (add-to-list 'org-latex-classes '("lvl2para" "\\documentclass[11pt]{article}"
+                                    ("\\section{%s}" . "\\section*{%s}")
+                                    ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                                    ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
   (TeX-global-PDF-mode t)
   (setq outline-minor-mode-prefix "\C-c \C-o")
   
