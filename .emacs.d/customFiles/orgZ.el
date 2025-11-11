@@ -2087,6 +2087,7 @@ The format of the response should be as follows:
 
 
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
+(add-to-list 'safe-local-variable-directories okm-base-directory)
   
 (when (gethash 'use-pdf-tools configurations t)
   (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
