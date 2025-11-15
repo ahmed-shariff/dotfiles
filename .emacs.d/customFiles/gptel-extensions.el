@@ -151,16 +151,16 @@ word count of the response."
   (repeatize 'evedel-keymap)
   (define-key global-map (kbd "C-c o e") evedel-keymap))
 
-(use-package gptel-openai-assistant
-  :after gptel
-  :straight (gptel-openai-assistant :type git :host github :repo "ahmed-shariff/gptel-openai-assistant")
-  :config
-  (setf gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
+;; (use-package gptel-openai-assistant
+;;   :after gptel
+;;   :straight (gptel-openai-assistant :type git :host github :repo "ahmed-shariff/gptel-openai-assistant")
+;;   :config
+;;   (setf gptel-openai-assistant-assistant-id (gethash 'openai-assistant-id configurations))
 
-  (setf (alist-get "openai-assistant" gptel--known-backends
-                   nil nil #'string-equal)
-        (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key)))
-  )
+;;   (setf (alist-get "openai-assistant" gptel--known-backends
+;;                    nil nil #'string-equal)
+;;         (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key)))
+;;   )
 
 (use-package mcp
   :straight (mcp :type git :host github :repo "lizqwerscott/mcp.el"
@@ -205,7 +205,8 @@ word count of the response."
   )
 
 (use-package gptel-agent
-  :straight (:host github :repo "karthink/gptel-agent") ;use :ensure for Elpaca
+  :straight (:host github :repo "karthink/gptel-agent"
+                   :files (:defaults "agents")) ;use :ensure for Elpaca
   :config (gptel-agent-update))         ;Read files from agents directories
 
 ;;;; openai reponse ************************************************************************
@@ -657,30 +658,30 @@ Mutate state INFO with response metadata."
   :include-reasoning t
   :prompt-transform-functions '(:eval amsha/gptel-default-prompt-transform-functions))
 
-(gptel-make-preset 'openai-assistant
-  :description "Search using openai assistant"
-  :backend "openai-assistant"
-  :model 'o4-mini)
+;; (gptel-make-preset 'openai-assistant
+;;   :description "Search using openai assistant"
+;;   :backend "openai-assistant"
+;;   :model 'o4-mini)
 
-(gptel-make-preset 'search-mini
-  :description "Search using gpt-4o-mini-search-preview"
-  :backend "ChatGPT"
-  :model 'gpt-4o-mini-search-preview
-  :temperature nil)
+;; (gptel-make-preset 'search-mini
+;;   :description "Search using gpt-4o-mini-search-preview"
+;;   :backend "ChatGPT"
+;;   :model 'gpt-4o-mini-search-preview
+;;   :temperature nil)
 
-(gptel-make-preset 'search
-  :description "Search using gpt-4o-search-preview"
-  :backend "ChatGPT"
-  :model 'gpt-4o-search-preview
-  :temperature nil)
+;; (gptel-make-preset 'search
+;;   :description "Search using gpt-4o-search-preview"
+;;   :backend "ChatGPT"
+;;   :model 'gpt-4o-search-preview
+;;   :temperature nil)
 
-(gptel-make-preset 'g41
-  :description "Search using gpt-4.1"
-  :model 'gpt-4.1)
+;; (gptel-make-preset 'g41
+;;   :description "Search using gpt-4.1"
+;;   :model 'gpt-4.1)
 
-(gptel-make-preset 'g41m
-  :description "Search using gpt-4.1-mini"
-  :model 'gpt-4.1-mini)
+;; (gptel-make-preset 'g41m
+;;   :description "Search using gpt-4.1-mini"
+;;   :model 'gpt-4.1-mini)
 
 (gptel-make-preset 'readurl
   :description "Tool: read url"
