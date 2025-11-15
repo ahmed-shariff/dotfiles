@@ -752,7 +752,12 @@ Else create a text annotations at point."
 
 (use-package org-super-agenda
   :custom
-  (org-super-agenda-groups '((:name "dates" :auto-ts t))))
+  (org-super-agenda-groups '((:name "dates" :auto-ts t)))
+  :config
+  (org-super-agenda--def-auto-group file "their FILE path"
+    :keyword :auto-file
+    :key-form (buffer-file-name (marker-buffer (org-super-agenda--get-marker item)))
+    :header-form (concat "File: " key)))
 
 (use-package org-ql
   :straight (org-ql :type git :host github :repo "alphapapa/org-ql")
