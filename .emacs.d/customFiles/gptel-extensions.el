@@ -204,6 +204,9 @@ word count of the response."
   (macher-install)
   )
 
+(use-package gptel-agent
+  :straight (:host github :repo "karthink/gptel-agent") ;use :ensure for Elpaca
+  :config (gptel-agent-update))         ;Read files from agents directories
 
 ;;;; openai reponse ************************************************************************
 (cl-defstruct (gptel-openai-responses
