@@ -693,12 +693,21 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
                     (overlay-put ov 'amsha/magit-keybind-overlay t)))
               (error (em "oops" _err))))))))
 
-  (add-hook 'magit-status-sections-hook #'amsha/magit-visualize-keybinds 99)
-  (add-hook 'magit-status-sections-hook #'magit-insert-local-branches 'append)
-  (add-hook 'magit-status-sections-hook #'magit-insert-remote-branches 'append))
 
-;; (use-package forge
-;;   :after magit)
+  (defclass amsha/magit-branches-section (magit-section) ())
+  (defun amsha/magit-insert-branches-sections ()
+    "Insert branches sections."
+    (magit-insert-section
+        branches-section (amsha/magit-branches-section)
+        (magit-insert-heading "Branches Sections:")
+        (magit-insert-local-branches)
+        (magit-insert-remote-branches)))
+
+  (add-hook 'magit-status-sections-hook #'amsha/magit-visualize-keybinds 99)
+  (add-hook 'magit-status-sections-hook #'amsha/magit-insert-branches-sections 'append))
+
+(use-package forge
+  :after magit)
 
 (use-package hl-todo
   :hook prog-mode-hook)
