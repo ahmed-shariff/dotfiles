@@ -701,7 +701,8 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
         branches-section (amsha/magit-branches-section)
         (magit-insert-heading "Branches Sections:")
         (magit-insert-local-branches)
-        (magit-insert-remote-branches)))
+        (magit-insert-remote-branches)
+        (insert "\n")))
 
   (add-hook 'magit-status-sections-hook #'amsha/magit-visualize-keybinds 99)
   (add-hook 'magit-status-sections-hook #'amsha/magit-insert-branches-sections 'append))
