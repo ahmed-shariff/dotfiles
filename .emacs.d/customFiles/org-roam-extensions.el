@@ -803,7 +803,7 @@ If prefix arg used, search whole db."
 (add-hook 'org-roam-post-node-insert-hook (lambda (_ _) (insert " ")))
 (add-to-list 'org-agenda-custom-commands '("ca" "All upcoming agenda (roam)" org-roam-ql-agenda-block '(or (scheduled-is-after "+0")
                                                                                                            (deadline-is-after "+0"))))
-(add-to-list 'marginalia-annotator-registry
+(add-to-list 'marginalia-annotators
              '(org-roam-node org-roam-node-annotator marginalia-annotate-face builtin none))
 
 (setq org-roam-v2-ack t

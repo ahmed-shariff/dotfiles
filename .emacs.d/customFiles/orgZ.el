@@ -654,7 +654,31 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
           (with-current-buffer bib-file-buffer
             (bibtex-yank)))
         (-difference bibtex-keys-1 bibtex-keys-2))
-      (switch-to-buffer "*comparison-of-keys*"))))
+      (switch-to-buffer "*comparison-of-keys*")))
+
+  ;; Adding to `org-ref-citation-menu'
+  (transient-append-suffix 'org-ref-citation-menu "h";;'(0 2 -1)
+    '("l" "Copy url"
+      (lambda ()
+        (interactive)
+        (-if-let (url (org-ref-get-url-at-point))
+            (kill-new url)
+          (user-error "No url copied")))))
+  (transient-append-suffix 'org-ref-citation-menu "l"
+    '("A" "Copy APA short"
+      (lambda ()
+        (interactive)
+        (save-window-excursion
+ 	  (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
+ 	        (entry (bibtex-completion-get-entry (org-ref-get-bibtex-key-under-cursor))))
+            (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry))))))))
+  (transient-append-suffix 'org-ref-citation-menu "u"
+    '("t" "Open noter"
+      (lambda ()
+        (interactive)
+        (save-excursion
+          (org-ref-open-notes-at-point)
+          (org-noter))))))
 
 (use-package org-fragtog
   :hook (org-mode . org-fragtog-mode))
@@ -2069,28 +2093,6 @@ The format of the response should be as follows:
    "\\[id:\\([a-z]\\|[0-9]\\)\\{8\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{4\\}-\\([a-z]\\|[0-9]\\)\\{12\\}\\]"
    ""
    str))
-
-;; Moved out of use-pacakge to avoid errors with loading
-(with-eval-after-load 'org-ref-citation-links
-  (defhydra+ org-ref-citation-hydra ()
-    ("t" (lambda ()
-           (interactive)
-           (save-excursion
-             (org-ref-open-notes-at-point)
-             (org-noter)))
-     "open noter" :column "Open")
-    ("l" (lambda ()
-           (interactive)
-           (-if-let (url (org-ref-get-url-at-point))
-               (kill-new url)
-             (user-error "No url copied")))
-     "Copy url" :column "Copy")
-    ("A" (save-window-excursion
-	   (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
-	         (entry (bibtex-completion-get-entry (org-ref-get-bibtex-key-under-cursor))))
-             (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
-     "Copy APA short" :column "Copy")))
-
 
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
   
