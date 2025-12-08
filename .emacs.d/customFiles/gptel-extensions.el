@@ -629,6 +629,7 @@ Mutate state INFO with response metadata."
  :args (list '(:name "paper_id"
                :type "string"
                :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
+ :confirm t
  :category "okm")
 
 (gptel-make-tool
