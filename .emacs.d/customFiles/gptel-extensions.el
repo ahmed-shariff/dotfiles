@@ -758,6 +758,11 @@ Otherwise, add ELEM as the last element."
   (cl-pushnew 'gptel--mode-line-status-update
               (alist-get state gptel-request--handlers)))
 
+;; Add to `gptel--rewrite-handlers'
+(dolist (state '(WAIT TYPE TOOL ERRS DONE))
+  (cl-pushnew 'gptel--mode-line-status-update
+              (alist-get state gptel--rewrite-handlers)))
+
 (defun gptel--update-mode-line (&rest _)
   "Add modelines showing current model, status and context."
   (setq gptel--mode-line-format
