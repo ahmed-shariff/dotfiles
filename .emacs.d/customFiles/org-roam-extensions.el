@@ -304,7 +304,7 @@ Copied  from `org-roam-backlink-get'.
 see also `org-roam-backlinks-section-with-ql-filter'.
 "
   (let* ((backlinks (seq-sort #'org-roam-backlinks-sort (okm-links-get node)))
-         (filter org-roam-ql--filter-for-roam)
+         (filter org-roam-ql-buffer-filter)
          (filter-node-ids (and filter
                                (condition-case _err
                                    (-map #'org-roam-node-id (org-roam-ql-nodes filter))
@@ -312,9 +312,11 @@ see also `org-roam-backlinks-section-with-ql-filter'.
                                   (message "Cannot apply filter: %s" _err))))))
     (when backlinks
       (if filter-node-ids
-          (setq backlinks 
-                (--filter (member (org-roam-node-id (org-roam-backlink-source-node it)) filter-node-ids)
-                          backlinks))
+          (progn
+            (setq-local org-roam-ql--buffer-displayed-filter org-roam-ql-buffer-filter)
+            (setq backlinks 
+                  (--filter (member (org-roam-node-id (org-roam-backlink-source-node it)) filter-node-ids)
+                            backlinks)))
         (setq filter nil))
       (magit-insert-section (org-roam-brain-children)
         (magit-insert-heading (if filter
@@ -342,10 +344,12 @@ see also `org-roam-backlinks-section-with-ql-filter'.
                (f-ancestor-of-p bibtex-completion-notes-path it)))
       (let* ((full-file (< (point) 5)) ;; means we are trying to display the whole file, I think!
              ;; Even when displaying full file, we skip the initial meta data
-             (beg (progn (if (org-id-get)
-                             (org-roam-end-of-meta-data t)
-                           (org-beginning-of-line))
-                         (point)))
+             (beg (progn
+                    (org-previous-visible-heading 1)
+                    (if (org-id-get)
+                        (org-roam-end-of-meta-data t)
+                      (org-beginning-of-line))
+                    (point)))
              (end (if full-file
                       (point-max)
                     (progn (when (org-id-get)
@@ -553,54 +557,21 @@ If prefix arg used, search whole db."
   (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
                 (list (org-roam-node-read))))
   (let* ((entries (-uniq
-                   (-flatten
-                    (--map (let ((node (if (stringp it) (org-roam-node-from-title-or-alias it) it)))
-                             (if (equal (org-roam-node-level node) 0)
-                                 (list node (okm-get-all-roam-nodes-in-file (org-roam-node-file node)))
-                               node))
-                           entries))))
-         (names (s-join "," (--map (org-roam-node-title it) entries)))
-         (title (format "(%s)" names))
-         (buffer-name (format "*notes: %s*" names))
-         (ids (apply #'vector (--map (org-roam-node-id it) entries))))
-    ;; NOTE: Not using org-roam-ql-search because it works on nodes, we need it to work on links here.
-    ;; i.e., it will show just the first node....
-    ;; Using org-roam-ql-search will show entire nodes, not just the links
+                 (-flatten
+                  (--map (let ((node (if (stringp it) (org-roam-node-from-title-or-alias it) it)))
+                           (if (equal (org-roam-node-level node) 0)
+                               (list node (okm-get-all-roam-nodes-in-file (org-roam-node-file node)))
+                             node))
+                         entries))))
+         (names (s-join "," (--map (concat (org-roam-node-title it) "…") entries)))
+         (id-query (apply #'vector (--map (org-roam-node-id it) entries))))
     (org-roam-ql--render-roam-buffer
-     (list (--> (apply #'org-roam-db-query
-                       (append (list (vector :select :distinct [links:source links:pos links:properties]
-                                             :from 'links :inner :join 'nodes :on '(= links:source nodes:id)
-                                             :where (if current-prefix-arg
-                                                        '(in links:dest $v1)
-                                                      '(and (in links:dest $v1)
-                                                            (or (like nodes:file $s2)
-                                                                (like nodes:file $s3)))))
-                                     ids)
-                               (unless current-prefix-arg
-                                 (list "%brain/personal/notes%"
-                                       "%brain/work/notes%"))))
-                (lambda ()
-                  (magit-insert-section (org-roam)
-                    (magit-insert-heading "Notes:")
-                    (dolist (entry
-                             ;; removing duplicates as the whole subtree will be getting displayed
-                             ;;(seq-uniq
-                             it)
-                      (let* ((source-node (org-roam-node-from-id (car entry)))
-                             (pos (cadr entry))
-                             (properties (caddr entry))
-                             (outline (plist-get properties :outline)))
-                        (when outline
-                          (setq properties (plist-put properties :outline
-                                                      (cl-subseq outline
-                                                                 0
-                                                                 (1- (length outline))))))
-                        (org-roam-node-insert-section :source-node source-node
-                                                      :point pos
-                                                      :properties properties))
-                      (insert ?\n))
-                    (run-hooks 'org-roam-buffer-postrender-functions)))))
-     title buffer-name nil "title" org-roam-ql-preview-function)))
+     'backlinks
+     entries
+     '(or (file "brain/personal/notes")
+          (file "brain/work/notes"))
+     (format "(%s)" names)
+     (format "*notes: %s*" names))))
 
 (defvar okm-org-roam-preview-kills '())
 
