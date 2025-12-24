@@ -1986,9 +1986,16 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
     (require 'gptel))
   (unless (featurep 'org-roam-ql)
     (require 'org-roam-ql))
-  (let ((node (and custom-id (car (org-roam-ql-nodes `(properties "Custom_ID" ,custom-id)))))
-        (custom-id (or custom-id (org-entry-get (point) "Custom_ID")))
-        (buf (current-buffer)))
+  (let* ((node (and custom-id (car (org-roam-ql-nodes `(properties "Custom_ID" ,custom-id)))))
+         (custom-id (or custom-id (org-entry-get (point) "Custom_ID")))
+         (buf (current-buffer))
+ 	 (bibtex-completion-bibliography (org-ref-find-bibliography))
+ 	 (bib-entry (bibtex-completion-get-entry custom-id))
+         ;; (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
+         (ret-string (format "* title: %s\n* year: %s\n* authors: %s\n* abstract\n%%s\n* summary\n%%s"
+                             (bibtex-completion-get-value "title" bib-entry)
+                             (bibtex-completion-get-value "author" bib-entry)
+                             (bibtex-completion-get-value "year" bib-entry))))
     (if-let* ((abstract (or
                          (and node (alist-get "ABSTRACT" (org-roam-node-properties node) nil nil #'string-equal))
                          (org-entry-get (point) "ABSTRACT")))
@@ -1996,8 +2003,8 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
                         (and node (alist-get "SUMMARY" (org-roam-node-properties node) nil nil #'string-equal))
                         (org-entry-get (point) "SUMMARY"))))
         (if tool-callback
-            (funcall tool-callback (format "* abstract\n%s\n* summary\n%s" abstract summary))
-          (format "* abstract\n%s\n* summary\n%s" abstract summary))
+            (funcall tool-callback (format ret-string abstract summary))
+          (format ret-string abstract summary))
       (let ((gptel-context--alist nil)
             (gptel-tools nil)
             (gptel-openai-responses--tools nil))
@@ -2015,6 +2022,7 @@ The format of the response should be as follows:
 * summary
 <summary text>"
                                    (okm-get-pdf-txt custom-id))
+              :context ret-string
               :callback (lambda (response info)
                           (cond
                            ((null response)
@@ -2036,9 +2044,9 @@ The format of the response should be as follows:
                                   (org-roam-with-file (org-roam-node-file node) nil
                                     (funcall process-data))
                                 (with-current-buffer buf
-                                  (funcall process-data))))
-                            (if tool-callback
-                                (funcall tool-callback response))))))
+                                  (funcall process-data)))
+                              (if tool-callback
+                                  (funcall tool-callback (format (plist-get info :context) abstract summary))))))))
           (t (if tool-callback
                  (funcall tool-callback (format "Error occurred %s" err))
                (user-error (format "Error occurred %s" err)))))))))

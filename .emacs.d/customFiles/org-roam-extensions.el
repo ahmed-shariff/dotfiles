@@ -363,7 +363,7 @@ see also `org-roam-backlinks-section-with-ql-filter'.
            (s-replace-regexp (format "\n *:%s:.*$" el) "" str))
          ;; remove links
          (list (amsha/org-repalce-link-in-string (string-trim (buffer-substring-no-properties beg end)))
-               "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" okm-parent-property-name "PROPERTIES:\n *:END")))
+               "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "HIGHLIGHT" okm-parent-property-name "PROPERTIES:\n *:END")))
     (org-roam-preview-default-function)))
 
 ;; (org-roam-node-action org-roam-node-ref-hydra
@@ -695,7 +695,7 @@ If prefix arg used, search whole db."
 (org-roam-ql-add-saved-query 'rp "Research papers" '(file "research_papers"))
 (org-roam-ql-add-saved-query 'nrp "not Research papers" '([:select id :from nodes :where (not (like file $s1))] "%research_papers%"))
 (org-roam-ql-add-saved-query 'pe "People" '(file "People.org"))
-(org-roam-ql-add-saved-query 'rt "Research topics" '(file "research topics.org"))
+(org-roam-ql-add-saved-query 'rt "Research topics" '(file "brain/research topics.org"))
 (org-roam-ql-add-saved-query 'pr "Projects" '(file "project_boards"))
 (org-roam-ql-add-saved-query 'tg "Tags" '(and (file "brain/tags.org") (level= 1)))
 (org-roam-ql-add-saved-query 'repo "Repositories" '(file "repositories.org"))

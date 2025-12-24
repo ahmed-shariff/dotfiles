@@ -498,11 +498,13 @@ Mutate state INFO with response metadata."
 ;;                        built-in-tool))
 ;;                    gptel-openai-responses--tools)))
 
-(defun amsha/gptel-oai-response-insert-file-search-query-and-results ()
+(defun amsha/gptel-oai-response-insert-file-search-query-and-results (&optional info)
   (interactive)
-  (if gptel--fsm-last
-      (let ((queries (plist-get (gptel-fsm-info gptel--fsm-last) :file-search-call-queries))
-            (results (plist-get (gptel-fsm-info gptel--fsm-last) :file-search-call-results)))
+  (if-let (info (or info
+                    (and gptel--fsm-last
+                         (gptel-fsm-info gptel--fsm-last))))
+      (when-let ((queries (plist-get info :file-search-call-queries))
+                 (results (plist-get info :file-search-call-results)))
         (insert "\n * Queries:\n- " (string-join queries "\n- "))
         (insert "\n * Results:\n- "
                 (string-join (--map (format "id: ~%s~  name: ~%s~  score: ~%s~\n  #+BEGIN_QUOTE\n%s\n  #+END_QUOTE"
@@ -512,7 +514,7 @@ Mutate state INFO with response metadata."
                                             (plist-get it :text))
                                     results)
                              "\n\n- ")))
-    (user-error "No last fsm.")))
+    (user-error "No last fsm and no info provided.")))
 
 ;;; Tool use ******************************************************************************
 (gptel-make-tool
@@ -897,6 +899,125 @@ Otherwise, add ELEM as the last element."
                       sentence explanation))
       (goto-char (point-max))
       (gptel-send))))
+
+(defun okm-oai-query-file-search (callback query)
+  "Given a query, get resutls from oai vector store and summary from oai."
+  (let* ((gptel-backend gptel-openai-response-backend)
+         (gptel-model 'gpt-5-nano)
+         (gptel-tools nil)
+         (gptel-openai-responses--tools `((:type "file_search"
+                                                :vector_store_ids ,(vconcat (list (gethash 'openai-org-vector-store configurations))))))
+         (gptel-context nil)
+         ;; (fsm (copy-tree gptel-request--handlers))
+         ;; (fsm-done (lambda (fsm)
+         ;;             (pcase (plist-get (gptel-fsm-info fsm) :context)
+         ;;               ('file-search )
+         ;;              ))))
+         )
+    (gptel-request query
+      :callback
+      (lambda (response info)
+        ;; (plist-put info :post (cons (lambda (info)
+        ;;                               (em "killing the buffer" buffer)
+        ;;                               (kill-buffer buffer))
+        ;;                             (plist-get info :post)))
+        (if (stringp response)
+            (let ((gptel-backend gptel-openai-response-backend)
+                  (gptel-model 'gpt-5-nano)
+                  (gptel-tools nil)
+                  (gptel-openai-responses--tools nil)
+                  (gptel-context nil)
+                  cite-list)
+              (gptel-request (with-temp-buffer
+                               (insert "Summarize the following. The summary should be in the form of a bullet "
+                                       "list with appropriate citations in the form cite:<paper_id>:\n\n"
+                                       response "\n")
+                               (amsha/gptel-oai-response-insert-file-search-query-and-results info)
+                               (amsha/gptel--replace-file-id-with-cite (point-min) (point-max))
+                               (em "Recieved oai-file-search result")
+                               (let ((ret-string (buffer-string)))
+                                 (setf cite-list (-uniq
+                                                  (append
+                                                   (-flatten (s-match-strings-all "cite:[a-z0-9_\\-&]*" ret-string))
+                                                   (when-let (results (plist-get info :file-search-call-results))
+                                                         (--map (concat "cite:" (string-replace ".txt" "" (plist-get it :filename)))
+                                                                results)))))
+                                 ret-string))
+                :context cite-list
+                :callback
+                (lambda (response info)
+                  (funcall callback
+                           (if (stringp response)
+                               (concat response
+                                       "\n\nPapers queried:\n- "
+                                       (string-join (plist-get info :context) "\n- "))
+                             (format "gptel-request<2> failed with message: %s"
+                                     (plist-get info :status)))))))
+          (funcall callback (format "gptel-request<1> failed with message: %s"
+                   (plist-get info :status))))))))
+
+(defun okm-pdf-question (callback paper_id questions)
+  "Returns the answer to the question from paper represented by paper_id."
+  (em "asking questions from " paper_id)
+  (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id))))
+        (gptel-backend gptel-openai-response-backend)
+        (gptel-model 'gpt-5-nano)
+        (gptel-tools nil)
+        (gptel-context nil))
+    (if node
+        (gptel-request (with-temp-buffer
+                         (concat "The text of a paper, extracted from a pdf file, is as follows:\n\n"
+                                 (okm-get-pdf-txt paper_id)
+                                 "\n-------------------------\n The text from the pdf ends here.\n\n"
+                                 "Based on this paper, answer the following. Be concise!:\n"
+                                 questions))
+          :context (cons questions (org-roam-node-id node))
+          :callback
+          (lambda (response info)
+            (funcall callback
+                     (if (stringp response)
+                           (pcase-let ((`(,questions . ,node-id) (plist-get info :context)))
+                             (save-excursion
+                               (org-roam-with-file (org-roam-node-file (org-roam-node-from-id node-id)) nil
+                                 (org-with-wide-buffer
+                                  (goto-char (point-min))
+                                  (org-next-visible-heading 1)
+                                  (insert "\n\n** ")
+                                  (org-timestamp-inactive '(16))
+                                  (insert " [[id:54066713-c3ba-464b-870f-6aa0be6604d7][gpt query]] "
+                                          (string-replace "\n" " " questions)
+                                          "\n" response "\n"))))
+                             response)
+                       (format "gptel-request failed with message: %s"
+                               (plist-get info :status))))))
+      (funcall callback (format "paper_id %s is not found." paper_id)))))
+
+(defun okm-paper-get-notes (callback paper_id)
+  "Returns the notes from paper represented by paper_id."
+  (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id))))
+        (gptel-backend gptel-openai-response-backend)
+        (gptel-model 'gpt-5-nano)
+        (gptel-tools nil)
+        (gptel-context nil))
+    (if node
+        (save-excursion
+          (org-roam-with-file (org-roam-node-file node) nil
+              (org-with-wide-buffer
+               (goto-char (point-min))
+               (funcall callback (org-roam-subtree-aware-preview-function node)))))
+      (funcall callback (format "paper_id %s is not found." paper_id)))))
+
+(defun okm-gptel-get-keywords ()
+  "Return the list of keywords in the db."
+  (-map #'org-roam-node-title (org-roam-ql-nodes '(and rt lvl1))))
+
+(defun okm-gptel-paper-ids-for-keyword (keyword)
+  "Return the list of paper-ids for a given keyword."
+  (--map (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'string-equal)
+         (org-roam-ql-nodes `(and (backlink-to (and (title ,keyword t)
+                                                    (file "research topics"))
+                                               :type nil)
+                                  (file "research_papers")))))
 
 ;;; preset highlight **********************************************************************
 (defvar amsha/gptel-highlight-preset-mode-map
