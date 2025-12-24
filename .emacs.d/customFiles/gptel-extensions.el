@@ -11,12 +11,13 @@
 (require 'gptel-transient)
 (require 'gptel-context)
 (require 'gptel-request)
+(require 'gptel-rewrite)
 (require 'f)
 
 ;;; Some top level defaults*****************************************************************
 (defvar amsha/gptel-default-prompt-transform-functions gptel-prompt-transform-functions)
 
-;;;; packages ******************************************************************************
+;;; packages ******************************************************************************
 (use-package elysium
   :bind (("C-c o q c" . elysium-query))
   :after gptel
@@ -209,7 +210,7 @@ word count of the response."
                    :files (:defaults "agents")) ;use :ensure for Elpaca
   :config (gptel-agent-update))         ;Read files from agents directories
 
-;;;; openai reponse ************************************************************************
+;;; openai reponse ************************************************************************
 (cl-defstruct (gptel-openai-responses
                (:constructor gptel-openai--make-responses)
                (:copier nil)
@@ -384,10 +385,23 @@ Mutate state INFO with response metadata."
 (defun test-response ()
   (let ((gptel-backend gptel-openai-response-backend)
         (gptel-model 'gpt-4.1-mini)
-        (gptel-tools (list (cdar (alist-get "boo" gptel--known-tools nil nil #'equal)))))
+        (gptel-tools (list (gptel-make-tool
+                            :function (lambda (location unit)
+                                        (format "Temp in %s is 25 %s" location unit))
+                            :name "get_weather"
+                            :description "Get the current weather in a given location"
+                            :args (list '(:name "location"
+                                                :type string
+                                                :description "The city and state, e.g. San Francisco, CA")
+                                        '(:name "unit"
+                                                :type string
+                                                :enum ["celsius" "farenheit"]
+                                                :description
+                                                "The unit of temperature, either 'celsius' or 'fahrenheit'"
+                                                :optional t))))))
     (gptel-request "What is the temperature in kelowna" :callback (lambda (r i) (print r i)))))
 
-;;;; Supporting built-in tools for responses ***********************************************
+;;; Supporting built-in tools for responses ***********************************************
 (defclass amsha/add-to-list-switch (transient-variable)
   ((target-value :initarg :target-value)
    (target-list  :initarg :target-list)
@@ -500,7 +514,7 @@ Mutate state INFO with response metadata."
                              "\n\n- ")))
     (user-error "No last fsm.")))
 
-;;;; Tool use ******************************************************************************
+;;; Tool use ******************************************************************************
 (gptel-make-tool
  :function (lambda (url)
              (with-current-buffer (url-retrieve-synchronously url)
@@ -642,7 +656,7 @@ Mutate state INFO with response metadata."
  :category "okm"
  :async t)
 
-;;;; Presets *******************************************************************************
+;;; Presets *******************************************************************************
 
 (gptel-make-preset 'default
   :description "Preset with defaults"
@@ -718,7 +732,7 @@ Mutate state INFO with response metadata."
                                   #'amsha/okm-gptel-transform-add-pdf-txt
                                   #'gptel--transform-add-context)))
 
-;;;; misc-functions ************************************************************************
+;;; misc-functions ************************************************************************
 (defun add-before-special-or-append (lst elem special)
   "If last element of LST is SPECIAL, add ELEM before it.
 Otherwise, add ELEM as the last element."
@@ -729,6 +743,14 @@ Otherwise, add ELEM as the last element."
      (t
       (append lst (list elem))))))
 
+;;;###autoload
+(defun amsha/gptel-yank (arg)
+  "Yank without excluding 'gptel prop."
+  (interactive "p")
+  (let ((yank-excluded-properties (remove 'gptel yank-excluded-properties)))
+    (yank arg)))
+
+;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
 (defvar gptel--mode-line-status " ")
 (defvar gptel--mode-line-format "")
@@ -809,6 +831,7 @@ Otherwise, add ELEM as the last element."
 
 (cl-pushnew '((:eval gptel--mode-line-format)) global-mode-string)
 
+;;; okm tools for tool use ****************************************************************
 (defun amsha/gptel-get-bib-entry-from-citation (citation)
   "Function to take in a citation and turn that into a bib entry."
   (interactive "sCitation: ")
@@ -875,6 +898,7 @@ Otherwise, add ELEM as the last element."
       (goto-char (point-max))
       (gptel-send))))
 
+;;; preset highlight **********************************************************************
 (defvar amsha/gptel-highlight-preset-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c o q p") #'amsha/gptel-insert-preset)
@@ -919,6 +943,7 @@ Otherwise, add ELEM as the last element."
 (add-hook 'prog-mode-hook #'amsha/gptel-highlight-preset-mode)
 (add-hook 'text-mode-hook #'amsha/gptel-highlight-preset-mode)
 
+;;; persistent context ********************************************************************
 (defvar gptel-persistent-context-dir "~/.emacs.d/.cache/gptel-temp-context")
 
 (make-directory gptel-persistent-context-dir t)
@@ -996,7 +1021,7 @@ Otherwise, add ELEM as the last element."
    ("pd" "Delete" amsha/gptel-delete-persistent-context :transient t)
    ("pA" "Add to context" amsha/gptel-add-persistent-context-to-context :transient t)])
 
-;;; * Save preset with only context
+;;;; * Save preset with only context
 
 (defun amsha/gptel--save-context-as-preset (name &optional description)
   "Save a preset with only the context.
@@ -1052,7 +1077,9 @@ afterwards."
 (transient-append-suffix 'gptel--preset '(0 0 -1)
   '("/C" "Save current context as new preset" amsha/gptel--save-context-as-preset :if (lambda () gptel-context)))
 
-;;; * okm replace cite with context
+;;; transform functions *******************************************************************
+
+;;;; * okm replace cite with context
 (defun amsha/okm-gptel-transform-replace-cite-with-abstract-and-summary ()
   "Add respective abstract and summary of  cite:... references."
   (let ((reset 0))
@@ -1083,7 +1110,7 @@ afterwards."
    (when (> reset 0)
      (error "Need to wait for abstracts and summaries"))))
 
-;;; * okm add pdf to context
+;;;; * okm add pdf to context
 (defun amsha/okm-gptel-transform-add-pdf-txt ()
   "Add the pdf txt files of cite keys."
   (let ((reset 0))
@@ -1100,7 +1127,8 @@ afterwards."
    (when (> reset 0)
      (error "Need to wait for abstracts and summaries"))))
 
-;;; * handline headings in org response
+;;; post response cleanups ****************************************************************
+;;;; * handline headings in org response
 (defun amsha/gptel--replace-* (beg end)
   "Updating annotations strings."
   (when (derived-mode-p 'org-mode)
@@ -1116,7 +1144,7 @@ afterwards."
 
 (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-*)
 
-;;; * Function to restore gptel states
+;;;; * Function to restore gptel states
 (defun amsha/gptel-set-region-as-response ()
   "Set the selected region as a response (add text prop)."
   (interactive)
@@ -1165,14 +1193,7 @@ afterwards."
 ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
 (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
 
-;;;###autoload
-(defun amsha/gptel-yank (arg)
-  "Yank without excluding 'gptel prop."
-  (interactive "p")
-  (let ((yank-excluded-properties (remove 'gptel yank-excluded-properties)))
-    (yank arg)))
-
-;;;; setup *********************************************************************************
+;;; setup *********************************************************************************
 (bind-keys :package gptel
            ("C-c o q m" . gptel-menu)
            ("C-c o q b" . gptel)
