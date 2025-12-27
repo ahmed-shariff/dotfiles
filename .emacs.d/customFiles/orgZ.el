@@ -1992,7 +1992,8 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
  	 (bibtex-completion-bibliography (org-ref-find-bibliography))
  	 (bib-entry (bibtex-completion-get-entry custom-id))
          ;; (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
-         (ret-string (format "* title: %s\n* year: %s\n* authors: %s\n* abstract\n%%s\n* summary\n%%s"
+         (ret-string (format "* id:%s \n* title: %s\n* year: %s\n* authors: %s\n* abstract\n%%s\n* summary\n%%s"
+                             custom-id
                              (bibtex-completion-get-value "title" bib-entry)
                              (bibtex-completion-get-value "author" bib-entry)
                              (bibtex-completion-get-value "year" bib-entry))))
@@ -2005,7 +2006,7 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
         (if tool-callback
             (funcall tool-callback (format ret-string abstract summary))
           (format ret-string abstract summary))
-      (let ((gptel-context--alist nil)
+      (let ((gptel-context nil)
             (gptel-tools nil)
             (gptel-openai-responses--tools nil))
         (condition-case err
@@ -2040,11 +2041,12 @@ The format of the response should be as follows:
                                       (org-entry-put (point) "SUMMARY" summary)
                                       (save-buffer)
                                       (em "for" custom-id "added abstract and summary" abstract summary))))
-                              (if node
-                                  (org-roam-with-file (org-roam-node-file node) nil
-                                    (funcall process-data))
-                                (with-current-buffer buf
-                                  (funcall process-data)))
+                              (save-excursion
+                                (if node
+                                    (org-roam-with-file (org-roam-node-file node) nil
+                                      (funcall process-data))
+                                  (with-current-buffer buf
+                                    (funcall process-data))))
                               (if tool-callback
                                   (funcall tool-callback (format (plist-get info :context) abstract summary))))))))
           (t (if tool-callback

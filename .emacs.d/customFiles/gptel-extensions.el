@@ -208,7 +208,17 @@ word count of the response."
 (use-package gptel-agent
   :straight (:host github :repo "karthink/gptel-agent"
                    :files (:defaults "agents")) ;use :ensure for Elpaca
-  :config (gptel-agent-update))         ;Read files from agents directories
+  :config
+  (add-to-list 'gptel-agent-dirs "~/.emacs.d/customFiles/gptel-paper-agent/")
+  (gptel-agent-update)         ;Read files from agents directories
+
+  (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
+    (apply #'gptel-make-preset 'paper-agent paper-agent-plist))
+
+  (defun amsha/gptel-paper-agent ()
+    "Paper agent."
+    (interactive)
+    (gptel-agent okm-base-directory 'paper-agent)))
 
 ;;; openai reponse ************************************************************************
 (cl-defstruct (gptel-openai-responses
@@ -659,6 +669,17 @@ Mutate state INFO with response metadata."
  :async t)
 
 (gptel-make-tool
+ :name "okm_get_papers_abstract_summary"
+ :function #'okm-gptel-get-papers-abstract-summary
+ :description "Given an array of paper IDs, fetch each paper's abstract and a generated summary. Returns a single string containing the concatenated results for all requested papers. For each paper id, the title, authors, year, abstract and summary of the paper are included. The abstarct is extracted from the paper. The summary is an LLM summary of the paper."
+ :args (list '(:name "paper_ids"
+               :type array
+               :items (:type string)
+               :description "Array of paper IDs (strings). Each ID would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
+ :async t
+ :category "okm")
+
+(gptel-make-tool
  :name "okm_oai_query_file_search"
  :function #'okm-oai-query-file-search
  :description "Search the OpenAI vector store for documents matching QUERY, then request a model summary of the retrieved documents. The model summary is returned as a single string: a bullet-list formatted summary with inline citations of the form cite:<paper_id>. On success the tool invokes the provided callback with that summary and also appends a 'Papers queried' list. On failure the callback receives an error message string."
@@ -694,6 +715,16 @@ Mutate state INFO with response metadata."
  :category "okm")
 
 (gptel-make-tool
+ :name "okm_papers_get_notes"
+ :function #'okm-papers-get-notes
+ :description "Given an array of paper IDs, return the notes for each paper as a single string. The result is a human-readable concatenation of each paper's notes. For each paper the title, authors, and year of the paper are included."
+ :args (list '(:name "paper_ids"
+               :type array
+               :items (:type string)
+               :description "Array of paper IDs (strings). Each ID would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
+ :category "okm")
+
+(gptel-make-tool
  :name "okm_get_keywords"
  :function #'okm-gptel-get-keywords
  :description "Return the list of keywords in the database. Takes no arguments and returns a list of keyword strings."
@@ -719,6 +750,29 @@ Mutate state INFO with response metadata."
                :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
  :category "okm"
  :include t)
+
+(gptel-make-tool
+ :name "okm_get_papers_details"
+ :function #'okm-gptel-get-papers-details
+ :description "Given an array of paper IDs, return bibliographic details (title, year, authors) for each paper as a single formatted string suitable for LLM consumption."
+ :args (list '(:name "custom_ids"
+               :type array
+               :items (:type string)
+               :description "Array of paper custom IDs (strings). Each ID would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
+ :category "okm")
+
+(gptel-make-tool
+ :name "okm_write_session_note"
+ :function #'okm-gptel-write-session-note
+ :description "Write CONTENT to RELATIVE-PATH for the current agent session. This tool will append content to file if it already exists."
+ :args (list
+        '(:name "relative_path"
+          :type string
+          :description "Path relative to the session directory, e.g. \"notes/todo.org\"")
+        '(:name "content"
+          :type string
+          :description "Text content to write into the file"))
+ :category "okm")
 
 ;;; Presets *******************************************************************************
 
@@ -813,6 +867,18 @@ Otherwise, add ELEM as the last element."
   (interactive "p")
   (let ((yank-excluded-properties (remove 'gptel yank-excluded-properties)))
     (yank arg)))
+
+(defvar amsha/w32-active-notification nil)
+
+(defun amsha/notify-tool-calls (tool-calls info &optional _)
+  "On windows, send out notification of tool call confirmation requests."
+  (when (eq system-type 'windows-nt)
+    (when amsha/w32-active-notification
+      (w32-notification-close amsha/w32-active-notification))
+    (setq amsha/w32-active-notification
+          (w32-notification-notify :title "gptel tool confirmation"
+                                   :body (em (format "Awaiting %s tool confirmation in %s"
+                                                     (length tool-calls) (plist-get info :buffer)))))))
 
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
@@ -1054,22 +1120,41 @@ Otherwise, add ELEM as the last element."
                                (plist-get info :status))))))
       (funcall callback (format "paper_id %s is not found." paper_id)))))
 
-(defun okm-paper-get-notes (callback paper_id)
+(defun okm-gptel-get-papers-abstract-summary (tool-callback paper-ids)
+  (let* ((count 0)
+         (results-buffer (generate-new-buffer (generate-new-buffer-name "abstract-summary")))
+         (callback (lambda (result)
+                     (with-current-buffer results-buffer
+                       (insert "----------------------\n"
+                               result "\n")
+                       (cl-incf count)
+                       (when (eq count (length paper-ids))
+                         (funcall tool-callback (buffer-string)))))))
+    (mapcar (lambda (paper-id)
+              (okm-gptel-get-paper-abstract-summary callback paper-id))
+            paper-ids)))
+
+(defun okm-paper-get-notes (paper_id)
   "Returns the notes from paper represented by paper_id."
-  (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id))))
-        (gptel-backend gptel-openai-response-backend)
-        (gptel-model 'gpt-5-nano)
-        (gptel-tools nil)
-        (gptel-context nil))
+  (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id)))))
     (if node
         (save-excursion
           (org-roam-with-file (org-roam-node-file node) nil
               (org-with-wide-buffer
                (goto-char (point-min))
-               (funcall callback (concat
-                                  (okm-gptel-get-paper-details paper_id) "\n"
-                                  (org-roam-subtree-aware-preview-function node))))))
-      (funcall callback (format "paper_id %s is not found." paper_id)))))
+               (concat
+                (okm-gptel-get-paper-details paper_id) "\n"
+                (org-roam-subtree-aware-preview-function node)))))
+      (format "paper_id %s is not found." paper_id))))
+
+(defun okm-papers-get-notes (paper-ids)
+  "Returns the notes from paper represented by paper-ids."
+  (with-temp-buffer
+    (mapcar (lambda (paper-id)
+              (insert paper-id "\n================\n"
+                      (okm-paper-get-notes paper-id) "\n\n"))
+            paper-ids)
+    (buffer-string)))
 
 (defun okm-gptel-get-keywords ()
   "Return the list of keywords in the db."
@@ -1083,18 +1168,28 @@ Otherwise, add ELEM as the last element."
                                                :type nil)
                                   (file "research_papers")))))
 
-(defun okm-gptel-get-paper-details (custom-id)
-  "Given the custom-id, get the details of a paper.
+(defun okm-gptel-get-paper-details (paper-id)
+  "Given the paper-id, get the details of a paper.
 Meant to be used for LLMs.
 The tool-callback should take one value, the result. "
-  (let* ((node (and custom-id (car (org-roam-ql-nodes `(properties "Custom_ID" ,custom-id)))))
- 	 (bibtex-completion-bibliography (org-ref-find-bibliography))
- 	 (bib-entry (bibtex-completion-get-entry custom-id)))
+  (let* ((bibtex-completion-bibliography (org-ref-find-bibliography))
+ 	 (bib-entry (bibtex-completion-get-entry paper-id)))
          ;; (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
-    (format "* title: %s\n* year: %s\n* authors: %s"
+    (if bib-entry
+        (format "* title: %s\n* year: %s\n* authors: %s"
             (bibtex-completion-get-value "title" bib-entry)
             (bibtex-completion-get-value "author" bib-entry)
-            (bibtex-completion-get-value "year" bib-entry))))
+            (bibtex-completion-get-value "year" bib-entry))
+      (format "Details for id %s not found" paper-id))))
+
+(defun okm-gptel-get-papers-details (paper-ids)
+  "Given a list of paper-ids, return the paper details as a single string."
+  (with-temp-buffer
+    (mapcar (lambda (paper-id)
+              (insert paper-id "\n================\n"
+                      (okm-gptel-get-paper-details paper-id) "\n\n"))
+            paper-ids)
+    (buffer-string)))
 
 (defvar-local gptel-agent-session-id nil)
 
@@ -1107,13 +1202,29 @@ then it will be set here."
   (unless gptel-agent-session-id
     (setq-local gptel-agent-session-id (concat (format-time-string "%Y-%m-%d_%H%M_" (current-time))
                                                (org-trim (shell-command-to-string org-id-uuid-program)))))
-  (let* ((default-directory (expand-file-name gptel-agent-session-id "~/.emacs.d/.cache/gptel-agent")))
-    (unless (f-exists-p default-directory)
-      (make-directory default-directory t))
-    (with-temp-buffer
-      (goto-char (point-min))
-      (insert "\n" content)
-      (write-region nil nil (expand-file-name relative-path) t))))
+  ;; (with-current-buffer (get-buffer-create (expand-file-name relative-path gptel-agent-session-id))
+    ;; (insert "\n" content)))
+  (let* ((directory (expand-file-name gptel-agent-session-id "~/.emacs.d/.cache/gptel-agent"))
+         (file-path (expand-file-name relative-path directory)))
+    (save-excursion
+      (unless (f-exists-p directory)
+        (make-directory directory t))
+      (unless (f-exists-p file-path)
+        (unless (f-exists-p (f-parent file-path))
+          (make-directory (f-parent file-path) t))
+        (with-temp-buffer
+          (write-region nil nil file-path)))
+      (with-temp-buffer
+        (goto-char (point-min))
+        (insert "\n" content)
+        (write-region nil nil file-path t)
+        file-path))))
+
+(defun okm-open-session-notes ()
+  (interactive)
+  (if gptel-agent-session-id
+      (dired (expand-file-name gptel-agent-session-id "~/.emacs.d/.cache/gptel-agent"))
+    (error "No gptel-agent-session-id")))
 
 ;;; preset highlight **********************************************************************
 (defvar amsha/gptel-highlight-preset-mode-map
@@ -1445,6 +1556,8 @@ afterwards."
 
 (add-to-list 'yank-excluded-properties 'gptel)
 (add-hook 'gptel-mode-hook (lambda () (gptel-highlight-mode +1)))
+
+(advice-add 'gptel--display-tool-calls :before #'amsha/notify-tool-calls)
 
 ;; Add fsm-last to the request handlers
 (cl-pushnew 'gptel--fsm-last (alist-get 'DONE gptel-request--handlers))
