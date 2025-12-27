@@ -345,7 +345,8 @@ see also `org-roam-backlinks-section-with-ql-filter'.
       (let* ((full-file (< (point) 5)) ;; means we are trying to display the whole file, I think!
              ;; Even when displaying full file, we skip the initial meta data
              (beg (progn
-                    (org-previous-visible-heading 1)
+                    (unless (org-at-heading-p)
+                        (org-previous-visible-heading 1))
                     (if (org-id-get)
                         (org-roam-end-of-meta-data t)
                       (org-beginning-of-line))
