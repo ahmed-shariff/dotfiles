@@ -311,6 +311,15 @@ word count of the response."
                                                        (funcall built-in-tool)
                                                      built-in-tool))
                                                  gptel-openai-responses--tools))))
+    (when-let (tool-defs (plist-get prompts :tools))
+      (plist-put prompts :tools
+                 (cl-loop for tool-def across tool-defs
+                          if (string-equal (plist-get tool-def :type) "function")
+                          collect (append '(:type "function") (plist-get tool-def :function))
+                          into out
+                          else collect tool-def into out
+                          finally return (apply #'vector out))))
+    ;; TODO: Handle multipart
     (while p
       (when (eq (car p) :messages)
         (setcar p :input))
@@ -394,7 +403,7 @@ Mutate state INFO with response metadata."
 
 (defun test-response ()
   (let ((gptel-backend gptel-openai-response-backend)
-        (gptel-model 'gpt-4.1-mini)
+        (gptel-model 'gpt-5-nano)
         (gptel-tools (list (gptel-make-tool
                             :function (lambda (location unit)
                                         (format "Temp in %s is 25 %s" location unit))
@@ -409,7 +418,7 @@ Mutate state INFO with response metadata."
                                                 :description
                                                 "The unit of temperature, either 'celsius' or 'fahrenheit'"
                                                 :optional t))))))
-    (gptel-request "What is the temperature in kelowna" :callback (lambda (r i) (print r i)))))
+    (gptel-request "What is the temperature in kelowna" :callback (lambda (r i) (message "%S\n----\n%S" r i)))))
 
 ;;; Supporting built-in tools for responses ***********************************************
 (defclass amsha/add-to-list-switch (transient-variable)
