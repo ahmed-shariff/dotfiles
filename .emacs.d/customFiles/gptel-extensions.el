@@ -1581,6 +1581,11 @@ afterwards."
     :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
     :models '(deepseek/deepseek-r1-distill-llama-70b:free)))
 
+(defvar amsha/gptel-anthropic-api
+ (gptel-make-anthropic "Claude"          ;Any name you want
+  :stream t                             ;Streaming responses
+  :key (gethash 'anthropic-api configurations)))
+
 (condition-case err
     (setf (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
                                                    (--map (prog1 it (put it :capabilities '(reasoning)))
