@@ -657,6 +657,7 @@ Mutate state INFO with response metadata."
 	       :description "Path to the file to read.  Supports relative paths and ~."))
  :category "filesystem")
 
+;;;; * paper agent tools
 (gptel-make-tool
  :function #'okm-get-pdf-txt
  :name "okm_paper_full_text"
@@ -667,15 +668,15 @@ Mutate state INFO with response metadata."
  :confirm t
  :category "okm")
 
-(gptel-make-tool
- :function #'okm-gptel-get-paper-abstract-summary
- :name "okm_paper_abstract_and_summary"
- :description "Get the title, authors, year, abstract and summary of the paper. The abstarct is extracted from the paper. The summary is an LLM summary of the paper."
- :args (list '(:name "paper_id"
-               :type "string"
-               :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
- :category "okm"
- :async t)
+;; (gptel-make-tool
+;;  :function #'okm-gptel-get-paper-abstract-summary
+;;  :name "okm_paper_abstract_and_summary"
+;;  :description "Get the title, authors, year, abstract and summary of the paper. The abstarct is extracted from the paper. The summary is an LLM summary of the paper."
+;;  :args (list '(:name "paper_id"
+;;                :type "string"
+;;                :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
+;;  :category "okm"
+;;  :async t)
 
 (gptel-make-tool
  :name "okm_get_papers_abstract_summary"
@@ -713,15 +714,15 @@ Mutate state INFO with response metadata."
  :category "okm"
  :include t)
 
-(gptel-make-tool
- :name "okm_paper_get_notes"
- :function #'okm-paper-get-notes
- :description "Return the notes for the paper identified by paper_id. It also include the title, authors, and year of the paper. If the paper with paper_id is not found, will return an error message."
- :args (list '(:name "paper_id"
-               :type string
-               :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
- :async t
- :category "okm")
+;; (gptel-make-tool
+;;  :name "okm_paper_get_notes"
+;;  :function #'okm-paper-get-notes
+;;  :description "Return the notes for the paper identified by paper_id. It also include the title, authors, and year of the paper. If the paper with paper_id is not found, will return an error message."
+;;  :args (list '(:name "paper_id"
+;;                :type string
+;;                :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
+;;  :async t
+;;  :category "okm")
 
 (gptel-make-tool
  :name "okm_papers_get_notes"
@@ -750,15 +751,15 @@ Mutate state INFO with response metadata."
  :category "okm"
  :include t)
 
-(gptel-make-tool
- :name "okm_get_paper_details"
- :function #'okm-gptel-get-paper-details
- :description "Given a paper_id, return details of the paper formatted for LLM use. Returns a string containing title, authors and year."
- :args (list '(:name "custom_id"
-               :type string
-               :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
- :category "okm"
- :include t)
+;; (gptel-make-tool
+;;  :name "okm_get_paper_details"
+;;  :function #'okm-gptel-get-paper-details
+;;  :description "Given a paper_id, return details of the paper formatted for LLM use. Returns a string containing title, authors and year."
+;;  :args (list '(:name "custom_id"
+;;                :type string
+;;                :description "The id of the paper. Would be something like 'faleel21_hpui' or 'joe12_what_is_inter'."))
+;;  :category "okm"
+;;  :include t)
 
 (gptel-make-tool
  :name "okm_get_papers_details"
