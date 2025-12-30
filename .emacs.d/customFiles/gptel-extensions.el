@@ -322,7 +322,20 @@ word count of the response."
     ;; TODO: Handle multipart
     (while p
       (when (eq (car p) :messages)
-        (setcar p :input))
+        (setcar p :input)
+        (setcar (cdr p)
+                (apply #'vector
+                       (mapcar (lambda (input-item)
+                                 (pcase input-item
+                                   ((let (and tool-calls (guard tool-calls)) (plist-get input-item :tool_calls))
+                                    (cl-assert (length= tool-calls 1) t "Expected only one value in tool_calls")
+                                    (let ((tool-call (aref tool-calls 0)))
+                                      `(:type "function_call"
+                                              :call_id ,(plist-get tool-call :id)
+                                              ,@(plist-get tool-call :function))))
+                                  (_ input-item)
+                                 ))
+                               (cadr p)))))
       (when (memq (car p) '(:max_completion_tokens :max_tokens))
         (setcar p :max_output_tokens))
       (setq p (cddr p)))
@@ -395,7 +408,7 @@ Mutate state INFO with response metadata."
    (lambda (tool-call)
      (list
       :type "function_call_output"
-      :call_id (plist-get tool-call :call_id)
+      :call_id (plist-get tool-call :id)
       :output (plist-get tool-call :result)))
    tool-use))
 
