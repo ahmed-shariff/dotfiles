@@ -753,6 +753,9 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
 ;;   ;; (set-face-attribute 'default nil
 ;;                       ;; :family "Consolas" :height 105))
 
+(use-package filladapt
+  :hook (text-mode . filladapt-mode))
+
 (use-package topspace
   :custom
   (topspace-empty-line-indicator (propertize "~" :forground "gray33")))
