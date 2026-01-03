@@ -422,6 +422,7 @@ Mutate state INFO with response metadata."
                                         (format "Temp in %s is 25 %s" location unit))
                             :name "get_weather"
                             :description "Get the current weather in a given location"
+                            :confirm t
                             :args (list '(:name "location"
                                                 :type string
                                                 :description "The city and state, e.g. San Francisco, CA")
@@ -630,6 +631,7 @@ Mutate state INFO with response metadata."
                (error (format "Error creating directory %s in %s" name parent))))
  :name "make_directory"
  :description "Create a new directory with the given name in the specified parent directory"
+ :confirm t
  :args (list '(:name "parent"
 	       :type "string"
 	       :description "The parent directory where the new directory should be created, e.g. /tmp")
@@ -646,6 +648,7 @@ Mutate state INFO with response metadata."
                  (write-file full-path))
                (format "Created file %s in %s" filename path)))
  :name "create_file"
+ :confirm t
  :description "Create a new file with the specified content"
  :args (list '(:name "path"
 	       :type "string"
@@ -664,6 +667,7 @@ Mutate state INFO with response metadata."
 	       (insert-file-contents (expand-file-name filepath))
 	       (buffer-string)))
  :name "read_file"
+ :confirm t
  :description "Read and display the contents of a file"
  :args (list '(:name "filepath"
 	       :type "string"
@@ -817,7 +821,10 @@ necessary."
         '(:name "action" :type string :description "Action"
                 :enum ["summary" "details" "load_resource" "run_script"])
         '(:name "path" :type string :optional t :description "Resource or script path relative to skill dir")
-        '(:name "args" :type array :optional t :description "Array of string args for scripts"))
+        '(:name "args" :type array :optional t :description "Array of string args for scripts"
+                :items (:type string)))
+ :confirm t
+ :include t
  :async t
  :category "skills")
 
@@ -1098,7 +1105,7 @@ Otherwise, add ELEM as the last element."
         ;;                             (plist-get info :post)))
         (if (stringp response)
             (let ((gptel-backend gptel-openai-response-backend)
-                  (gptel-model 'gpt-5-nano)
+                  (gptel-model 'gpt-5-mini)
                   (gptel-tools nil)
                   (gptel-openai-responses--tools nil)
                   (gptel-context nil)
@@ -1136,7 +1143,7 @@ Otherwise, add ELEM as the last element."
   (em "asking questions from " paper_id)
   (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id))))
         (gptel-backend gptel-openai-response-backend)
-        (gptel-model 'gpt-5-nano)
+        (gptel-model 'gpt-5-mini)
         (gptel-tools nil)
         (gptel-context nil))
     (if node
@@ -1350,12 +1357,7 @@ then it will be set here."
                    gptel-agent-skills--known-skills)
           (dolist (entry gptel-agent-skills--known-skills)
             (let* ((name (car entry))
-                   ;; the skill metadata/plist is often stored in the tail;
-                   ;; gptel-agent-skills-update stores the plist in the cdr/last element
-                   (meta (if (consp (cdr entry))
-                             (cdr entry)
-                           (cdr (last entry))))
-                   (desc (and (plistp meta) (plist-get meta :description))))
+                   (desc (plist-get (cddr entry) :description)))
               (insert (format "## %s\n\n%s\n\n" name (or desc "(no description)"))))))
         (setq buffer-read-only t))
       (gptel-context-add))
@@ -1369,13 +1371,13 @@ then it will be set here."
          (script-full (and dir (expand-file-name script-rel dir))))
     (cond
      ((not dir)
-      (funcall callback (json-serialize `(:error "skill-not-found" :skill ,skill))))
+      (funcall callback `(:error "skill-not-found" :skill ,skill)))
      ((not (file-exists-p script-full))
-      (funcall callback (json-serialize `(:error "script-not-found" :script ,script-full))))
+      (funcall callback `(:error "script-not-found" :script ,script-full)))
      (t
       (let* ((out-buf (get-buffer-create (format "*gptel-skill-run-%s-%s*" skill script-rel)))
              (poetry-cmd "poetry")
-             (proc-args (append (list "run" "-q" "python" script-full) (or args '())))
+             (proc-args (append (list "run" "-q" "python" "-Xutf8" script-full) (or (cl-coerce args 'list) '())))
              (default-directory dir)
              (proc
               (apply #'start-process
@@ -1407,11 +1409,10 @@ then it will be set here."
                                      (string-to-number (match-string 1 event))
                                    (if (string-match "finished" event) 0 1))))
                     (output (with-current-buffer out-buf (buffer-string)))
-                    (result (json-serialize
-                             `(:skill ,skill
+                    (result `(:skill ,skill
                                       :script ,script-rel
                                       :exit-code ,exit-code
-                                      :output ,output))))
+                                      :output ,output)))
                ;; call the callback with JSON string result
                (funcall callback result)
                ;; cleanup buffer
@@ -1421,43 +1422,44 @@ then it will be set here."
   "Main tool handler.
 CALLBACK is used for async responses. ACTION is one of \"summary\"/\"details\"/\"load_resource\"/\"run_script\".
 PATH is a unified path (resource or script)."
-    (pcase-let ((`(,skill-dir . ,skill-plist) (alist-get skill gptel-agent-skills--known-skills nil nil #'string-equal)))
-      (if (not skill-dir)
-          (funcall (or callback (lambda (x) x))
-                   (json-serialize `(:error "skill-not-found" :skill ,skill)))
-        (pcase action
-          ("summary"
-           (plist-get skill-plist :description))
-          ("details"
-           (funcall callback (json-serialize
-                                `(:skill
-                                  ,skill
-                                  :body
-                                  ,(plist-get
-                                    (cdr (gptel-agent-read-file
-                                          (expand-file-name "SKILL.md" skill-dir)
-                                          ;; forcing the full content
-                                          '(("--noop---"))))
-                                    :system)))))
-          ("load_resource"
-           (if (not path)
-               (funcall (or callback (lambda (x) x)) (json-serialize `(:error "no-path-provided" :action ,action)))
-             (let ((full (expand-file-name path skill-dir)))
-               (if (not (file-readable-p full))
-                   (funcall callback (json-serialize `(:error "resource-not-found" :path ,full)))
-                 (funcall callback
-                          (json-serialize `(:skill ,skill
-                                                   :resource ,path
-                                                   :content ,(with-temp-buffer
-                                                               (insert-file-contents full)
-                                                               (buffer-string)))))))))
-          ("run_script"
-           (if (not path)
-               (funcall (or callback (lambda (x) x)) (json-serialize `(:error "no-path-provided" :action ,action)))
-             ;; run async; reuse your async runner (ensure it accepts CALLBACK, skill, script, args)
-             (gptel-agent-skill--tool-run-script-async (or callback (lambda (x) x)) skill path args)))
-          (_
-           (funcall (or callback (lambda (x) x)) (json-serialize `(:error "unknown-action" :action ,action))))))))
+  (gptel-agent-skills-update)
+  (gptel-agent-write-skills-summary-to-hidden-buffer)
+  (pcase-let ((`(,skill-dir . ,skill-plist) (alist-get skill gptel-agent-skills--known-skills nil nil #'string-equal)))
+    (if (not skill-dir)
+        (funcall callback
+                 `(:error "skill-not-found" :skill ,skill))
+      (pcase action
+        ("summary"
+         (funcall callback `(:skill ,skill :description ,(plist-get skill-plist :description))))
+        ("details"
+         (funcall callback `(:skill
+                              ,skill
+                              :body
+                              ,(plist-get
+                                (cdr (gptel-agent-read-file
+                                      (expand-file-name "SKILL.md" skill-dir)
+                                      ;; forcing the full content
+                                      '(("--noop---"))))
+                                :system))))
+        ("load_resource"
+         (if (not path)
+             (funcall callback `(:error "no-path-provided" :action ,action))
+           (let ((full (expand-file-name path skill-dir)))
+             (if (not (file-readable-p full))
+                 (funcall callback `(:error "resource-not-found" :path ,full))
+               (funcall callback
+                        `(:skill ,skill
+                                                 :resource ,path
+                                                 :content ,(with-temp-buffer
+                                                             (insert-file-contents full)
+                                                             (buffer-string))))))))
+        ("run_script"
+         (if (not path)
+             (funcall callback `(:error "no-path-provided" :action ,action))
+           ;; run async; reuse your async runner (ensure it accepts CALLBACK, skill, script, args)
+           (gptel-agent-skill--tool-run-script-async callback skill path args)))
+        (_
+         (funcall callback `(:error "unknown-action" :action ,action)))))))
 
 ;;; persistent context ********************************************************************
 (defvar gptel-persistent-context-dir "~/.emacs.d/.cache/gptel-temp-context")
