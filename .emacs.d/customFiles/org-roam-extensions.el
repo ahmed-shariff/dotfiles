@@ -609,6 +609,17 @@ If prefix arg used, search whole db."
      (insert "- " (file-name-base f) "\n"))
    (org-roam-ql-nodes (org-roam-ql--read-query))))
 
+
+;;;###autoload
+(defun okm-goto-last-dailies (args)
+  "Go the last dailies without going the capture process."
+  (interactive "P")
+  (when args
+    (org-roam-db-sync))
+  (org-roam-node-open (car (org-roam-ql-nodes
+                            ;; Assuming I have a note in the last 100 days!
+                            '(dailies-range "-100")
+                            "title-reverse"))))
 ;; org-roam-ql expansions and stuff ************************************************
 (org-roam-ql-defexpansion 'backlink-to-recursive
   "Recursive backlinks (heading, backlink & refs)"
@@ -663,6 +674,26 @@ If prefix arg used, search whole db."
          (--sort (string< it other) it)
          (-flatten (org-roam-db-query [:select id :from nodes :where (in file $v1) :and (= level 0)] (vconcat nil it)))
          (-map #'org-roam-node-from-id it))))
+
+(org-roam-ql-defexpansion 'key-order-range
+  "Papers in key-order range"
+  (lambda (min max)
+    (->>
+     (org-roam-db-query [:select [id properties] :from nodes :where (like file $s1) :and (= level 1)] "%research_papers%")
+     (--map (when-let ((key-order (alist-get "KEY_ORDER" (cadr it) nil nil #'string-equal))) 
+              (cons (car it) (string-to-number key-order))))
+     (--filter (and (cdr it) (> (cdr it) min) (< (cdr it) max)))
+     (--map (org-roam-node-from-id (car it))))))
+
+(org-roam-ql-defexpansion 'year-range
+  "Papers in year range"
+  (lambda (min max)
+    (->>
+     (org-roam-db-query [:select [id properties] :from nodes :where (like file $s1) :and (= level 1)] "%research_papers%")
+     (--map (when-let ((key-order (alist-get "YEAR" (cadr it) nil nil #'string-equal))) 
+              (cons (car it) (string-to-number key-order))))
+     (--filter (and (cdr it) (> (cdr it) min) (< (cdr it) max)))
+     (--map (org-roam-node-from-id (car it))))))
 
 ;; (org-roam-ql-defpred 'pdf-string
 ;;                      "Attached PDF has string"

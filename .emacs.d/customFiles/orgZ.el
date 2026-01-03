@@ -1235,6 +1235,7 @@ The screenshot tool is determined by `org-download-screenshot-method'."
     (org-roam-ql-search
      `(pdf-string ,(format "%s" regexp))
      (prin1-to-string regexp)
+     nil
      "title"
      temp-preview-function)))
 
