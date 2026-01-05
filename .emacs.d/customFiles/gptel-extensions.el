@@ -1178,19 +1178,70 @@ Otherwise, add ELEM as the last element."
                                (plist-get info :status))))))
       (funcall callback (format "paper_id %s is not found." paper_id)))))
 
-(defun okm-gptel-get-papers-abstract-summary (tool-callback paper-ids)
-  (let* ((count 0)
+(defun okm-gptel-get-papers-abstract-summary
+    (tool-callback paper-ids &optional max-concurrency max-errors)
+  "Fetch summaries for PAPER-IDS and call TOOL-CALLBACK with combined result.
+Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
+  (let* ((queue (cl-coerce (copy-sequence paper-ids) 'list))
+         (max (or max-concurrency 3))
+         (running 0)
+         (done 0)
+         (failed 0)
+         (total (length paper-ids))
+         (max-errors (or max-errors total))
          (results-buffer (generate-new-buffer (generate-new-buffer-name "abstract-summary")))
-         (callback (lambda (result)
-                     (with-current-buffer results-buffer
-                       (insert "----------------------\n"
-                               result "\n")
-                       (cl-incf count)
-                       (when (eq count (length paper-ids))
-                         (funcall tool-callback (buffer-string)))))))
-    (mapcar (lambda (paper-id)
-              (okm-gptel-get-paper-abstract-summary callback paper-id))
-            paper-ids)))
+         (start-next nil)
+         (is-waiting-for-next-call nil))
+    (setq start-next
+          (lambda ()
+            (setq is-waiting-for-next-call nil)
+            ;; start as many as allowed
+            (while (and (< running max) (< failed max-errors) queue)
+              (let ((paper-id (pop queue)))
+                (cl-incf running)
+                ;; call your existing async worker; it must call the provided callback
+                (condition-case err
+                    (progn
+                      (okm-gptel-get-paper-abstract-summary
+                       (lambda (result)
+                         ;; collect result
+                         (em "recieved resutls " (substring result 0 15)  (s-starts-with-p "Error occurred " result) (format " %s (fails %s, done %s, running %s, total %s)" paper-id failed done running total))
+                         (cl-decf running)
+                         (when (s-starts-with-p "Error occurred " result)
+                           (em "ERROR===" result)
+                           (cl-incf failed)
+                           (push paper-id queue)
+                           (signal 'error result))
+                         (with-current-buffer results-buffer
+                           (em "Inserting in  " results-buffer)
+                           (insert "----------------------\n" result "\n"))
+                         ;; update counters and possibly finish
+                         (cl-incf done)
+                         (when (= done total)
+                           (em "calling done  " (format " %s (fails %s, done %s, running %s)" paper-id failed done running))
+                           (org-roam-db-sync)
+                           (funcall tool-callback
+                                    (with-current-buffer results-buffer
+                                      (prog1 (buffer-string)
+                                        (kill-buffer (current-buffer))))))
+                         ;; start more jobs if any remain
+                         (unless is-waiting-for-next-call
+                           (setq is-waiting-for-next-call (run-with-timer 5 nil start-next)))
+                         )
+                       paper-id)
+                      (em "Called for " paper-id))
+                  (error
+                   (if (< failed max-errors)
+                       (progn
+                         (unless is-waiting-for-next-call
+                           (setq is-waiting-for-next-call (run-with-timer 5 nil start-next)))
+                         (em "next call" failed max-errors err))
+                     (org-roam-db-sync)
+                     (funcall tool-callback
+                      (em (format "Failed with error %s when processing key %s (fails %s, done %s, running %s)"
+                                  err paper-id failed done running))))))))))
+    ;; kick off
+    (funcall start-next)))
 
 (defun okm-paper-get-notes (paper_id)
   "Returns the notes from paper represented by paper_id."
