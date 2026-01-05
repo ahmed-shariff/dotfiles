@@ -729,9 +729,13 @@ If prefix arg used, search whole db."
            (push (cons key idx) bibtex-keys))))
       (bibtex-keys-to-nodes (-map #'car (-take N bibtex-keys))))))
 
-(org-roam-ql-register-sort-fn "key-order" (lambda (el1 el2)
-                                            (string< (cdr (assoc "KEY_ORDER" (org-roam-node-properties el1)))
-                                                     (cdr (assoc "KEY_ORDER" (org-roam-node-properties el2))))))
+(org-roam-ql-register-sort-fn "key-order-inc" (lambda (el1 el2)
+                                                (string< (cdr (assoc "KEY_ORDER" (org-roam-node-properties el1)))
+                                                         (cdr (assoc "KEY_ORDER" (org-roam-node-properties el2))))))
+
+(org-roam-ql-register-sort-fn "key-order-dec" (lambda (el1 el2)
+                                                (string< (cdr (assoc "KEY_ORDER" (org-roam-node-properties el2)))
+                                                         (cdr (assoc "KEY_ORDER" (org-roam-node-properties el1))))))
 
 (org-roam-ql-add-saved-query 'rp "Research papers" '(file "research_papers"))
 (org-roam-ql-add-saved-query 'nrp "not Research papers" '([:select id :from nodes :where (not (like file $s1))] "%research_papers%"))
