@@ -410,6 +410,15 @@ see also `org-roam-backlinks-section-with-ql-filter'.
 (org-roam-node-action org-roam-node-add-parents
   (okm-add-parent-topic))
 
+(defmacro amsha/org-roam-with-file (file keep-buf-p &rest body)
+  "Like `org-roam-with-file', with kill-buffer hooks disabled.
+
+`kill-buffer-query-functions' and `kill-buffer-hook' are set to nil."
+  (declare (indent 2) (debug t))
+  `(let* ((kill-buffer-query-functions nil)
+          (kill-buffer-hook nil))
+     (org-roam-with-file ,file ,keep-buf-p ,@body)))
+
 ;; org-roam-ql functions ***********************************************************
 
 ;; taken from `org-roam-ql--expand-link'

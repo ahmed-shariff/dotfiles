@@ -2007,9 +2007,10 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
         (if tool-callback
             (funcall tool-callback (format ret-string abstract summary))
           (format ret-string abstract summary))
-      (gptel-with-preset 'default
-        (condition-case err
-            (gptel-request (format "%s
+      (if-let (pdf-text (okm-get-pdf-txt custom-id))
+          (gptel-with-preset 'default
+            (condition-case err
+                (gptel-request (format "%s
 
 The above is the text extracted from a paper using pdf-tools.
 Extract the abstract from this. Also provide a summary of the paper which can be used as input for other LLMs.
@@ -2021,36 +2022,39 @@ The format of the response should be as follows:
 <abstract text>
 * summary
 <summary text>"
-                                   (okm-get-pdf-txt custom-id))
-              :context ret-string
-              :callback (lambda (response info)
-                          (cond
-                           ((null response)
-                            (em "ERROR" info)
-                            (if tool-callback
-                                (funcall tool-callback (format "Error %s" info))))
-                           ((stringp response)
-                            (let* ((res (s-split "* summary" response))
-                                   (abstract (s-trim (s-replace "* abstract" "" (car res))))
-                                   (summary (s-trim (cadr res)))
-                                   (process-data
-                                    (lambda ()
-                                      (goto-char (point-min))
-                                      (org-entry-put (point) "ABSTRACT" abstract)
-                                      (org-entry-put (point) "SUMMARY" summary)
-                                      (save-buffer)
-                                      (em "for" custom-id "added abstract and summary" abstract summary))))
-                              (save-excursion
-                                (if node
-                                    (org-roam-with-file (org-roam-node-file node) nil
-                                      (funcall process-data))
-                                  (with-current-buffer buf
-                                    (funcall process-data))))
-                              (if tool-callback
-                                  (funcall tool-callback (format (plist-get info :context) abstract summary))))))))
-          (t (if tool-callback
-                 (funcall tool-callback (format "Error occurred %s" err))
-               (user-error (format "Error occurred %s" err)))))))))
+                                       pdf-text)
+                  :context ret-string
+                  :callback (lambda (response info)
+                              (cond
+                               ((null response)
+                                (em "ERROR" info)
+                                (if tool-callback
+                                    (funcall tool-callback (format "Error %s" info))))
+                               ((stringp response)
+                                (let* ((res (s-split "* summary" response))
+                                       (abstract (s-trim (s-replace "* abstract" "" (car res))))
+                                       (summary (s-trim (cadr res)))
+                                       (process-data
+                                        (lambda ()
+                                          (goto-char (point-min))
+                                          (org-entry-put (point) "ABSTRACT" abstract)
+                                          (org-entry-put (point) "SUMMARY" summary)
+                                          (save-buffer)
+                                          (em "for" custom-id "added abstract and summary" abstract summary))))
+                                  (save-excursion
+                                    (if node
+                                        (amsha/org-roam-with-file (org-roam-node-file node) nil
+                                          (funcall process-data))
+                                      (with-current-buffer buf
+                                        (funcall process-data))))
+                                  (if tool-callback
+                                      (funcall tool-callback (format (plist-get info :context) abstract summary))))))))
+              (t (if tool-callback
+                     (funcall tool-callback (format "Error occurred %s" err))
+                   (user-error (format "Error occurred %s" err))))))
+        (if tool-callback
+            (funcall tool-callback "Error occurred - PDF/abstract/summary not available")
+          (user-error "Error occurred - PDF/abstract/summary not available"))))))
 
 (defun okm-org-agenda-recompute-org-roam-ql ()
   "Same as `okm-org-agenda-recompute', but uses org-roam-ql"
