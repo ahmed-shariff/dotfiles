@@ -2007,9 +2007,7 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
         (if tool-callback
             (funcall tool-callback (format ret-string abstract summary))
           (format ret-string abstract summary))
-      (let ((gptel-context nil)
-            (gptel-tools nil)
-            (gptel-openai-responses--tools nil))
+      (gptel-with-preset 'default
         (condition-case err
             (gptel-request (format "%s
 
@@ -2030,7 +2028,7 @@ The format of the response should be as follows:
                            ((null response)
                             (em "ERROR" info)
                             (if tool-callback
-                              (funcall tool-callback (format "Error %s" info))))
+                                (funcall tool-callback (format "Error %s" info))))
                            ((stringp response)
                             (let* ((res (s-split "* summary" response))
                                    (abstract (s-trim (s-replace "* abstract" "" (car res))))

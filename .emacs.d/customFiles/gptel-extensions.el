@@ -210,10 +210,12 @@ word count of the response."
                    :files (:defaults "agents")) ;use :ensure for Elpaca
   :config
   (add-to-list 'gptel-agent-dirs "~/.emacs.d/customFiles/gptel-paper-agent/")
-  (gptel-agent-update)         ;Read files from agents directories
+  (defun amsha/agent-post-update (&rest _)
+    (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
+      (apply #'gptel-make-preset 'paper-agent paper-agent-plist)))
+  (advice-add 'gptel-agent-update :after #'amsha/agent-post-update)
 
-  (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
-    (apply #'gptel-make-preset 'paper-agent paper-agent-plist))
+  (gptel-agent-update)         ;Read files from agents directories
 
   (defun amsha/gptel-paper-agent ()
     "Paper agent."
@@ -791,7 +793,7 @@ Mutate state INFO with response metadata."
 (gptel-make-tool
  :name "okm_write_session_note"
  :function #'okm-gptel-write-session-note
- :description "Write CONTENT to RELATIVE-PATH for the current agent session. This tool will append content to file if it already exists."
+ :description "Write CONTENT to RELATIVE-PATH for the current agent session. This tool will append content to file if it already exists. Use this tool ONLY to write auxilliary notes, not anything directly related to the user query."
  :args (list
         '(:name "relative_path"
           :type string
@@ -799,7 +801,9 @@ Mutate state INFO with response metadata."
         '(:name "content"
           :type string
           :description "Text content to write into the file"))
- :category "okm")
+ :category "okm"
+ :include t
+ :confirm t)
 
 ;;;; * skills agent tools
 (gptel-make-tool

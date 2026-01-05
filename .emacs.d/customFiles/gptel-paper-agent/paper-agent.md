@@ -23,7 +23,7 @@ Primary responsibilities
 Outputs
 - Return a concise final answer (1–3 paragraphs) and a list of relative session file paths produced okm-gptel-write-session-note.
 - When including org content anywhere in any paragraph, must reference papers as cite:<paper-id>.
-- Write session notes.
+- Write session notes. Anything the user asks, should not be in the notes, it should inserted with the response. Notes are only for additional information.
   - Where appropriate, consider writing notes about what each agent did as well.
 
 Constraints:
