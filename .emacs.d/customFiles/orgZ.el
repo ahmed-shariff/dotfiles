@@ -1374,14 +1374,18 @@ Currently written to work in org-ql buffer."
                           (org-add-props it properties
                             'org-agenda-type 'search
                             'todo-state (org-roam-node-todo node)))))))
-        (org-roam-ql--agenda-buffer-for-nodes topic-nodes "Topics"
-                                              (org-roam-ql--get-formatted-buffer-name
-                                               (org-roam-ql--get-formatted-title
-                                                (format "Topics - %s" (prin1-to-string org-roam-ql-buffer-title)) nil))
-                                              `(backlinks-to ,org-roam-ql-buffer-query :type ,okm-parent-id-type-name)
-                                              (--map
-                                               (list :file-path it)
-                                               (list "research topics.org" "People.org" "Projects.org")))))))
+        (org-roam-ql--render-agenda-buffer topic-nodes
+                                           "Topics"
+                                           (org-roam-ql--get-formatted-buffer-name
+                                            (org-roam-ql--get-formatted-title
+                                             (format "Topics - %s" (prin1-to-string org-roam-ql-buffer-title)) nil))
+                                           ;; `(backlinks-to ,org-roam-ql-buffer-query :type ,okm-parent-id-type-name)
+                                           nil
+                                           (lambda (strings)
+                                             (let ((org-super-agenda-groups (--map
+                                                                             (list :file-path it)
+                                                                             (list "research topics.org" "People.org" "Projects.org"))))
+                                               (org-super-agenda--group-items strings))))))))
 
 
   
@@ -2037,8 +2041,8 @@ The format of the response should be as follows:
                                        (process-data
                                         (lambda ()
                                           (goto-char (point-min))
-                                          (org-entry-put (point) "ABSTRACT" abstract)
-                                          (org-entry-put (point) "SUMMARY" summary)
+                                          (org-entry-put (point) "ABSTRACT" (s-replace "\n" " " abstract))
+                                          (org-entry-put (point) "SUMMARY" (s-replace "\n" " " summary))
                                           (save-buffer)
                                           (em "for" custom-id "added abstract and summary" abstract summary))))
                                   (save-excursion
