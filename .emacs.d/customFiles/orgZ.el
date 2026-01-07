@@ -16,6 +16,7 @@
 (defvar okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
 (defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
+(add-to-list 'safe-local-variable-directories okm-base-directory)
 (require 'org-roam-extensions)
 
 (org-link-set-parameters okm-parent-id-type-name
@@ -37,7 +38,6 @@
 
 (ox-extras-activate '(ignore-headlines))
 
-(add-to-list 'safe-local-variable-directories okm-base-directory)
 (setq org-ellipsis " ▾"
       org-hide-emphasis-markers t
       org-src-fontify-natively t
