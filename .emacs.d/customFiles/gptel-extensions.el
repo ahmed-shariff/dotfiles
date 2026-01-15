@@ -205,6 +205,36 @@ word count of the response."
   (macher-install)
   )
 
+(use-package gptel-watch
+  :after gptel
+  :straight (gptel-watch :type git :host github :repo "ISouthRain/gptel-watch")
+  :custom
+  (gptel-watch-system-prompt
+   "You, as a text craftsman, with writing and programming skills.
+You should infer the intent from the context and help me write content.
+For example, if I send:
+
+int main()
+{
+  // print Hello World. AI!
+}
+
+Then you should infer the purpose of the comment with line \"AI\" from the context, and then return the content.
+Only return the content you wrote, for example:
+printf(\"Hello World\");
+
+The following are constraints on what you return:
+- Be very concise.
+- Please DO NOT send any Markdown-formatted code like:
+```language
+Code
+```")
+  :config
+  (gptel-watch-global-mode 1))  ;; Optional: enable globally
+
+(use-package gptel-autocomplete
+  :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
+
 (use-package gptel-agent
   :straight (:host github :repo "karthink/gptel-agent"
                    :files (:defaults "agents")) ;use :ensure for Elpaca
