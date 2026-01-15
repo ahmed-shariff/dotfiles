@@ -2000,8 +2000,8 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
          (ret-string (format "* id:%s \n* title: %s\n* year: %s\n* authors: %s\n* abstract\n%%s\n* summary\n%%s"
                              custom-id
                              (bibtex-completion-get-value "title" bib-entry)
-                             (bibtex-completion-get-value "author" bib-entry)
-                             (bibtex-completion-get-value "year" bib-entry))))
+                             (bibtex-completion-get-value "year" bib-entry)
+                             (bibtex-completion-get-value "author" bib-entry))))
     (if-let* ((abstract (or
                          (and node (alist-get "ABSTRACT" (org-roam-node-properties node) nil nil #'string-equal))
                          (org-entry-get (point) "ABSTRACT")))
