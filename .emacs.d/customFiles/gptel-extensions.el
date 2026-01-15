@@ -923,8 +923,18 @@ Otherwise, add ELEM as the last element."
 (defun amsha/gptel-yank (arg)
   "Yank without excluding 'gptel prop."
   (interactive "p")
+  (gptel-mode +1)
   (let ((yank-excluded-properties (remove 'gptel yank-excluded-properties)))
     (yank arg)))
+
+;;;###autoload
+(defun amsha/org-gptel-mode-hook ()
+  "Check and load gptel-mode if gptel props exists."
+  (when (save-excursion
+          (org-entry-get (point-min) "GPTEL_MODEL"))
+    (gptel-mode +1)))
+
+(add-hook 'org-mode-hook #'amsha/org-gptel-mode-hook)
 
 (defvar amsha/w32-active-notification nil)
 
