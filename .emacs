@@ -2885,6 +2885,7 @@ Used with atomic-chrome."
     (outline-minor-mode 1))
 
   (defun extract-bib-from-master-bibfile ()
+    "From bbl file, extract the bib entries."
     (interactive)
     (let ((new-buffer-name (format "bibliography-%s.bib" (gensym)))
           (results '()))
@@ -2893,9 +2894,9 @@ Used with atomic-chrome."
         (let ((key (match-string 1)))
           (save-window-excursion
             (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
-              (bibtex-completion-show-entry (list key))
-              (bibtex-copy-entry-as-kill)
-              (push (pop bibtex-entry-kill-ring) results)))))
+              (when (bibtex-completion-show-entry (list key))
+                (bibtex-copy-entry-as-kill)
+                (push (pop bibtex-entry-kill-ring) results))))))
       (with-current-buffer (get-buffer-create new-buffer-name)
         (insert (string-join results)))
       (pop-to-buffer new-buffer-name)))
