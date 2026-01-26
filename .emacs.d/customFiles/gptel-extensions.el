@@ -313,6 +313,8 @@ Code
     ("file_search_call"
      (plist-put info :file-search-call-queries (plist-get output-item :queries))
      (plist-put info :file-search-call-results (plist-get output-item :results)))
+    ("web_search_call"
+     (plist-put info :web-search-action (plist-get output-item :action)))
     (_ ;; TODO handle others
      )))
 
@@ -334,7 +336,8 @@ Code
          (p prompts))
     (when gptel-openai-response-inlcude-file-search-results
       (plist-put prompts :include (vconcat (plist-get prompts :include)
-                                          '("file_search_call.results"))))
+                                           '("file_search_call.results"
+                                             "web_search_call.action.sources"))))
     ;; Adding built-in tools
     (when gptel-openai-responses--tools
       (plist-put prompts :tools (vconcat (plist-get prompts :tools)
@@ -502,20 +505,20 @@ Mutate state INFO with response metadata."
   [["Built in tools"
     ("wl" "web search (low context)" ""
      :class amsha/add-to-list-switch
-     :target-value (:type "web_search_preview")
+     :target-value (:type "web_search" :search_context_size "low")
      :target-list gptel-openai-responses--tools)
     ;; ("wl" "web search (low context)" ""
     ;;  :class amsha/add-to-list-switch
     ;;  :target-value (:type "web_search_preview" :search-context-size "low")
     ;;  :target-list gptel-openai-responses--tools)
-    ;; ("wm" "web search (medium context)" ""
-    ;;  :class amsha/add-to-list-switch
-    ;;  :target-value (:type "web_search_preview" :search-context-size "medium")
-    ;;  :target-list gptel-openai-responses--tools)
-    ;; ("wh" "web search (high context)" ""
-    ;;  :class amsha/add-to-list-switch
-    ;;  :target-value (:type "web_search_preview" :search-context-size "high")
-    ;;  :target-list gptel-openai-responses--tools)
+    ("wm" "web search (medium context)" ""
+     :class amsha/add-to-list-switch
+     :target-value (:type "web_search" :search_context_size "medium")
+     :target-list gptel-openai-responses--tools)
+    ("wh" "web search (high context)" ""
+     :class amsha/add-to-list-switch
+     :target-value (:type "web_search" :search_context_size "high")
+     :target-list gptel-openai-responses--tools)
     ("fo" "File search (org)" ""
      :class amsha/add-to-list-switch
      :target-value (lambda ()
@@ -579,6 +582,25 @@ Mutate state INFO with response metadata."
                                             (plist-get it :text))
                                     results)
                              "\n\n- ")))
+    (user-error "No last fsm and no info provided.")))
+
+(defun amsha/gptel-oai-response-insert-web-search-action-info (&optional info)
+  (interactive)
+  (if-let (info (or info
+                    (and gptel--fsm-last
+                         (gptel-fsm-info gptel--fsm-last))))
+      (when-let ((action (plist-get info :web-search-action)))
+        (pcase (plist-get action :type)
+          ("search"
+           (insert "\n * Queries:\n- " (string-join (plist-get action :queries) "\n- ")
+                   "\n\n * Sources:\n- " (string-join (--map (plist-get it :url)
+                                                             (plist-get action :sources))
+                                                      "\n- ")))
+
+          (_ (insert "\n * Web-search-action-results:\n"
+                     "  #+BEGIN_SRC emacs-lisp\n"
+                     (prin1-to-string action)
+                     "\n  #+END_SRC"))))
     (user-error "No last fsm and no info provided.")))
 
 ;;; Tool use ******************************************************************************
