@@ -351,23 +351,43 @@ Code
                           into out
                           else collect tool-def into out
                           finally return (apply #'vector out))))
-    ;; TODO: Handle multipart
     (while p
       (when (eq (car p) :messages)
         (setcar p :input)
         (setcar (cdr p)
                 (apply #'vector
-                       (mapcar (lambda (input-item)
-                                 (pcase input-item
-                                   ((let (and tool-calls (guard tool-calls)) (plist-get input-item :tool_calls))
-                                    (cl-assert (length= tool-calls 1) t "Expected only one value in tool_calls")
-                                    (let ((tool-call (aref tool-calls 0)))
-                                      `(:type "function_call"
-                                              :call_id ,(plist-get tool-call :id)
-                                              ,@(plist-get tool-call :function))))
-                                  (_ input-item)
-                                 ))
-                               (cadr p)))))
+                       (mapcar
+                        (lambda (input-item)
+                          (let ((tool-calls (plist-get input-item :tool_calls))
+                                (content (plist-get input-item :content)))
+                            (cond
+                             ;; Handle tool-cal data
+                             (tool-calls
+                              (cl-assert (= (length tool-calls) 1) nil
+                                         "Expected exactly one value in :tool_calls")
+                              (let ((tool-call (aref tool-calls 0)))
+                                `(:type "function_call"
+                                        :call_id ,(plist-get tool-call :id)
+                                        ,@(plist-get tool-call :function))))
+                             ;; Handle multi-part data
+                             ((and content (vectorp content))
+                              (plist-put
+                               input-item :content
+                               (apply #'vector
+                                      (cl-loop for el across content
+                                               for type = (cadr el)
+                                               collect
+                                               (pcase type
+                                                 ("image_url"
+                                                  (list :type "input_image"
+                                                        :image_url (map-nested-elt el '(:image_url :url))))
+                                                 ("text"
+                                                  (append (list :type "input_text")
+                                                          (cddr el)))
+                                                 (t el)))))
+                              input-item)
+                             (t input-item))))
+                        (cadr p)))))
       (when (memq (car p) '(:max_completion_tokens :max_tokens))
         (setcar p :max_output_tokens))
       (setq p (cddr p)))
