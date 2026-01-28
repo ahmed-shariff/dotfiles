@@ -163,6 +163,10 @@ word count of the response."
 ;;         (gptel-make-openai-assistant "openai-assistant" :key (gptel--get-api-key)))
 ;;   )
 
+(use-package gptel-openai-responses-backend
+  :after gptel
+  :straight (gptel-openai-responses-backend :type git :host github :repo "ahmed-shariff/gptel-openai-responses-backend"))
+
 (use-package mcp
   :straight (mcp :type git :host github :repo "lizqwerscott/mcp.el"
                  :files (:defaults "mcp-hub")))
@@ -252,200 +256,9 @@ Code
     (interactive)
     (gptel-agent okm-base-directory 'paper-agent)))
 
-;;; openai reponse ************************************************************************
-(cl-defstruct (gptel-openai-responses
-               (:constructor gptel-openai--make-responses)
-               (:copier nil)
-               (:include gptel-openai)))
-
-(cl-defun gptel-make-openai-responses
-    (name &key curl-args models stream key request-params
-          (header
-           (lambda () (when-let* ((key (gptel--get-api-key)))
-                   `(("Authorization" . ,(concat "Bearer " key))))))
-          (host "api.openai.com")
-          (protocol "https")
-          (endpoint "/v1/responses"))
-  "Create a openai responses backend."
-  (declare (indent 1))
-  (let ((backend (gptel-openai--make-responses
-                  :curl-args curl-args
-                  :name name
-                  :host host
-                  :header header
-                  :key key
-                  :models (gptel--process-models models)
-                  :protocol protocol
-                  :endpoint endpoint
-                  :stream stream
-                  :request-params request-params
-                  :url (if protocol
-                           (concat protocol "://" host endpoint)
-                         (concat host endpoint)))))
-    (prog1 backend
-      (setf (alist-get name gptel--known-backends
-                       nil nil #'equal)
-                  backend))))
-
-(defun gptel-openai-response--process-output (output-item info)
-  ;; both streams output_item.done.item and the output-item in response are the same.
-  (pcase (plist-get output-item :type)
-    ("function_call"
-     (gptel--inject-prompt        ; First add the tool call to the prompts list
-      (plist-get info :backend)
-      (plist-get info :data)
-      (copy-sequence output-item)) ;; copying to avoid following changes effect output-item
-     (ignore-errors (plist-put output-item :args
-                               (gptel--json-read-string
-                                (plist-get output-item :arguments))))
-     (plist-put output-item :arguments nil)
-     (plist-put info :tool-use
-                (append
-                 (plist-get info :tool-use)
-                 (list output-item))))
-    ("reasoning"
-     (gptel--inject-prompt        ; responses expects the reasoning blocks
-      (plist-get info :backend) (plist-get info :data) output-item)
-     (plist-put info :reasoning
-                (append
-                 (plist-get info :reasoning)
-                 (list (map-nested-elt output-item '(:summary :text))))))
-    ("file_search_call"
-     (plist-put info :file-search-call-queries (plist-get output-item :queries))
-     (plist-put info :file-search-call-results (plist-get output-item :results)))
-    ("web_search_call"
-     (plist-put info :web-search-action (plist-get output-item :action)))
-    (_ ;; TODO handle others
-     )))
-
-(defun gptel-openai-response--process-annotation (annotation info)
-  "Returns string that can be added to content or nil."
-  (pcase (plist-get annotation :type)
-    ("file_citation"
-     (format "[file_citation:%s]" (plist-get annotation :file_id)))
-    (_ ;; TODO handle otheres
-     )))
-
-(defcustom gptel-openai-response-inlcude-file-search-results t
-  "Include file-search-results?"
-  :type 'boolean)
-
-(cl-defmethod gptel--request-data ((backend gptel-openai-responses) prompts)
-  "JSON encode PROMPTS for sending to ChatGPT."
-  (let* ((prompts (cl-call-next-method))
-         (p prompts))
-    (when gptel-openai-response-inlcude-file-search-results
-      (plist-put prompts :include (vconcat (plist-get prompts :include)
-                                           '("file_search_call.results"
-                                             "web_search_call.action.sources"))))
-    ;; Adding built-in tools
-    (when gptel-openai-responses--tools
-      (plist-put prompts :tools (vconcat (plist-get prompts :tools)
-                                         (mapcar (lambda (built-in-tool)
-                                                   (if (functionp built-in-tool)
-                                                       (funcall built-in-tool)
-                                                     built-in-tool))
-                                                 gptel-openai-responses--tools))))
-    (when-let (tool-defs (plist-get prompts :tools))
-      (plist-put prompts :tools
-                 (cl-loop for tool-def across tool-defs
-                          if (string-equal (plist-get tool-def :type) "function")
-                          collect (append '(:type "function") (plist-get tool-def :function))
-                          into out
-                          else collect tool-def into out
-                          finally return (apply #'vector out))))
-    ;; TODO: Handle multipart
-    (while p
-      (when (eq (car p) :messages)
-        (setcar p :input)
-        (setcar (cdr p)
-                (apply #'vector
-                       (mapcar (lambda (input-item)
-                                 (pcase input-item
-                                   ((let (and tool-calls (guard tool-calls)) (plist-get input-item :tool_calls))
-                                    (cl-assert (length= tool-calls 1) t "Expected only one value in tool_calls")
-                                    (let ((tool-call (aref tool-calls 0)))
-                                      `(:type "function_call"
-                                              :call_id ,(plist-get tool-call :id)
-                                              ,@(plist-get tool-call :function))))
-                                  (_ input-item)
-                                 ))
-                               (cadr p)))))
-      (when (memq (car p) '(:max_completion_tokens :max_tokens))
-        (setcar p :max_output_tokens))
-      (setq p (cddr p)))
-    prompts))
-
-(cl-defmethod gptel--inject-prompt
-    ((backend gptel-openai-responses) data new-prompt &optional _position)
-  "JSON encode PROMPTS for sending to ChatGPT."
-  (when (keywordp (car-safe new-prompt)) ;Is new-prompt one or many?
-    (setq new-prompt (list new-prompt)))
-  (let ((prompts (plist-get data :input)))
-    (plist-put data :input (vconcat prompts new-prompt))))
-
-(cl-defmethod gptel-curl--parse-stream ((_backend gptel-openai-responses) info)
-  "Parse an OpenAI API data stream.
-
-Return the text response accumulated since the last call to this
-function.  Additionally, mutate state INFO to add tool-use
-information if the stream contains it."
-  (let* ((content-strs))
-    (condition-case err
-        (while (re-search-forward "^data:" nil t)
-          (save-match-data
-            (let ((json-response (save-excursion
-                                   (gptel--json-read))))
-              (pcase (plist-get json-response :type)
-                ;; ("response.completed"
-                ;;  ;; Once stream end processing
-                ;;  )
-                ("response.output_text.delta"
-                 (push (plist-get json-response :delta) content-strs))
-                ("response.output_text.annotation.added"
-                 (let ((annotation (plist-get json-response :annotation)))
-                   (push (gptel-openai-response--process-annotation annotation info) content-strs)))
-                ("response.output_item.done"
-                 (let ((output-item (plist-get json-response :item)))
-                   (gptel-openai-response--process-output output-item info)))))))
-      (error (goto-char (match-beginning 0))))
-    (apply #'concat (nreverse content-strs))))
-
-(cl-defmethod gptel--parse-response ((_backend gptel-openai-responses) response info)
-  "Parse an OpenAI (non-streaming) RESPONSE and return response text.
-
-Mutate state INFO with response metadata."
-  (plist-put info :stop-reason
-             (list (plist-get response :status)
-                              (plist-get response :incomplete_details)))
-  (plist-put info :output-tokens
-             (map-nested-elt response '(:usage :total_tokens)))
-
-  (cl-loop for output-item across (plist-get response :output)
-           if (equal (plist-get output-item :type) "message")
-             collect
-             (string-join
-              (list (map-nested-elt output-item '(:content 0 :text))
-                    (string-join
-                     (mapcar (lambda (annotation)
-                               (gptel-openai-response--process-annotation annotation info))
-                             (map-nested-elt output-item '(:content 0 :annotations)))
-                     "\n"))
-              "\n")
-             into return-val
-           else
-             do (gptel-openai-response--process-output output-item info)
-           finally return (funcall #'string-join return-val)))
-
-(cl-defmethod gptel--parse-tool-results ((_backend gptel-openai-responses) tool-use)
-  "Return a prompt containing tool call results in TOOL-USE."
-  (mapcar
-   (lambda (tool-call)
-     (list
-      :type "function_call_output"
-      :call_id (plist-get tool-call :id)
-      :output (plist-get tool-call :result)))
-   tool-use))
+;;; openai reponse related setup **********************************************************
+(unless (featurep 'gptel-openai-responses-backend)
+  (require 'gptel-openai-responses-backend))
 
 (setq gptel-openai-response-backend (gptel-make-openai-responses "ChatGPT-response" :key gptel-api-key :models gptel--openai-models :stream t))
 
@@ -468,91 +281,6 @@ Mutate state INFO with response metadata."
                                                 "The unit of temperature, either 'celsius' or 'fahrenheit'"
                                                 :optional t))))))
     (gptel-request "What is the temperature in kelowna" :callback (lambda (r i) (message "%S\n----\n%S" r i)))))
-
-;;; Supporting built-in tools for responses ***********************************************
-(defclass amsha/add-to-list-switch (transient-variable)
-  ((target-value :initarg :target-value)
-   (target-list  :initarg :target-list)
-   (format       :initarg :format      :initform " %k %d")
-   ))
-
-(cl-defmethod transient-infix-read ((obj amsha/add-to-list-switch))
-  ;;Do nothing
-  )
-
-(cl-defmethod transient-infix-set ((obj amsha/add-to-list-switch) _)
-  (if (member (oref obj target-value) (symbol-value (oref obj target-list)))
-      (set (oref obj target-list)
-           (delete (oref obj target-value) (symbol-value (oref obj target-list))))
-    (set (oref obj target-list)
-         (append (symbol-value (oref obj target-list))
-                 (list (oref obj target-value)))))
-  (transient-setup))
-
-(cl-defmethod transient-format-description ((obj amsha/add-to-list-switch))
-  (propertize (transient--get-description obj) 'face
-              (if (member (oref obj target-value) (symbol-value (oref obj target-list)))
-                  'transient-value
-                'transient-inactive-value)))
-
-(defvar gptel-openai-responses--known-tools '(("web_search_preview" .
-                                                 (lambda ()
-                                                   (list :type "web_search_preview" :search-context-size "low")))))
-
-(defvar gptel-openai-responses--tools nil)
-
-(transient-define-prefix gptel-openai-response-built-in-tools ()
-  [["Built in tools"
-    ("wl" "web search (low context)" ""
-     :class amsha/add-to-list-switch
-     :target-value (:type "web_search" :search_context_size "low")
-     :target-list gptel-openai-responses--tools)
-    ;; ("wl" "web search (low context)" ""
-    ;;  :class amsha/add-to-list-switch
-    ;;  :target-value (:type "web_search_preview" :search-context-size "low")
-    ;;  :target-list gptel-openai-responses--tools)
-    ("wm" "web search (medium context)" ""
-     :class amsha/add-to-list-switch
-     :target-value (:type "web_search" :search_context_size "medium")
-     :target-list gptel-openai-responses--tools)
-    ("wh" "web search (high context)" ""
-     :class amsha/add-to-list-switch
-     :target-value (:type "web_search" :search_context_size "high")
-     :target-list gptel-openai-responses--tools)
-    ("fo" "File search (org)" ""
-     :class amsha/add-to-list-switch
-     :target-value (lambda ()
-                     `(:type "file_search"
-                             :vector_store_ids ,(vconcat (list (gethash 'openai-org-vector-store configurations)))))
-     :target-list gptel-openai-responses--tools)
-    ""
-    ("DEL" "Remove all" (lambda ()
-                          (interactive)
-                          (setq gptel-openai-responses--tools nil)
-                          (transient-setup))
-     :transient t
-     :if (lambda () gptel-openai-responses--tools))
-    ("RET" "Done" transient-quit-one)
-    ]])
-   ;; ["Actions"
-   ;;  ("RET" "Show X list" (lambda ()
-   ;;                         (interactive)
-   ;;                         (message "my-x-list: %S" my-x-list)))]])
-
-(transient-append-suffix 'gptel-menu '(0 -1)
-  [:if (lambda () (gptel-openai-responses-p gptel-backend))
-   ""
-   (:info
-    (lambda ()
-      (concat
-       "Built-in tools"
-       (and gptel-openai-responses--tools
-            (concat " (" (propertize (format "%d"
-                                             (length gptel-openai-responses--tools))
-                                     'face 'warning)
-                    ")"))))
-    :format "%d" :face transient-heading)
-   (gptel-openai-response-built-in-tools :key "T" :description "Select")])
 
 ;; (cl-defmethod gptel--parse-tools :around (backend tools)
 ;;   "Remove tools not of type `gptel-tool'"
@@ -1841,7 +1569,32 @@ afterwards."
 ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
 (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
 
-;;; setup *********************************************************************************
+(transient-define-prefix amsha/gptel-menu-lite ()
+  "gptel menue when creating buffer."
+  [
+   ;; TODO: make preset use buffer local...
+   ;; (gptel--preset
+   ;;  :key "@" :format "%d"
+   ;;  :description
+   ;;  (lambda ()
+   ;;    (concat (propertize "Request Parameters" 'face 'transient-heading)
+   ;;            (gptel--format-preset-string))))
+   (gptel--infix-provider
+    ;; Always be buffer local
+    :set-value (lambda (sym value &optional _ignore)
+                 (em sym value)
+                 (gptel--set-with-scope sym value t)))
+   ("RET" "Done" transient-quit-one)])
+
+(defun amsha/gptel--with-menu (&rest args)
+  "Advice function to `gptel' that invokes a light weight gptel menu."
+  (when current-prefix-arg
+    ;; FIXME: this let bind doesn't work?
+    (let ((gptel--set-buffer-locally t))
+      (amsha/gptel-menu-lite))))
+
+(advice-add 'gptel :after #'amsha/gptel--with-menu)
+;;;; setup *********************************************************************************
 (bind-keys :package gptel
            ("C-c o q m" . gptel-menu)
            ("C-c o q b" . gptel)
