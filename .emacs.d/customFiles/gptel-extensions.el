@@ -944,6 +944,19 @@ necessary."
   (lambda ()
     (gptel-context-add)))
 
+;; based on https://github.com/anomalyco/opencode/blob/022265829eca0032d310e0f177d729290eb6f8fa/packages/opencode/src/agent/prompt/compaction.txt
+(gptel-make-preset 'compaction
+  :description "Compaction system prompt"
+  :system '(:append "
+provide a detailed but concise summary of the current conversation and context. 
+Focus on information that would be helpful for decision making, including:
+- What was done
+- What needs to be done next
+- Key issues, constraints, or preferences that should persist
+- Important decisions and why they were made
+
+Your summary should be comprehensive enough to provide context but concise enough to be quickly understood."))
+
 (gptel-make-preset 'cite-add-abstract-summary
   :description "Add abstract and summary for `cite:`"
   :prompt-transform-functions
