@@ -1537,7 +1537,32 @@ afterwards."
 ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
 (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
 
-;;; setup *********************************************************************************
+(transient-define-prefix amsha/gptel-menu-lite ()
+  "gptel menue when creating buffer."
+  [
+   ;; TODO: make preset use buffer local...
+   ;; (gptel--preset
+   ;;  :key "@" :format "%d"
+   ;;  :description
+   ;;  (lambda ()
+   ;;    (concat (propertize "Request Parameters" 'face 'transient-heading)
+   ;;            (gptel--format-preset-string))))
+   (gptel--infix-provider
+    ;; Always be buffer local
+    :set-value (lambda (sym value &optional _ignore)
+                 (em sym value)
+                 (gptel--set-with-scope sym value t)))
+   ("RET" "Done" transient-quit-one)])
+
+(defun amsha/gptel--with-menu (&rest args)
+  "Advice function to `gptel' that invokes a light weight gptel menu."
+  (when current-prefix-arg
+    ;; FIXME: this let bind doesn't work?
+    (let ((gptel--set-buffer-locally t))
+      (amsha/gptel-menu-lite))))
+
+(advice-add 'gptel :after #'amsha/gptel--with-menu)
+;;;; setup *********************************************************************************
 (bind-keys :package gptel
            ("C-c o q m" . gptel-menu)
            ("C-c o q b" . gptel)
