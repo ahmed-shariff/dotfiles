@@ -2111,6 +2111,93 @@ The format of the response should be as follows:
    ""
    str))
 
+(defun amsha/extract-citations (title &optional ignore-number)
+  "Extract the cite: 's in the buffer.
+
+To use add something like this in the org buffer:
+
+#+begin_src emacs-lisp
+  (amsha/extract-citations \"Citations already there:\")
+#+end_src
+
+"
+  (let ((p (point))
+        (bibtex-completion-bibliography (org-ref-find-bibliography))
+        (content 
+         (progn
+           (goto-char 0)
+           (org-link-search title)
+           (org-mark-subtree)
+           (next-line 1)
+           (buffer-substring (region-end) (region-beginning))))
+        (idx 0))
+    (-->
+     ;; Get the cite: links
+     (with-temp-buffer
+       (insert content)
+       (org-mode)
+       ;; based on `org-ref-process-buffer'
+       (cl-loop for cite-links in (org-element-map (org-element-parse-buffer) 'link
+  			            (lambda (lnk)
+  				      (when (assoc (org-element-property :type lnk) org-ref-cite-types)
+  				        lnk)))
+  	        append
+  	        (cl-loop for ref in
+  		         (plist-get
+  		          (org-ref-parse-cite-path
+  		           (org-element-property :path cite-links))
+  		          :references)
+  		         with type = (org-element-property :type cite-links)
+  		         collect
+  		         (alist-get "id" (org-ref-ref-csl-data ref type) nil nil #'string-equal))))
+     (-uniq it)
+     (--map
+       (let ((val (string-replace " " "" it)))
+         (unless (string-empty-p val)
+           (concat (unless ignore-number
+                     (format "%s. " (cl-incf idx)))
+                   (->>
+                    (bibtex-completion-apa-format-reference (format "%s" it))
+                    (s-replace-regexp "(pp.*)" "" )
+                    (s-replace-regexp "http.?://.*[^ ]" "" )
+                    (s-replace "  " " ")
+                    (s-replace ". : ." "")
+                    (s-replace ". ." ".")
+                    (s-replace " . :" ". :")
+                    (s-replace "(Eds.)" "")
+                    (s-replace "In , " "")
+                    (s-replace "(nil)" "")
+                    (s-replace "nil" "")
+                    (s-replace "\\'e" "é")
+                    (s-replace "\\'o" "ó")
+                    (s-replace "\\'u" "ú")
+                    (s-replace "\\'c" "ć")
+                    (s-replace "\\'i" "ı́")
+                    (s-replace "\\'a" "á")
+                    (s-replace "\\\"e" "ë")
+                    (s-replace "\\\"u" "ü")
+                    (s-replace "\\cc" "ç")
+                    (s-replace "\\\"o" "ö")
+                    (s-replace "\\o" "ø")
+                    (s-replace "\\ae" "æ")
+                    (s-replace "\\ug" "ğ")
+                    (s-replace "\\vc" "č")
+                    (s-replace "\\\"i" "ï")
+                    (s-replace "\\&" "&")
+                    (s-replace "&amp;" "&")
+                    (s-replace "()" "")
+                    (s-replace "\\~n" "ñ")
+                    (s-replace "..." "")
+                    (s-replace "-." "")
+                    (s-replace ", ," ",")
+                    (s-replace ", ." ".")
+                    (s-replace "?." "?")
+                    (s-replace "Media, C. S." "Common Sense Media")
+                    (s-replace "Proceedings" "Proc.")))))
+       it)
+     (-non-nil it)
+     (string-join it "\n"))))
+
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
   
 (when (gethash 'use-pdf-tools configurations t)
