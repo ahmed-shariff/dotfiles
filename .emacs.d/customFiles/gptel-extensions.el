@@ -261,6 +261,8 @@ Code
 (unless (featurep 'gptel-openai-responses-backend)
   (require 'gptel-openai-responses-backend))
 
+(gptel-openai-responses-setup-builtin-transient)
+
 (setq gptel-openai-response-backend (gptel-make-openai-responses "ChatGPT-response" :key gptel-api-key :models gptel--openai-models :stream t))
 
 (defun test-response ()
