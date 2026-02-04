@@ -1981,6 +1981,8 @@ Parent-child relation is defined by the brain-parent links."
     (buffer-string)))
 
 
+(defvar-local okm-gptel-get-paper-abstract-summary--request nil)
+
 ;; meant to be used as tool-call-function
 (defun okm-gptel-get-paper-abstract-summary (&optional tool-callback custom-id)
   "Given the custom-id, get the abstract and summary as a single string.
@@ -2011,10 +2013,33 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
         (if tool-callback
             (funcall tool-callback (format ret-string abstract summary))
           (format ret-string abstract summary))
-      (if-let (pdf-text (okm-get-pdf-txt custom-id))
-          (gptel-with-preset 'default
-            (condition-case err
-                (gptel-request (format "%s
+      (if okm-gptel-get-paper-abstract-summary--request
+          (if tool-callback
+              (let (timer
+                    (repeat-count 0))
+                (setq timer
+                      (run-with-timer
+                       1 2
+                       (lambda ()
+                         (em "calling timer")
+                         (cl-incf repeat-count)
+                         (cond
+                          ((not okm-gptel-get-paper-abstract-summary--request)
+                           (cancel-timer timer)
+                           (okm-gptel-get-paper-abstract-summary tool-callback custom-id))
+                          ((> repeat-count 10)
+                           (cancel-timer timer)
+                           (if tool-callback
+                               (funcall tool-callback "Error occurred - PDF/abstract/summary not retrieved")
+                             (user-error "Error occurred - PDF/abstract/summary not retrieved"))))))))
+            (em "Abstract is being processed!" custom-id))
+        (if-let (pdf-text (okm-get-pdf-txt custom-id))
+            (gptel-with-preset 'default
+              (condition-case err
+                  (with-current-buffer buf
+                    (setq-local
+                     okm-gptel-get-paper-abstract-summary--request
+                     (gptel-request (format "%s
 
 The above is the text extracted from a paper using pdf-tools.
 Extract the abstract from this. Also provide a summary of the paper which can be used as input for other LLMs.
@@ -2026,39 +2051,43 @@ The format of the response should be as follows:
 <abstract text>
 * summary
 <summary text>"
-                                       pdf-text)
-                  :context ret-string
-                  :callback (lambda (response info)
-                              (cond
-                               ((null response)
-                                (em "ERROR" info)
-                                (if tool-callback
-                                    (funcall tool-callback (format "Error %s" info))))
-                               ((stringp response)
-                                (let* ((res (s-split "* summary" response))
-                                       (abstract (s-trim (s-replace "* abstract" "" (car res))))
-                                       (summary (s-trim (cadr res)))
-                                       (process-data
-                                        (lambda ()
-                                          (goto-char (point-min))
-                                          (org-entry-put (point) "ABSTRACT" (s-replace "\n" " " abstract))
-                                          (org-entry-put (point) "SUMMARY" (s-replace "\n" " " summary))
-                                          (save-buffer)
-                                          (em "for" custom-id "added abstract and summary" abstract summary))))
-                                  (save-excursion
-                                    (if node
-                                        (amsha/org-roam-with-file (org-roam-node-file node) nil
-                                          (funcall process-data))
-                                      (with-current-buffer buf
-                                        (funcall process-data))))
-                                  (if tool-callback
-                                      (funcall tool-callback (format (plist-get info :context) abstract summary))))))))
-              (t (if tool-callback
-                     (funcall tool-callback (format "Error occurred %s" err))
-                   (user-error (format "Error occurred %s" err))))))
-        (if tool-callback
-            (funcall tool-callback "Error occurred - PDF/abstract/summary not available")
-          (user-error "Error occurred - PDF/abstract/summary not available"))))))
+                                            pdf-text)
+                       :context ret-string
+                       :callback (lambda (response info)
+                                   (setq-local okm-gptel-get-paper-abstract-summary--request nil)
+                                   (cond
+                                    ((null response)
+                                     (em "ERROR" info)
+                                     (if tool-callback
+                                         (funcall tool-callback (format "Error %s" info))))
+                                    ((stringp response)
+                                     (let* ((res (s-split "* summary" response))
+                                            (abstract (s-trim (s-replace "* abstract" "" (car res))))
+                                            (summary (s-trim (cadr res)))
+                                            (process-data
+                                             (lambda ()
+                                               (goto-char (point-min))
+                                               (org-entry-put (point) "ABSTRACT" (s-replace "\n" " " abstract))
+                                               (org-entry-put (point) "SUMMARY" (s-replace "\n" " " summary))
+                                               (save-buffer)
+                                               (em "for" custom-id "added abstract and summary" abstract summary))))
+                                       (save-excursion
+                                         (if node
+                                             (amsha/org-roam-with-file (org-roam-node-file node) nil
+                                               (funcall process-data))
+                                           (with-current-buffer buf
+                                             (funcall process-data))))
+                                       (if tool-callback
+                                           (funcall tool-callback (format (plist-get info :context) abstract summary))))))))))
+                (t
+                 (progn
+                   (setq-local okm-gptel-get-paper-abstract-summary--request nil)
+                   (if tool-callback
+                       (funcall tool-callback (format "Error occurred %s" err))
+                     (user-error (format "Error occurred %s" err)))))))
+          (if tool-callback
+              (funcall tool-callback "Error occurred - PDF/abstract/summary not available")
+            (user-error "Error occurred - PDF/abstract/summary not available")))))))
 
 (defun okm-org-agenda-recompute-org-roam-ql ()
   "Same as `okm-org-agenda-recompute', but uses org-roam-ql"
