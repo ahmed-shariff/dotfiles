@@ -1720,8 +1720,7 @@ targets."
   ;; (add-hook 'csharp-tree-sitter-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'java-mode-hook #'rainbow-delimeters-mode)
   (add-hook 'java-ts-mode-hook #'rainbow-delimeters-mode)
-  (add-hook 'python-mode-hook #'rainbow-delimeters-mode)
-  (add-hook 'python-ts-mode-hook #'rainbow-delimeters-mode))
+  (add-hook 'python-base-mode-hook #'rainbow-delimeters-mode))
 
 ;;volatile-highlights*****************************************************************
 (use-package volatile-highlights
@@ -1793,9 +1792,7 @@ targets."
 ;;lsp-mode ***************************************************************************
 (use-package lsp-ui
   :after (lsp-mode)
-  :init
-  (add-hook 'python-mode-hook #'lsp-ui-mode)
-  (add-hook 'python-ts-mode-hook #'lsp-ui-mode)
+  :hook (python-base-mode . lsp-ui-mode)
   :config
   (setq lsp-ui-sideline-show-hover t
 	lsp-ui-sideline-delay 1
@@ -1815,10 +1812,9 @@ targets."
 ;; (setq lsp-use-plists t)
 
 (use-package lsp-mode
-  :hook ((python-mode . lsp)
-         (python-ts-mode . lsp)
-         (csharp-mode . lsp)
+  :hook ((csharp-mode . lsp)
          (csharp-ts-mode . lsp)
+         (python-base-mode . lsp)
          ;; (csharp-tree-sitter-mode . lsp)
 	 (java-mode . lsp)
 	 (java-ts-mode . lsp)
@@ -1911,8 +1907,7 @@ targets."
     (outline-minor-mode)
     (setq-local outline-regexp
                 (python-rx (or (seq (* space) block-start) (seq "#" space "*" space)))))
-  (add-hook 'python-mode-hook #'amsha/add-python-outline)
-  (add-hook 'python-ts-mode-hook #'amsha/add-python-outline)
+  (add-hook 'python-base-mode-hook #'amsha/add-python-outline)
   (setq
    python-shell-interpreter "python"
    ;; python-shell-completion-setup-code ""
@@ -1925,10 +1920,6 @@ targets."
   (setq hy-jedhy--enable? nil))
 
 (use-package lsp-pyright
-  :defer t
-  :hook ((python-mode python-ts-mode) . (lambda ()
-                                          (require 'lsp-pyright)
-                                          (lsp)))
   :config
   (with-eval-after-load "lsp-mode"
     (add-to-list 'lsp-disabled-clients 'pyls)
@@ -1958,8 +1949,8 @@ targets."
   :bind (:map lsp-command-map
          ("d" . dap-hydra))
   :hook ((dap-stopped . (lambda (arg) (call-interactively #'dap-hydra)))
-         ((python-mode python-ts-mode) . dap-ui-mode)
-         ((python-mode python-ts-mode) . dap-mode))
+         (python-base-mode . dap-ui-mode)
+         (python-base-mode . dap-mode))
   :config
   (dap-auto-configure-mode)
   (dap-mode 1)
@@ -2426,8 +2417,8 @@ its thing."
   :defer t
   :straight (poetry :type git :host github :repo "cybniv/poetry.el"
                     :fork (:host github :repo "ahmed-shariff/poetry.el"))
-  :init
-  (poetry-tracking-mode)
+  ;; :init
+  ;; (poetry-tracking-mode)
   :config
   ;; (defun pyright-find-venv-with-poetry ()
   ;;   "lsp-pyright use poetry to get the venv."
@@ -2436,6 +2427,16 @@ its thing."
   ;; ;;(advice-add #'lsp-pyright-locate-venv :override 'pyright-find-venv-with-poetry))
   ;; (advice-add #'lsp-pylsp-get-pyenv-environment :override 'pyright-find-venv-with-poetry))
   )
+
+(use-package pet
+  ;; so that it doesn't overwrite `lsp-pyright-langserver-command'
+  ;; otherwise, pet wil set it to nil and pyright will setup npm dependancy as nil!
+  :after (lsp-pyright)
+  :init
+  (add-hook 'python-base-mode-hook 'pet-mode -10)
+  )
+
+(use-package tomlparse)
 
 ;; (use-package linum-relative
 ;;   :demand
