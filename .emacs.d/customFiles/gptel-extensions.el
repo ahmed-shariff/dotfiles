@@ -589,6 +589,46 @@ Code
  :include t
  :confirm t)
 
+(gptel-make-tool
+ :name "lsp"
+ :function #'gptel--lsp-mode-tool
+ :description "Interact with Language Server Protocol (LSP) servers to get code intelligence features.
+
+Supported operations:
+- definition: Find where a symbol is defined
+- references: Find all references to a symbol
+- hover: Get hover information (documentation, type info) for a symbol
+- documentSymbol: Get all symbols (functions, classes, variables) in a document
+- implementation: Find implementations of an interface or abstract method
+
+All operations require:
+- filePath: The file to operate on
+- line: The line number (1-based, as shown in editors)
+- character: The character offset (1-based, as shown in editors)
+
+Note: LSP servers must be configured for the file type. If no server is available, an error will be returned."
+ :args (list
+        '(:name "method"
+          :type string
+          :description "The LSP operation to perform. One of:
+- \"definition\" — find where the symbol at the location is defined
+- \"references\" — find all references to the symbol at the location
+- \"hover\" — get hover/documentation information for the symbol at the location
+- \"documentSymbol\" — list symbols in the given document
+- \"implementation\" — find implementations of an interface/abstract method"
+          :enum ["definition" "references" "hover" "documentSymbol" "implementation"])
+        '(:name "filePath"
+          :type string
+          :description "Path to the file to operate on. Can be absolute or relative; relative paths are resolved against the project root.")
+        '(:name "line"
+          :type integer
+          :description "1-based line number in the file (first line is 1).")
+        '(:name "character"
+          :type integer
+          :description "1-based character offset from the start of the line (first character is 1)."))
+ :category "gptel-agent"
+ :include t)
+
 ;;; Presets *******************************************************************************
 
 (gptel-make-preset 'default
@@ -1295,6 +1335,104 @@ then it will be set here."
 ;;            (gptel-agent-skill--tool-run-script-async callback skill path args)))
 ;;         (_
 ;;          (funcall callback `(:error "unknown-action" :action ,action)))))))
+
+;;; code introspection tools **************************************************************
+(defun gptel--get-file-relative-to-root (file)
+  (if (file-name-absolute-p file)
+      file
+    (let ((project-root (and-let* ((proj (project-current))
+                                   (root (project-root proj))
+                                   (_ (not (equal root default-directory))))
+                          root)))
+      (expand-file-name file project-root))))
+
+(defun gptel--lsp-mode-location-json (locations)
+  (json-encode
+   (pcase locations
+     ((seq (or (lsp-interface Location)
+               (lsp-interface LocationLink)))
+      (append locations nil))
+     ((or (lsp-interface Location)
+          (lsp-interface LocationLink))
+      (list locations)))))
+
+(defmacro gptel--with-lsp-request (feature file line char result request-params &rest body)
+  "If LSP client supports FEATURE, visit FILE at LINE/CHAR, bind
+RESULT to REQUEST-EXPR and evaluate BODY.  If FEATURE is not supported
+return a message indicating that."
+  (declare (indent 6) (debug t))
+  `(with-current-buffer (find-file-noselect (gptel--get-file-relative-to-root ,file))
+     (if (lsp-feature? ,feature)
+         (save-excursion
+           ;; Move to requested line and char. Use forward-line to avoid obsolete goto-line.
+           (goto-char (point-min))
+           (forward-line (1- ,line))
+           (goto-char (+ (line-beginning-position) (1- ,char)))
+           (let ((,result (lsp-request ,feature ,request-params)))
+             ,@body))
+       (format "LSP Client doesn't support \"%s\"" ,feature))))
+
+(defun gptel--lsp-mode-get-definition (file line char)
+  (gptel--with-lsp-request "textDocument/definition"
+      file line char
+      locations (lsp--text-document-position-params)
+    (if (seq-empty-p locations)
+        (format "Not found for: %s" (or (thing-at-point 'symbol t) ""))
+      (gptel--lsp-mode-location-json locations))))
+
+(defun gptel--lsp-mode-get-references (file line char)
+  (gptel--with-lsp-request "textDocument/references"
+      file line char
+      locations (append
+                 (lsp--text-document-position-params)
+                 (list :context
+                       `(:includeDeclaration
+                         ,(lsp-json-bool (not lsp-references-exclude-declaration)))))
+    (if (seq-empty-p locations)
+        (format "Not found for: %s" (or (thing-at-point 'symbol t) ""))
+      (gptel--lsp-mode-location-json locations))))
+
+(defun gptel--lsp-mode-get-hover (file line char)
+  (gptel--with-lsp-request "textDocument/hover"
+      file line char
+      content (lsp--text-document-position-params)
+    (lsp--render-on-hover-content (lsp:hover-contents content) t)))
+
+(defun gptel--lsp-mode-get-document-symbols (file line char)
+  (gptel--with-lsp-request "textDocument/documentSymbol"
+      file line char
+      symbols `(:textDocument ,(lsp--text-document-identifier))
+    (json-encode symbols)))
+
+;; (defun gptel--lsp-mode-get-workplace-symbols (file line char)
+;;  (gptel--with-lsp-request "workspace/symbol"
+;;      file line char
+;;      symbols `(:query "")
+;;    symbols)
+
+(defun gptel--lsp-mode-implementation (file line char)
+  (gptel--with-lsp-request "textDocument/implementation"
+      file line char
+      locations (lsp--text-document-position-params)
+    (if (seq-empty-p locations)
+        (format "Not found for: %s" (or (thing-at-point 'symbol t) ""))
+      (gptel--lsp-mode-location-json locations))))
+
+(defun gptel--lsp-mode-tool (method file line char)
+  "Execute an LSP method with FILE LINE CHAR.
+
+Supported method:
+- definition: Find where a symbol is defined
+- references: Find all references to a symbol
+- hover: Get hover information (documentation, type info) for a symbol
+- documentSymbol: Get all symbols (functions, classes, variables) in a document
+- implementation: Find implementations of an interface or abstract method"
+  (pcase method
+    ("definition" (gptel--lsp-mode-get-definition file line char))
+    ("references" (gptel--lsp-mode-get-references file line char))
+    ("hover" (gptel--lsp-mode-get-hover file line char))
+    ("documentSymbol" (gptel--lsp-mode-get-document-symbols file line char))
+    ("implementation" (gptel--lsp-mode-implementation file line char))))
 
 ;;; persistent context ********************************************************************
 (defvar gptel-persistent-context-dir "~/.emacs.d/.cache/gptel-temp-context")
