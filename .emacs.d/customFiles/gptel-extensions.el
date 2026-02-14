@@ -243,6 +243,7 @@ Code
   :straight (:host github :repo "karthink/gptel-agent"
                    :files (:defaults "agents")) ;use :ensure for Elpaca
   :config
+  (add-to-list 'gptel-agent-skill-dirs (expand-file-name "~/.emacs.d/.cache/gptel-skills/"))
   (add-to-list 'gptel-agent-dirs "~/.emacs.d/customFiles/gptel-paper-agent/")
   (add-to-list 'gptel-agent-skill-dirs "~/.emacs.d/.cache/gptel-skills/")
   (defun amsha/agent-post-update (&rest _)
@@ -587,33 +588,6 @@ Code
  :category "okm"
  :include t
  :confirm t)
-
-;;;; * skills agent tools
-(gptel-make-tool
- :name "skill_progressive_disclosure"
- :function #'gptel-agent-execute-skill
- :description "
-Progressive disclosure tool for skills - a unified handler to inspect and interact with installed skills. Supports actions:
-- \"summary\": return the skill's frontmatter description,
-- \"details\": return the SKILL.md body,
-- \"load_resource\": return the contents of a resource file (path relative to the skill dir),
-- \"run_script\": execute a script in the skill dir with optional args.
-
-Always first use \"summary\" to understand a skill. Load a skill only
-when necessary using \"details\". Use \"load_resources\" and
-\"run_script\" for a given skill based on the details only when
-necessary."
- :args (list
-        '(:name "skill" :type string :description "Skill name")
-        '(:name "action" :type string :description "Action"
-                :enum ["summary" "details" "load_resource" "run_script"])
-        '(:name "path" :type string :optional t :description "Resource or script path relative to skill dir")
-        '(:name "args" :type array :optional t :description "Array of string args for scripts"
-                :items (:type string)))
- :confirm t
- :include t
- :async t
- :category "skills")
 
 ;;; Presets *******************************************************************************
 
@@ -1187,140 +1161,140 @@ then it will be set here."
 (add-hook 'text-mode-hook #'amsha/gptel-highlight-preset-mode)
 
 ;;; agent-skiklls *************************************************************************
-(defvar gptel-agent-skills-dirs (list (expand-file-name "~/.emacs.d/.cache/gptel-skills/"))
-  "Directories holding local skills (each skill is a subdirectory).")
+;; (defvar gptel-agent-skills-dirs (list (expand-file-name "~/.emacs.d/.cache/gptel-skills/"))
+;;   "Directories holding local skills (each skill is a subdirectory).")
 
-(defvar gptel-agent-skills--known-skills nil
-  "Known skills - cache.")
+;; (defvar gptel-agent-skills--known-skills nil
+;;   "Known skills - cache.")
 
-(defun gptel-agent-skills-update ()
-  "Update the known skills list from `gptel-agent-skills-dirs'."
-  (mapcar (lambda (dir)
-            (dolist (skill-file (f-glob "**/SKILL.md" dir))
-              (pcase-let ((`(,name . ,skill-plist)
-                           (gptel-agent-read-file skill-file)))
-                (setf (alist-get name gptel-agent-skills--known-skills nil nil #'string-equal)
-                      (cons (f-parent skill-file) skill-plist)))))
-          gptel-agent-skills-dirs)
-  gptel-agent-skills--known-skills)
+;; (defun gptel-agent-skills-update ()
+;;   "Update the known skills list from `gptel-agent-skills-dirs'."
+;;   (mapcar (lambda (dir)
+;;             (dolist (skill-file (f-glob "**/SKILL.md" dir))
+;;               (pcase-let ((`(,name . ,skill-plist)
+;;                            (gptel-agent-read-file skill-file)))
+;;                 (setf (alist-get name gptel-agent-skills--known-skills nil nil #'string-equal)
+;;                       (cons (f-parent skill-file) skill-plist)))))
+;;           gptel-agent-skills-dirs)
+;;   gptel-agent-skills--known-skills)
 
-(defun gptel-agent-write-skills-summary-to-hidden-buffer ()
-  "Write a compact skills summary (name + description) into a hidden buffer.
-  Add that buffer to `gptel-context' so gptel will include it as context.
-  Return the buffer object."
-  (let ((buf (get-buffer-create "*gptel-skills-summary*")))
-    (with-current-buffer buf
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (insert "# Skills summary\n\n")
-        ;; gptel-agent-skills--known-skills is expected to be populated already
-        (when (and (boundp 'gptel-agent-skills--known-skills)
-                   gptel-agent-skills--known-skills)
-          (dolist (entry gptel-agent-skills--known-skills)
-            (let* ((name (car entry))
-                   (desc (plist-get (cddr entry) :description)))
-              (insert (format "## %s\n\n%s\n\n" name (or desc "(no description)"))))))
-        (setq buffer-read-only t))
-      (gptel-context-add))
-    buf))
+;; (defun gptel-agent-write-skills-summary-to-hidden-buffer ()
+;;   "Write a compact skills summary (name + description) into a hidden buffer.
+;;   Add that buffer to `gptel-context' so gptel will include it as context.
+;;   Return the buffer object."
+;;   (let ((buf (get-buffer-create "*gptel-skills-summary*")))
+;;     (with-current-buffer buf
+;;       (let ((inhibit-read-only t))
+;;         (erase-buffer)
+;;         (insert "# Skills summary\n\n")
+;;         ;; gptel-agent-skills--known-skills is expected to be populated already
+;;         (when (and (boundp 'gptel-agent-skills--known-skills)
+;;                    gptel-agent-skills--known-skills)
+;;           (dolist (entry gptel-agent-skills--known-skills)
+;;             (let* ((name (car entry))
+;;                    (desc (plist-get (cddr entry) :description)))
+;;               (insert (format "## %s\n\n%s\n\n" name (or desc "(no description)"))))))
+;;         (setq buffer-read-only t))
+;;       (gptel-context-add))
+;;     buf))
 
-(defun gptel-agent-skill--tool-run-script-async (callback skill script args)
-  "Run SCRIPT (relative to skill dir) with Poetry asynchronously.
-  CALLBACK is called with a JSON string representing the result when process exits."
-  (let* ((dir (car (alist-get skill gptel-agent-skills--known-skills nil nil #'string-equal)))
-         (script-rel (or script ""))
-         (script-full (and dir (expand-file-name script-rel dir))))
-    (cond
-     ((not dir)
-      (funcall callback `(:error "skill-not-found" :skill ,skill)))
-     ((not (file-exists-p script-full))
-      (funcall callback `(:error "script-not-found" :script ,script-full)))
-     (t
-      (let* ((out-buf (get-buffer-create (format "*gptel-skill-run-%s-%s*" skill script-rel)))
-             (poetry-cmd "poetry")
-             (proc-args (append (list "run" "-q" "python" "-Xutf8" script-full) (or (cl-coerce args 'list) '())))
-             (default-directory dir)
-             (proc
-              (apply #'start-process
-                     ;; name
-                     (format "gptel-skill-run-%s" (file-name-nondirectory script-rel))
-                     out-buf
-                     poetry-cmd
-                     proc-args)))
+;; (defun gptel-agent-skill--tool-run-script-async (callback skill script args)
+;;   "Run SCRIPT (relative to skill dir) with Poetry asynchronously.
+;;   CALLBACK is called with a JSON string representing the result when process exits."
+;;   (let* ((dir (car (alist-get skill gptel-agent-skills--known-skills nil nil #'string-equal)))
+;;          (script-rel (or script ""))
+;;          (script-full (and dir (expand-file-name script-rel dir))))
+;;     (cond
+;;      ((not dir)
+;;       (funcall callback `(:error "skill-not-found" :skill ,skill)))
+;;      ((not (file-exists-p script-full))
+;;       (funcall callback `(:error "script-not-found" :script ,script-full)))
+;;      (t
+;;       (let* ((out-buf (get-buffer-create (format "*gptel-skill-run-%s-%s*" skill script-rel)))
+;;              (poetry-cmd "poetry")
+;;              (proc-args (append (list "run" "-q" "python" "-Xutf8" script-full) (or (cl-coerce args 'list) '())))
+;;              (default-directory dir)
+;;              (proc
+;;               (apply #'start-process
+;;                      ;; name
+;;                      (format "gptel-skill-run-%s" (file-name-nondirectory script-rel))
+;;                      out-buf
+;;                      poetry-cmd
+;;                      proc-args)))
 
-        ;; Ensure buffer holds output and is not displayed
-        (set-process-query-on-exit-flag proc nil)
-        (set-process-buffer proc out-buf)
-        (set-process-filter
-         proc
-         (lambda (_proc string)
-           ;; append is automatic to buffer, but ensure we have it
-           (with-current-buffer out-buf
-             (let ((inhibit-read-only t))
-               (goto-char (point-max))
-               (insert string)))))
-        (set-process-sentinel
-         proc
-         (lambda (p event)
-           (when (memq (process-status p) '(exit signal))
-             (let* ((exit-code (if (fboundp 'process-exit-status)
-                                   (process-exit-status p)
-                                 ;; parse event text as fallback "exited abnormally with code X"
-                                 (if (string-match "code \\([0-9]+\\)" event)
-                                     (string-to-number (match-string 1 event))
-                                   (if (string-match "finished" event) 0 1))))
-                    (output (with-current-buffer out-buf (buffer-string)))
-                    (result `(:skill ,skill
-                                      :script ,script-rel
-                                      :exit-code ,exit-code
-                                      :output ,output)))
-               ;; call the callback with JSON string result
-               (funcall callback result)
-               ;; cleanup buffer
-               (when (buffer-live-p out-buf) (kill-buffer out-buf)))))))))))
+;;         ;; Ensure buffer holds output and is not displayed
+;;         (set-process-query-on-exit-flag proc nil)
+;;         (set-process-buffer proc out-buf)
+;;         (set-process-filter
+;;          proc
+;;          (lambda (_proc string)
+;;            ;; append is automatic to buffer, but ensure we have it
+;;            (with-current-buffer out-buf
+;;              (let ((inhibit-read-only t))
+;;                (goto-char (point-max))
+;;                (insert string)))))
+;;         (set-process-sentinel
+;;          proc
+;;          (lambda (p event)
+;;            (when (memq (process-status p) '(exit signal))
+;;              (let* ((exit-code (if (fboundp 'process-exit-status)
+;;                                    (process-exit-status p)
+;;                                  ;; parse event text as fallback "exited abnormally with code X"
+;;                                  (if (string-match "code \\([0-9]+\\)" event)
+;;                                      (string-to-number (match-string 1 event))
+;;                                    (if (string-match "finished" event) 0 1))))
+;;                     (output (with-current-buffer out-buf (buffer-string)))
+;;                     (result `(:skill ,skill
+;;                                       :script ,script-rel
+;;                                       :exit-code ,exit-code
+;;                                       :output ,output)))
+;;                ;; call the callback with JSON string result
+;;                (funcall callback result)
+;;                ;; cleanup buffer
+;;                (when (buffer-live-p out-buf) (kill-buffer out-buf)))))))))))
 
-(defun gptel-agent-execute-skill (callback skill action &optional path args)
-  "Main tool handler.
-CALLBACK is used for async responses. ACTION is one of \"summary\"/\"details\"/\"load_resource\"/\"run_script\".
-PATH is a unified path (resource or script)."
-  (gptel-agent-skills-update)
-  (gptel-agent-write-skills-summary-to-hidden-buffer)
-  (pcase-let ((`(,skill-dir . ,skill-plist) (alist-get skill gptel-agent-skills--known-skills nil nil #'string-equal)))
-    (if (not skill-dir)
-        (funcall callback
-                 `(:error "skill-not-found" :skill ,skill))
-      (pcase action
-        ("summary"
-         (funcall callback `(:skill ,skill :description ,(plist-get skill-plist :description))))
-        ("details"
-         (funcall callback `(:skill
-                              ,skill
-                              :body
-                              ,(plist-get
-                                (cdr (gptel-agent-read-file
-                                      (expand-file-name "SKILL.md" skill-dir)
-                                      ;; forcing the full content
-                                      '(("--noop---"))))
-                                :system))))
-        ("load_resource"
-         (if (not path)
-             (funcall callback `(:error "no-path-provided" :action ,action))
-           (let ((full (expand-file-name path skill-dir)))
-             (if (not (file-readable-p full))
-                 (funcall callback `(:error "resource-not-found" :path ,full))
-               (funcall callback
-                        `(:skill ,skill
-                                                 :resource ,path
-                                                 :content ,(with-temp-buffer
-                                                             (insert-file-contents full)
-                                                             (buffer-string))))))))
-        ("run_script"
-         (if (not path)
-             (funcall callback `(:error "no-path-provided" :action ,action))
-           ;; run async; reuse your async runner (ensure it accepts CALLBACK, skill, script, args)
-           (gptel-agent-skill--tool-run-script-async callback skill path args)))
-        (_
-         (funcall callback `(:error "unknown-action" :action ,action)))))))
+;; (defun gptel-agent-execute-skill (callback skill action &optional path args)
+;;   "Main tool handler.
+;; CALLBACK is used for async responses. ACTION is one of \"summary\"/\"details\"/\"load_resource\"/\"run_script\".
+;; PATH is a unified path (resource or script)."
+;;   (gptel-agent-skills-update)
+;;   (gptel-agent-write-skills-summary-to-hidden-buffer)
+;;   (pcase-let ((`(,skill-dir . ,skill-plist) (alist-get skill gptel-agent-skills--known-skills nil nil #'string-equal)))
+;;     (if (not skill-dir)
+;;         (funcall callback
+;;                  `(:error "skill-not-found" :skill ,skill))
+;;       (pcase action
+;;         ("summary"
+;;          (funcall callback `(:skill ,skill :description ,(plist-get skill-plist :description))))
+;;         ("details"
+;;          (funcall callback `(:skill
+;;                               ,skill
+;;                               :body
+;;                               ,(plist-get
+;;                                 (cdr (gptel-agent-read-file
+;;                                       (expand-file-name "SKILL.md" skill-dir)
+;;                                       ;; forcing the full content
+;;                                       '(("--noop---"))))
+;;                                 :system))))
+;;         ("load_resource"
+;;          (if (not path)
+;;              (funcall callback `(:error "no-path-provided" :action ,action))
+;;            (let ((full (expand-file-name path skill-dir)))
+;;              (if (not (file-readable-p full))
+;;                  (funcall callback `(:error "resource-not-found" :path ,full))
+;;                (funcall callback
+;;                         `(:skill ,skill
+;;                                                  :resource ,path
+;;                                                  :content ,(with-temp-buffer
+;;                                                              (insert-file-contents full)
+;;                                                              (buffer-string))))))))
+;;         ("run_script"
+;;          (if (not path)
+;;              (funcall callback `(:error "no-path-provided" :action ,action))
+;;            ;; run async; reuse your async runner (ensure it accepts CALLBACK, skill, script, args)
+;;            (gptel-agent-skill--tool-run-script-async callback skill path args)))
+;;         (_
+;;          (funcall callback `(:error "unknown-action" :action ,action)))))))
 
 ;;; persistent context ********************************************************************
 (defvar gptel-persistent-context-dir "~/.emacs.d/.cache/gptel-temp-context")
