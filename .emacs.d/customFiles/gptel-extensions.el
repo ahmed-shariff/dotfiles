@@ -244,6 +244,7 @@ Code
                    :files (:defaults "agents")) ;use :ensure for Elpaca
   :config
   (add-to-list 'gptel-agent-dirs "~/.emacs.d/customFiles/gptel-paper-agent/")
+  (add-to-list 'gptel-agent-skill-dirs "~/.emacs.d/.cache/gptel-skills/")
   (defun amsha/agent-post-update (&rest _)
     (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
       (apply #'gptel-make-preset 'paper-agent paper-agent-plist)))
