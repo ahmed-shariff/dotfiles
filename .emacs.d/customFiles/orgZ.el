@@ -209,10 +209,13 @@
 
   (defvar previous-add-doi-and-pdf-data nil)
 
-  (defun okm-retry-last-add-doi-and-pdf ()
-    (interactive)
+  (defun okm-retry-last-add-doi-and-pdf (args)
+    (interactive "p")
     (if previous-add-doi-and-pdf-data
-        (add-doi-and-pdf previous-add-doi-and-pdf-data t)
+        (add-doi-and-pdf (if args
+                             (read-from-minibuffer "data:" (prin1-to-string previous-add-doi-and-pdf-data) nil 'read)
+                           previous-add-doi-and-pdf-data)
+                         t)
       (user-error "No previous data")))
 
   (defun add-doi-and-pdf (data &optional no-save-data)
@@ -423,7 +426,7 @@
             value)))))
        ((and (stringp value) (string= "pages" field))
         (s-join "–" (s-split "[^0-9:]+" value t)))
-       (t (em (apply old-fun args))))))
+       (t (apply old-fun args)))))
 
   (advice-add 'bibtex-completion-apa-get-value :around #'amsha/bibtex-completion-apa-get-value)
 
