@@ -31,7 +31,7 @@
  (setq tabulated-list-format [("Date" 20 t)
                                ("Logo SRC" 10 t)
                                ("Logo ALT" 20 t)
-                               ("Details" 70 t)
+                               ("Details" 100 t)
                                ("Amount" 20 t)])
  (setq tabulated-list-padding 3)
  (tabulated-list-print)
