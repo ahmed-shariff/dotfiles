@@ -2433,8 +2433,95 @@ its thing."
   ;; otherwise, pet wil set it to nil and pyright will setup npm dependancy as nil!
   :after (lsp-pyright)
   :init
-  (add-hook 'python-base-mode-hook 'pet-mode -10)
-  )
+
+  (defmacro amsha/record-elapsed (label times last-time)
+    (let ((now-sym (gensym))
+          (elapsed-sym (gensym)))
+      `(let ((,now-sym (current-time))
+             (,elapsed-sym (float-time (time-subtract (current-time) ,last-time))))
+         (push (format "%s - %.3fs" ,label ,elapsed-sym) ,times)
+         (setq ,last-time ,now-sym))))
+
+  ;; Lite version of pet-mode
+  (defun amsha/pet-buffer-local-vars-setup ()
+    "Set up the buffer local variables for Python tools.
+
+Assign all supported Python tooling executable variables to
+buffer local values."
+    (let ((times '())
+          (last-time (current-time)))
+      (setq-local python-shell-interpreter (pet-executable-find (default-value 'python-shell-interpreter)))
+      (amsha/record-elapsed "interpreter" times last-time)
+
+      (setq-local python-shell-virtualenv-root (pet-virtualenv-root))
+      (amsha/record-elapsed "env-root" times last-time)
+
+      (pet-flycheck-setup)
+      (amsha/record-elapsed "flycheck-setup" times last-time)
+
+      (let ((python (pet-executable-find "python"))
+            ;; (black (pet-executable-find "black"))
+            ;; (isort (pet-executable-find "isort"))
+            ;; (ruff (pet-executable-find "ruff"))
+            ;; (yapf (pet-executable-find "yapf"))
+            ;; (pytest (pet-executable-find "pytest")))
+            )
+        (amsha/record-elapsed "python executable find" times last-time)
+
+
+        ;; (setq-local lsp-jedi-executable-command
+        ;;             (pet-executable-find "jedi-language-server"))
+        ;; (setq-local lsp-jedi-workspace-environment-path python)
+        ;; (setq-local lsp-pyls-plugins-jedi-environment python-shell-virtualenv-root)
+        ;; (setq-local lsp-pyls-server-command (list (pet-executable-find "pyls")))
+        ;; (setq-local lsp-pylsp-plugins-jedi-environment python-shell-virtualenv-root)
+        ;; (setq-local lsp-pylsp-server-command (list (pet-executable-find "pylsp")))
+        (setq-local lsp-pyright-langserver-command (pet-executable-find "pyright"))
+        (amsha/record-elapsed "pyright executable find" times last-time)
+
+        (setq-local lsp-pyright-python-executable-cmd python)
+        (setq-local lsp-pyright-venv-path python-shell-virtualenv-root)
+        ;; (setq-local lsp-python-ty-clients-server-command (list (pet-executable-find "ty") "server"))
+        ;; (setq-local lsp-ruff-server-command (list ruff "server"))
+        ;; (setq-local lsp-ruff-python-path python)
+        (setq-local dap-python-executable python)
+        (setq-local dap-variables-project-root-function #'pet-project-root)
+        ;; (setq-local python-pytest-executable pytest)
+        ;; (setq-local pytest-global-name pytest)
+        ;; (setq-local python-black-command black)
+        ;; (setq-local python-isort-command isort)
+        ;; (setq-local ruff-format-command ruff)
+        ;; (setq-local blacken-executable black)
+        ;; (setq-local yapfify-executable yapf)
+        ;; (setq-local py-autopep8-command (pet-executable-find "autopep8"))
+
+        ;; (when (boundp 'format-all--executable-table)
+        ;;   (setq-local format-all--executable-table
+        ;;               (copy-hash-table format-all--executable-table))
+        ;;   (puthash 'black black format-all--executable-table)
+        ;;   (puthash 'isort isort format-all--executable-table)
+        ;;   (puthash 'ruff ruff format-all--executable-table)
+        ;;   (puthash 'yapf yapf format-all--executable-table))
+
+        ;; (when (boundp 'apheleia-formatters)
+        ;;   (setq-local apheleia-formatters (copy-tree apheleia-formatters))
+        ;;   (setcar (alist-get 'black apheleia-formatters) black)
+        ;;   (setcar (alist-get 'isort apheleia-formatters) isort)
+        ;;   (setcar (alist-get 'ruff apheleia-formatters) ruff)
+        ;;   (setcar (alist-get 'ruff-isort apheleia-formatters) ruff)
+        ;;   (setcar (alist-get 'yapf apheleia-formatters) yapf)))
+
+        ;; (pet-eglot-setup)
+        ;; (pet-dape-setup)
+
+        (run-hooks 'pet-after-buffer-local-vars-setup)
+
+        (amsha/record-elapsed "var set and hook run" times last-time)
+        (message (concat ">>>> Pet buffer loacal var setup report:\n" (string-join (nreverse times) "\n")))
+      )))
+  (advice-add #'pet-buffer-local-vars-setup :override #'amsha/pet-buffer-local-vars-setup)
+
+  (add-hook 'python-base-mode-hook 'pet-mode -10))
 
 (use-package tomlparse)
 
