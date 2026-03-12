@@ -247,8 +247,16 @@ Code
   (add-to-list 'gptel-agent-dirs "~/.emacs.d/customFiles/gptel-paper-agent/")
   (add-to-list 'gptel-agent-skill-dirs "~/.emacs.d/.cache/gptel-skills/")
   (defun amsha/agent-post-update (&rest _)
+    ;; Make "paper-agent" a top-level preset
     (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
-      (apply #'gptel-make-preset 'paper-agent paper-agent-plist)))
+      (apply #'gptel-make-preset 'paper-agent paper-agent-plist))
+    ;; Make skills presets
+    (pcase-dolist (`(,name ,_ . ,skill-plist) gptel-agent--skills)
+      (apply #'gptel-make-preset
+             (concat "skill-" name)
+             (append skill-plist `(:system (:function (lambda (system-prompt)
+                                                        (concat system-prompt "\n"
+                                                                (gptel-agent--get-skill ,name)))))))))
   (advice-add 'gptel-agent-update :after #'amsha/agent-post-update)
 
   (gptel-agent-update)         ;Read files from agents directories
