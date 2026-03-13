@@ -1200,6 +1200,97 @@ then it will be set here."
 (add-hook 'prog-mode-hook #'amsha/gptel-highlight-preset-mode)
 (add-hook 'text-mode-hook #'amsha/gptel-highlight-preset-mode)
 
+;;; preset pin transient ******************************************************************
+
+(defvar gptel-transient-preset-alist nil
+  "Alist of keys and presets pinned in gptel preset transient.")
+
+(defun gptel-pin-preset (key preset &optional _is-interactive)
+  "Pin a given PRESET to KEY in `gptel--preset'."
+  (interactive (list
+                (completing-read "Key: "
+                                 (-non-nil
+                                  (mapcar (lambda (el)
+                                           (when (not (assoc el gptel-transient-preset-alist))
+                                             (char-to-string el)))
+                                         (concat (number-sequence ?a ?z)
+                                                 (number-sequence ?A ?Z)
+                                                 (number-sequence ?0 ?9))))
+                                 nil t)
+                (read
+                 (completing-read "Preset: "
+                                  (--filter
+                                   (not (member it (map-values gptel-transient-preset-alist)))
+                                   (map-keys gptel--known-presets))
+                                  nil t))
+                t))
+  (let ((key-char (cl-typecase key
+                    (string (when (length> key 1)
+                              (warn
+                               (concat "gptel-pin-preset: Key is expected to be a char or string of length 1. "
+                                       "Got a longer string, trying to use first char in string as key.")))
+                            (string-to-char key))
+                    (character key)
+                    (t (error "Unknown type for key")))))
+    (cond
+     ((not (assoc preset gptel--known-presets))
+      (error "Unknown preset %S" preset))
+     ((member preset (map-values gptel-transient-preset-alist))
+      (error "Preset %S already pinned" preset))
+     ((assoc key-char gptel-transient-preset-alist)
+      (error "Key %S already used" (char-to-string key-char)))
+     (t
+      (push (cons key-char preset) gptel-transient-preset-alist)
+      (when _is-interactive
+        (message "Preset %S pinned to %S for this session. To persist add `(gptel-pin-preset %S '%S)' in emacs config."
+                 preset key key preset))))))
+
+(transient-replace-suffix 'gptel--preset '(1) 
+  [:if (lambda () gptel--known-presets)
+       :class transient-column
+       :setup-children
+       (lambda (_)
+         (transient-parse-suffixes
+          'gptel--preset
+          (cl-loop
+           for (key . name-sym) in gptel-transient-preset-alist
+           for name = (format "%s" name-sym)
+           for preset = (alist-get name-sym gptel--known-presets nil nil #'equal)
+           for description = (plist-get preset :description)
+           collect
+           (list
+            (key-description (list key))
+            (concat name
+                    (propertize " " 'display '(space :align-to 20))
+                    (and description
+                         (propertize (concat
+                                      "(" (gptel--describe-directive
+                                           description (- (window-width) 30))
+                                      ")")
+                                     'face 'shadow)))
+            `(lambda () (interactive)
+               (gptel--set-with-scope 'gptel--preset ',name-sym
+                                      gptel--set-buffer-locally)
+               (gptel--apply-preset ',preset
+                                    (lambda (sym val) (gptel--set-with-scope
+                                                       sym val gptel--set-buffer-locally)))
+               (message "Applied gptel preset %s"
+                        (propertize ,name 'face 'transient-value))
+               (when transient--stack
+                 (run-at-time 0 nil #'transient-setup))))
+           into generated
+           finally return
+           (nconc (list '(gptel--infix-variable-scope
+                          :format "%d %k %v"
+                          :description
+                          (lambda () (format "%s        %s"
+                                             (propertize "Apply preset" 'face 'transient-heading)
+                                             (propertize "Scope" 'face 'transient-active-prefix)))))
+                  (nreverse generated)))))])
+
+(transient-append-suffix 'gptel--preset '(0 0 -1)
+  '("C-p" "Pin a preset to transient" gptel-pin-preset))
+
 ;;; agent-skiklls *************************************************************************
 ;; (defvar gptel-agent-skills-dirs (list (expand-file-name "~/.emacs.d/.cache/gptel-skills/"))
 ;;   "Directories holding local skills (each skill is a subdirectory).")
