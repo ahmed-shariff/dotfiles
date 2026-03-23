@@ -109,6 +109,8 @@
       inhibit-startup-screen t
       split-width-threshold 0
       split-height-threshold nil
+      scroll-conservatively 0
+      scroll-margin 0
       banner-text-list (string-split
                         (with-temp-buffer
                          (insert-file "~/.emacs.d/customFiles/banner_text.txt")
@@ -251,13 +253,13 @@
 ;;add proper word wrapping
 (global-visual-line-mode t)
 
-(electric-pair-mode 1)
-
 (global-hl-line-mode 1)
 
 (setq view-read-only t)
 
 (repeat-mode 1)
+
+(pixel-scroll-precision-mode 1)
 
 (customize-set-value 'create-lockfiles nil "It's not being ignored propperly?")
 
@@ -511,6 +513,17 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   (interactive)
   (when (y-or-n-p "Erase buffer? ")
     (erase-buffer)))
+
+(use-package elec-pair
+  :straight (:type built-in)
+  :hook (org-mode . amsha/elec-pair-inhibit-org-mode)
+  :config
+  (electric-pair-mode 1)
+
+  (defun amsha/elec-pair-inhibit-org-mode ()
+    (setq-local electric-pair-inhibit-predicate
+                `(lambda (c)
+                   (if (char-equal c ?<) t (,electric-pair-inhibit-predicate c))))))
 
 ;; font setup****************************************************
 (use-package mixed-pitch
