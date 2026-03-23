@@ -870,7 +870,6 @@ If prefix arg used, search whole db."
       org-roam-node-formatter (lambda (node) (s-replace-regexp " \\[[0-9]+/[0-9]+\\]" "" (org-roam-node-title node)))
       org-roam-preview-function #'org-roam-subtree-aware-preview-function
 
-      org-roam-ql-default-org-roam-buffer-query (lambda () `(backlink-to (id ,(org-roam-node-id org-roam-buffer-current-node)) :type nil))
       org-roam-ql-preview-function #'org-roam-subtree-aware-preview-function
       org-roam-mode-sections (list #'org-roam-brain-children-section
                                    '(org-roam-backlinks-section-with-ql-filter :unique nil) ;; Setting to nil becuase when t it doesn't work too well with notes
