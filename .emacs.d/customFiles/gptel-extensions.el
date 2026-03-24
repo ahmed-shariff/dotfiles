@@ -1667,6 +1667,382 @@ afterwards."
 (transient-append-suffix 'gptel--preset '(0 0 -1)
   '("/C" "Save current context as new preset" amsha/gptel--save-context-as-preset :if (lambda () gptel-context)))
 
+;;; context magit-section *****************************************************************
+(defclass gptel-context-section (magit-section)
+  ((source :initarg :source :initform nil :documentation "Original source (buffer or file).")
+   (spec   :initarg :spec   :initform nil :documentation "Spec plist associated with the source."))
+  "Top-level section representing a gptel-context entry.")
+
+(defclass gptel-context-preview-section (gptel-context-section)
+  ()
+  "Child section representing a preview (overlay / file preview / buffer snippet).")
+
+;; ditching all the highlight
+(cl-defmethod magit-section-highlight ((section gptel-context-section)))
+
+;;;; * Buffer-local state: use an alist mapping stored-value -> t ------------------
+
+(defvar-local gptel-context--buffer-deletion-list nil
+  "Alist of (VALUE . t) representing entries marked for deletion in the context buffer.")
+
+(put 'gptel-context--buffer-deletion-list 'permanent-local t)
+
+(defun gptel-context--marked-p (value)
+  "Return non-nil if VALUE is marked for deletion in the inspection buffer."
+  (member value gptel-context--buffer-deletion-list))
+
+(defun gptel-context--toggle-mark (value)
+  "Toggle deletion mark for VALUE in this buffer-local alist."
+  (if (member value gptel-context--buffer-deletion-list)
+      (setq gptel-context--buffer-deletion-list (remove value gptel-context--buffer-deletion-list))
+    (push value gptel-context--buffer-deletion-list)))
+
+;;;;; * Utilities -----------------------------------------------------------------
+
+(defun gptel-context--swap-inplace (list-var i j)
+  "Swap the i-th and j-th elements of the list stored in LIST-VAR in-place.
+LIST-VAR is a symbol holding the list (e.g., 'gptel-context).  Indices are
+0-based.  The list cells are mutated with `setcar' so the operation is
+in-place; the (possibly mutated) list is stored back into LIST-VAR and
+returned."
+  (let* ((lst (if (symbolp list-var)
+                  (symbol-value list-var)
+                list-var))
+         (ci (nthcdr i lst))
+         (cj (nthcdr j lst))
+         (vi (car ci))
+         (vj (car cj)))
+      (setcar ci vj)
+      (setcar cj vi)
+      lst))
+
+(defun gptel-context--index-of-source (source)
+  "Return index of first top-level gptel-context entry whose source equals SOURCE.
+Return nil if not found."
+  (cl-position source gptel-context :test #'equal :key #'car))
+
+;;;;; * Building magit sections ---------------------------------------------------
+
+(defun gptel-context--insert-preview-section (preview-value preview-spec)
+  "Insert a preview child section under the current insertion point.
+
+PREVIEW-VALUE is the value stored (an overlay, a cons (file . spec) or
+a buffer). PREVIEW-SPEC is the preview's spec plist (may be nil).  The
+created preview section is hidden by default."
+  (magit-insert-section
+      section (gptel-context-preview-section preview-value t)
+      (let ((marked (gptel-context--marked-p preview-value)))
+        ;; Heading: concise summary (one line)
+        (magit-insert-heading
+          (concat
+           (if marked "[D] " " ")
+           (cond
+            ((overlayp preview-value)
+             (with-current-buffer (overlay-buffer preview-value)
+               (format "Lines %d-%d\n"
+                       (line-number-at-pos (overlay-start preview-value))
+                       (line-number-at-pos (overlay-end preview-value)))))
+            ((bufferp preview-value)
+             (format "Buffer `%s` (whole)\n" (buffer-name preview-value)))
+            ((and (consp preview-value) (stringp (car preview-value)))
+             (format "%s\n" (file-name-nondirectory (car preview-value))))
+            ((stringp preview-value)
+             (format "%s\n" (file-name-nondirectory preview-value)))
+            (t (format "%S\n" preview-value)))))
+        ;; Body: insert preview content
+        (magit-insert-section-body
+          (let ((beg (point)))
+            (cond
+             ((overlayp preview-value)
+              (insert-buffer-substring-no-properties
+               (overlay-buffer preview-value)
+               (overlay-start preview-value)
+               (overlay-end preview-value)))
+             ((bufferp preview-value)
+              (insert-buffer-substring-no-properties preview-value (point-min) (point-max)))
+             ((and (consp preview-value) (stringp (car preview-value)))
+              (let ((path (car preview-value))
+                    (mime (plist-get preview-spec :mime)))
+                (if (and mime (not (string-match-p "^text/" mime)))
+                    (if (string-match-p (image-file-name-regexp) path)
+                        (let ((img (create-image path)))
+                          (insert-image img))
+                      (insert (format "%s (no preview for binary file)\n" path)))
+                  (gptel-context--insert-file-string path preview-spec))))
+             ((stringp preview-value)
+              (gptel-context--insert-file-string preview-value preview-spec))
+             (t (insert (format "%S\n" preview-value))))
+            ;; Apply deletion decoration if marked
+            (when marked
+              (add-text-properties beg (point) '(face gptel-context-deletion-face font-lock-face gptel-context-deletion-face))))))))
+
+(defun gptel-context--make-entry-section (src spec)
+  "Insert one top-level magit section for SRC with SPEC.
+
+SRC is a buffer or a file path. SPEC is the plist associated with the entry.
+Top-level sections are hidden (collapsed) by default. Child previews are
+inserted as child sections and also collapsed by default. Deletion
+decoration is applied via text properties during construction."
+  (magit-insert-section
+      section (gptel-context-section src t)  ; class = gptel-context-section, value = SRC, hide = t
+    (oset section source src)
+    (oset section spec spec)
+    (let ((marked (gptel-context--marked-p src)))
+      ;; Heading for top-level entry
+      (magit-insert-heading
+        (concat
+         (if marked "[D] " " ")
+         (cond
+          ((bufferp src)  (format "In buffer %s:\n" (buffer-name src)))
+          ((and (stringp src) (file-directory-p src))
+           (format "In directory %s:\n" (file-name-nondirectory src)))
+          ((stringp src)  (format "In file %s:\n" (file-name-nondirectory src)))
+          (t (format "%S\n" src)))))
+      ;; Body: insert child previews
+      (magit-insert-section-body
+        (let ((beg-body (point)))
+          (cond
+           ;; If buffer entry with overlays
+           ((bufferp src)
+            (let ((ovs (plist-get spec :overlays)))
+              (if (and ovs (consp ovs))
+                  (dolist (ov ovs)
+                    (gptel-context--insert-preview-section ov nil))
+                ;; no overlays -> full buffer as one preview
+                (gptel-context--insert-preview-section src nil))))
+           ;; File or other string source
+           ((and (stringp src) (file-readable-p src))
+            (if (plist-get spec :mime)
+                ;; binary vs text handled in preview insertion via preview spec
+                (gptel-context--insert-preview-section (cons src spec) spec)
+              (gptel-context--insert-preview-section src spec)))
+           (t
+            (gptel-context--insert-preview-section src spec)))
+          ;; Apply deletion decoration to entire entry if marked
+          (when marked
+            (add-text-properties beg-body (point) '(face gptel-context-deletion-face font-lock-face gptel-context-deletion-face))))))))
+
+;;;;; * Context buffer setup ------------------------------------------------------
+
+(defvar gptel-context-section-map nil)
+
+(define-derived-mode gptel-context-buffer-mode magit-section-mode "gptel-context"
+  "Major-mode for inspecting gptel context using magit sections."
+  :group 'gptel
+  (setq-local revert-buffer-function #'gptel-context--buffer-setup)
+  ;; keys on top of magit-section-mode's keys
+  (let ((map gptel-context-buffer-mode-map))
+    (define-key map (kbd "C-c C-c") #'gptel-context-confirm)
+    (define-key map (kbd "C-c C-k") #'gptel-context-quit)
+    (define-key map (kbd "RET")     #'gptel-context-visit)
+    (define-key map (kbd "n")       #'gptel-context-next)
+    (define-key map (kbd "p")       #'gptel-context-previous)
+    (define-key map (kbd "d")       #'gptel-context-flag-deletion)
+    (define-key map (kbd "C-c <")   #'gptel-context-move-up)
+    (define-key map (kbd "C-c >")   #'gptel-context-move-down)))
+
+(defun gptel-context--buffer-setup (&optional _ignore-auto _noconfirm context-alist)
+  "Populate *gptel-context* with magit sections for `gptel-context'.
+If CONTEXT-ALIST is supplied, use that instead of the global `gptel-context'."
+  (with-current-buffer (get-buffer-create "*gptel-context*")
+    (gptel-context-buffer-mode)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (setq header-line-format
+            (substitute-command-keys
+             (concat
+              "\\[gptel-context-flag-deletion]: Mark/unmark deletion, "
+              "\\[gptel-context-next]/\\[gptel-context-previous]: next/previous, "
+              "\\[gptel-context-visit]: visit, "
+              "\\[gptel-context-confirm]: apply, "
+              "\\[gptel-context-quit]: cancel, "
+              "\\[gptel-context-move-up]: move up, "
+              "\\[gptel-context-move-down]: move down, "
+              "\\[quit-window]: quit")))
+      (save-excursion
+        (let ((contexts (gptel-context--collect context-alist)))
+          (if (null contexts)
+              (insert "There are no active gptel contexts.")
+            (magit-insert-section (root-section)
+              (magit-insert-section-body
+               (pcase-dolist (`(,src . ,spec) contexts)
+                 (gptel-context--make-entry-section src spec)
+                 (insert "\n\n"))))))))
+    (display-buffer (current-buffer)
+                    '((display-buffer-reuse-window display-buffer-below-selected)
+                      (body-function . select-window)
+                      (window-height . fit-window-to-buffer)))))
+
+(defun gptel-context-flag-deletion ()
+  "Toggle deletion mark on the magit section at point.
+If region is active, mark all sections within the region."
+  (interactive)
+  (let ((secs (if (region-active-p)
+                  (let ((beg (region-beginning)) (end (region-end)) res)
+                    (save-excursion
+                      (goto-char beg)
+                      (while (< (point) end)
+                        (when-let ((s (magit-section-at)))
+                          (push s res)
+                          (goto-char (oref s end)))
+                        (forward-char 1)))
+                    (nreverse res))
+                (let ((s (magit-section-at)))
+                  (when s (list s))))))
+    (if (null secs)
+        (message "No section at point.")
+      (dolist (s secs)
+        (gptel-context--toggle-mark (oref s value))))
+    (revert-buffer nil t)))
+
+(defun gptel-context-visit ()
+  "Jump to the original location of the context item at point."
+  (interactive)
+  (if-let ((sec (magit-section-at)))
+      (let ((val (oref sec value)))
+        (cond
+         ((overlayp val)
+          (let ((buf (overlay-buffer val))
+                (pos (overlay-start val)))
+            (when (buffer-live-p buf)
+              (select-window (display-buffer buf))
+              (goto-char pos)
+              (recenter))))
+         ((bufferp val)
+          (select-window (display-buffer val))
+          (goto-char (oref sec start))
+          (recenter))
+         ((and (consp val) (stringp (car val)))
+          (find-file (car val))
+          (recenter))
+         ((stringp val)
+          (find-file val)
+          (recenter))
+         (t (message "No source location for this context chunk."))))
+    (message "No section at point.")))
+
+(defun gptel-context-next ()
+  "Move to next magit section/preview."
+  (interactive)
+  (magit-section-forward))
+
+(defun gptel-context-previous ()
+  "Move to previous magit section/preview."
+  (interactive)
+  (magit-section-backward))
+
+(defun gptel-context-move-up ()
+  "Move current top-level entry or preview up."
+  (interactive)
+  (if-let ((sec (magit-section-at)))
+      (cond
+       ;; preview: preview sections are instances of gptel-context-preview-section
+       ((cl-typep sec 'gptel-context-preview-section)
+        (let* ((parent (oref (oref sec parent) value))
+               (parent-src parent))
+          (when-let ((idx (gptel-context--index-of-source parent-src)))
+            (let* ((entry (nth idx gptel-context))
+                   (spec (cdr (ensure-list entry)))
+                   (ovs (plist-get spec :overlays))
+                   (child-val (oref sec value))
+                   (pos (cl-position child-val ovs :test #'eq)))
+              (unless pos (user-error "Preview not found in parent spec"))
+              (if (> pos 0)
+                  (progn
+                    (setf (plist-get spec :overlays)
+                          (gptel-context--swap-inplace ovs pos (1- pos)))
+                    ;; reflect change back into top-level gptel-context entry
+                    (setf (nth idx gptel-context) (cons (car (ensure-list entry)) spec))
+                    (revert-buffer nil t))
+                (user-error "Already at top of previews"))))))
+       ;; top-level entries are instances of gptel-context-section and have root as parent
+       ((cl-typep sec 'gptel-context-section)
+        (let ((src (oref sec value)))
+          (if-let ((idx (gptel-context--index-of-source src)))
+              (if (> idx 0)
+                  (progn
+                    (gptel-context--swap-inplace 'gptel-context idx (1- idx))
+                    (revert-buffer nil t))
+                (user-error "Already at top"))
+            (user-error "Entry not found"))))
+       (t (user-error "Unsupported section type")))
+    (user-error "No section at point")))
+
+(defun gptel-context-move-down ()
+  "Move current top-level entry or preview down."
+  (interactive)
+  (if-let ((sec (magit-section-at)))
+      (cond
+       ((cl-typep sec 'gptel-context-preview-section)
+        (let* ((parent (oref (oref sec parent) value))
+               (parent-src parent))
+          (when-let ((idx (gptel-context--index-of-source parent-src)))
+            (let* ((entry (nth idx gptel-context))
+                   (spec (cdr (ensure-list entry)))
+                   (ovs (plist-get spec :overlays))
+                   (child-val (oref sec value))
+                   (pos (cl-position child-val ovs :test #'eq)))
+              (unless pos (user-error "Preview not found in parent spec"))
+              (if (< pos (1- (length ovs)))
+                  (progn
+                    (setf (plist-get spec :overlays)
+                          (gptel-context--swap-inplace ovs pos (1+ pos)))
+                    (setf (nth idx gptel-context) (cons (car (ensure-list entry)) spec))
+                    (revert-buffer nil t))
+                (user-error "Already at bottom of previews"))))))
+       ((cl-typep sec 'gptel-context-section)
+        (let ((src (oref sec value)))
+          (if-let ((idx (gptel-context--index-of-source src)))
+              (let ((n (length gptel-context)))
+                (if (< idx (1- n))
+                    (progn
+                      (gptel-context--swap-inplace 'gptel-context idx (1+ idx))
+                      (revert-buffer nil t))
+                  (user-error "Already at bottom")))
+            (user-error "Entry not found"))))
+       (t (user-error "Unsupported section type")))
+    (user-error "No section at point")))
+
+(defun gptel-context-confirm ()
+  "Apply pending deletions in `gptel-context--buffer-deletion-list' to `gptel-context',
+then close the *gptel-context* buffer and return to gptel menu."
+  (interactive)
+  (when gptel-context--buffer-deletion-list
+    (dolist (val gptel-context--buffer-deletion-list)
+    ;;   (cond
+    ;;    ((bufferp val)
+    ;;     ;; remove buffer entry (top-level)
+    ;;     (em "buffeer removal" val)
+    ;;     (setf gptel-context (assq-delete-all val gptel-context)))
+    ;;    ((stringp val)
+    ;;     ;; file or directory: if directory -> recursively remove; otherwise remove file entry
+    ;;     (em "string removal" val)
+    ;;     (if (file-directory-p val)
+    ;;         (gptel-context--add-directory val 'remove)
+    ;;       (setf gptel-context (assq-delete-all val gptel-context))))
+    ;;    ((overlayp val)
+    ;;     (em "ov removal" val)
+    ;;     ;; remove overlay from its parent's :overlays list
+    ;;     (when-let* ((buf (overlay-buffer val))
+    ;;                 (spec (alist-get buf gptel-context nil nil #'equal)))
+    ;;       (unless (em (setf (plist-get spec :overlays) (delq val (plist-get spec :overlays))))
+    ;;         (setf (alist-get buf gptel-context nil t #'equal) nil))))
+    ;;    (t (message "Unknown deletion target: %S" val))))
+      (gptel-context-remove val))
+    ;; Normalize contexts and clear deletion list
+    (setq gptel-context (nreverse (gptel-context--collect)))
+    (setq gptel-context--buffer-deletion-list nil))
+  ;; close and return to menu
+  (quit-window)
+  (call-interactively #'gptel-menu))
+
+(defun gptel-context-quit ()
+  "Quit inspection and return to gptel menu without applying deletions."
+  (interactive)
+  (setq gptel-context--buffer-deletion-list nil)
+  (quit-window)
+  (call-interactively #'gptel-menu))
+
 ;;; transform functions *******************************************************************
 
 ;;;; * okm replace cite with context
