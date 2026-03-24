@@ -1730,7 +1730,7 @@ PREVIEW-VALUE is the value stored (an overlay, a cons (file . spec) or
 a buffer). PREVIEW-SPEC is the preview's spec plist (may be nil).  The
 created preview section is hidden by default."
   (magit-insert-section
-      section (gptel-context-preview-section preview-value t)
+      section (gptel-context-preview-section preview-value)
       (let ((marked (gptel-context--marked-p preview-value)))
         ;; Heading: concise summary (one line)
         (magit-insert-heading
@@ -1784,7 +1784,7 @@ Top-level sections are hidden (collapsed) by default. Child previews are
 inserted as child sections and also collapsed by default. Deletion
 decoration is applied via text properties during construction."
   (magit-insert-section
-      section (gptel-context-section src t)  ; class = gptel-context-section, value = SRC, hide = t
+      section (gptel-context-section src)  ; class = gptel-context-section, value = SRC
     (oset section source src)
     (oset section spec spec)
     (let ((marked (gptel-context--marked-p src)))
@@ -1868,8 +1868,11 @@ If CONTEXT-ALIST is supplied, use that instead of the global `gptel-context'."
                (pcase-dolist (`(,src . ,spec) contexts)
                  (gptel-context--make-entry-section src spec)
                  (insert "\n\n"))))))))
+    (magit-section-show-level-2-all)
     (display-buffer (current-buffer)
-                    '((display-buffer-reuse-window display-buffer-below-selected)
+                    '((display-buffer-reuse-window
+                       display-buffer-reuse-mode-window
+                       display-buffer-below-selected)
                       (body-function . select-window)
                       (window-height . fit-window-to-buffer)))))
 
@@ -1959,11 +1962,14 @@ If region is active, mark all sections within the region."
        ((cl-typep sec 'gptel-context-section)
         (let ((src (oref sec value)))
           (if-let ((idx (gptel-context--index-of-source src)))
-              (if (> idx 0)
-                  (progn
-                    (gptel-context--swap-inplace 'gptel-context idx (1- idx))
-                    (revert-buffer nil t))
-                (user-error "Already at top"))
+              (let ((n (length gptel-context)))
+                (if (< idx (1- n))
+                    (progn
+                      ;; The displayed order is reversed when
+                      ;; `gptel-context--collect' is called.
+                      (gptel-context--swap-inplace 'gptel-context idx (1+ idx))
+                      (revert-buffer nil t))
+                  (user-error "Already at top")))
             (user-error "Entry not found"))))
        (t (user-error "Unsupported section type")))
     (user-error "No section at point")))
@@ -1993,12 +1999,13 @@ If region is active, mark all sections within the region."
        ((cl-typep sec 'gptel-context-section)
         (let ((src (oref sec value)))
           (if-let ((idx (gptel-context--index-of-source src)))
-              (let ((n (length gptel-context)))
-                (if (< idx (1- n))
-                    (progn
-                      (gptel-context--swap-inplace 'gptel-context idx (1+ idx))
-                      (revert-buffer nil t))
-                  (user-error "Already at bottom")))
+              (if (> idx 0)
+                  (progn
+                    ;; The displayed order is reversed when
+                    ;; `gptel-context--collect' is called.
+                    (gptel-context--swap-inplace 'gptel-context idx (1- idx))
+                    (revert-buffer nil t))
+                (user-error "Already at bottom"))
             (user-error "Entry not found"))))
        (t (user-error "Unsupported section type")))
     (user-error "No section at point")))
@@ -2009,25 +2016,6 @@ then close the *gptel-context* buffer and return to gptel menu."
   (interactive)
   (when gptel-context--buffer-deletion-list
     (dolist (val gptel-context--buffer-deletion-list)
-    ;;   (cond
-    ;;    ((bufferp val)
-    ;;     ;; remove buffer entry (top-level)
-    ;;     (em "buffeer removal" val)
-    ;;     (setf gptel-context (assq-delete-all val gptel-context)))
-    ;;    ((stringp val)
-    ;;     ;; file or directory: if directory -> recursively remove; otherwise remove file entry
-    ;;     (em "string removal" val)
-    ;;     (if (file-directory-p val)
-    ;;         (gptel-context--add-directory val 'remove)
-    ;;       (setf gptel-context (assq-delete-all val gptel-context))))
-    ;;    ((overlayp val)
-    ;;     (em "ov removal" val)
-    ;;     ;; remove overlay from its parent's :overlays list
-    ;;     (when-let* ((buf (overlay-buffer val))
-    ;;                 (spec (alist-get buf gptel-context nil nil #'equal)))
-    ;;       (unless (em (setf (plist-get spec :overlays) (delq val (plist-get spec :overlays))))
-    ;;         (setf (alist-get buf gptel-context nil t #'equal) nil))))
-    ;;    (t (message "Unknown deletion target: %S" val))))
       (gptel-context-remove val))
     ;; Normalize contexts and clear deletion list
     (setq gptel-context (nreverse (gptel-context--collect)))
