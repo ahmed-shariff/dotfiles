@@ -1734,21 +1734,23 @@ created preview section is hidden by default."
       (let ((marked (gptel-context--marked-p preview-value)))
         ;; Heading: concise summary (one line)
         (magit-insert-heading
-          (concat
-           (if marked "[D] " " ")
-           (cond
-            ((overlayp preview-value)
-             (with-current-buffer (overlay-buffer preview-value)
-               (format "Lines %d-%d\n"
-                       (line-number-at-pos (overlay-start preview-value))
-                       (line-number-at-pos (overlay-end preview-value)))))
-            ((bufferp preview-value)
-             (format "Buffer `%s` (whole)\n" (buffer-name preview-value)))
-            ((and (consp preview-value) (stringp (car preview-value)))
-             (format "%s\n" (file-name-nondirectory (car preview-value))))
-            ((stringp preview-value)
-             (format "%s\n" (file-name-nondirectory preview-value)))
-            (t (format "%S\n" preview-value)))))
+          (propertize
+           (concat
+            (if marked "[D] " " ")
+            (cond
+             ((overlayp preview-value)
+              (with-current-buffer (overlay-buffer preview-value)
+                (format "Lines %d-%d\n"
+                        (line-number-at-pos (overlay-start preview-value))
+                        (line-number-at-pos (overlay-end preview-value)))))
+             ((bufferp preview-value)
+              (format "Buffer `%s` (whole)\n" (buffer-name preview-value)))
+             ((and (consp preview-value) (stringp (car preview-value)))
+              (format "%s\n" (file-name-nondirectory (car preview-value))))
+             ((stringp preview-value)
+              (format "%s\n" (file-name-nondirectory preview-value)))
+             (t (format "%S\n" preview-value))))
+           'font-lock-face 'magit-diff-hunk-heading))
         ;; Body: insert preview content
         (magit-insert-section-body
           (let ((beg (point)))
