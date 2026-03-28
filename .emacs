@@ -19,7 +19,6 @@
   (normal-top-level-add-subdirs-to-load-path))
 
 (require 'configurations)
-(setq use-package-compute-statistics t)
 
 
 ;;straight.el setup*************************************************
@@ -448,11 +447,12 @@ advice, files on WSL can not be saved."
     (set-fontset-font
      t 'unicode (font-spec :family font-name-used) nil 'prepend)))
 
-(use-package benchmark-init
-  :ensure t
-  :config
-  ;; To disable collection of benchmark data after init is done.
-  (add-hook 'after-init-hook 'benchmark-init/deactivate))
+;; (setq use-package-compute-statistics t)
+;; (use-package benchmark-init
+;;   :ensure t
+;;   :config
+;;   ;; To disable collection of benchmark data after init is done.
+;;   (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
 ;;allout
 (use-package allout
@@ -3578,6 +3578,4 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 ;;yasnippets company conflict resolution
 ;(provide .emacs)
 ;;; .emacs ends here
-(em (emacs-init-time))
-(toggle-debug-on-error)
 (put 'erase-buffer 'disabled nil)
