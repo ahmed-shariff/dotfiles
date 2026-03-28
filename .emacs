@@ -12,67 +12,15 @@
 (set-default-coding-systems 'utf-8)
 
 ;;mepla setup****************************************************
-;; (add-to-list 'package-archives
-;; 	     '("melpa" . "https://melpa.org/packages/") t)
-;; (add-to-list 'package-archives
-;; 	     '("org" . "http://orgmode.org/elpa/") t);'("elpy" . "http://jorgenschaefer.github.io/packages/"))
-;	     '("melpa" . "http://melpa.org/packages/")
-;	     '("org" . "http://orgmode.org/elpa/"))
-; (add-to-list 'load-path "~/.emacs.d/customFiles")
-
-;; (setq load-prefer-newer t) ;;mkaing sure older byte compiled files are not loaded
-
 (setq-default default-directory "~/")
 
 (let ((default-directory  "~/.emacs.d/customFiles/"))
   (normal-top-level-add-to-load-path `("."))
   (normal-top-level-add-subdirs-to-load-path))
-;; (add-to-list 'package-archives
-;;             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
-;; (when (< emacs-major-version 24)
-;;   (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
-
-
-;; ;;auto-compile *****************************************************
-;; ;; To make sure newer files are being byte compiled 
-;; (require 'auto-compile)
-;; (auto-compile-on-load-mode)
-;; (auto-compile-on-save-mode)
-
-;(package-initialize)      ;; Initialize & Install Package
-
-
-(defun maximize (&optional f)
-  (interactive)
-  ;; (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
-  ;; 	    		 '(2 "_NET_WM_STATE_MAXIMIZED_VERT" 0))
-  ;; (x-send-client-message nil 0 nil "_NET_WM_STATE" 32
-  ;; 	    		 '(2 "_NET_WM_STATE_MAXIMIZED_HORZ" 0)))
-  ;; (toggle-frame-maximized))
-  (set-frame-parameter nil 'fullscreen 'maximized))
-
-(defun enlarge-window-horizontally-to (percentage)
-  "Enlarge window horizontally by PERCENTAGE."
-  (interactive (list (string-to-number (completing-read "Percentage: " '("10" "20" "50" "60" "75" "85")))))
-  (enlarge-window-horizontally (truncate (- (* (frame-width) (/ (float percentage) 100)) (window-width)))))
-
-(defvar made-transparent nil)
-
-(defun toggle-frame-alpha ()
-  "Toggle frame transparency."
-  (interactive)
-  (set-frame-parameter (selected-frame) 'alpha (if made-transparent '(100 . 100) '(98 . 92)))
-  (setq made-transparent (not made-transparent)))
-
-(maximize)
-(toggle-frame-alpha)
-(add-hook 'after-make-frame-functions 'maximize)
-(setq ns-auto-hide-menu-bar t)
-(tool-bar-mode 0)
-
-(server-start)
 (require 'configurations)
+(setq use-package-compute-statistics t)
+
 
 ;;straight.el setup*************************************************
 (defvar bootstrap-version)
@@ -111,6 +59,7 @@
       split-height-threshold nil
       scroll-conservatively 0
       scroll-margin 0
+      ns-auto-hide-menu-bar t
       banner-text-list (string-split
                         (with-temp-buffer
                          (insert-file "~/.emacs.d/customFiles/banner_text.txt")
@@ -125,103 +74,20 @@
                            t "png"))
       )
 
-;; ;;enabling company***********************************************
-;; (add-hook 'after-init-hook 'global-company-mode)
-;; ;; ;;makes completion start automatically rather than waiting for 3 chars / 0.5sec
-;; (setq company-minimum-prefix-length 1)
-;; (setq company-idle-delay 0.1)
-;;;; GC issue
-;; (add-hook 'after-init-hook (lambda () (setq gc-cons-threshold 100000000))) ;; This is set in lsp-mode
 (add-hook 'focus-out-hook 'garbage-collect)
-;; ;; ;;company quickhelp gives docstring info
-;; (company-quickhelp-mode 1)
-;; (setq company-quickhelp-delay nil)
-
 
 (defvar my-package-list '(org org-contrib elgrep
 					   ;; org-capture-pop-frame
 					   use-package spaceline-all-the-icons
 					   latex-math-preview csproj-mode plantuml-mode
-					   docker dockerfile-mode ascii-art-to-unicode org-ref yasnippet-snippets 2048-game
+					   dockerfile-mode ascii-art-to-unicode org-ref 2048-game
 					   expand-region diminish amx flx
-					   dashboard ibuffer-vc projectile micgoline 
-					   stumpwm-mode hledger-mode vlf elpy
-					   yasnippet jedi sr-speedbar latex-preview-pane slime slim-mode))
+					   dashboard ibuffer-vc micgoline 
+					   stumpwm-mode hledger-mode vlf
+					   jedi sr-speedbar latex-preview-pane))
 
 (mapcar #'straight-use-package
 	my-package-list)
-
-;; (defun straight-visit-package-projectile (&rest args)
-;;   "Open projectile after visiting straight repo."
-;;   (let ((b (current-buffer))
-;;         (p (persp-current-name)))
-;;     (projectile-find-file)
-;;     (persp-add-buffer b)
-;;     (with-perspective p
-;;       (persp-remove-buffer b))))
-
-;; (advice-add 'straight-visit-package :after #'straight-visit-package-projectile)
-;; (advice-remove 'straight-visit-package #'straight-visit-package-projectile)
-
-;; custom variables*******************************************
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(TeX-view-program-selection
-   '(((output-dvi has-no-display-manager)
-      "dvi2tty")
-     ((output-dvi style-pstricks)
-      "dvips and gv")
-     (output-dvi "xdvi")
-     (output-pdf "PDF Tools")
-     (output-html "xdg-open")))
- '(ansi-color-faces-vector
-   [default default default italic underline success warning error])
- '(bookmark-save-flag 1)
- ;; '(company-c-headers-path-system
-   ;; '("/usr/include/" "/usr/local/include/" "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1/"))
- '(custom-safe-themes
-   '("3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" "c74e83f8aa4c78a121b52146eadb792c9facc5b1f02c917e3dbb454fca931223" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" default))
- '(ede-project-directories '("/media/Files/Research/FoodClassification/deployment"))
- '(elpy-rpc-python-command "python3")
- '(explicit-shell-file-name "/bin/zsh")
- '(helm-minibuffer-history-key "M-p")
- '(ledger-post-amount-alignment-at :decimal)
- '(ledger-reconcile-default-commodity nil)
- '(ledger-reports
-   '(("asd" "ledger")
-     ("a" "ledger ")
-     ("bal" "%(binary) -f %(ledger-file) bal")
-     ("reg" "%(binary) -f %(ledger-file) reg")
-     ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
-     ("account" "%(binary) -f %(ledger-file) reg %(account)")))
- '(magit-todos-insert-after '(bottom) nil nil "Changed by setter of obsolete option `magit-todos-insert-at'")
- '(org-export-backends '(ascii html icalendar latex md))
- '(prolog-system 'swi)
- '(safe-local-variable-values
-   '((eval font-lock-add-keywords nil
-           '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
-             ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-level-7 t)
-             ("`\\([a-zA-Z].*[a-zA-Z\\.]\\)`" 1 'org-quote t))
-           'append)
-     (org-download-image-dir . "../figures/notes")
-     (eval font-lock-add-keywords nil
-           '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
-             ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-tag t)
-             ("`\\([a-zA-Z].*[a-zA-Z\\.]\\)`" 1 'org-quote t))
-           'append)
-     (dired-omit-files . "\\`[.]?#\\|\\`[.][.]?\\'\\|\\.log$")
-     (magit-todos-exclude-globs "Assets/Oculus/" "Assets/TextMesh Pro/")
-     (magit-todos-exclude-globs "Assets/Oculus/")
-     (magit-todos-exclude-globs . "Assets/Oculus/")
-     (org-download-image-dir . "figures/notes")
-     (org-download-image-dir . "figures")))
- '(sml/mode-width 15)
- '(sml/shorten-modes t)
- '(sml/theme 'dark)
- '(visible-bell t))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -240,62 +106,64 @@
  '(org-level-1 ((t (:inherit outline-1 :foreground "dark turquoise"))))
  '(org-special-keyword ((t (:inherit outline-1 :foreground "sienna")))))
 
-(setq-default indent-tabs-mode nil)
+(defun amsha/maximize (&optional f)
+  (interactive)
+  (set-frame-parameter nil 'fullscreen 'maximized))
 
-;(exec-path-from-shell-initialize)
+(defun amsha/enlarge-window-horizontally-to (percentage)
+  "Enlarge window horizontally by PERCENTAGE."
+  (interactive (list (string-to-number (completing-read "Percentage: " '("10" "20" "50" "60" "75" "85")))))
+  (enlarge-window-horizontally (truncate (- (* (frame-width) (/ (float percentage) 100)) (window-width)))))
 
-;;allout
-(allout-mode)
+(defvar amsha/made-transparent nil)
 
-;;syntax highlight
-(global-font-lock-mode 1)
+(defun amsha/toggle-frame-alpha ()
+  "Toggle frame transparency."
+  (interactive)
+  (set-frame-parameter (selected-frame) 'alpha (if amsha/made-transparent '(100 . 100) '(98 . 92)))
+  (setq amsha/made-transparent (not amsha/made-transparent)))
 
-;;add proper word wrapping
-(global-visual-line-mode t)
-
-(global-hl-line-mode 1)
-
-(setq view-read-only t)
-
-(repeat-mode 1)
-
-(pixel-scroll-precision-mode 1)
-
-(customize-set-value 'create-lockfiles nil "It's not being ignored propperly?")
-
-(add-hook 'prog-mode-hook
-    (lambda ()
-      ;; (linum-on)
-      (setq indent-tabs-mode nil)
-      (infer-indentation-style)))
-
-;;fix for issues with ACL on WLS ***********************************
-;; from https://github.com/microsoft/WSL/issues/6004
-(when (eq system-type 'windows-nt)
-  (defun fp/ignore-wsl-acls (orig-fun &rest args)
-    "Ignore ACLs on WSL. WSL does not provide an ACL, but emacs
-expects there to be one before saving any file. Without this
-advice, files on WSL can not be saved."
-    (if (string-match-p "^//wsl\$/" (car args))
-        (progn (message "ignoring wsl acls") "")
-      (apply orig-fun args)))
-
-  (advice-add 'file-acl :around 'fp/ignore-wsl-acls))
-
-(put 'upcase-region 'disabled nil)
-(put 'narrow-to-region 'disabled nil)
-(put 'downcase-region 'disabled nil)
-
-(defun yank-pop-forwards (arg)
+(defun amsha/yank-pop-forwards (arg)
   "Ha ha ha. 
 ARG : the arg"
   (interactive "p")
   (yank-pop (- arg)))
 
-(global-set-key "\M-Y" 'yank-pop-forwards) ; M-Y (Meta-Shift-Y)
+(defun amsha/show-startup ()
+  (unless (featurep 'visual-fill-column)
+    (require 'visual-fill-column))
+  (with-current-buffer (get-buffer-create initial-buffer-choice)
+    (let ((inhibit-read-only t)
+          (fancy-splash-image (nth (random (length banner-images-list)) banner-images-list))
+          (visual-fill-column-width 200)
+          (footer-text (nth (random (length banner-text-list)) banner-text-list)))
+      (amsha/visual-fill)
+      (erase-buffer)
+      (setq default-directory "~/")
+      (make-local-variable 'startup-screen-inhibit-startup-screen)
+      (fancy-splash-head)
+      (insert "\n"
+              ;; copied from `fancy-splash-head'
+              ;; (insert (propertize " " 'display
+              ;;                     `(space :align-to (+ ,(- (/ (length footer-text) 2)
+              ;;                                              3)
+              ;;                                          (-0.5 . ,footer-text)))))
+              (propertize footer-text 'face 'font-lock-doc-face
+                          ;; copied from `dashboard-center-text'
+                          'line-prefix (propertize " " 'display `(space . (:align-to (- center ,(/ (float visual-fill-column-width) 2)))))
+                          'indent-prefix (propertize " " 'display `(space . (:align-to (- center ,(/ (float visual-fill-column-width) 2))))))
+              "\n\n"))
+    (use-local-map splash-screen-keymap)
+    (setq tab-width 22
+	  buffer-read-only t)
+    (set-buffer-modified-p nil)
+    (if (and view-read-only (not view-mode))
+	(view-mode-enter nil 'kill-buffer))
+    (switch-to-buffer initial-buffer-choice)
+    (goto-char (point-max))))
 
 ;; from https://emacs.stackexchange.com/questions/32140/python-mode-indentation
-(defun how-many-region (begin end regexp &optional interactive)
+(defun amsha/how-many-region (begin end regexp &optional interactive)
   "Print number of non-trivial matches for REGEXP in region.
    Non-interactive arguments are Begin End Regexp"
   (interactive "r\nsHow many matches for (regexp): \np")
@@ -314,8 +182,8 @@ ARG : the arg"
 (defun infer-indentation-style ()
   ;; if our source file uses tabs, we use tabs, if spaces spaces, and if
   ;; neither, we use the current indent-tabs-mode
-  (let ((space-count (how-many-region (point-min) (point-max) "^  "))
-        (tab-count (how-many-region (point-min) (point-max) "^\t")))
+  (let ((space-count (amsha/how-many-region (point-min) (point-max) "^  "))
+        (tab-count (amsha/how-many-region (point-min) (point-max) "^\t")))
     (if (> space-count tab-count) (setq indent-tabs-mode nil))
     (if (> tab-count space-count) (setq indent-tabs-mode t))))
 
@@ -380,39 +248,7 @@ Used for debugging."
         visual-fill-column-center-text t)
   (visual-fill-column-mode 1))
 
-(defun amsha/show-startup ()
-  (with-current-buffer (get-buffer-create initial-buffer-choice)
-    (let ((inhibit-read-only t)
-          (fancy-splash-image (nth (random (length banner-images-list)) banner-images-list))
-          (visual-fill-column-width 200)
-          (footer-text (nth (random (length banner-text-list)) banner-text-list)))
-      (amsha/visual-fill)
-      (erase-buffer)
-      (setq default-directory "~/")
-      (make-local-variable 'startup-screen-inhibit-startup-screen)
-      (fancy-splash-head)
-      (insert "\n"
-              ;; copied from `fancy-splash-head'
-              ;; (insert (propertize " " 'display
-              ;;                     `(space :align-to (+ ,(- (/ (length footer-text) 2)
-              ;;                                              3)
-              ;;                                          (-0.5 . ,footer-text)))))
-              (propertize footer-text 'face 'font-lock-doc-face
-                          ;; copied from `dashboard-center-text'
-                          'line-prefix (propertize " " 'display `(space . (:align-to (- center ,(/ (float visual-fill-column-width) 2)))))
-                          'indent-prefix (propertize " " 'display `(space . (:align-to (- center ,(/ (float visual-fill-column-width) 2))))))
-              "\n\n"))
-    (use-local-map splash-screen-keymap)
-    (setq tab-width 22
-	  buffer-read-only t)
-    (set-buffer-modified-p nil)
-    (if (and view-read-only (not view-mode))
-	(view-mode-enter nil 'kill-buffer))
-  (switch-to-buffer initial-buffer-choice)
-  (goto-char (point-max))))
-
-(add-hook 'emacs-startup-hook #'amsha/show-startup)
-
+;; %%%%%%%%% -------------------------
 (defun visual-fill-set-width-buffer-local (width)
   "Set visual fill column width for this buffer."
   (interactive (list (read (read-string (format "Width [%s]: " visual-fill-column-width) nil nil
@@ -429,11 +265,11 @@ Used for debugging."
 (defun amsha/get-project-root-overlooking-submodules (&optional filename)
   "Get the project root by looking for the root directory by running
 git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
-  (unless (featurep 'magit)
-    (require 'magit))
-  (let ((default-directory (magit--safe-default-directory (or filename default-directory))))
-    (when-let (project-root (magit-git-string "rev-parse" "--show-superproject-working-tree" "--show-toplevel"))
-      (file-truename (format "%s/" project-root)))))
+  ;; KLUDGE: This is to prevent magit from loading during stratup
+  (when (featurep 'magit)
+    (let ((default-directory (magit--safe-default-directory (or filename default-directory))))
+      (when-let (project-root (magit-git-string "rev-parse" "--show-superproject-working-tree" "--show-toplevel"))
+        (file-truename (format "%s/" project-root))))))
 
 (defun copy-buffer-file-name (buffer-file-name)
   "Copy the file name without the directory. If directory, copy the directory-name.
@@ -514,6 +350,117 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   (when (y-or-n-p "Erase buffer? ")
     (erase-buffer)))
 
+(use-package emacs
+  :demand
+  :hook ((prog-mode-hook . (lambda ()
+                             ;; (linum-on)
+                             (setq indent-tabs-mode nil)
+                             (infer-indentation-style)))
+         (emacs-startup-hook . amsha/show-startup)
+         (after-make-frame-functions . amsha/maximize))
+  :bind (("M-Y" . amsha/yank-pop-forwards))
+  :custom
+  (visible-bell t)
+  (bookmark-save-flag 1)
+  (ansi-color-faces-vector
+   [default default default italic underline success warning error])
+  (safe-local-variable-values
+   '((eval font-lock-add-keywords nil
+           '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
+             ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-level-7 t)
+             ("`\\([a-zA-Z].*[a-zA-Z\\.]\\)`" 1 'org-quote t))
+           'append)
+     (org-download-image-dir . "../figures/notes")
+     (eval font-lock-add-keywords nil
+           '(("^\\* .*\\(([0-9]\\{4\\})\\)" 1 'org-tag t)
+             ("^\\* .*\\(([0-9]\\{4\\})\\).*\\(\\[.*\\]\\)" 2 'org-tag t)
+             ("`\\([a-zA-Z].*[a-zA-Z\\.]\\)`" 1 'org-quote t))
+           'append)
+     (dired-omit-files . "\\`[.]?#\\|\\`[.][.]?\\'\\|\\.log$")
+     (magit-todos-exclude-globs "Assets/Oculus/" "Assets/TextMesh Pro/")
+     (magit-todos-exclude-globs "Assets/Oculus/")
+     (magit-todos-exclude-globs . "Assets/Oculus/")
+     (org-download-image-dir . "figures/notes")
+     (org-download-image-dir . "figures")))
+  :config
+  (amsha/maximize)
+  (amsha/toggle-frame-alpha)
+  (tool-bar-mode 0)
+
+  (server-start)
+
+  ;;syntax highlight
+  (global-font-lock-mode 1)
+
+  ;;add proper word wrapping
+  (global-visual-line-mode t)
+
+  (global-hl-line-mode 1)
+
+  (setq view-read-only t)
+
+  (setq-default indent-tabs-mode nil)
+
+  (repeat-mode 1)
+
+  (pixel-scroll-precision-mode 1)
+
+  (customize-set-value 'create-lockfiles nil "It's not being ignored propperly?")
+
+  ;;fix for issues with ACL on WLS ***********************************
+  ;; from https://github.com/microsoft/WSL/issues/6004
+  (when (eq system-type 'windows-nt)
+    (defun fp/ignore-wsl-acls (orig-fun &rest args)
+      "Ignore ACLs on WSL. WSL does not provide an ACL, but emacs
+expects there to be one before saving any file. Without this
+advice, files on WSL can not be saved."
+      (if (string-match-p "^//wsl\$/" (car args))
+          (progn (message "ignoring wsl acls") "")
+        (apply orig-fun args)))
+
+    (advice-add 'file-acl :around 'fp/ignore-wsl-acls))
+
+  (put 'upcase-region 'disabled nil)
+  (put 'narrow-to-region 'disabled nil)
+  (put 'downcase-region 'disabled nil)
+
+  (set-face-attribute 'default nil
+                      :font "Fira Code"
+                      :weight 'normal
+                      :height 100)
+
+  ;; Set the fixed pitch face
+  (set-face-attribute 'fixed-pitch nil
+                      :font "Fira Code"
+                      :weight 'normal
+                      :height 100)
+
+  ;; Set the variable pitch face
+  (set-face-attribute 'variable-pitch nil
+                      ;; :font "Cantarell"
+                      :font "Iosevka Aile"
+                      :height 105
+                      :weight 'normal)
+
+  (setq font-name-used "Noto Emoji")
+
+  (when (member font-name-used (font-family-list))
+    (set-fontset-font
+     t 'unicode (font-spec :family font-name-used) nil 'prepend)))
+
+(use-package benchmark-init
+  :ensure t
+  :config
+  ;; To disable collection of benchmark data after init is done.
+  (add-hook 'after-init-hook 'benchmark-init/deactivate))
+
+;;allout
+(use-package allout
+  :defer t
+  :config
+  (allout-mode))
+
+
 (use-package elec-pair
   :straight (:type built-in)
   :hook (org-mode . amsha/elec-pair-inhibit-org-mode)
@@ -530,36 +477,16 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   :hook
   (text-mode . mixed-pitch-mode))
 
-(set-face-attribute 'default nil
-                       :font "Fira Code"
-                       :weight 'normal
-                       :height 100)
-
-;; Set the fixed pitch face
-(set-face-attribute 'fixed-pitch nil
-                    :font "Fira Code"
-                    :weight 'normal
-                    :height 100)
-
-;; Set the variable pitch face
-(set-face-attribute 'variable-pitch nil
-                    ;; :font "Cantarell"
-                    :font "Iosevka Aile"
-                    :height 105
-                    :weight 'normal)
-
-(setq font-name-used "Noto Emoji")
-(when (member font-name-used (font-family-list))
-  (set-fontset-font
-   t 'unicode (font-spec :family font-name-used) nil 'prepend))
-
 (use-package exec-path-from-shell
   :demand
   :config
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
 
+(use-package nerd-icons)
+
 (use-package magit
+  :defer 2
   :bind ("C-x g" . magit-status)
   :commands (get-gitignore-from-github)
   :custom
@@ -756,16 +683,6 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   :defer 2
   :hook ((org-mode LaTeX-mode latex-mode markdown-mode org-roam-mode) . amsha/visual-fill))
 
-;; ;; Loading symlink-fix (https://www.emacswiki.org/emacs/symlink-fix.el)*************
-;; ;; Had to install this to resolve the symlink issues that cropped up with using org in both OS's
-;; (unless (eq system-type 'windows-nt)
-;;     (progn
-;;       (setq symlink-overload-expand-file-name-p t)
-;;       (require 'symlink-fix)
-;;       (setq expand-file-name-resolve-symlinks-p t)))
-;;   ;; (set-face-attribute 'default nil
-;;                       ;; :family "Consolas" :height 105))
-
 (use-package filladapt
   :hook (text-mode . filladapt-mode))
 
@@ -797,7 +714,6 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   :init (persistent-scratch-setup-default))
 
 (use-package powershell)
-
 
 ;;evil *************************************************************
 (use-package evil
@@ -967,17 +883,6 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
               (lambda ()
                 (interactive)
                 (evil-textobj-tree-sitter-goto-textobj "function.outer" t t))))
-
-;;selectrum  *******************************************************
-;; (use-package prescient
-;;   :config
-;;   (prescient-persist-mode +1))
-
-;;(use-package company-prescient)
-;; (use-package selectrum-prescient
-;;   :config
-;;   (selectrum-prescient-mode +1)
-;;   (setq selectrum-prescient-enable-filtering nil))
 
 (use-package evil-numbers
   :after evil
@@ -1321,7 +1226,8 @@ targets."
    consult-bookmark consult-recent-file consult-xref
    consult--source-recent-file consult--source-project-recent-file
    consult--source-bookmark :preview-key "M-."
-   consult--source-buffer :hidden t :default nil)
+   consult--source-buffer :hidden t :default nil
+   )
 
   (defvar consult--source-perspective
     (list :name     "Perspective"
@@ -1914,6 +1820,7 @@ targets."
 
 (use-package python
   :straight (:type built-in)
+  :defer t
   :ensure nil
   :config
   (defun amsha/add-python-outline ()
@@ -1929,10 +1836,12 @@ targets."
    ))
 
 (use-package hy-mode
+  :defer t
   :config
   (setq hy-jedhy--enable? nil))
 
 (use-package lsp-pyright
+  :defer t
   :config
   (with-eval-after-load "lsp-mode"
     (add-to-list 'lsp-disabled-clients 'pyls)
@@ -1951,6 +1860,7 @@ targets."
 ;;                           (lsp))))  ; or lsp-deferred
 
 (use-package lsp-treemacs
+  :defer t
   :after (lsp-mode)
   :custom
   (treemacs-missing-project-action 'remove)
@@ -1958,6 +1868,7 @@ targets."
   (lsp-treemacs-sync-mode 1))
 
 (use-package dap-mode
+  :defer t
   :after lsp-mode
   :bind (:map lsp-command-map
          ("d" . dap-hydra))
@@ -1992,6 +1903,7 @@ targets."
 ;;         lsp-ltex-enabled t))  ; make sure you have set this, see below
 
 (use-package lsp-ltex-plus
+  :defer t
   :ensure t
   :straight (lsp-ltex-plus :type git :host github :repo "emacs-languagetool/lsp-ltex-plus")
   ;; :hook (text-mode . (lambda ()
@@ -2007,6 +1919,7 @@ targets."
 ;;   :hook ((lsp-after-open-hook . lsp-origami-try-enable)))
 
 (use-package dap-python
+  :defer t
   :after lsp
   :straight nil
   :config
@@ -2028,9 +1941,11 @@ targets."
          :name "Python :: Run pytest - from anywhere")))
 
 (use-package dap-unity
+  :defer t
   :straight nil)
 
 (use-package dap-java :straight nil
+  :defer t
   :after (lsp-java))
 
 (use-package rustic
@@ -2375,7 +2290,12 @@ its thing."
 
 ;; ;;org mode*******************************************************
 ;; ;;rest in ~/.emacs.d/CustomLoadFiles/orgZ.el
-(require 'orgZ)
+(use-package org)
+(use-package org-contrib)
+(use-package orgZ
+  :after org
+  :straight nil)
+;; (require 'orgZ)
 
 ;; ;;yasnippet setup************************************************
 (use-package yasnippet
@@ -2387,8 +2307,12 @@ its thing."
                 `("~/.emacs.d/snippets"))                 ;; personal snippets
         yas-indent-line 'fixed))
 
+(use-package yasnippet-snippets
+  :defer t)
+
 ;;slime and cl setup*********************************************
 (use-package slim-mode
+  :defer t
   :config
   ;;(load (expand-file-name "/home/amsha/quicklisp/slime-helper.el"))
   ;; (setq package-enable-at-startup nil)
@@ -2398,6 +2322,7 @@ its thing."
   (setq slime-net-coding-system 'utf-8-unix))
 
 (use-package slime
+  :defer t
   :config
   (slime-setup
    '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser))
@@ -2407,24 +2332,6 @@ its thing."
   (add-to-list 'completion-styles 'initials t))
 
 ;;python setup*************************************************
- ;(eval-after-load "company"
- ;  '(add-to-list 'company-backends 'company-anaconda)); :with company-capf)))
- ;(add-hook 'python-mode-hook 'anaconda-mode)
- ;(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
-;(add-hook 'python-mode-hook '(company-anaconda 'interactive))
-;;(add-to-list 'company-backends 'company-jedi)
-;; (use-package elpy
-;;   :straight t
-;;   :init
-;;   (elpy-enable))
-					;(setenv "IPY_TEST_SIMPLE_PROMPT" "1")
-;; (use-package with-venv
-;;   :after (lsp lsp-pyright)
-;;   :config
-;;   (with-venv-advice-add 'lsp-pyright-locate-venv)
-;;   (with-venv-advice-add 'lsp-pylsp-get-pyenv-environment)
-;;   (with-venv-advice-add 'dap-python--pyenv-executable-find))
-
 ;; In windows, poetry is not correctly picked up: https://github.com/cybniv/poetry.el/pull/61
 (use-package poetry
   :defer t
@@ -2442,6 +2349,7 @@ its thing."
   )
 
 (use-package pet
+  :defer t
   ;; so that it doesn't overwrite `lsp-pyright-langserver-command'
   ;; otherwise, pet wil set it to nil and pyright will setup npm dependancy as nil!
   :after (lsp-pyright)
@@ -2538,15 +2446,6 @@ buffer local values."
 
 (use-package tomlparse)
 
-;; (use-package linum-relative
-;;   :demand
-;;   :hook (prog-mode text-mode)
-;;   :custom
-;;   (linum-relative-backend 'display-line-numbers-mode)
-;;   :config
-;;   ;; (linum-relative-global-mode))
-;;   )
-
 (use-package display-line-numbers
   :hook ((prog-mode text-mode) . display-line-numbers-mode)
   :custom
@@ -2555,20 +2454,6 @@ buffer local values."
 (use-package ess
   :defer t)
 
-;; (highlight-indentation-mode t)
-;; (highlight-indentation-current-column t)
-;; (use-package diminish)
-;; (diminish 'highlight-indentation-mode)
-;; (diminish 'highlight-indentation-current-column-mode)
-;; (diminish 'elpy)
-;; (diminish 'hs-minor-mode)
-;; (diminish 'Projectile "Projectile")
-
-;;prolog*******************************************************
-;; (setq auto-mode-alist
-;;   (cons (cons "\\.pl" 'prolog-mode)
-;;      auto-mode-alist))
-
 ;; c/c++ setup*************************************************
 (use-package semantic
   :defer t
@@ -2576,7 +2461,8 @@ buffer local values."
   (global-semanticdb-minor-mode 1)
   (global-semantic-idle-scheduler-mode 1)
 
-  (semantic-mode 1))
+  ;; (semantic-mode 1))
+  )
 
 (use-package cc-mode
   :defer t
@@ -2601,40 +2487,12 @@ buffer local values."
 
   (add-hook 'c-mode-common-hook 'my-c-mode-common-hook))
 
-;; (use-package ccls
-;;   :straight t
-;;   :config
-;;   (setq ccls-executable "ccls")
-;;   (setq lsp-prefer-flymake nil)
-;;   (setq-default flycheck-disabled-checkers '(c/c++-clang c/c++-cppcheck c/c++-gcc))
-;;   :hook ((c-mode c++-mode objc-mode) .
-;; 	 (lambda ()
-;; 	   (require 'ccls)
-;; 	   (lsp)
-;; 	   (linum-mode))))
-
-
-;;visual editing**********************************************************************************************************
-;;set transparency********************************************
-;;(set-frame-parameter (selected-frame) 'alpha '(<active> . <inactive>))
- ;;(set-frame-parameter (selected-frame) 'alpha <both>)
-;; (set-frame-parameter (selected-frame) 'alpha '(98 . 92))
-;; (add-to-list 'default-frame-alist '(alpha . (98 . 92)))
-
-;; (custom-set-faces
-;;  ;; custom-set-faces was added by Custom.
-;;  ;; If you edit it by hand, you could mess it up, so be careful.
-;;  ;; Your init file should contain only one such instance.
-;;  ;; If there is more than one, they won't work right.
-;;  '(mode-line ((t (:background "#004276" :foreground "#8cccff" :box nil :height 0.9))))
-;;  '(mode-line-inactive ((t (:background "#666666" :foreground "#f9f9f9" :box nil :height 0.9))))
-;;  '(sml/global ((t (:foreground "gray50" :inverse-video nil :height 0.9 :width normal)))))
-
-
 ;;arduino-mode***********************************************************
-(use-package arduino-mode)
+(use-package arduino-mode
+  :defer t)
 
 (use-package arduino-cli-mode
+  :defer t
   :ensure t
   :hook arduino-mode
   ;; :mode "\\.ino\\'"
@@ -2939,10 +2797,12 @@ Used with atomic-chrome."
 ;;   (company-auctex-init))
 
 (use-package reftex
+  :defer t
   :config
   (keymap-set reftex-mode-map "C-c [" nil))
 
 (use-package bibtex
+  :defer t
   :custom
   ;; Removing required-fields
   (bibtex-entry-format '(opts-or-alts numerical-fields))
@@ -3026,24 +2886,14 @@ Used with atomic-chrome."
                                           ("pp-comment" (("ppi" "{")) (:background "DarkSlateBlue") command))))
 
 (use-package lsp-latex
+  :defer t
   :config
   (setq lsp-tex-server 'texlab
         lsp-latex-texlab-executable "~/.emacs.d/var/texlab.exe"))
 
-;; (defun activate-preview-mode ()
-;;   (load "preview-latex.el" nil t t))
-
-;; (add-hook 'LaTeX-mode-hook 'turn-on-outline-minor-mode)
-;; (add-hook 'latex-mode-hook 'turn-on-outline-minor-mode)
-;; ;; (add-hook 'LaTeX-mode-hook 'activate-preview-mode)
-;; ;; (add-hook 'laTeX-mode-hook 'activate-preview-mode)
-;; (add-hook 'LaTeX-mode-hook 'flyspell-mode)
-;; (add-hook 'latex-mode-hook 'flyspell-mode)
-;; (setq outline-minor-mode-prefix "\C-c \C-o")
-
-
 ;;magit******************************************************************
 (use-package git-gutter
+  :defer t
   :straight git-gutter-fringe
   :diminish
   :hook ((text-mode . git-gutter-mode)
@@ -3110,6 +2960,7 @@ Used with atomic-chrome."
   (set-face-foreground 'git-gutter:deleted "LightCoral"))
 
 (use-package magit-todos
+  :defer t
   :straight (magit-todos :type git :host github :repo "alphapapa/magit-todos"
                          :fork (:host github :repo "ahmed-shariff/magit-todos"))
   :after (magit)
@@ -3136,53 +2987,6 @@ Used with atomic-chrome."
                     :height 100  ;; TODO: find a way to get this from font attribute
                     :italic t))))
 
-;;origami*****************************************************************************
-;; (use-package origami
-;;   :straight (origami :type git :host github :repo "elp-revive/origami.el")
-;;   :bind ("C-+" . hydra-origami/body)
-;;   :hook ((prog-mode . origami-mode))
-;;   :hydra (hydra-origami (:color red)
-;;    "
-;;   [_o_] Open node    [_n_] Next fold       [_f_] toggle forward  [_s_] Show current only
-;;   [_c_] Close node   [_p_] Previous fold   [_a_] toggle all      [_q_] quit
-;;   "
-;;    ("o" origami-open-node)
-;;    ("c" origami-close-node)
-;;    ("n" origami-next-fold)
-;;    ("p" origami-previous-fold)
-;;    ("f" origami-forward-toggle-node)
-;;    ("a" origami-toggle-all-nodes)
-;;    ("s" origami-show-only-node)
-;;    ("q" nil)))
-
-;; ;;hide/show
-;; (defun toggle-selective-display (column)
-;;   (interactive "P")
-;;   (set-selective-display
-;;    (or column
-;;        (unless selective-display
-;; 	 (1+ (current-column))))))
-
-;; (defun toggle-hiding (column)
-;;   (interactive "P")
-;;   (if hs-minor-mode
-;;       (if (condition-case nil
-;; 	      (hs-toggle-hiding)
-;; 	    (error t))
-;; 	  (hs-show-all))
-;;     (toggle-selective-display column)))
-
-;; (load-library "hideshow")
-;; (global-set-key (kbd "C-+") 'toggle-hiding)
-;; (global-set-key (kbd "C-\\") 'toggle-selective-display)
-
-;; (defun add-hs-hook (mode-list)
-;;   "MODE-LIST:  list of modes that needs 'hs-minor-mode' hook."
-;;   (dolist (mode mode-list)
-;;     (add-hook mode 'hs-minor-mode)))
-
-;; (add-hs-hook (list 'python-mode-hook 'lisp-mode-hook))
-
 ;;ts-fold*****************************************************************************
 ;; (use-package tree-sitter
 ;;   :config
@@ -3194,6 +2998,7 @@ Used with atomic-chrome."
 ;; 2. extract and rename all language grammar files to "libtree-sitter-<lang>[.dll|.so]"
 ;; See https://www.johansivertsen.com/post/treesitter and https://cgit.git.savannah.gnu.org/cgit/emacs.git/tree/admin/notes/tree-sitter/starter-guide?h=feature/tree-sitter
 (use-package treesit
+  :defer t
   :straight nil
   :config
   (add-to-list 'treesit-extra-load-path "~/.emacs.d/treesit-langs")
@@ -3201,6 +3006,7 @@ Used with atomic-chrome."
   (add-to-list 'major-mode-remap-alist '(csharp-mode . csharp-ts-mode)))
 
 (use-package ts-fold
+  :defer t
   :straight (ts-fold :type git :host github :repo "emacs-tree-sitter/ts-fold")
   :bind ("C-+" . hydra-ts-fold/body)
   :hydra (hydra-ts-fold (:color red)
@@ -3220,6 +3026,7 @@ Used with atomic-chrome."
   )
 
 (use-package ts-fold-indicators
+  :defer t
   :after (ts-fold)
   :straight (ts-fold-indicators :type git :host github :repo "emacs-tree-sitter/ts-fold")
   ;; :config
@@ -3227,6 +3034,7 @@ Used with atomic-chrome."
   )
 
 (use-package slack
+  :defer t
   :commands (slack-start)
   :init
   (setq slack-buffer-emojify t) ;; if you want to enable emoji, default nil
@@ -3246,6 +3054,7 @@ Used with atomic-chrome."
 (use-package visual-fill-column)
 
 (use-package web-search
+  :defer t
   :bind ("\C-c/" . web-search)
   :config
   (setq web-search-default-provider "Google"
@@ -3278,12 +3087,14 @@ Used with atomic-chrome."
     
 ;;alert mode************************************************************
 (use-package alert
+  :defer t
   :commands (alert)
   :init
   (setq alert-default-style 'notifier))
 
 ;;weather data**********************************************************
 (use-package biome
+  :defer t
   :straight (:host github :repo "SqrtMinusOne/biome")
   :custom
   (biome-query-coords
@@ -3291,6 +3102,7 @@ Used with atomic-chrome."
      ("Kandy" 7.2906 80.6336))))
 
 (use-package wttrin
+  :defer t
   :straight (:host github :repo "ahmed-shariff/emacs-wttrin")
   :custom
   (wttrin-default-cities '("Kelowna" "Kandy")))
@@ -3674,7 +3486,11 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 
 ;;Docker
 (use-package docker
+  :defer t
   :bind ("C-c d" . docker))
+
+(use-package dockerfile-mode
+  :mode "\\.dockerfile\\'")
 
 (use-package ahk-mode
   :defer t
@@ -3684,6 +3500,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 
 ;;arxiv mode
 (use-package arxiv-mode
+  :defer t
   :commands (arxiv-read-new arxiv-read-recent arxiv-search)
   :straight (arxiv-mode :type git :host github :repo "fizban007/arxiv-mode"))
 
@@ -3761,4 +3578,6 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 ;;yasnippets company conflict resolution
 ;(provide .emacs)
 ;;; .emacs ends here
+(em (emacs-init-time))
+(toggle-debug-on-error)
 (put 'erase-buffer 'disabled nil)

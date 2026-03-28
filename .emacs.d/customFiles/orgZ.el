@@ -17,7 +17,44 @@
 (defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
 (add-to-list 'safe-local-variable-directories okm-base-directory)
-(require 'org-roam-extensions)
+
+(use-package org-roam-extensions
+  :straight nil
+  :defer t
+  :bind (("C-c n l" . org-roam-buffer-for-node)
+         ("C-c n L" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ;;("C-c n g" . org-roam-graph)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         ("C-c n t" . okm-org-roam-quick-capture-topic)
+         ("C-c n y" . amsha/org-roam-db-sync)
+         ;; Dailies
+         ("C-c n j" . org-roam-dailies-capture-today)
+         ;; org-roam-bibtex
+         ("C-c n b" . orb-insert-link)
+         ;; consult-org-roam
+         ("C-c n e" . consult-org-roam-file-find)
+         ("C-c n B" . consult-org-roam-backlinks-recursive)
+         ("C-c n r" . consult-org-roam-search)
+         ("C-c n v" . consult-notes-visit-relation)
+         :map org-roam-mode-map
+         ("j" . magit-section-forward)
+         ("k" . magit-section-backward)
+         ("v" . org-roam-ql-buffer-dispatch)
+         :map org-roam-node-map
+         ("C-c o s" . org-roam-node-view-topics)
+         ("C-c o o" . org-roam-node-view-noter)
+         ("C-c o p" . org-roam-node-add-parents)
+         ;; ("C-c o r" . org-roam-node-ref-hydra)
+         :map org-roam-preview-map
+         ("C-c o s" . org-roam-node-view-topics)
+         ("C-c o o" . org-roam-node-view-noter)
+         ("C-c o p" . org-roam-node-add-parents)
+         ("w" . okm-org-roam-ql-copy-preview)
+         ;; ("C-c o r" . org-roam-node-ref-hydra)
+         :map minibuffer-mode-map
+         ("C-c n i" . org-roam-ql-insert-node-title)))
 
 (org-link-set-parameters okm-parent-id-type-name
                          :follow 'org-roam-id-open
@@ -493,9 +530,9 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
 (use-package ox-pandoc)
 
 (use-package org-ref
+  :defer t
   :after ox-pandoc
   :requires org-keys
-  :demand
   :bind (:map org-mode-map
          ("C-c ]" . org-ref-insert-link)
          :map bibtex-mode-map
@@ -689,6 +726,7 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
 ;;   :straight (org-noter :type git :host github :repo "weirdNox/org-noter"
 ;;                        :fork (:host github :repo "ahmed-shariff/org-noter"))
 (use-package org-noter
+  :defer t
   :straight (org-noter :host github :type git :repo "org-noter/org-noter"
                        :files ("*.el" "modules/*.el"))
   :config

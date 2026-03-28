@@ -12,6 +12,8 @@
 (require 'gptel-context)
 (require 'gptel-request)
 (require 'gptel-rewrite)
+(require 'lsp)
+(require 'magit-section)
 (require 'f)
 
 ;;; Some top level defaults*****************************************************************
@@ -240,6 +242,7 @@ Code
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
 
 (use-package gptel-agent
+  :defer t
   :straight (:host github :repo "karthink/gptel-agent"
                    :files (:defaults "agents")) ;use :ensure for Elpaca
   :config
@@ -1526,6 +1529,8 @@ Supported method:
 - hover: Get hover information (documentation, type info) for a symbol
 - documentSymbol: Get all symbols (functions, classes, variables) in a document
 - implementation: Find implementations of an interface or abstract method"
+  (unless (featurep 'lsp)
+    (require 'lsp))
   (pcase method
     ("definition" (gptel--lsp-mode-get-definition file line char))
     ("references" (gptel--lsp-mode-get-references file line char))
