@@ -18,6 +18,7 @@
 
 ;;; Some top level defaults*****************************************************************
 (defvar amsha/gptel-default-prompt-transform-functions gptel-prompt-transform-functions)
+(defvar amsha/gptel-default-model 'gpt-5.4-mini)
 
 ;;; packages ******************************************************************************
 (use-package elysium
@@ -167,7 +168,9 @@ word count of the response."
 
 (use-package gptel-openai-responses-backend
   :after gptel
-  :straight (gptel-openai-responses-backend :type git :host github :repo "ahmed-shariff/gptel-openai-responses-backend"))
+  :straight (gptel-openai-responses-backend :type git :host github :repo "ahmed-shariff/gptel-openai-responses-backend")
+  :custom
+  (gptel-openai-responses-extended-vector-store-ids (vector (gethash 'openai-org-vector-store configurations))))
 
 (use-package mcp
   :straight (mcp :type git :host github :repo "lizqwerscott/mcp.el"
@@ -270,12 +273,12 @@ Code
     (gptel-agent okm-base-directory 'paper-agent)))
 
 ;;; openai reponse related setup **********************************************************
-(unless (featurep 'gptel-openai-responses-backend)
-  (require 'gptel-openai-responses-backend))
+;; (unless (featurep 'gptel-openai-responses-backend)
+;;   (require 'gptel-openai-responses-backend))
 
-(gptel-openai-responses-setup-builtin-transient)
+;; (gptel-openai-responses-extended-setup-builtin-transient)
 
-(setq gptel-openai-response-backend (gptel-make-openai-responses "ChatGPT-response" :key gptel-api-key :models gptel--openai-models :stream t))
+(setq gptel-openai-response-backend (gptel-make-openai-responses-extended "ChatGPT-response" :key gptel-api-key :models gptel--openai-models :stream t))
 
 (defun test-response ()
   (let ((gptel-backend gptel-openai-response-backend)
@@ -646,7 +649,7 @@ Note: LSP servers must be configured for the file type. If no server is availabl
   :description "Preset with defaults"
   ;; :backend '(:eval amsha/gptel-default-backend)
   :backend gptel-openai-response-backend
-  :model 'gpt-5-mini
+  :model amsha/gptel-default-model
   :system 'default
   :tools nil
   :openai-responses--tools nil
@@ -815,18 +818,18 @@ Otherwise, add ELEM as the last element."
                                     (gptel-backend-name gptel-backend)
                                     (gptel--model-name gptel-model))
                             'face '(:foreground "gray80" :background "#000033"))
-                (if (or gptel-context gptel-tools gptel-openai-responses--tools)
+                (if (or gptel-context gptel-tools gptel-openai-responses-extended--tools)
                     (let ((context-string
                            (when gptel-context
                              (format "C:%s" (length gptel-context))))
                           (tool-string
-                           (when (or gptel-tools gptel-openai-responses--tools)
+                           (when (or gptel-tools gptel-openai-responses-extended--tools)
                              (format "T:%s"
                                      (+ (if gptel-tools
                                             (length gptel-tools)
                                           0)
-                                        (if gptel-openai-responses--tools
-                                            (length gptel-openai-responses--tools)
+                                        (if gptel-openai-responses-extended--tools
+                                            (length gptel-openai-responses-extended--tools)
                                           0))))))
                       (propertize (format "(%s) "
                                           (cond
@@ -922,7 +925,7 @@ Otherwise, add ELEM as the last element."
   (let* ((gptel-backend gptel-openai-response-backend)
          (gptel-model 'gpt-5-nano)
          (gptel-tools nil)
-         (gptel-openai-responses--tools `((:type "file_search"
+         (gptel-openai-responses-extended--tools `((:type "file_search"
                                                 :vector_store_ids ,(vconcat (list (gethash 'openai-org-vector-store configurations))))))
          (gptel-context nil)
          ;; (fsm (copy-tree gptel-request--handlers))
@@ -940,9 +943,9 @@ Otherwise, add ELEM as the last element."
         ;;                             (plist-get info :post)))
         (if (stringp response)
             (let ((gptel-backend gptel-openai-response-backend)
-                  (gptel-model 'gpt-5-mini)
+                  (gptel-model amsha/gptel-default-model)
                   (gptel-tools nil)
-                  (gptel-openai-responses--tools nil)
+                  (gptel-openai-responses-extended--tools nil)
                   (gptel-context nil)
                   cite-list)
               (gptel-request (with-temp-buffer
@@ -978,7 +981,7 @@ Otherwise, add ELEM as the last element."
   (em "asking questions from " paper_id)
   (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id))))
         (gptel-backend gptel-openai-response-backend)
-        (gptel-model 'gpt-5-mini)
+        (gptel-model amsha/gptel-default-model)
         (gptel-tools nil)
         (gptel-context nil))
     (if node
@@ -2193,7 +2196,7 @@ then close the *gptel-context* buffer and return to gptel menu."
 
 (setf gptel-use-curl t
       gptel-backend gptel-openai-response-backend
-      gptel-model 'gpt-5-mini
+      gptel-model amsha/gptel-default-model
       gptel-default-mode #'org-mode
 
       gptel-org-branching-context t
@@ -2229,16 +2232,21 @@ then close the *gptel-context* buffer and return to gptel menu."
     :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
     :models '(deepseek/deepseek-r1-distill-llama-70b:free)))
 
+(setq gptel--openai (gptel-make-openai-responses "gptel-responses"
+                      :models gptel--openai-models
+                      :key gptel-api-key
+                      :stream t))
+
 (defvar amsha/gptel-anthropic-api
  (gptel-make-anthropic "Claude"          ;Any name you want
   :stream t                             ;Streaming responses
   :key (gethash 'anthropic-api configurations)))
 
-(condition-case err
-    (setf (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
-                                                   (--map (prog1 it (put it :capabilities '(reasoning)))
-                                                          '(gpt-4o-search-preview gpt-4o-mini-search-preview))))
-  (error (message "ERROR %s" err)))
+;; (condition-case err
+;;     (setf (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
+;;                                                    (--map (prog1 it (put it :capabilities '(reasoning)))
+;;                                                           '(gpt-4o-search-preview gpt-4o-mini-search-preview))))
+;;   (error (message "ERROR %s" err)))
 
 (provide 'gptel-extensions)
 ;;; gptel-extensions.el ends here
