@@ -6,7 +6,6 @@
 (require 'org)
 (require 'org-capture)
 (require 'org-tempo)
-(require 'org-ref-arxiv)
 (require 'ox-extra)
 ;; (require 'org-capture-pop-frame)
 ;(ido-mode)
@@ -231,6 +230,7 @@
 ;; use package defs *************************************************************************
 (use-package org-roam-gocal
   :straight nil
+  :after org-roam
   :config
   (setq org-roam-gocal-new-node-file (f-expand "google_calender_unlisted.org" okm-base-directory)))
 
