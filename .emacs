@@ -2002,14 +2002,53 @@ targets."
 
     (add-to-list 'pdf-view-incompatible-modes 'display-line-numbers-mode)
 
+    (defun amsha/pdf-crop-image (event &optional switch-back)
+      "EVENT SWITCH-BACK."
+      (interactive "@e")
+      (setq current-b (buffer-name))
+      (progn (pdf-view-mouse-set-region-rectangle event)
+	     (pdf-view-extract-region-image pdf-view-active-region
+					    (pdf-view-current-page)
+					    (pdf-view-image-size)
+					    (get-buffer-create "teste")
+					    nil)))
+
+    (defun amsha/pdf-crop-image-and-save (event &optional switch-back)
+      "EVENT SWITCH-BACK."
+      (interactive "@e")
+      (setq current-b (buffer-name))
+      (progn (pdf-view-mouse-set-region-rectangle event)
+	     (pdf-view-extract-region-image pdf-view-active-region
+					    (pdf-view-current-page)
+					    (pdf-view-image-size)
+					    (get-buffer-create "teste.jpg")
+					    nil)
+             (set-buffer "teste.jpg")
+	     (switch-to-buffer "taste.jpg")
+             (with-current-buffer "taste.jpg"
+               (mark-whole-buffer)
+               (kill-ring-save (point-min) (point-max))
+               (write-file "~/" t)
+               (yank))))
+    ;; (kill-buffer "screenshot.png")
+    ;; (set-buffer current-b)
+    ;; (org-noter-insert-note)
+    ;; (org-download-screenshot)
+    ;; (if switch-back
+    ;;     (switch-to-buffer-other-frame current-b))))
+
+    (define-key pdf-view-mode-map [C-M-down-mouse-1] 'amsha/pdf-crop-image)
+    (define-key pdf-view-mode-map [C-M-S-down-mouse-1] 'amsha/pdf-crop-image-and-save)
+
     (defun amsha/pdf-view-mode-hook ()
       (pdf-misc-size-indication-minor-mode)
       (set (make-local-variable 'evil-normal-state-cursor) (list nil))
       (set (make-local-variable 'evil-emacs-state-cursor) (list nil))
       (evil-emacs-state))
+
     (add-hook 'pdf-view-mode-hook #'amsha/pdf-view-mode-hook)
 
-    (defun pdf-toggle-edit-on-annotation-created ()
+    (defun amsha/pdf-toggle-edit-on-annotation-created ()
       "Toggle if annotations active function should be called.
 
 See `pdf-annot-activate-created-annotations' for more details."

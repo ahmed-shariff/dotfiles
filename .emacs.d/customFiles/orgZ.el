@@ -1429,42 +1429,6 @@ Currently written to work in org-ql buffer."
                                                (org-super-agenda--group-items strings))))))))
 
 
-  
-(defun pdf-crop-image (event &optional switch-back)
-  "EVENT SWITCH-BACK."
-  (interactive "@e")
-  (setq current-b (buffer-name))
-  (progn (pdf-view-mouse-set-region-rectangle event)
-	 (pdf-view-extract-region-image pdf-view-active-region
-					(pdf-view-current-page)
-					(pdf-view-image-size)
-					(get-buffer-create "teste")
-					nil)))
-
-(defun pdf-crop-image-and-save (event &optional switch-back)
-  "EVENT SWITCH-BACK."
-  (interactive "@e")
-  (setq current-b (buffer-name))
-  (progn (pdf-view-mouse-set-region-rectangle event)
-	 (pdf-view-extract-region-image pdf-view-active-region
-					(pdf-view-current-page)
-					(pdf-view-image-size)
-					(get-buffer-create "teste.jpg")
-					nil)
-         (set-buffer "teste.jpg")
-	 (switch-to-buffer "taste.jpg")
-         (with-current-buffer "taste.jpg"
-           (mark-whole-buffer)
-           (kill-ring-save (point-min) (point-max))
-           (write-file "~/" t)
-           (yank))))
-	 ;; (kill-buffer "screenshot.png")
-	 ;; (set-buffer current-b)
-	 ;; (org-noter-insert-note)
-	 ;; (org-download-screenshot)
-	 ;; (if switch-back
-;;     (switch-to-buffer-other-frame current-b))))
-
 (defun amsha/format-multiline-from-kill-ring ()
   "Format a mulitline kill in the kill-ring into a single line."
   (format "`%s`" (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" (car kill-ring)))))
@@ -2270,10 +2234,6 @@ To use add something like this in the org buffer:
 
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
   
-(when (gethash 'use-pdf-tools configurations t)
-  (define-key pdf-view-mode-map [C-M-down-mouse-1] 'pdf-crop-image)
-  (define-key pdf-view-mode-map [C-M-S-down-mouse-1] 'pdf-crop-image-and-save))
-
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
