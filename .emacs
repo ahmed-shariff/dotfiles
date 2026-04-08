@@ -75,15 +75,18 @@
 
 (add-hook 'focus-out-hook 'garbage-collect)
 
-(defvar my-package-list '(org org-contrib elgrep
-					   ;; org-capture-pop-frame
-					   use-package spaceline-all-the-icons
-					   latex-math-preview csproj-mode plantuml-mode
-					   dockerfile-mode ascii-art-to-unicode org-ref 2048-game
-					   expand-region diminish amx flx
-					   dashboard ibuffer-vc micgoline 
-					   stumpwm-mode hledger-mode vlf
-					   jedi sr-speedbar latex-preview-pane))
+(defvar my-package-list '(
+			  ;; org-capture-pop-frame
+			  use-package
+			  latex-math-preview csproj-mode
+			  ascii-art-to-unicode 2048-game
+			  flx
+			  ibuffer-vc
+			  stumpwm-mode
+                          hledger-mode
+			  ;; jedi
+                          sr-speedbar
+                          latex-preview-pane))
 
 (mapcar #'straight-use-package
 	my-package-list)
@@ -403,6 +406,8 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   (repeat-mode 1)
 
   (pixel-scroll-precision-mode 1)
+
+  (delete-selection-mode t)
 
   (customize-set-value 'create-lockfiles nil "It's not being ignored propperly?")
 
@@ -2056,9 +2061,10 @@ See `pdf-annot-activate-created-annotations' for more details."
       (setq-local pdf-annot-activate-created-annotations (not pdf-annot-activate-created-annotations))
       (message "Toggled pdf-annot-activate-created-annotations to: %s" pdf-annot-activate-created-annotations))))
 
-;;delete-selection-mode
-(delete-selection-mode t)
-(require 'vlf-setup)
+(use-package vlf
+  :defer 2
+  :init
+  (require 'vlf-setup))
 
 ;; Flycheck: On the fly syntax checking
 (use-package flycheck
