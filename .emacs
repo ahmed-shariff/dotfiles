@@ -244,6 +244,11 @@ Used for debugging."
        ,@(nreverse list)
        ,plist-sym)))
 
+(defun lazy-require (mode)
+  "Lazy require MODE."
+  (unless (featurep mode)
+    (require mode)))
+
 ;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
 (defun amsha/visual-fill ()
   (setq visual-fill-column-width 110

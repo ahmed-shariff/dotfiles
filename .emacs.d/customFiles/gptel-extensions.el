@@ -979,6 +979,7 @@ Otherwise, add ELEM as the last element."
 (defun okm-pdf-question (callback paper_id questions)
   "Returns the answer to the question from paper represented by paper_id."
   (em "asking questions from " paper_id)
+  (lazy-require 'org-roam-ql)
   (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id))))
         (gptel-backend gptel-openai-response-backend)
         (gptel-model amsha/gptel-default-model)
@@ -1079,6 +1080,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
 
 (defun okm-paper-get-notes (paper_id)
   "Returns the notes from paper represented by paper_id."
+  (lazy-require 'org-roam-ql)
   (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id)))))
     (if node
         (save-excursion
@@ -1101,10 +1103,12 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
 
 (defun okm-gptel-get-keywords ()
   "Return the list of keywords in the db."
+  (lazy-require 'org-roam)
   (-map #'org-roam-node-title (org-roam-ql-nodes '(and rt lvl1))))
 
 (defun okm-gptel-paper-ids-for-keyword (keyword)
   "Return the list of paper-ids for a given keyword."
+  (lazy-require 'org-roam-ql)
   (--map (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'string-equal)
          (org-roam-ql-nodes `(and (backlink-to (and (title ,keyword t)
                                                     (file "research topics"))
@@ -1532,8 +1536,7 @@ Supported method:
 - hover: Get hover information (documentation, type info) for a symbol
 - documentSymbol: Get all symbols (functions, classes, variables) in a document
 - implementation: Find implementations of an interface or abstract method"
-  (unless (featurep 'lsp)
-    (require 'lsp))
+  (lazy-require 'lsp)
   (pcase method
     ("definition" (gptel--lsp-mode-get-definition file line char))
     ("references" (gptel--lsp-mode-get-references file line char))
@@ -2125,6 +2128,7 @@ then close the *gptel-context* buffer and return to gptel menu."
 
 (defun amsha/gptel--replace-file-id-with-cite (start end)
   "Updating annotations strings, preserving text properties of replaced text."
+  (lazy-require 'org-roam-ql)
   (save-excursion
     (goto-char start)
     (let ((nodes (--map
