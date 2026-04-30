@@ -772,6 +772,22 @@ Otherwise, add ELEM as the last element."
                                    :body (em (format "Awaiting %s tool confirmation in %s"
                                                      (length tool-calls) (plist-get info :buffer)))))))
 
+(defun amsha/gptel-org-set-topic (old-fn &rest r)
+  (interactive)
+  (funcall old-fn (completing-read "Set topic as: "
+                                   (org-property-values "GPTEL_TOPIC")
+                                   nil nil (downcase
+                                            (truncate-string-to-width
+                                             (substring-no-properties
+                                              (replace-regexp-in-string
+                                               "\\[id:.*?\\]" ""
+                                               (replace-regexp-in-string
+                                                "\\s-+" "-"
+                                                (org-entry-get nil "ITEM"))))
+                                             50)))))
+
+(advice-add 'gptel-org-set-topic :around #'amsha/gptel-org-set-topic)
+
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
 (defvar gptel--mode-line-status " ")
