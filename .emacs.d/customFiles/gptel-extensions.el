@@ -273,10 +273,10 @@ Code
     (gptel-agent okm-base-directory 'paper-agent)))
 
 ;;; openai reponse related setup **********************************************************
-;; (unless (featurep 'gptel-openai-responses-backend)
-;;   (require 'gptel-openai-responses-backend))
+(unless (featurep 'gptel-openai-responses-backend)
+  (require 'gptel-openai-responses-backend))
 
-;; (gptel-openai-responses-extended-setup-builtin-transient)
+(gptel-openai-responses-extended-setup-builtin-transient)
 
 (setq gptel-openai-response-backend (gptel-make-openai-responses-extended "ChatGPT-response" :key gptel-api-key :models gptel--openai-models :stream t))
 
@@ -755,7 +755,8 @@ Otherwise, add ELEM as the last element."
 (defun amsha/org-gptel-mode-hook ()
   "Check and load gptel-mode if gptel props exists."
   (when (save-excursion
-          (org-entry-get (point-min) "GPTEL_MODEL"))
+          (or (org-entry-get (point-min) "GPTEL_MODEL")
+              (org-entry-get (point-min) "GPTEL_PRESET")))
     (gptel-mode +1)))
 
 (add-hook 'org-mode-hook #'amsha/org-gptel-mode-hook)
