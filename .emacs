@@ -1915,6 +1915,8 @@ See `pdf-annot-activate-created-annotations' for more details."
 ;;ispell
 ;; for hunspell on windows: http://www.nextpoint.se/?p=656
 (use-package ispell
+  :custom
+  (ispell-program-name "hunspell")
   :config
   ;; downloaded from http://github.com/first20hours/google-10000-english/
   (if-let* ((dictionary-file (file-truename "~/.emacs.d/var/20k.txt"))
@@ -1922,8 +1924,7 @@ See `pdf-annot-activate-created-annotations' for more details."
       (setq ispell-alternate-dictionary dictionary-file
             text-mode-ispell-word-completion t)
     (setq ispell-alternate-dictionary nil
-          text-mode-ispell-word-completion nil))
-  (setq ispell-program-name "hunspell"))
+          text-mode-ispell-word-completion nil)))
 
 (use-package flyspell)
 

@@ -820,6 +820,9 @@ Else create a text annotations at point."
   :custom
   (org-super-agenda-groups '((:name "dates" :auto-ts t)))
   :config
+  (setq org-super-agenda-header-map (let ((map (make-sparse-keymap)))
+                                      (set-keymap-parent map org-agenda-mode-map)
+                                      map))
   (org-super-agenda--def-auto-group file "their FILE path"
     :keyword :auto-file
     :key-form (buffer-file-name (marker-buffer (org-super-agenda--get-marker item)))
