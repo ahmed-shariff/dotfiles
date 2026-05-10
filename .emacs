@@ -357,6 +357,20 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   (when (y-or-n-p "Erase buffer? ")
     (erase-buffer)))
 
+(defun amsha/find-dirty-git-repos (root)
+  "Return a list of dirty git repos under ROOT."
+  (interactive "DScan directory: ")
+  (let (dirty)
+    (dolist (entry (directory-files root t "^[^.]" t) dirty)
+      (when (and (file-directory-p entry)
+                 (file-directory-p (expand-file-name ".git" entry))
+                 (let ((default-directory (file-name-as-directory entry)))
+                   (condition-case nil
+                       (not (null (process-lines "git" "-C" entry "status" "--porcelain")))
+                     (error nil))))
+        (push entry dirty)))
+    (em dirty)))
+
 (use-package emacs
   :demand
   :hook ((prog-mode-hook . (lambda ()
