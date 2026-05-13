@@ -412,14 +412,14 @@ Code
 
 (gptel-make-tool
  :function (lambda (directory)
-	     (mapconcat #'identity
+             (mapconcat #'identity
                         (directory-files directory)
                         "\n"))
  :name "list_directory"
  :description "List the contents of a given directory"
  :args (list '(:name "directory"
-	       :type "string"
-	       :description "The path to the directory to list"))
+               :type "string"
+               :description "The path to the directory to list"))
  :category "filesystem")
 
 (gptel-make-tool
@@ -433,11 +433,11 @@ Code
  :description "Create a new directory with the given name in the specified parent directory"
  :confirm t
  :args (list '(:name "parent"
-	       :type "string"
-	       :description "The parent directory where the new directory should be created, e.g. /tmp")
+               :type "string"
+               :description "The parent directory where the new directory should be created, e.g. /tmp")
              '(:name "name"
-	       :type "string"
-	       :description "The name of the new directory to create, e.g. testdir"))
+               :type "string"
+               :description "The name of the new directory to create, e.g. testdir"))
  :category "filesystem")
 
 (gptel-make-tool
@@ -451,27 +451,27 @@ Code
  :confirm t
  :description "Create a new file with the specified content"
  :args (list '(:name "path"
-	       :type "string"
-	       :description "The directory where to create the file")
+               :type "string"
+               :description "The directory where to create the file")
              '(:name "filename"
-	       :type "string"
-	       :description "The name of the file to create")
+               :type "string"
+               :description "The name of the file to create")
              '(:name "content"
-	       :type "string"
-	       :description "The content to write to the file"))
+               :type "string"
+               :description "The content to write to the file"))
  :category "filesystem")
 
 (gptel-make-tool
  :function (lambda (filepath)
-	     (with-temp-buffer
-	       (insert-file-contents (expand-file-name filepath))
-	       (buffer-string)))
+             (with-temp-buffer
+               (insert-file-contents (expand-file-name filepath))
+               (buffer-string)))
  :name "read_file"
  :confirm t
  :description "Read and display the contents of a file"
  :args (list '(:name "filepath"
-	       :type "string"
-	       :description "Path to the file to read.  Supports relative paths and ~."))
+               :type "string"
+               :description "Path to the file to read.  Supports relative paths and ~."))
  :category "filesystem")
 
 ;;;; * paper agent tools
@@ -707,7 +707,7 @@ Note: LSP servers must be configured for the file type. If no server is availabl
 (gptel-make-preset 'compaction
   :description "Compaction system prompt"
   :system '(:append "
-provide a detailed but concise summary of the current conversation and context. 
+provide a detailed but concise summary of the current conversation and context.
 Focus on information that would be helpful for decision making, including:
 - What was done
 - What needs to be done next
@@ -715,6 +715,52 @@ Focus on information that would be helpful for decision making, including:
 - Important decisions and why they were made
 
 Your summary should be comprehensive enough to provide context but concise enough to be quickly understood."))
+
+(gptel-make-preset 'summarize
+  :description "System prompt for detailed summarize of context."
+  :system "Summarize the context thoroughly and comprehensively.
+
+  Goals:
+  - Prioritize completeness and fidelity over brevity.
+  - Preserve all important information, including nuanced details, caveats, examples, TODOs, references, decisions, questions, and relationships between ideas.
+  - If some content would lose meaning when compressed, retain it nearly verbatim or fully verbatim.
+  - Do not omit information just because it seems minor if it may be useful later.
+  - Keep technical terms, names, links, citations, code snippets, property values, tags, timestamps, and metadata when relevant.
+  - When applicable, treat LLM generated responses (often denoted by `@assistant`) accordingly - don't confuse them with user notes, but, don't ignore them as they both contain valuable information.
+
+  Instructions:
+  1. Read the entire context carefully, including headings, subheadings, lists, drawers, properties, notes, and inline remarks.
+  2. Produce a structured summary that mirrors the document’s organization.
+  3. For each section:
+     - State the main point.
+     - Include supporting details.
+     - Preserve key terminology and exact wording where precision matters.
+     - Include open questions, unresolved issues, and action items.
+  4. Capture:
+     - Main themes and arguments
+     - Definitions and concepts
+     - Evidence, examples, and anecdotes
+     - Dates, people, projects, and references
+     - Tasks, TODO states, deadlines, scheduled items, and follow-ups
+     - Links to other notes or conceptual connections
+     - Key decisions
+     - Any contradictions, ambiguities, or tensions
+     - Unfinished tasks and actionable next steps
+  5. If the context contains raw material that is better preserved than summarized, include that material directly under an appropriate heading.
+  6. Do not invent information or infer beyond what is reasonably supported by the text.
+  7. At the end, include:
+     - A “Key Takeaways” section
+     - An “Open Questions / Pending Items” section
+     - A “Referenced Entities / Notes / Topics” section
+
+  Output format:
+  - Use clear headings and subheadings.
+  - Maintain the source order as much as possible.
+  - Prefer detailed bullet points or nested structure over short prose paragraphs.
+  - Quote exact phrases where useful for precision.
+  - If a section is sparse, still include it.
+
+  Provide as much detail as necessary, and err on the side of providing too much information.  Be thorough.")
 
 (gptel-make-preset 'cite-add-abstract-summary
   :description "Add abstract and summary for `cite:`"
@@ -1137,7 +1183,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
 Meant to be used for LLMs.
 The tool-callback should take one value, the result. "
   (let* ((bibtex-completion-bibliography (org-ref-find-bibliography))
- 	 (bib-entry (bibtex-completion-get-entry paper-id)))
+         (bib-entry (bibtex-completion-get-entry paper-id)))
          ;; (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
     (if bib-entry
         (format "* title: %s\n* year: %s\n* authors: %s"
@@ -1280,7 +1326,7 @@ then it will be set here."
 ;;         (message "Preset %S pinned to %S for this session. To persist add `(gptel-pin-preset %S '%S)' in emacs config."
 ;;                  preset key key preset))))))
 
-;; (transient-replace-suffix 'gptel--preset '(1) 
+;; (transient-replace-suffix 'gptel--preset '(1)
 ;;   [:if (lambda () gptel--known-presets)
 ;;        :class transient-column
 ;;        :setup-children
