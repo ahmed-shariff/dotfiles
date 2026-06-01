@@ -13,7 +13,7 @@ config.adjust_window_size_when_changing_font_size = false
 -- ===============
 -- Font
 -- ===============
-config.font_size = 11.0
+config.font_size = 10.0
 config.font = wezterm.font_with_fallback({
   "Fira Code",
   "Cascadia Code",
