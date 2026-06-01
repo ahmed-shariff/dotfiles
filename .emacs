@@ -2390,6 +2390,14 @@ buffer local values."
   (arduino-cli-warnings 'all)
   (arduino-cli-verify t))
 
+;;lua mdoe **************************************************************
+(use-package lua-mode
+  :ensure t
+  :mode "\\.lua\\'"
+  :interpreter "lua"
+  :config
+  (setq lua-indent-level 2))
+
 ;;projectile mode********************************************************
 (use-package projectile
   :demand t
