@@ -84,14 +84,14 @@
       org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id
 
       org-todo-keywords '((sequence "TODO(t)" "INPROGRESS(p!/@)" "WAIT(w@/!)" "IDEA(i)" "|" "DONE(d!)" "CANCELED(c@)" "LATER(l@)")
-			  (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" ))
+                          (sequence "ROUNTINE(R)" "|" "ROUNTINE_COMPLETE(r@)" ))
 
       org-babel-load-languages (append org-babel-load-languages '((ruby . t)
-				                                  (plantuml . t)
-				                                  (emacs-lisp . t)
-				                                  (python . t)
+                                                                  (plantuml . t)
+                                                                  (emacs-lisp . t)
+                                                                  (python . t)
                                                                   (R . t)
-				                                  (shell . t)))
+                                                                  (shell . t)))
 
       org-confirm-babel-evaluate nil;;'my-org-confirm-babel-evaluate)
       org-latex-image-default-width ""
@@ -128,33 +128,33 @@
       org-latex-image-default-option "scale=0.6"
       org-capture-templates
       '(("i" "hmmmm....somthing!*light bulb*->TO THE NOTES"
-	 entry (file+olp+datetree "~/Documents/org/notes.org")
-	 "* NOTE %^g\n\tAdded: %U\n\t%?")
-	("t" "A thing i have to do(a wonderfull epiphany? 3:))->LIFE HAPPENS"
-	 entry (file "~/Documents/org/brain/personal/life.org")
-	 "* TODO %^{Description}
+         entry (file+olp+datetree "~/Documents/org/notes.org")
+         "* NOTE %^g\n\tAdded: %U\n\t%?")
+        ("t" "A thing i have to do(a wonderfull epiphany? 3:))->LIFE HAPPENS"
+         entry (file "~/Documents/org/brain/personal/life.org")
+         "* TODO %^{Description}
   :PROPERTIES:
   :ID:       %(org-id-new)
   :END:")
-	("j" "Journal entry")
-	;; ("jg" "Journal entry general"
-	;;  entry (file+olp+datetree "~/Documents/org/journal.org")
-	;;  "* %?")
-	("jw" "Journal entry work"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/project_boards/day-to-day.org")
-	 "* TODO %?")
-	("js" "Journal entry work-scrum"
-	 entry (file+olp+datetree "~/Documents/org/brain/work/scrum.org")
-	 "* Y:\n1. %?\n* T:\n1. "
-	 :jump-to-captured t)
-	;; ("jt" "Journal sub entry"
-	;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-	;;  "1. %?")
-	("e" "Experiment setup information")
-	("ej" "Add Journal entry")
+        ("j" "Journal entry")
+        ;; ("jg" "Journal entry general"
+        ;;  entry (file+olp+datetree "~/Documents/org/journal.org")
+        ;;  "* %?")
+        ("jw" "Journal entry work"
+         entry (file+olp+datetree "~/Documents/org/brain/work/project_boards/day-to-day.org")
+         "* TODO %?")
+        ("js" "Journal entry work-scrum"
+         entry (file+olp+datetree "~/Documents/org/brain/work/scrum.org")
+         "* Y:\n1. %?\n* T:\n1. "
+         :jump-to-captured t)
+        ;; ("jt" "Journal sub entry"
+        ;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
+        ;;  "1. %?")
+        ("e" "Experiment setup information")
+        ("ej" "Add Journal entry")
         ;; ("ejt" "for task"
-	;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-	;;  "%(okm-board-task-location)")
+        ;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
+        ;;  "%(okm-board-task-location)")
         ;;       ("eje" "for experiment"
         ;;        entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
         ;;        "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
@@ -167,9 +167,9 @@
         ;; :SPRINT: %^{Sprint ID}
         ;; :END:\n- %^{Description}\n\n** Notes\n\n** TODO %?\n** TODO Conclusions"
         ;;        :jump-to-captured t)
-        ;; 	("es" "Add sprint"
-        ;; 	 entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
-        ;; 	 "** TODO Sprint %(okm--org-templates-get-sprint-id): %^{TITLE}
+        ;;      ("es" "Add sprint"
+        ;;       entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
+        ;;       "** TODO Sprint %(okm--org-templates-get-sprint-id): %^{TITLE}
         ;;    :PROPERTIES:
         ;;    :EXPORT_TOC: nil
         ;;    :EXPORT_TITLE: %\\1
@@ -185,9 +185,9 @@
         ;; *** Related experiments:
         ;; *** Remarks:
         ;; " :jump-to-captured t)
-        ;; 	("ep" "Add project"
-        ;; 	 entry (file "~/Documents/org/brain/work/projects.org")
-        ;; 	 "* TODO <<%(okm--org-templates-get-project-id)>> %^{TITLE}
+        ;;      ("ep" "Add project"
+        ;;       entry (file "~/Documents/org/brain/work/projects.org")
+        ;;       "* TODO <<%(okm--org-templates-get-project-id)>> %^{TITLE}
         ;;   :PROPERTIES:
         ;;   :CUSTOM_ID: %(okm--org-templates-get-project-id)
         ;;   :ID:       %(org-id-new)
@@ -199,31 +199,31 @@
         ;;    :END:
         ;; %?
         ;; "
-        ;; 	 :jump-to-captured t)
+        ;;       :jump-to-captured t)
         ("ep" "Add project board"
          plain (function okm-add-new-project-board)
          "%?"
          :after-finalize okm-add-new-project-finalize
-	 :jump-to-captured t)
+         :jump-to-captured t)
         ("et" "Add task"
-	 entry (function okm-goto-task-board)
-	 "* TODO %^{TITLE}
+         entry (function okm-goto-task-board)
+         "* TODO %^{TITLE}
   :PROPERTIES:
   :ID:       %(org-id-new)
   :END:
 %?
 "
-	 :jump-to-captured t)
-	("b" "Org brain")
-	("bp" "Add research paper"
-	 entry (function (lambda () (org-id-goto okm-research-papers-id)));(file "~/Documents/org/brain/research_papers.org")
-	 "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :LINK: %^{LINK\}n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
+         :jump-to-captured t)
+        ("b" "Org brain")
+        ("bp" "Add research paper"
+         entry (function (lambda () (org-id-goto okm-research-papers-id)));(file "~/Documents/org/brain/research_papers.org")
+         "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :LINK: %^{LINK\}n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
   \n  - %^{LINK}"
-	 :jump-to-captured t)
+         :jump-to-captured t)
         ("er" "Add repository"
-	 entry (file "~/Documents/org/brain/repositories.org")
-	 "* %(okm-add-repository)"
-	 :jump-to-captured t)))
+         entry (file "~/Documents/org/brain/repositories.org")
+         "* %(okm-add-repository)"
+         :jump-to-captured t)))
 
 (repeatize 'org-babel-map)
 
@@ -258,7 +258,7 @@
   (defun add-doi-and-pdf (data &optional no-save-data)
     "DATA exepcts to be an alist with keys :url and :filename."
     (message "Trying to add: %s" data)
-    (unless no-save-data 
+    (unless no-save-data
       (setq previous-add-doi-and-pdf-data data))
     (let* ((url (s-replace-regexp "\\(https:/\\)[^/]" "https://" (plist-get data :url) nil nil 1))
            (file-name-entry (plist-get data :filename))
@@ -266,7 +266,7 @@
                         (format "file:///%s" (expand-file-name (plist-get data :filename)))))
            (doi (plist-get data :doi))
            (bibtex-entry-format (remove 'required-fields bibtex-entry-format)))
-      (save-match-data 
+      (save-match-data
         (cond
          ((or doi
               (and (string-match "\\(10\\.[0-9]\\{4\\}\\(/\\|%2F\\)\\([a-z]\\|[0-9]\\|_\\|-\\|\\.\\)+\\)" url)
@@ -316,10 +316,10 @@
     (add-to-list 'org-babel-load-languages '(jupyter . t))
     (amsha/reload-org-babel-langs)
     (setq org-babel-default-header-args:jupyter-python '((:async . "yes")
-						         (:session . "py")
-						         (:kernel . "python3")
-						         (:tangle . "jupyter-python/tangled.py")
-						         (:exports . "both")))
+                                                         (:session . "py")
+                                                         (:kernel . "python3")
+                                                         (:tangle . "jupyter-python/tangled.py")
+                                                         (:exports . "both")))
     (define-key jupyter-org-interaction-mode-map (kbd "C-c h") nil)
 
     (cl-defmethod jupyter-handle-execute-reply :around ((_client jupyter-org-client) (req jupyter-org-request) msg)
@@ -553,18 +553,18 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
   ; :requires (doi-utils org-ref-pdf org-ref-url-utils org-ref-bibtex org-ref-latex org-ref-arxiv)
   :config
   (setq bibtex-completion-notes-path (file-truename "~/Documents/org/brain/research_papers/")
-	bibtex-completion-bibliography '("~/Documents/org/bibliography/references.bib")
+        bibtex-completion-bibliography '("~/Documents/org/bibliography/references.bib")
         bibtex-completion-library-path "~/Documents/org/bibliography/pdfs/"
         reftex-default-bibliography bibtex-completion-bibliography
-	
-	org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
-	bibtex-completion-notes-template-one-file
-	(format
-	 "* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :RPC-TAGS: NO_LINK NO_PARENTS NO_CITE_KEY\n  :BRAIN_PARENTS: %s:%s\n  :END:\n\n  - cite:${=key=}"
-         okm-parent-id-type-name okm-research-papers-id) 
+
+        org-latex-pdf-process (list "latexmk -shell-escape -bibtex -f -pdf %f")
+        bibtex-completion-notes-template-one-file
+        (format
+         "* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :RPC-TAGS: NO_LINK NO_PARENTS NO_CITE_KEY\n  :BRAIN_PARENTS: %s:%s\n  :END:\n\n  - cite:${=key=}"
+         okm-parent-id-type-name okm-research-papers-id)
         bibtex-completion-notes-template-multiple-files bibtex-completion-notes-template-one-file
         ;;":PROPERTIES:\n:Custom_ID: ${=key=}\n:Keywords: ${keywords}\n:LINK: ${pdf}\n:YEAR: ${year}\n:RPC-TAGS: :NO_LINK NO_PARENTS NO_CITE_KEY\n:END:\n\n#+TITLE: (${year}) ${title} [${author}]\n\n"
-	doi-utils-open-pdf-after-download nil
+        doi-utils-open-pdf-after-download nil
         doi-utils-download-pdf nil)
   ;; (setf (alist-get 'title doi-utils-json-metadata-extract) '((concat (plist-get results :title)
   ;;                                                                    (-if-let (subtitle (plist-get results :subtitle))
@@ -599,14 +599,14 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
     "QUERY."
     (interactive (list (read (read-string "Query:"))))
     (let ((buffer (get-buffer-create (format "*temp-org-ref-copy-formated-from-query-%s*" (random)))))
-      (with-current-buffer buffer 
+      (with-current-buffer buffer
           (--map (insert (format "\n\n%s" it))
                  (org-ql-select bibtex-completion-notes-path query
                    :action (lambda ()
                              ;; from org-ref-open-url-at-point
                              (let* ((bibtex-completion-bibliography (org-ref-find-bibliography))
                                     (key (org-entry-get (point) "Custom_ID"))
-	                            (results (org-ref-get-bibtex-key-and-file key))
+                                    (results (org-ref-get-bibtex-key-and-file key))
                                     (bibfile (cdr results))
                                     bib-url)
                                (save-excursion
@@ -638,7 +638,7 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
     "Get the url for bibtex key under point."
     (interactive)
     (let* ((bibtex-completion-bibliography (org-ref-find-bibliography))
-	   (results (org-ref-get-bibtex-key-and-file))
+           (results (org-ref-get-bibtex-key-and-file))
            (key (car results))
            (bibfile (cdr results)))
       (save-excursion
@@ -722,8 +722,8 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
       (lambda ()
         (interactive)
         (save-window-excursion
- 	  (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
- 	        (entry (bibtex-completion-get-entry (org-ref-get-bibtex-key-under-cursor))))
+          (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
+                (entry (bibtex-completion-get-entry (org-ref-get-bibtex-key-under-cursor))))
             (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry))))))))
   (transient-append-suffix 'org-ref-citation-menu "u"
     '("t" "Open noter"
@@ -1003,11 +1003,11 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 (defun org-ask-title-location (&optional prompt)
   "From  https://stackoverflow.com/questions/9005843/interactively-enter-headline-under-which-to-place-an-entry-using-capture."
   (let* ((prompt (or prompt "Project "))
-	 (org-refile-targets '((nil :maxlevel . 1)))
+         (org-refile-targets '((nil :maxlevel . 1)))
          (hd (condition-case nil
                  (car (let ((in (org-refile-get-location prompt nil t)))
-			(message "%s" in)
-			in))
+                        (message "%s" in)
+                        in))
                (error (car org-refile-history)))))
     (goto-char (point-min))
     (re-search-forward
@@ -1105,7 +1105,7 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 (defun okm-insert-timestamp ()
   (interactive)
   (insert "[" (format-time-string "%I:%M %p" (current-time)) "]"))
-    
+
 (defun okm-add-repository ()
   "Take a repo link and add that to the file as a node."
   (let* ((link (read-string "Repository url: "))
@@ -1119,9 +1119,9 @@ The screenshot tool is determined by `org-download-screenshot-method'."
   :ID:      %s
   :END:
 - %s" title (org-id-new) link)))
-          
+
 ;; (defun org-ask-location ()
-;;   org-project-sprint-target-heading) 
+;;   org-project-sprint-target-heading)
 
 (defun okm-add-new-project-board ()
   (let* ((title (read-string "title: "))
@@ -1285,10 +1285,10 @@ The screenshot tool is determined by `org-download-screenshot-method'."
                         (org-roam-node-id it)
                         (assoc (f-base (org-roam-node-file it)) results))
                        (bibtex-keys-to-nodes (map-keys results))))
-         (temp-preview-function 
+         (temp-preview-function
           (lambda (node _)
             (propertize (s-join "\n" (--map (format " - %s" it) (assoc (org-roam-node-id node) nodes))) 'face 'org-tag))))
-  
+
     (org-roam-ql-search
      `(pdf-string ,(format "%s" regexp))
      (prin1-to-string regexp)
@@ -1463,7 +1463,7 @@ Currently written to work in org-ql buffer."
      ;;(message "%s" (org-entry-properties)))
    (format "LEVEL=%s" level)
    'region))
-     
+
 (defun amsha/rename-full-path (file-name)
   "FILE-NAME."
   (replace-regexp-in-string "^\\([a-z]:\\)?\\(/.*\\)/Documents" "~/Documents" file-name))
@@ -1494,29 +1494,29 @@ With C-u C-u C-u prefix, force run all research-papers."
                                                        f)))))
         (org-roam-with-file f nil
           (save-buffer)
-	  (let* ((changes '())
+          (let* ((changes '())
                  (pom (point))
                  (link-string (org-entry-get pom "LINK"))
                  (link (if (string-empty-p link-string)
                            nil
                          link-string))
-	         (cite-key (org-entry-get pom "Custom_ID"))
-	         (dir bibtex-completion-library-path)
-	         (tags (org-entry-get-multivalued-property pom "RPC-TAGS"))
-	         (out-file-name (when cite-key (s-concat cite-key ".pdf")))
-	         (full-path (when out-file-name (amsha/rename-full-path (expand-file-name out-file-name dir)))))
+                 (cite-key (org-entry-get pom "Custom_ID"))
+                 (dir bibtex-completion-library-path)
+                 (tags (org-entry-get-multivalued-property pom "RPC-TAGS"))
+                 (out-file-name (when cite-key (s-concat cite-key ".pdf")))
+                 (full-path (when out-file-name (amsha/rename-full-path (expand-file-name out-file-name dir)))))
 
             (unless (org-entry-get pom "ATTACH_DIR")
-	      (org-entry-put pom "ATTACH_DIR" dir)
+              (org-entry-put pom "ATTACH_DIR" dir)
               (push 'attach-dir changes))
-	    (unless (org-id-get)
+            (unless (org-id-get)
               (org-id-get-create)
               (push 'org-id changes))
 
             (setq tags (if link (delete "NO_LINK" tags) (append tags '("NO_LINK"))))
             (setq tags (if cite-key (delete "NO_CITE_KEY" tags) (append tags '("NO_CITE_KEY"))))
 
-	    (when (and (not (member "ATTACH" tags))
+            (when (and (not (member "ATTACH" tags))
                        full-path
                        (or (file-exists-p full-path)
                            (and link
@@ -1566,11 +1566,11 @@ With C-u C-u C-u prefix, force run all research-papers."
               (save-buffer))
             (setq tags
                   ;; If error, most likely node not created
-		  (if (ignore-errors (remove okm-research-papers-id (okm-get-parents)))
-		      (delete "NO_PARENTS" tags)
-		    (append tags '("NO_PARENTS"))))
+                  (if (ignore-errors (remove okm-research-papers-id (okm-get-parents)))
+                      (delete "NO_PARENTS" tags)
+                    (append tags '("NO_PARENTS"))))
             (when (cl-set-exclusive-or (org-entry-get-multivalued-property pom "RPC-TAGS") (delete-dups tags))
-	      (apply #'org-entry-put-multivalued-property pom "RPC-TAGS" (delete "nosiblings" (delete-dups tags)))
+              (apply #'org-entry-put-multivalued-property pom "RPC-TAGS" (delete "nosiblings" (delete-dups tags)))
               (push 'rpc-tags changes))
             (when (and cite-key (not (org-entry-get nil "ROAM_REFS")))
               (org-entry-put nil "ROAM_REFS" (format "cite:&%s" cite-key))
@@ -1637,32 +1637,32 @@ With C-u C-u C-u prefix, force run all research-papers."
 (defun copy-related-research-papers (parent-id)
   "PARENT-ID."
   (interactive (list
-		(save-excursion
-		  (org-brain-goto (org-brain-choose-entry "Select research topic: " 'all (lambda (entry)
+                (save-excursion
+                  (org-brain-goto (org-brain-choose-entry "Select research topic: " 'all (lambda (entry)
                                                                                            (or
                                                                                             (s-matches-p "work/projects::.*literature" (car entry))
                                                                                             (s-starts-with-p "research topics::" (car entry))))))
-		  (org-entry-get (point) "ID"))))
+                  (org-entry-get (point) "ID"))))
   (let ((out-dir (expand-file-name parent-id "~/Downloads")))
     (condition-case nil
-	(make-directory out-dir)
+        (make-directory out-dir)
       (file-already-exists
        (progn
-	 (message "Deleting directory and creating anew: %s" out-dir) 
-	 (delete-directory out-dir t)
-	 (make-directory out-dir))))
+         (message "Deleting directory and creating anew: %s" out-dir)
+         (delete-directory out-dir t)
+         (make-directory out-dir))))
     (message "Copying files to %s" out-dir)
     (save-excursion
       (org-brain-goto "research_papers")
       (org-map-entries (lambda ()
-		         (let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
-			   (when (and file-path
-				      (member parent-id
-					      (org-entry-get-multivalued-property (point) okm-parent-property-name)))
-			     (message "Copied %s" (file-name-nondirectory file-path)) 
-			     (copy-file file-path
-				        (expand-file-name (file-name-nondirectory file-path)
-							  out-dir)))))))
+                         (let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
+                           (when (and file-path
+                                      (member parent-id
+                                              (org-entry-get-multivalued-property (point) okm-parent-property-name)))
+                             (message "Copied %s" (file-name-nondirectory file-path))
+                             (copy-file file-path
+                                        (expand-file-name (file-name-nondirectory file-path)
+                                                          out-dir)))))))
     (dired out-dir)))
 
 (defvar okm-org-agenda-copy-research-papers-directory nil)
@@ -1679,20 +1679,20 @@ With C-u C-u C-u prefix, force run all research-papers."
             (dired okm-org-agenda-copy-research-papers-directory)
             (setq okm-org-agenda-copy-research-papers-directory nil)))
     (condition-case nil
-	(make-directory okm-org-agenda-copy-research-papers-directory)
+        (make-directory okm-org-agenda-copy-research-papers-directory)
       (file-already-exists
        (progn
-	 (message "Deleting directory and creating anew: %s" out-dir) 
-	 (delete-directory out-dir t)
-	 (make-directory out-dir)))))
+         (message "Deleting directory and creating anew: %s" out-dir)
+         (delete-directory out-dir t)
+         (make-directory out-dir)))))
   (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
                          (org-agenda-error))
     (if-let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
         (progn
           (message "Copied %s" (file-name-nondirectory file-path))
           (copy-file file-path
-        	     (expand-file-name (file-name-nondirectory file-path)
-        			       okm-org-agenda-copy-research-papers-directory)))
+                     (expand-file-name (file-name-nondirectory file-path)
+                                       okm-org-agenda-copy-research-papers-directory)))
       (message "FAILED to copy %s" file-path))))
 
 
@@ -1723,7 +1723,7 @@ With C-u C-u C-u prefix, force run all research-papers."
       (org-copy-subtree)
       (with-current-buffer org-file-buffer
         (when (not (looking-at "^")) (insert "\n"))
-	(org-paste-subtree 1)))))
+        (org-paste-subtree 1)))))
 
 (defun copy-notes-and-bib-function-switch-to-buffers ()
   (interactive)
@@ -1806,31 +1806,31 @@ With C-u C-u C-u prefix, force run all research-papers."
   (save-window-excursion
     (find-file bibfile)
     (let* ((arxiv-number (s-chop-suffix ".pdf" (car (last (s-split "/" arxiv-link)))))
-	   (search-point (word-search-forward arxiv-number nil t))
+           (search-point (word-search-forward arxiv-number nil t))
            (bibtex-completion-bibliography (list (buffer-file-name)))
            keys)
       (if search-point
-	  (progn
-	    (goto-char search-point)
-	    (message "%s already exists in the database" arxiv-number))
-	(goto-char (point-max))
-	(when (not (looking-at "^")) (insert "\n\n"))
-	(insert (arxiv-get-bibtex-entry-via-arxiv-api arxiv-number) "\n\n")
+          (progn
+            (goto-char search-point)
+            (message "%s already exists in the database" arxiv-number))
+        (goto-char (point-max))
+        (when (not (looking-at "^")) (insert "\n\n"))
+        (insert (arxiv-get-bibtex-entry-via-arxiv-api arxiv-number) "\n\n")
         (save-buffer)
-	(org-ref-clean-bibtex-entry)
+        (org-ref-clean-bibtex-entry)
         (save-buffer)
-	(setq keys (progn
-		     (bibtex-beginning-of-entry)
-		     (list (cdr (assoc "=key=" (bibtex-parse-entry))))))
-	(goto-char (point-max))
-	(when (not (looking-at "^")) (insert "\n"))
-	(save-buffer)
-	(save-excursion
-	  (bibtex-completion-edit-notes keys)
+        (setq keys (progn
+                     (bibtex-beginning-of-entry)
+                     (list (cdr (assoc "=key=" (bibtex-parse-entry))))))
+        (goto-char (point-max))
+        (when (not (looking-at "^")) (insert "\n"))
+        (save-buffer)
+        (save-excursion
+          (bibtex-completion-edit-notes keys)
           (save-buffer)
-	  (goto-char (point-min))
-	  (org-set-property "LINK" arxiv-link)
-	  (research-papers-configure 'force-file))))))
+          (goto-char (point-min))
+          (org-set-property "LINK" arxiv-link)
+          (research-papers-configure 'force-file))))))
 
 (defun okm-add-parents (parents &optional entry-id)
   "Add PARENTS, which are expected to be ids to the entry with ENTRY-ID or in entry at point."
@@ -2017,8 +2017,8 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
   (let* ((node (and custom-id (car (org-roam-ql-nodes `(properties "Custom_ID" ,custom-id)))))
          (custom-id (or custom-id (org-entry-get (point) "Custom_ID")))
          (buf (current-buffer))
- 	 (bibtex-completion-bibliography (org-ref-find-bibliography))
- 	 (bib-entry (bibtex-completion-get-entry custom-id))
+         (bibtex-completion-bibliography (org-ref-find-bibliography))
+         (bib-entry (bibtex-completion-get-entry custom-id))
          ;; (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
          (ret-string (format "* id:%s \n* title: %s\n* year: %s\n* authors: %s\n* abstract\n%%s\n* summary\n%%s"
                              custom-id
@@ -2173,7 +2173,7 @@ To use add something like this in the org buffer:
 "
   (let ((p (point))
         (bibtex-completion-bibliography (org-ref-find-bibliography))
-        (content 
+        (content
          (progn
            (goto-char 0)
            (org-link-search title)
@@ -2188,18 +2188,18 @@ To use add something like this in the org buffer:
        (org-mode)
        ;; based on `org-ref-process-buffer'
        (cl-loop for cite-links in (org-element-map (org-element-parse-buffer) 'link
-  			            (lambda (lnk)
-  				      (when (assoc (org-element-property :type lnk) org-ref-cite-types)
-  				        lnk)))
-  	        append
-  	        (cl-loop for ref in
-  		         (plist-get
-  		          (org-ref-parse-cite-path
-  		           (org-element-property :path cite-links))
-  		          :references)
-  		         with type = (org-element-property :type cite-links)
-  		         collect
-  		         (alist-get "id" (org-ref-ref-csl-data ref type) nil nil #'string-equal))))
+                                    (lambda (lnk)
+                                      (when (assoc (org-element-property :type lnk) org-ref-cite-types)
+                                        lnk)))
+                append
+                (cl-loop for ref in
+                         (plist-get
+                          (org-ref-parse-cite-path
+                           (org-element-property :path cite-links))
+                          :references)
+                         with type = (org-element-property :type cite-links)
+                         collect
+                         (alist-get "id" (org-ref-ref-csl-data ref type) nil nil #'string-equal))))
      (-uniq it)
      (--map
        (let ((val (string-replace " " "" it)))
@@ -2249,7 +2249,7 @@ To use add something like this in the org buffer:
      (string-join it "\n"))))
 
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
-  
+
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
@@ -2257,17 +2257,17 @@ To use add something like this in the org buffer:
 (add-hook 'org-babel-after-execute-hook 'org-babel-ansi-color-result)
 (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
 (add-hook 'org-mode-hook
-	  (lambda ()
-	    (define-key org-mode-map "\C-c!" 'org-time-stamp-inactive)
-	    (define-key org-mode-map "\C-coo" 'org-noter)
-	    (define-key org-mode-map "\C-cop" 'okm-add-parent-topic)
-	    (define-key org-mode-map "\C-coc" 'research-papers-configure)
+          (lambda ()
+            (define-key org-mode-map "\C-c!" 'org-time-stamp-inactive)
+            (define-key org-mode-map "\C-coo" 'org-noter)
+            (define-key org-mode-map "\C-cop" 'okm-add-parent-topic)
+            (define-key org-mode-map "\C-coc" 'research-papers-configure)
             (define-key org-mode-map "\C-cos" 'okm-print-parents)
             (define-key org-mode-map "\C-cor" 'org-ref-citation-hydra/body)
             ;; (define-key org-mode-map "\C-coa" 'org-asana-hydra/body)
             (define-key org-mode-map (kbd "C-'") nil)
             (define-key org-mode-map "\C-c/" nil)
-	    (flyspell-mode t)))
+            (flyspell-mode t)))
 (add-hook 'org-mode-hook 'visual-line-mode)
 
 (advice-add 'org-md-example-block :override #'org-md-example-block-with-syntax)

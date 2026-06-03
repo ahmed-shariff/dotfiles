@@ -6,7 +6,7 @@
 
 ;; -*- emacs-lisp -*-
 ;; -*- lexical-binding: t -*-
-;; 
+;;
 ;; (require 'package)
 (set-language-environment "UTF-8")
 (set-default-coding-systems 'utf-8)
@@ -76,20 +76,20 @@
 (add-hook 'focus-out-hook 'garbage-collect)
 
 (defvar my-package-list '(
-			  ;; org-capture-pop-frame
-			  use-package
-			  latex-math-preview csproj-mode
-			  ascii-art-to-unicode 2048-game
-			  flx
-			  ibuffer-vc
-			  stumpwm-mode
+                          ;; org-capture-pop-frame
+                          use-package
+                          latex-math-preview csproj-mode
+                          ascii-art-to-unicode 2048-game
+                          flx
+                          ibuffer-vc
+                          stumpwm-mode
                           hledger-mode
-			  ;; jedi
+                          ;; jedi
                           sr-speedbar
                           latex-preview-pane))
 
 (mapcar #'straight-use-package
-	my-package-list)
+        my-package-list)
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -126,7 +126,7 @@
   (setq amsha/made-transparent (not amsha/made-transparent)))
 
 (defun amsha/yank-pop-forwards (arg)
-  "Ha ha ha. 
+  "Ha ha ha.
 ARG : the arg"
   (interactive "p")
   (yank-pop (- arg)))
@@ -157,10 +157,10 @@ ARG : the arg"
               "\n\n"))
     (use-local-map splash-screen-keymap)
     (setq tab-width 22
-	  buffer-read-only t)
+          buffer-read-only t)
     (set-buffer-modified-p nil)
     (if (and view-read-only (not view-mode))
-	(view-mode-enter nil 'kill-buffer))
+        (view-mode-enter nil 'kill-buffer))
     (switch-to-buffer initial-buffer-choice)
     (goto-char (point-max))))
 
@@ -341,12 +341,12 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
 (defun amsha/get-uml-link (link)
   (interactive "slink: ")
   (let ((split-link (s-split "/" link))
-	(formated-link '()))
+        (formated-link '()))
     (dolist (el split-link)
       (if (or (s-matches-p ".*\.com" el)
-		(s-matches-p ".*\.org" el))
-	  (push (s-concat (s-replace "." "-" el) ".uml.idm.oclc.org") formated-link)
-	(push el formated-link)))
+                (s-matches-p ".*\.org" el))
+          (push (s-concat (s-replace "." "-" el) ".uml.idm.oclc.org") formated-link)
+        (push el formated-link)))
     (kill-new (s-join "/" (reverse formated-link)))))
 
 (defun amsha/erase-buffer-with-confirmation ()
@@ -913,7 +913,7 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
                  nil
                  (window-parameters (mode-line-format . none))))
-  
+
   (define-key embark-file-map "o" nil)
   (define-key embark-file-map "ocn" #'copy-buffer-file-name)
   (define-key embark-file-map "ocf" #'copy-file-full-path)
@@ -1114,7 +1114,7 @@ targets."
                        dogears-list))
           :action   (lambda (cand)
                       (dogears-go (get-text-property 0 'consult--candidate cand)))))
-  
+
   (defun consult-dogears ()
     (interactive)
     (consult--multi '(consult--source-dogears)))
@@ -1328,19 +1328,19 @@ targets."
 ;;   ;; :init
 ;;   ;; (ivy-mode 1)                          ; enable ivy globally at startup
 ;;   :bind (;; ("C-c g" . counsel-git)
-;; 	 ;; ("C-c j" . counsel-git-grep) 
-;; 	 ;; ("C-c k" . counsel-ag)       
-;; 	 ;; ("C-x l" . counsel-locate)   
-;; 	 ;; ("C-S-o" . counsel-rhythmbox)
-;; 	 ;;("C-x C-f" . counsel-find-file)
-;; 	 :map ivy-minibuffer-map        ; bind in the ivy buffer
-;; 	 ("RET" . ivy-alt-done))
-;; 	 ;;      ("s-<"   . ivy-avy)
-;; 	 ;;      ("s->"   . ivy-dispatching-done)
-;; 	 ;;      ("s-+"   . ivy-call)
-;; 	 ;;      ("s-!"   . ivy-immediate-done)
-;; 	 ;;      ("s-["   . ivy-previous-history-element)
-;; 	 ;;      ("s-]"   . ivy-next-history-element))
+;;       ;; ("C-c j" . counsel-git-grep)
+;;       ;; ("C-c k" . counsel-ag)
+;;       ;; ("C-x l" . counsel-locate)
+;;       ;; ("C-S-o" . counsel-rhythmbox)
+;;       ;;("C-x C-f" . counsel-find-file)
+;;       :map ivy-minibuffer-map        ; bind in the ivy buffer
+;;       ("RET" . ivy-alt-done))
+;;       ;;      ("s-<"   . ivy-avy)
+;;       ;;      ("s->"   . ivy-dispatching-done)
+;;       ;;      ("s-+"   . ivy-call)
+;;       ;;      ("s-!"   . ivy-immediate-done)
+;;       ;;      ("s-["   . ivy-previous-history-element)
+;;       ;;      ("s-]"   . ivy-next-history-element))
 ;;   :config
 ;;   (setq ivy-use-virtual-buffers t)       ; extend searching to bookmarks and
 ;;   (setq ivy-height 15)                   ; set height of the ivy window
@@ -1350,10 +1350,10 @@ targets."
 ;;   ;; TODO testing out the fuzzy search
 ;;   (setq ivy-re-builders-alist
 ;;       '(;; (read-file-name-internal . ivy--regex-fuzzy)
-;; 	;; (internal-complete-buffer . ivy--regex-fuzzy)
-;; 	;; (execute-extended-command . ivy--regex-fuzzy)
-;; 	;; (amx . ivy--regex-fuzzy)
-;; 	(t . ivy--regex-fuzzy))))
+;;      ;; (internal-complete-buffer . ivy--regex-fuzzy)
+;;      ;; (execute-extended-command . ivy--regex-fuzzy)
+;;      ;; (amx . ivy--regex-fuzzy)
+;;      (t . ivy--regex-fuzzy))))
 
 ;; (use-package all-the-icons-ivy
 ;;   :config
@@ -1396,9 +1396,9 @@ targets."
   :hydra (hydra-expand-region ()
   "
   [_r_] Expand region    [_w_] Word                [_o_] Inside-quotes    [_c_] Comment
-  [_R_] Contract region  [_s_] Symbol              [_O_] Outside-quotes   [_u_] Url    
-                       [_S_] Symbol-with-prefix  [_p_] Inside-pairs     [_e_] Email  
-                       [_n_] Next-accessor       [_P_] Outside-pairs    [_f_] Defun  
+  [_R_] Contract region  [_s_] Symbol              [_O_] Outside-quotes   [_u_] Url
+                       [_S_] Symbol-with-prefix  [_p_] Inside-pairs     [_e_] Email
+                       [_n_] Next-accessor       [_P_] Outside-pairs    [_f_] Defun
   [_q_] quit             [_m_] Method-call
 "
   ("r" er/expand-region)
@@ -1561,7 +1561,7 @@ targets."
   :hook (python-base-mode . lsp-ui-mode)
   :config
   (setq lsp-ui-sideline-show-hover t
-	lsp-ui-sideline-delay 1
+        lsp-ui-sideline-delay 1
         lsp-ui-sideline-diagnostic-max-lines 4
         lsp-ui-sideline-diagnostic-max-line-length 150))
 
@@ -1582,8 +1582,8 @@ targets."
          (csharp-ts-mode . lsp)
          (python-base-mode . lsp)
          ;; (csharp-tree-sitter-mode . lsp)
-	 (java-mode . lsp)
-	 (java-ts-mode . lsp)
+         (java-mode . lsp)
+         (java-ts-mode . lsp)
          (js2-mode . lsp)
          ;; (js2-ts-mode . lsp)
          (web-mode . lsp)
@@ -1595,9 +1595,9 @@ targets."
          (go-mode . lsp)
          (go-ts-mode . lsp)
          (hy-mode .lsp)
-	 (lsp-mode . lsp-enable-which-key-integration)
+         (lsp-mode . lsp-enable-which-key-integration)
          (lsp-completion-mode . amsha/lsp-mode-setup-completion))
-  
+
   :init
   (setq lsp-keymap-prefix "C-x l")
   ;; (add-hook 'prog-mode-hook #'lsp)
@@ -1617,7 +1617,7 @@ targets."
   (ht-remove lsp-clients 'digestif-tramp)
 
   ;; (lsp-register-client
-  
+
   ;;  (make-lsp-client :new-connection (lsp-tramp-connection "pyls")
   ;;                   :major-modes '(python-mode)
   ;;                   :remote? t
@@ -1630,7 +1630,7 @@ targets."
     ("s" save-buffer)
     ("a" lsp-execute-code-action))
 
-  (setq 
+  (setq
    ;; lsp-pyls-configuration-sources ["flake8"]
    ;; lsp-pyls-plugins-jedi-completion-enabled nil
    ;; lsp-pyls-plugins-pydocstyle-enabled t
@@ -1645,8 +1645,8 @@ targets."
    lsp-idle-delay 0.500
    lsp-enable-file-watchers nil
    ;; lsp-csharp-server-path (if (eq system-type 'windows-nt)
-   ;;      		      (file-truename "~/packages_external/omnisharp-win-x64/OmniSharp.exe")
-   ;;      		    nil)
+   ;;                         (file-truename "~/packages_external/omnisharp-win-x64/OmniSharp.exe")
+   ;;                       nil)
    lsp-pylsp-plugins-flake8-max-line-length 110
    lsp-pylsp-plugins-flake8-enabled nil
    lsp-pylsp-plugins-autopep8-enabled nil
@@ -1805,9 +1805,9 @@ targets."
 ;; see https://karthinks.com/software/avy-can-do-anything/#kill-a-candidate-word-sexp-or-line for more cool stuff
 (use-package avy
   :bind (("C-S-s" . avy-isearch)
-	 ("C-'" . avy-goto-char-timer)
-	 ("M-g l" . avy-goto-line)
-	 ("M-g w" . avy-goto-word-1))
+         ("C-'" . avy-goto-char-timer)
+         ("M-g l" . avy-goto-line)
+         ("M-g w" . avy-goto-word-1))
   :config
   (avy-setup-default)
 
@@ -1854,24 +1854,24 @@ targets."
       (interactive "@e")
       (setq current-b (buffer-name))
       (progn (pdf-view-mouse-set-region-rectangle event)
-	     (pdf-view-extract-region-image pdf-view-active-region
-					    (pdf-view-current-page)
-					    (pdf-view-image-size)
-					    (get-buffer-create "teste")
-					    nil)))
+             (pdf-view-extract-region-image pdf-view-active-region
+                                            (pdf-view-current-page)
+                                            (pdf-view-image-size)
+                                            (get-buffer-create "teste")
+                                            nil)))
 
     (defun amsha/pdf-crop-image-and-save (event &optional switch-back)
       "EVENT SWITCH-BACK."
       (interactive "@e")
       (setq current-b (buffer-name))
       (progn (pdf-view-mouse-set-region-rectangle event)
-	     (pdf-view-extract-region-image pdf-view-active-region
-					    (pdf-view-current-page)
-					    (pdf-view-image-size)
-					    (get-buffer-create "teste.jpg")
-					    nil)
+             (pdf-view-extract-region-image pdf-view-active-region
+                                            (pdf-view-current-page)
+                                            (pdf-view-image-size)
+                                            (get-buffer-create "teste.jpg")
+                                            nil)
              (set-buffer "teste.jpg")
-	     (switch-to-buffer "taste.jpg")
+             (switch-to-buffer "taste.jpg")
              (with-current-buffer "taste.jpg"
                (mark-whole-buffer)
                (kill-ring-save (point-min) (point-max))
@@ -1951,7 +1951,7 @@ See `pdf-annot-activate-created-annotations' for more details."
 
 ;; (require 'micgoline)
 ;; (setq powerline-default-separator 'arrow-fade)
-;; (use-package spaceline-all-the-icons 
+;; (use-package spaceline-all-the-icons
 ;;   :after spaceline
 ;;   :config (spaceline-all-the-icons-theme))
 ;;(rich-minority-mode 1)
@@ -1964,15 +1964,15 @@ See `pdf-annot-activate-created-annotations' for more details."
 ;;   (require 'eyeliner)
 ;;   (setq eyeliner/left-hand-segments
 ;;         '(("%l:%c ")
-;; 	  (eyeliner/buffer-name :skip-alternate t)
+;;        (eyeliner/buffer-name :skip-alternate t)
 ;;           (eyeliner/mode-icon)
-;; 	  (eyeliner/buffer-modified)
+;;        (eyeliner/buffer-modified)
 ;;           (eyeliner/branch-icon :skip-alternate t :tight-right t)
 ;;           (eyeliner/branch-name)
 ;;           (eyeliner/project-name :skip-alternate t))
-;; 	eyeliner/right-hand-segments
-;; 	'((" %q "))
-;; 	eyeliner/cool-color "medium blue")
+;;      eyeliner/right-hand-segments
+;;      '((" %q "))
+;;      eyeliner/cool-color "medium blue")
 ;;   (eyeliner/install))
 
 (use-package doom-modeline
@@ -1980,7 +1980,7 @@ See `pdf-annot-activate-created-annotations' for more details."
   :init (doom-modeline-mode 1)
   :config
   (setq doom-modeline-icon (display-graphic-p)
-	doom-modeline-minor-modes (featurep 'minions)))
+        doom-modeline-minor-modes (featurep 'minions)))
 
 (use-package doom-themes
   :config
@@ -2214,7 +2214,7 @@ its thing."
   :config
   (slime-setup
    '(slime-fancy slime-asdf slime-references slime-indentation slime-xref-browser))
-  ;; (unless package-archive-contents 
+  ;; (unless package-archive-contents
   ;;   (package-refresh-contents))
   (setq tab-always-indent 'complete)
   (add-to-list 'completion-styles 'initials t))
@@ -2365,7 +2365,7 @@ This is a fix for pet-mode running on edits in org-mode."
 
   ;; (add-to-list 'company-backends 'company-c-headers)
                                         ; (semantic-add-system-include "/usr/lib/gcc/x86_64-pc-linux-gnu/6.4.1/" 'c++-mode)
-					;(add-to-list 'company-c-headers-path-system "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1")
+                                        ;(add-to-list 'company-c-headers-path-system "/usr/lib/gcc/x86_64-pc-linux-gnu/6.3.1")
   (defun my-c-mode-common-hook ()
     ;; my customizations for all of c-mode, c++-mode, objc-mode, java-mode
     (c-set-offset 'substatement-open 0)
@@ -2467,13 +2467,13 @@ Used with atomic-chrome."
   ;; (setq projectile-switch-project-action (lambda ()
   ;;                                          (persp-switch (projectile-project-name))
   ;;                                          (projectile-find-file)))
-  
+
   (defun consult-projectile-switch-persp (&optional project)
     "Create persp with projectile project."
     (interactive)
     (ignore-errors
       (persp-switch (projectile-project-name project))))
-  
+
   (advice-add 'consult-projectile--file :before 'consult-projectile-switch-persp)
   ;; (advice-add 'consult-projectile-find-file :before 'consult-projectile-switch-persp)
   (advice-add 'consult-projectile-find-dir :before 'consult-projectile-switch-persp)
@@ -2532,7 +2532,7 @@ Used with atomic-chrome."
                                           (select-window (display-buffer-in-side-window buff alist-modified))))))
   (popper-mode +1)
   (popper-echo-mode +1))                ; For echo area hints
-  
+
 ;;harpoon ****************************************************************************************************************
 ;; (use-package harpoon
 ;;   :demand t
@@ -2743,7 +2743,7 @@ Used with atomic-chrome."
                                     ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
   (TeX-global-PDF-mode t)
   (setq outline-minor-mode-prefix "\C-c \C-o")
-  
+
   (defun turn-on-outline-minor-mode ()
     "."
     (outline-minor-mode 1))
@@ -2779,8 +2779,8 @@ Used with atomic-chrome."
                                           ("red" (("red" "{")) (:background "red") command)
                                           ("green" (("green" "{")) (:background "Springgreen4") command)
                                           ("mg-comment" (("mg" "{")) (:background "blue") command)
-                                          ("shf-comment" (("shf" "{")) (:background "DarkGreen") command) 
-                                          ("kf-comment" (("kf" "{")) (:background "Sienna") command)  
+                                          ("shf-comment" (("shf" "{")) (:background "DarkGreen") command)
+                                          ("kf-comment" (("kf" "{")) (:background "Sienna") command)
                                           ("dh-comment" (("dyh" "{")) (:background "Firebrick") command)
                                           ("rc-commen" (("rc" "{")) (:background "orange") command)
                                           ("ly-commen" (("ly" "{")) (:background "blue1") command)
@@ -2876,7 +2876,7 @@ Used with atomic-chrome."
       (amsha/magit-visualize-keybinds)))
 
   (advice-add 'magit-todos--insert-items :after #'amsha/magit-todos--insert-items-refresh-keybind))
-  
+
 
 (use-package blamer
   :bind (("s-i" . blamer-show-commit-info))
@@ -2949,7 +2949,7 @@ Used with atomic-chrome."
    :client-id (gethash 'slack-client-id configurations "123231423499.234123421342")
    :client-secret (gethash 'slack-client-secret configurations "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
    :token (gethash 'slack-token configurations
-		   "xoxp-111111111111-222222222222-333333333333-44444444444444444444444444444444")
+                   "xoxp-111111111111-222222222222-333333333333-44444444444444444444444444444444")
    :subscribed-channels '() ;add chanel list here
    :full-and-display-names t))
 
@@ -2967,7 +2967,7 @@ Used with atomic-chrome."
                                          provider))
                                      web-search-providers))
   (push '("google scholar ca" "https://scholar.google.ca/scholar?hl=en&as_sdt=0%%2C5&q=%s") web-search-providers)
-  
+
   (defun amsha-web-search ()
     "Wrapper to quick pick providers and tag."
     (interactive)
@@ -2987,7 +2987,7 @@ Used with atomic-chrome."
                           (cond
                            ((eq (cdr selection) :provider) (web-search query (list (car selection))) nil)
                            ((eq (cdr selection) :tag) (web-search query nil (car selection)))))))))
-    
+
 ;;alert mode************************************************************
 (use-package alert
   :defer t
@@ -3233,7 +3233,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
     (let ((time-string (funcall oldfun))
           (today-day-number (org-today)))
       (format "%s  %s"
-              time-string 
+              time-string
               (--> (org-entry-get (point) "DEADLINE" t)
                    (or (and it
                             (pcase (- today-day-number (org-time-string-to-absolute it))
@@ -3267,7 +3267,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
                  (cl-incf amsha/dashboard-get-agenda-wrapper--calls))))))
 
   (advice-add 'dashboard-get-agenda :around #'amsha/dashboard-get-agenda-wrapper)
-  
+
   (setq dashboard-startup-banner "~/.emacs.d/customFiles/banner.png"
         dashboard-banner-logo-title nil
         dashboard-startup-banner banner-images-list
@@ -3301,7 +3301,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 ;; (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
 ;; (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
 
-(use-package web-mode 
+(use-package web-mode
   :mode "\\.phtml\\'"
   :mode	"\\.tpl\\.php\\'"
   :mode	"\\.php\\'"
@@ -3340,7 +3340,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 ;; (use-package js2-mode
 ;;   :mode "\\.js\\'"
 ;;   :bind ("C-c s" . switch-web-js2))
-    
+
 (use-package markdown-mode
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
