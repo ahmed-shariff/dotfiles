@@ -324,18 +324,16 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
       (insert insertion))))
 
 (defun terminal-in-directory ()
-  "Option terminal in current directory, in project root if prefix."
+  "Open terminal in current directory, or project root if prefix."
   (interactive)
-  (shell-command
-   (format "%s %s"
-           (if (eq system-type 'windows-nt) "wt -d" "tilix --window-style=disable-csd-hide-toolbar")
-           (-->
-             (file-truename
-              (buffer-file-name (window-buffer
-                                 (minibuffer-selected-window))))
-             (if current-prefix-arg
-                 (amsha/get-project-root-overlooking-submodules it)
-               (file-name-directory it))))))
+  (let* ((base (or (buffer-file-name) default-directory))
+         (base (if (file-remote-p base) default-directory base))
+         (dir  (if current-prefix-arg
+                   (amsha/get-project-root-overlooking-submodules
+                    (file-truename base))
+                 (file-name-directory (file-truename base)))))
+    (call-process "nohup" nil nil nil
+                  "wezterm" "start" "--cwd" dir)))
 
 (defun amsha/downlad-raname-move-file (url newname dir)
   (url-copy-file url (expand-file-name newname dir)))
