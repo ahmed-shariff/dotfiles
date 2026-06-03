@@ -324,7 +324,20 @@
 
     (cl-defmethod jupyter-handle-execute-reply :around ((_client jupyter-org-client) (req jupyter-org-request) msg)
       (org-with-point-at (jupyter-org-request-marker req)
-        (cl-call-next-method))))
+        (cl-call-next-method)))
+
+    ;; See https://github.com/emacs-jupyter/jupyter/issues/607
+    (defun my/jupyter-org-results-drawer-pre-blank-fix (element)
+      "Advice to ensure the RESULTS drawer has a :pre-blank 0 property.
+This prevents 'wrong-type-argument wholenump nil' errors in newer Org versions."
+      (if (and element (eq (org-element-type element) 'drawer))
+          (progn
+            (org-element-put-property element :pre-blank 0)
+            element)
+        element))
+    (advice-add 'jupyter-org-results-drawer
+                :filter-return
+                #'my/jupyter-org-results-drawer-pre-blank-fix))
 
   (use-package ox-ipynb
     :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb")))
