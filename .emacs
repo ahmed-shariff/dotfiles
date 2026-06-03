@@ -2330,7 +2330,14 @@ buffer local values."
       )))
   (advice-add #'pet-buffer-local-vars-setup :override #'amsha/pet-buffer-local-vars-setup)
 
-  (add-hook 'python-base-mode-hook 'pet-mode -10))
+  (defun amsha/pet-mode ()
+    "Pet mode that guards from running on non file buffers.
+This is a fix for pet-mode running on edits in org-mode."
+    (interactive)
+    (when (buffer-file-name)
+      (pet-mode)))
+
+  (add-hook 'python-base-mode-hook #'amsha/pet-mode -10))
 
 (use-package tomlparse)
 
