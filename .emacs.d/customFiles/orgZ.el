@@ -743,9 +743,15 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
   :straight (org-noter :host github :type git :repo "org-noter/org-noter"
                        :files ("*.el" "modules/*.el"))
   :config
+  (evil-define-key '(normal motion) 'org-noter-doc-mode (kbd "i") 'org-noter-insert-note)
+  (evil-define-key '(normal motion) 'org-noter-doc-mode (kbd "q") 'org-noter-kill-session)
+  (evil-define-key '(normal motion) 'org-noter-doc-mode (kbd "<tab>") 'org-noter-insert-precise-note)
+  (evil-define-key '(normal motion) 'org-noter-doc-mode (kbd "C-<tab>") 'org-noter-insert-precise-note-toggle-no-questions)
+
   (setq org-noter-property-doc-file "INTERLEAVE_PDF"
         org-noter-property-note-location "INTERLEAVE_PAGE_NOTE"
-        org-noter-highlight-selected-text t)
+        org-noter-highlight-selected-text t
+        org-noter-max-short-selected-text-length 3)
 
   ;; The evil related functions seems to be adding a binding to "q" for `quit-window' in the normal mode
   ;; Its there in the `evil-collection-eldoc-doc-buffer-mode-map' `special-mode-map' and another one?
