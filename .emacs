@@ -369,6 +369,17 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
         (push entry dirty)))
     (em dirty)))
 
+(defun amsha/refresh-mode-in-org-mode-buffers ()
+    "Go through all org buffers and re-enable org-mode.
+For when org buffers are created without all the other scfolding."
+    (interactive)
+    (--map (when-let* ((buf-name (buffer-file-name it))
+                       (_ (f-ext-p buf-name "org")))
+             (with-current-buffer it
+               (unless (derived-mode-p 'org-mode)
+                 (org-mode))))
+           (buffer-list)))
+
 (use-package emacs
   :demand
   :hook ((prog-mode-hook . (lambda ()
@@ -3253,12 +3264,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
     (condition-case err
         (prog1 (funcall oldfun)
           (setq amsha/dashboard-get-agenda-wrapper--calls 0))
-      (error (--map (when-let* ((buf-name (buffer-file-name it))
-                                (_ (f-ext-p buf-name "org")))
-                      (with-current-buffer it
-                        (unless (derived-mode-p 'org-mode)
-                          (org-mode))))
-                    (buffer-list))
+      (error (amsha/refresh-mode-in-org-mode-buffers)
              (if (> amsha/dashboard-get-agenda-wrapper--calls 3)
                  (progn
                    (setq amsha/dashboard-get-agenda-wrapper--calls 0)
