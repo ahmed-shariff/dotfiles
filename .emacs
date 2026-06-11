@@ -531,6 +531,13 @@ advice, files on WSL can not be saved."
   (transient-default-level 7)
   :config
 
+  (defun amsha/with-magit-cache (oldfn &rest args)
+    (let ((magit--refresh-cache (list (cons 0 0))))
+      (apply oldfn args)))
+
+  (advice-add #'magit-push :around #'amsha/with-magit-cache)
+  (advice-add #'magit-pull :around #'amsha/with-magit-cache)
+
   (defun get-gitignore-from-github ()
     "Get a gitignore file from github/gitignore repo."
     ;; Expecting the repo (https://github.com/github/gitignore) to be cloned in ~/.emacs.d/.cache/gitignore
@@ -681,6 +688,10 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
 
   (add-hook 'magit-status-sections-hook #'amsha/magit-visualize-keybinds 99)
   (add-hook 'magit-status-sections-hook #'amsha/magit-insert-branches-sections 'append))
+
+(use-package magit-prime
+  :config
+  (magit-prime-mode))
 
 (use-package forge
   :after magit)
