@@ -538,6 +538,66 @@ advice, files on WSL can not be saved."
   (advice-add #'magit-push :around #'amsha/with-magit-cache)
   (advice-add #'magit-pull :around #'amsha/with-magit-cache)
 
+  (defvar amsha/magit-minimal-status-header-hook '(magit-insert-error-header
+                                                   magit-insert-head-branch-header))
+
+  (defun amsha/magit-insert-status-headers ()
+    "Same as `magit-insert-status-headers', but minimal version."
+    (if (magit-rev-verify "HEAD")
+        (magit-insert-headers 'amsha/magit-minimal-status-header-hook)
+      (insert "In the beginning there was darkness\n\n")))
+
+  (defvar amsha/magit-minimal-status-sections-hook '(amsha/magit-insert-status-headers
+                                                     magit-insert-unpushed-to-upstream
+                                                     magit-insert-unpulled-from-upstream
+                                                     magit-insert-untracked-files
+                                                     magit-insert-unstaged-changes
+                                                     magit-insert-staged-changes))
+
+  (defvar amsha/magit-full-status-sections-hook nil)
+
+  (defun amsha/magit--sync-full-status-sections ()
+    "Add any missing sections from the current status hook into the full hook."
+    (unless (equal magit-status-sections-hook amsha/magit-minimal-status-sections-hook)
+      (let* ((current (reverse magit-status-sections-hook))
+             (full amsha/magit-full-status-sections-hook)
+             (depth-alist (symbol-value (get 'magit-status-sections-hook 'hook--depth-alist))))
+        (dolist (fn current)
+          (unless (member fn amsha/magit-full-status-sections-hook)
+            ;; Preserve order by reusing the current hook's depth.
+            (add-hook 'amsha/magit-full-status-sections-hook
+                      fn
+                      (alist-get fn depth-alist 0 nil #'eq))))
+
+        ;; Keep the variable updated after add-hook calls.
+        (setq amsha/magit-full-status-sections-hook
+              (default-value 'amsha/magit-full-status-sections-hook)))))
+
+  (add-hook 'magit-pre-refresh-hook
+            #'amsha/magit--sync-full-status-sections)
+
+  (defun amsha/magit-status-minimal ()
+    "Use the minimal Magit status view."
+    (interactive)
+    (setq magit-status-sections-hook
+                amsha/magit-minimal-status-sections-hook)
+    (magit-refresh))
+
+  (defun amsha/magit-status-full ()
+    "Use the full Magit status view."
+    (interactive)
+    (setq magit-status-sections-hook
+                amsha/magit-full-status-sections-hook)
+    (magit-refresh))
+
+  (defun amsha/magit-status-toggle ()
+    "Toggle between minimal and full Magit status views."
+    (interactive)
+    (if (equal magit-status-sections-hook
+               amsha/magit-minimal-status-sections-hook)
+        (amsha/magit-status-full)
+      (amsha/magit-status-minimal)))
+
   (defun get-gitignore-from-github ()
     "Get a gitignore file from github/gitignore repo."
     ;; Expecting the repo (https://github.com/github/gitignore) to be cloned in ~/.emacs.d/.cache/gitignore
@@ -687,7 +747,8 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
         (insert "\n")))
 
   (add-hook 'magit-status-sections-hook #'amsha/magit-visualize-keybinds 99)
-  (add-hook 'magit-status-sections-hook #'amsha/magit-insert-branches-sections 'append))
+  (add-hook 'magit-status-sections-hook #'amsha/magit-insert-branches-sections 'append)
+  (add-hook 'amsha/magit-minimal-status-sections-hook #'amsha/magit-visualize-keybinds 99))
 
 (use-package magit-prime
   :config
