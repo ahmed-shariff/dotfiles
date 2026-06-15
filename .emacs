@@ -389,14 +389,17 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
         (push entry dirty)))
     (em dirty)))
 
-(defun amsha/refresh-mode-in-org-mode-buffers ()
-    "Go through all org buffers and re-enable org-mode.
-For when org buffers are created without all the other scfolding."
-    (interactive)
+(defun amsha/refresh-mode-in-org-mode-buffers (&optional arg)
+    "Go through all org buffers and enable org-mode.
+
+For when org buffers are created without org-mode.
+
+When ARG, even if the buffer is in org-mode, restart org-mode."
+    (interactive "p")
     (--map (when-let* ((buf-name (buffer-file-name it))
                        (_ (f-ext-p buf-name "org")))
              (with-current-buffer it
-               (unless (derived-mode-p 'org-mode)
+               (when (or (not (derived-mode-p 'org-mode)) arg)
                  (org-mode))))
            (buffer-list)))
 
