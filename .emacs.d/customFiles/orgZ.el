@@ -1809,6 +1809,7 @@ With C-u C-u C-u prefix, force run all research-papers."
          (completing-read
           "Bibfile: "
           bibtex-completion-bibliography)))
+  (lazy-require 'org-ref-arxiv)
   (save-window-excursion
     (find-file bibfile)
     (let* ((arxiv-number (s-chop-suffix ".pdf" (car (last (s-split "/" arxiv-link)))))
