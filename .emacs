@@ -234,6 +234,26 @@ Used for debugging."
      (message ,(format ">>>>>    %s" (s-join "," (-repeat (length args) " %s"))) ,@args)
      ,(car args)))
 
+(defun amsha/benchmark-function-wrapper (func &rest all)
+  "Simple wrapper function that prints the elapsed time."
+  (let ((res))
+    (em (benchmark-elapse (setq res (apply func all))) func)
+    res))
+
+(defvar amsha/benchmark-tracked-functions nil)
+
+(defun amsha/benchmark-function-add (func)
+  "Add `amsha/benchmark-function-wrapper' as an advice to func"
+  (interactive (help-fns--describe-function-or-command-prompt))
+  (advice-add func :around #'amsha/benchmark-function-wrapper)
+  (add-to-list 'amsha/benchmark-tracked-functions func))
+
+(defun amsha/benchmark-function-remove (func)
+  "Remove `amsha/benchmark-function-wrapper' as an advice to tracked func"
+  (interactive (list (intern-soft (completing-read "Function: " amsha/benchmark-tracked-functions))))
+  (advice-remove func #'amsha/benchmark-function-wrapper)
+  (setq amsha/benchmark-tracked-functions (remove func amsha/benchmark-tracked-functions)))
+
 (defmacro plist-multi-put (plist &rest args)
   "Put KEY VALUES list in setq."
   (let ((list nil)
