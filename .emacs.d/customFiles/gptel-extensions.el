@@ -19,6 +19,7 @@
 ;;; Some top level defaults*****************************************************************
 (defvar amsha/gptel-default-prompt-transform-functions gptel-prompt-transform-functions)
 (defvar amsha/gptel-default-model 'gpt-5.4-mini)
+(defvar amsha/gptel-high-model 'gpt-5.4)
 
 ;;; packages ******************************************************************************
 (use-package elysium
@@ -685,6 +686,14 @@ Note: LSP servers must be configured for the file type. If no server is availabl
 ;;   :description "Search using gpt-4.1-mini"
 ;;   :model 'gpt-4.1-mini)
 
+(gptel-make-preset 'model-high
+  :description (format "Search using high model %s" amsha/gptel-high-model)
+  :model '(:function (lambda (_) amsha/gptel-high-model)))
+
+(gptel-make-preset 'model-default
+  :description (format "Search using default model %s" amsha/gptel-default-model)
+  :model '(:function (lambda (_) amsha/gptel-default-model)))
+
 (gptel-make-preset 'readurl
   :description "Tool: read url"
   :tools '("read_url"))
@@ -726,7 +735,7 @@ Your summary should be comprehensive enough to provide context but concise enoug
   - If some content would lose meaning when compressed, retain it nearly verbatim or fully verbatim.
   - Do not omit information just because it seems minor if it may be useful later.
   - Keep technical terms, names, links, citations, code snippets, property values, tags, timestamps, and metadata when relevant.
-  - When applicable, treat LLM generated responses (often denoted by `@assistant`) accordingly - don't confuse them with user notes, but, don't ignore them as they both contain valuable information.
+  - When applicable, treat LLM generated responses accordingly - don't confuse them with user notes, but, don't ignore them as they both contain valuable information. LLM generated responses are denoted by @assistant - anything after that until the begining of the next org heading or a @user annotation, is LLM generated.
 
   Instructions:
   1. Read the entire context carefully, including headings, subheadings, lists, drawers, properties, notes, and inline remarks.
