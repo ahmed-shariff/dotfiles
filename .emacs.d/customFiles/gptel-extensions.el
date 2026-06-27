@@ -844,6 +844,43 @@ Otherwise, add ELEM as the last element."
 
 (advice-add 'gptel-org-set-topic :around #'amsha/gptel-org-set-topic)
 
+(defun amsha/add-compact-summary (arg)
+  "Compact the current Org subtree using gptel and insert a \"Compaction results\" heading tagged :compaction: after the current heading.
+
+With ARG, pass the prefix argument to `gptel-send`.
+
+Signals an error if a region is active, since region-based compaction is not implemented."
+  (interactive "P")
+  (when (derived-mode-p 'org-mode)
+    (let ((gptel-context nil)
+          (gptel-tools nil)
+          (gptel-openai-responses-extended--tools nil)
+          (gptel-org-branching-context nil)
+          heading-mark
+          heading-level)
+      (when (use-region-p)
+        (user-error "That is not entirely implemented/tested"))
+      (goto-char (pos-eol))
+      (setq heading-mark (point-marker))
+      (if-let (pos (gptel-org--get-topic-start))
+          (goto-char pos)
+        (while (org-up-heading-safe) nil))
+      (setq heading-level (org-current-level))
+      (org-mark-subtree)
+      (setq hook-fn
+            (let ((lvl heading-level))
+              (lambda (start end)
+                (remove-hook 'gptel-post-response-functions hook-fn t)
+                (goto-char (marker-position heading-mark))
+                (org-insert-heading nil nil (1+ heading-level))
+                (insert "Compaction results")
+                (goto-char (pos-eol))
+                (org-set-tags "compaction"))))
+      (add-hook 'gptel-post-response-functions hook-fn 99 t)
+      (when (y-or-n-p "Send?")
+        (gptel-with-preset 'compaction
+          (gptel-send arg))))))
+
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
 (defvar gptel--mode-line-status " ")

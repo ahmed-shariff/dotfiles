@@ -362,8 +362,29 @@ see also `org-roam-backlinks-section-with-ql-filter'.
          (lambda (str el)
            ;; remove properties not interested. If prop drawer is empty at the end, remove drawer itself
            (s-replace-regexp (format "\n *:%s:.*$" el) "" str))
-         ;; remove links
-         (list (amsha/org-repalce-link-in-string (string-trim (buffer-substring-no-properties beg end)))
+         (list
+          ;; remove links
+          (amsha/org-repalce-link-in-string
+                (string-trim
+                 ;; if compaction results are there, use that
+                 ;; TODO: have some sort of a toggle for this?
+                 (or
+                  (when-let (content (save-excursion
+                                       (goto-char beg)
+                                       (org-map-entries
+                                        (lambda ()
+                                          (buffer-substring-no-properties
+                                           (progn (org-beginning-of-line)
+                                                  (point))
+                                           (progn (org-end-of-subtree)
+                                                  (point))))
+                                        "+compaction" 'tree)))
+                    (format "%s\n%s"
+                            (save-excursion
+                              (goto-char beg)
+                              (org-get-heading t t t t))
+                            (string-join content "\n\n")))
+                  (buffer-substring-no-properties beg end))))
                "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "HIGHLIGHT" okm-parent-property-name "PROPERTIES:\n *:END")))
     (org-roam-preview-default-function)))
 
