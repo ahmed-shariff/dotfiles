@@ -1087,11 +1087,24 @@ Signals an error if a region is active, since region-based compaction is not imp
 
 (defun okm-pdf-question (callback paper_id questions)
   "Returns the answer to the question from paper represented by paper_id."
+  (interactive (list
+                (lambda (str)
+                  (em "Answer: " str))
+                (if (derived-mode-p 'org-mode)
+                    (if-let (custom-id (org-entry-get (point) "Custom_ID" t))
+                        custom-id
+                      (error "No Custom_ID, is this point in a paper?")) ;; ask for paper instead?
+                  (error "not in org-mode"))
+                (read-from-minibuffer "Question: ")))
   (em "asking questions from " paper_id)
   (lazy-require 'org-roam-ql)
   (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id))))
-        (gptel-backend gptel-openai-response-backend)
-        (gptel-model amsha/gptel-default-model)
+        (gptel-backend (if current-prefix-arg
+                           gptel-backend
+                         gptel-openai-response-backend))
+        (gptel-model (if current-prefix-arg
+                         gptel-model
+                       amsha/gptel-default-model))
         (gptel-tools nil)
         (gptel-context nil))
     (if node
@@ -2300,6 +2313,7 @@ then close the *gptel-context* buffer and return to gptel menu."
            ("C-c o q m" . gptel-menu)
            ("C-c o q b" . gptel)
            ("C-c o q Q" . gptel-send)
+           ("C-c o q n" . gptel-context-add)
            ("C-c o q y" . amsha/gptel-yank)
            :map gptel-mode-map
            ("C-c DEL" . amsha/erase-buffer-with-confirmation))
