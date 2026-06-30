@@ -866,7 +866,16 @@ Signals an error if a region is active, since region-based compaction is not imp
           (goto-char pos)
         (while (org-up-heading-safe) nil))
       (setq heading-level (org-current-level))
-      (org-mark-subtree)
+
+      ;; KLUDGE: `org-mark-subtree' sets the end point on the begining
+      ;; of the next heading. gptel reads the topic based on the end
+      ;; of the region. If the next heading had a topic, thats the
+      ;; point that gptel uses, resulting in an empty request.
+      ;; Hence using this:
+      (let ((element (org-element-at-point)))
+        (push-mark (1- (org-element-end element)) t t)
+        (goto-char (org-element-begin element)))
+
       (setq hook-fn
             (let ((lvl heading-level))
               (lambda (start end)
