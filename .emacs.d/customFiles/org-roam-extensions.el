@@ -369,7 +369,8 @@ see also `org-roam-backlinks-section-with-ql-filter'.
                  ;; if compaction results are there, use that
                  ;; TODO: have some sort of a toggle for this?
                  (or
-                  (when-let (content (save-excursion
+                  (when-let ((org-map-scope (if (org-before-first-heading-p) 'file 'tree))
+                             (content (save-excursion
                                        (goto-char beg)
                                        (org-map-entries
                                         (lambda ()
@@ -378,11 +379,22 @@ see also `org-roam-backlinks-section-with-ql-filter'.
                                                   (point))
                                            (progn (org-end-of-subtree)
                                                   (point))))
-                                        "+compaction" 'tree)))
-                    (format "%s\n%s"
+                                        "+compaction" org-map-scope))))
+                    (format "%s\n%s\n%s"
                             (save-excursion
                               (goto-char beg)
                               (org-get-heading t t t t))
+                            (string-join
+                             (-non-nil
+                              (org-map-entries
+                               (lambda ()
+                                 (when (--none-p (plist-get (text-properties-at 0 it) 'inherited) org-scanner-tags)
+                                   (buffer-substring-no-properties
+                                    (progn (org-beginning-of-line)
+                                           (point))
+                                    (progn (org-next-visible-heading 1)
+                                           (point)))))
+                               "+notebody" org-map-scope)))
                             (string-join content "\n\n")))
                   (buffer-substring-no-properties beg end))))
                "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "HIGHLIGHT" okm-parent-property-name "PROPERTIES:\n *:END")))
