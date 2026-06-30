@@ -384,17 +384,19 @@ see also `org-roam-backlinks-section-with-ql-filter'.
                             (save-excursion
                               (goto-char beg)
                               (org-get-heading t t t t))
-                            (string-join
-                             (-non-nil
-                              (org-map-entries
-                               (lambda ()
-                                 (when (--none-p (plist-get (text-properties-at 0 it) 'inherited) org-scanner-tags)
-                                   (buffer-substring-no-properties
-                                    (progn (org-beginning-of-line)
-                                           (point))
-                                    (progn (org-next-visible-heading 1)
-                                           (point)))))
-                               "+notebody" org-map-scope)))
+                            (save-excursion
+                              (goto-char beg)
+                              (string-join
+                               (-non-nil
+                                (org-map-entries
+                                 (lambda ()
+                                   (when (--none-p (plist-get (text-properties-at 0 it) 'inherited) org-scanner-tags)
+                                     (buffer-substring-no-properties
+                                      (progn (org-beginning-of-line)
+                                             (point))
+                                      (progn (org-next-visible-heading 1)
+                                             (point)))))
+                                 "+notebody" org-map-scope))))
                             (string-join content "\n\n")))
                   (buffer-substring-no-properties beg end))))
                "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "HIGHLIGHT" okm-parent-property-name "PROPERTIES:\n *:END")))
