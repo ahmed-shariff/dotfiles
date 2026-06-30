@@ -113,7 +113,7 @@
       org-agenda-start-on-weekday nil
       org-agenda-start-day "-3d"
       org-image-actual-width (list 650)
-      org-tag-alist '(("TEMP_BIB"))
+      org-tag-alist '(("TEMP_BIB" "notebody" "compaction"))
       org-export-with-broken-links t
       org-agenda-persistent-marks t
       org-agenda-files (when (f-exists-p "~/.emacs.d/org-agenda-org-roam-ql-cache")
