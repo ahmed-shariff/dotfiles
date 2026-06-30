@@ -2167,6 +2167,43 @@ then close the *gptel-context* buffer and return to gptel menu."
   (quit-window)
   (call-interactively #'gptel-menu))
 
+;;; org-roam-ql buffer and add to context *************************************************
+(defun amsha/gptel-roam-ql-search-and-add-to-context (query)
+  "Search the org-roam-ql results buffer for QUERY and add the current buffer to gptel context."
+  (interactive (list (org-roam-ql--read-query)))
+  (with-current-buffer (window-buffer (org-roam-ql-search query query))
+    (gptel-context-add)))
+
+(defun amsha/gptel-roam-ql-search-backlinks-and-add-to-context (query)
+  "Search backlinks with QUERY and add the current result buffer to gptel context."
+  (interactive (list (org-roam-ql--read-query)))
+  (with-current-buffer (window-buffer (org-roam-ql-search-backlinks query query))
+    (gptel-context-add)))
+
+(transient-insert-suffix 'gptel-menu '(0 1 -1)
+  '("os" "roam-ql search add"
+    amsha/gptel-roam-ql-search-and-add-to-context
+    :transient t))
+
+(transient-insert-suffix 'gptel-menu '(0 1 -1)
+  '("ob" "roam-ql backlink search add"
+    amsha/gptel-roam-ql-search-backlinks-and-add-to-context
+    :transient t))
+
+(defun amsha/org-roam-ql-refresh-with-gptel-context (oldfn &rest rest)
+  (let ((ovs (--filter (overlay-get it 'gptel-context)
+                       (car (overlay-lists)))))
+    (when ovs
+      (mark-whole-buffer)
+      (gptel-context-remove))
+    (apply oldfn rest)
+    (pcase (length ovs)
+      ('0 nil) ;; nothing to do
+      ('1 (gptel-context-add))
+      (_ (user-error "Multiple context overlays were found, removed all, added nothing.")))))
+
+(advice-add 'org-roam-ql-refresh-buffer :around #'amsha/org-roam-ql-refresh-with-gptel-context)
+
 ;;; transform functions *******************************************************************
 
 ;;;; * okm replace cite with context
