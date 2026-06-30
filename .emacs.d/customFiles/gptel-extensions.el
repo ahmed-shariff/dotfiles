@@ -959,6 +959,7 @@ Signals an error if a region is active, since region-based compaction is not imp
 (advice-add 'gptel-abort :after #'gptel--update-mode-line)
 
 (add-hook 'transient-exit-hook #'gptel--update-mode-line)
+(add-hook 'buffer-list-update-hook #'gptel--update-mode-line)
 
 (cl-pushnew '((:eval gptel--mode-line-format)) global-mode-string)
 
