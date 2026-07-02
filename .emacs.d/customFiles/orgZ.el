@@ -762,20 +762,20 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
   ;; Its there in the `evil-collection-eldoc-doc-buffer-mode-map' `special-mode-map' and another one?
   ;; For now advicing the `quit-window' to let me kill session when quitting without interuppting the function of "q"
   ;; bound by other maps.
-  (defun org-noter-quit-window-kill-session (oldfun &rest rest)
+  (defun amsha/org-noter-quit-window-kill-session (oldfun &rest rest)
     (if org-noter--session
         (org-noter-kill-session org-noter--session)
       (apply oldfun rest)))
 
-  (advice-add 'quit-window :around #'org-noter-quit-window-kill-session)
+  (advice-add 'quit-window :around #'amsha/org-noter-quit-window-kill-session)
 
-  (defun org-noter-pdf--get-selected-text-single-linified (vals)
+  (defun amsha/org-noter-pdf--get-selected-text-single-linified (vals)
     "Single linyfy the returned text."
     (when vals (replace-regexp-in-string "\n" " " (replace-regexp-in-string "- " "" vals))))
 
-  (advice-add 'org-noter-pdf--get-selected-text :filter-return #'org-noter-pdf--get-selected-text-single-linified)
+  (advice-add 'org-noter-pdf--get-selected-text :filter-return #'amsha/org-noter-pdf--get-selected-text-single-linified)
 
-  (defun org-noter-append-title-at-point-to-highlight ()
+  (defun amsha/org-noter-append-title-at-point-to-highlight ()
     "Take the org heading title at point and append it to the annotation.
 
 If an annotation is at the point, add content to it.
@@ -790,7 +790,7 @@ Else create a text annotations at point."
                (content-to-add (org-get-heading t t t t))
                (highlight-coords (when-let (highlight-data
                                              (org-entry-get (point) "HIGHLIGHT"))
-                                   (car (pdf-highlight-coords
+                                   (cadr (pdf-highlight-coords
                                     (eval ;; FIXME: Should I be worried about saftey here?
                                      (car (read-from-string
                                            highlight-data))))))))
@@ -838,7 +838,7 @@ Else create a text annotations at point."
              (user-error "No note selected")))
        (user-error "You are inside a different document"))))
 
-  (define-key org-noter-notes-mode-map (kbd "C-M->") 'org-noter-append-title-at-point-to-highlight))
+  (define-key org-noter-notes-mode-map (kbd "C-M->") 'amsha/org-noter-append-title-at-point-to-highlight))
 
 (use-package org-super-agenda
   :custom
