@@ -723,7 +723,11 @@ Focus on information that would be helpful for decision making, including:
 - Key issues, constraints, or preferences that should persist
 - Important decisions and why they were made
 
-Your summary should be comprehensive enough to provide context but concise enough to be quickly understood."))
+Your summary should be comprehensive enough to provide context but concise enough to be quickly understood.
+
+If the conversation involved iteratively refining something, provide the summary of the final version. The summary should be detailed enough to cover all points.
+
+DO NOT provide followup suggestions."))
 
 (gptel-make-preset 'summarize
   :description "System prompt for detailed summarize of context."
