@@ -479,29 +479,30 @@ advice, files on WSL can not be saved."
   (put 'narrow-to-region 'disabled nil)
   (put 'downcase-region 'disabled nil)
 
+  (setq use-default-font-for-symbols nil)
+
   (set-face-attribute 'default nil
-                      :font "Fira Code"
+                      :font "FiraCode Nerd Font"
                       :weight 'normal
                       :height 100)
 
   ;; Set the fixed pitch face
   (set-face-attribute 'fixed-pitch nil
-                      :font "Fira Code"
+                      :font "FiraCode Nerd Font"
                       :weight 'normal
                       :height 100)
 
   ;; Set the variable pitch face
   (set-face-attribute 'variable-pitch nil
                       ;; :font "Cantarell"
+                      ;; :font "Iosevka NFP Medium"
                       :font "Iosevka Aile"
+                      ;; :font "FiraCode Nerd Font Propo"
+                      ;; :font "UbuntuSansMono NF"
                       :height 105
                       :weight 'normal)
 
-  (setq font-name-used "Noto Emoji")
-
-  (when (member font-name-used (font-family-list))
-    (set-fontset-font
-     t 'unicode (font-spec :family font-name-used) nil 'prepend)))
+  (set-fontset-font t nil "FiraCode Nerd Font" nil 'prepend))
 
 (load "~/.emacs.d/customFiles/evil-setup.el")
 
@@ -517,7 +518,6 @@ advice, files on WSL can not be saved."
   :defer t
   :config
   (allout-mode))
-
 
 (use-package elec-pair
   :straight (:type built-in)
