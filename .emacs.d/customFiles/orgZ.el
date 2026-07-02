@@ -74,7 +74,7 @@
 
 (ox-extras-activate '(ignore-headlines))
 
-(setq org-ellipsis " ▾"
+(setq org-ellipsis " ⌄"
       org-hide-emphasis-markers t
       org-src-fontify-natively t
       org-src-tab-acts-natively t
@@ -351,6 +351,11 @@ This prevents 'wrong-type-argument wholenump nil' errors in newer Org versions."
   :straight (:type git :host github :repo "minad/org-modern")
   :custom
   (org-modern-star '("◉" " ○" "  ◈" "   ◇" "    •" "     ◦" "      ▸" "       ▹"))
+  (org-modern-fold-stars
+   '(("▶" . "▼")
+     ("▷" . "▽")
+     ("▸" . "▾")
+     ("▹" . "▿")))
   (org-modern-block-fringe nil)
   :hook ((org-mode . org-modern-mode)
          (org-agenda-finalize . org-modern-agenda))
