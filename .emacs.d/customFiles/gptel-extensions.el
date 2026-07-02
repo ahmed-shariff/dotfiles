@@ -2415,6 +2415,9 @@ then close the *gptel-context* buffer and return to gptel menu."
                       :key gptel-api-key
                       :stream t))
 
+(dolist (def (gethash 'gptel-local-models configurations nil))
+  (apply (car def) (cdr def)))
+
 (defvar amsha/gptel-anthropic-api
  (gptel-make-anthropic "Claude"          ;Any name you want
   :stream t                             ;Streaming responses
