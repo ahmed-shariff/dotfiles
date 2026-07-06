@@ -5,6 +5,8 @@
 ;;; Code:
 
 (straight-use-package 'gptel)
+(straight-use-package '(gptel-agent :host github :repo "karthink/gptel-agent"
+                                    :files (:defaults "agents")))
 (require 'gptel)
 (require 'gptel-integrations)
 (require 'gptel-org)
@@ -12,6 +14,7 @@
 (require 'gptel-context)
 (require 'gptel-request)
 (require 'gptel-rewrite)
+(require 'gptel-agent)
 (require 'lsp)
 (require 'magit-section)
 (require 'f)
@@ -244,34 +247,6 @@ Code
 
 (use-package gptel-autocomplete
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
-
-(use-package gptel-agent
-  :defer t
-  :straight (:host github :repo "karthink/gptel-agent"
-                   :files (:defaults "agents")) ;use :ensure for Elpaca
-  :config
-  (add-to-list 'gptel-agent-skill-dirs (expand-file-name "~/.emacs.d/.cache/gptel-skills/"))
-  (add-to-list 'gptel-agent-dirs "~/.emacs.d/customFiles/gptel-paper-agent/")
-  (add-to-list 'gptel-agent-skill-dirs "~/.emacs.d/.cache/gptel-skills/")
-  (defun amsha/agent-post-update (&rest _)
-    ;; Make "paper-agent" a top-level preset
-    (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
-      (apply #'gptel-make-preset 'paper-agent paper-agent-plist))
-    ;; Make skills presets
-    (pcase-dolist (`(,name ,_ . ,skill-plist) gptel-agent--skills)
-      (apply #'gptel-make-preset
-             (concat "skill-" name)
-             (append skill-plist `(:system (:function (lambda (system-prompt)
-                                                        (concat system-prompt "\n"
-                                                                (gptel-agent--get-skill ,name)))))))))
-  (advice-add 'gptel-agent-update :after #'amsha/agent-post-update)
-
-  (gptel-agent-update)         ;Read files from agents directories
-
-  (defun amsha/gptel-paper-agent ()
-    "Paper agent."
-    (interactive)
-    (gptel-agent okm-base-directory 'paper-agent)))
 
 ;;; openai reponse related setup **********************************************************
 (unless (featurep 'gptel-openai-responses-backend)
@@ -893,6 +868,11 @@ Signals an error if a region is active, since region-based compaction is not imp
       (when (y-or-n-p "Send?")
         (gptel-with-preset 'compaction
           (gptel-send arg))))))
+
+(defun amsha/gptel-paper-agent ()
+  "Paper agent."
+  (interactive)
+  (gptel-agent okm-base-directory 'paper-agent))
 
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
@@ -2430,6 +2410,25 @@ then close the *gptel-context* buffer and return to gptel menu."
 ;;                                                    (--map (prog1 it (put it :capabilities '(reasoning)))
 ;;                                                           '(gpt-4o-search-preview gpt-4o-mini-search-preview))))
 ;;   (error (message "ERROR %s" err)))
+
+;;;; setup (gptel-agent) *******************************************************************
+(add-to-list 'gptel-agent-skill-dirs (expand-file-name "~/.emacs.d/.cache/gptel-skills/"))
+(add-to-list 'gptel-agent-dirs "~/.emacs.d/customFiles/gptel-paper-agent/")
+(add-to-list 'gptel-agent-skill-dirs "~/.emacs.d/.cache/gptel-skills/")
+(defun amsha/agent-post-update (&rest _)
+  ;; Make "paper-agent" a top-level preset
+  (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
+    (apply #'gptel-make-preset 'paper-agent paper-agent-plist))
+  ;; Make skills presets
+  (pcase-dolist (`(,name ,_ . ,skill-plist) gptel-agent--skills)
+    (apply #'gptel-make-preset
+           (concat "skill-" name)
+           (append skill-plist `(:system (:function (lambda (system-prompt)
+                                                      (concat system-prompt "\n"
+                                                              (gptel-agent--get-skill ,name)))))))))
+(advice-add 'gptel-agent-update :after #'amsha/agent-post-update)
+
+(gptel-agent-update)         ;Read files from agents directories
 
 (provide 'gptel-extensions)
 ;;; gptel-extensions.el ends here
