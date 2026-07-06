@@ -452,7 +452,7 @@ Code
 
 ;;;; * paper agent tools
 (gptel-make-tool
- :function #'okm-get-pdf-txt
+ :function #'amsha/okm-get-pdf-txt
  :name "okm_paper_full_text"
  :description "Get the full text extracted using pdf-tools for a given paper"
  :args (list '(:name "paper_id"
@@ -462,7 +462,7 @@ Code
  :category "okm")
 
 ;; (gptel-make-tool
-;;  :function #'okm-gptel-get-paper-abstract-summary
+;;  :function #'amsha/okm-gptel-get-paper-abstract-summary
 ;;  :name "okm_paper_abstract_and_summary"
 ;;  :description "Get the title, authors, year, abstract and summary of the paper. The abstarct is extracted from the paper. The summary is an LLM summary of the paper."
 ;;  :args (list '(:name "paper_id"
@@ -473,7 +473,7 @@ Code
 
 (gptel-make-tool
  :name "okm_get_papers_abstract_summary"
- :function #'okm-gptel-get-papers-abstract-summary
+ :function #'amsha/okm-gptel-get-papers-abstract-summary
  :description "Given an array of paper IDs, fetch each paper's abstract and a generated summary. Returns a single string containing the concatenated results for all requested papers. For each paper id, the title, authors, year, abstract and summary of the paper are included. The abstarct is extracted from the paper. The summary is an LLM summary of the paper."
  :args (list '(:name "paper_ids"
                :type array
@@ -484,7 +484,7 @@ Code
 
 (gptel-make-tool
  :name "okm_oai_query_file_search"
- :function #'okm-oai-query-file-search
+ :function #'amsha/okm-oai-query-file-search
  :description "Search the OpenAI vector store for documents matching QUERY, then request a model summary of the retrieved documents. The model summary is returned as a single string: a bullet-list formatted summary with inline citations of the form cite:<paper_id>. On success the tool invokes the provided callback with that summary and also appends a 'Papers queried' list. On failure the callback receives an error message string."
  :args (list '(:name "query"
                :type string
@@ -495,7 +495,7 @@ Code
 
 (gptel-make-tool
  :name "okm_pdf_question"
- :function #'okm-pdf-question
+ :function #'amsha/okm-pdf-question
  :description "Ask questions about a paper identified by its paper_id. QUESTIONS is a single string, can contain multiple questions. The return value is a string with the answer to the question."
  :args (list '(:name "paper_id"
                :type string
@@ -509,7 +509,7 @@ Code
 
 ;; (gptel-make-tool
 ;;  :name "okm_paper_get_notes"
-;;  :function #'okm-paper-get-notes
+;;  :function #'amsha/okm-paper-get-notes
 ;;  :description "Return the notes for the paper identified by paper_id. It also include the title, authors, and year of the paper. If the paper with paper_id is not found, will return an error message."
 ;;  :args (list '(:name "paper_id"
 ;;                :type string
@@ -519,7 +519,7 @@ Code
 
 (gptel-make-tool
  :name "okm_papers_get_notes"
- :function #'okm-papers-get-notes
+ :function #'amsha/okm-papers-get-notes
  :description "Given an array of paper IDs, return the notes for each paper as a single string. The result is a human-readable concatenation of each paper's notes. For each paper the title, authors, and year of the paper are included."
  :args (list '(:name "paper_ids"
                :type array
@@ -529,14 +529,14 @@ Code
 
 (gptel-make-tool
  :name "okm_get_keywords"
- :function #'okm-gptel-get-keywords
+ :function #'amsha/okm-gptel-get-keywords
  :description "Return the list of keywords in the database. Takes no arguments and returns a list of keyword strings."
  :args nil
  :category "okm")
 
 (gptel-make-tool
  :name "okm_get_paper_ids_for_keyword"
- :function #'okm-gptel-paper-ids-for-keyword
+ :function #'amsha/okm-gptel-paper-ids-for-keyword
  :description "Return the list of paper IDs associated with a given keyword."
  :args (list '(:name "keyword"
                :type string
@@ -546,7 +546,7 @@ Code
 
 ;; (gptel-make-tool
 ;;  :name "okm_get_paper_details"
-;;  :function #'okm-gptel-get-paper-details
+;;  :function #'amsha/okm-gptel-get-paper-details
 ;;  :description "Given a paper_id, return details of the paper formatted for LLM use. Returns a string containing title, authors and year."
 ;;  :args (list '(:name "custom_id"
 ;;                :type string
@@ -556,7 +556,7 @@ Code
 
 (gptel-make-tool
  :name "okm_get_papers_details"
- :function #'okm-gptel-get-papers-details
+ :function #'amsha/okm-gptel-get-papers-details
  :description "Given an array of paper IDs, return bibliographic details (title, year, authors) for each paper as a single formatted string suitable for LLM consumption."
  :args (list '(:name "custom_ids"
                :type array
@@ -566,7 +566,7 @@ Code
 
 (gptel-make-tool
  :name "okm_write_session_note"
- :function #'okm-gptel-write-session-note
+ :function #'amsha/okm-gptel-write-session-note
  :description "Write CONTENT to RELATIVE-PATH for the current agent session. This tool will append content to file if it already exists. Use this tool ONLY to write auxilliary notes, not anything directly related to the user query."
  :args (list
         '(:name "relative_path"
@@ -1025,7 +1025,7 @@ Signals an error if a region is active, since region-based compaction is not imp
       (goto-char (point-max))
       (gptel-send))))
 
-(defun okm-oai-query-file-search (callback query)
+(defun amsha/okm-oai-query-file-search (callback query)
   "Given a query, get resutls from oai vector store and summary from oai."
   (let* ((gptel-backend gptel-openai-response-backend)
          (gptel-model 'gpt-5-nano)
@@ -1081,7 +1081,7 @@ Signals an error if a region is active, since region-based compaction is not imp
           (funcall callback (format "gptel-request<1> failed with message: %s"
                    (plist-get info :status))))))))
 
-(defun okm-pdf-question (callback paper_id questions)
+(defun amsha/okm-pdf-question (callback paper_id questions)
   "Returns the answer to the question from paper represented by paper_id."
   (interactive (list
                 (lambda (str)
@@ -1106,7 +1106,7 @@ Signals an error if a region is active, since region-based compaction is not imp
     (if node
         (gptel-request (with-temp-buffer
                          (concat "The text of a paper, extracted from a pdf file, is as follows:\n\n"
-                                 (okm-get-pdf-txt paper_id)
+                                 (amsha/okm-get-pdf-txt paper_id)
                                  "\n-------------------------\n The text from the pdf ends here.\n\n"
                                  "Based on this paper, answer the following. Be concise!:\n"
                                  questions))
@@ -1131,7 +1131,7 @@ Signals an error if a region is active, since region-based compaction is not imp
                                (plist-get info :status))))))
       (funcall callback (format "paper_id %s is not found." paper_id)))))
 
-(defun okm-gptel-get-papers-abstract-summary
+(defun amsha/okm-gptel-get-papers-abstract-summary
     (tool-callback paper-ids &optional max-concurrency max-errors)
   "Fetch summaries for PAPER-IDS and call TOOL-CALLBACK with combined result.
 Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
@@ -1155,7 +1155,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
                 ;; call your existing async worker; it must call the provided callback
                 (condition-case err
                     (progn
-                      (okm-gptel-get-paper-abstract-summary
+                      (amsha/okm-gptel-get-paper-abstract-summary
                        (lambda (result)
                          ;; collect result
                          (em "recieved resutls " (substring result 0 15)  (s-starts-with-p "Error occurred " result) (format " %s (fails %s, done %s, running %s, total %s)" paper-id failed done running total))
@@ -1196,7 +1196,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
     ;; kick off
     (funcall start-next)))
 
-(defun okm-paper-get-notes (paper_id)
+(defun amsha/okm-paper-get-notes (paper_id)
   "Returns the notes from paper represented by paper_id."
   (lazy-require 'org-roam-ql)
   (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id)))))
@@ -1206,25 +1206,25 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
               (org-with-wide-buffer
                (goto-char (point-min))
                (concat
-                (okm-gptel-get-paper-details paper_id) "\n"
+                (amsha/okm-gptel-get-paper-details paper_id) "\n"
                 (org-roam-subtree-aware-preview-function node)))))
       (format "paper_id %s is not found." paper_id))))
 
-(defun okm-papers-get-notes (paper-ids)
+(defun amsha/okm-papers-get-notes (paper-ids)
   "Returns the notes from paper represented by paper-ids."
   (with-temp-buffer
     (mapcar (lambda (paper-id)
               (insert paper-id "\n================\n"
-                      (okm-paper-get-notes paper-id) "\n\n"))
+                      (amsha/okm-paper-get-notes paper-id) "\n\n"))
             paper-ids)
     (buffer-string)))
 
-(defun okm-gptel-get-keywords ()
+(defun amsha/okm-gptel-get-keywords ()
   "Return the list of keywords in the db."
   (lazy-require 'org-roam)
   (-map #'org-roam-node-title (org-roam-ql-nodes '(and rt lvl1))))
 
-(defun okm-gptel-paper-ids-for-keyword (keyword)
+(defun amsha/okm-gptel-paper-ids-for-keyword (keyword)
   "Return the list of paper-ids for a given keyword."
   (lazy-require 'org-roam-ql)
   (--map (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'string-equal)
@@ -1233,7 +1233,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
                                                :type nil)
                                   (file "research_papers")))))
 
-(defun okm-gptel-get-paper-details (paper-id)
+(defun amsha/okm-gptel-get-paper-details (paper-id)
   "Given the paper-id, get the details of a paper.
 Meant to be used for LLMs.
 The tool-callback should take one value, the result. "
@@ -1247,18 +1247,18 @@ The tool-callback should take one value, the result. "
             (bibtex-completion-get-value "year" bib-entry))
       (format "Details for id %s not found" paper-id))))
 
-(defun okm-gptel-get-papers-details (paper-ids)
+(defun amsha/okm-gptel-get-papers-details (paper-ids)
   "Given a list of paper-ids, return the paper details as a single string."
   (with-temp-buffer
     (mapcar (lambda (paper-id)
               (insert paper-id "\n================\n"
-                      (okm-gptel-get-paper-details paper-id) "\n\n"))
+                      (amsha/okm-gptel-get-paper-details paper-id) "\n\n"))
             paper-ids)
     (buffer-string)))
 
 (defvar-local gptel-agent-session-id nil)
 
-(defun okm-gptel-write-session-note (relative-path content)
+(defun amsha/okm-gptel-write-session-note (relative-path content)
   "Write CONTENT in RELATIVE-PATH relative to the current session director.
 session directory is '~/.emacs.d/.cache/gptel-agent/<session-id>/'.
 Session-id is taken from the buffer local variable
@@ -1285,7 +1285,7 @@ then it will be set here."
         (write-region nil nil file-path t)
         file-path))))
 
-(defun okm-open-session-notes ()
+(defun amsha/okm-open-session-notes ()
   (interactive)
   (if gptel-agent-session-id
       (dired (expand-file-name gptel-agent-session-id "~/.emacs.d/.cache/gptel-agent"))
@@ -2556,7 +2556,7 @@ then close the *gptel-context* buffer and return to gptel menu."
     (-uniq it)
     (--map
      (let ((abs-summary
-            (okm-gptel-get-paper-abstract-summary
+            (amsha/okm-gptel-get-paper-abstract-summary
              (lambda (val)
                (when (> reset 0)
                  (org-roam-db-sync))

@@ -61,7 +61,7 @@
                                       :items (lambda () (--map (propertize
                                                                 (org-roam-node-title (org-roam-node-from-id it))
                                                                 'node (org-roam-node-from-id it))
-                                                               (okm-get-children (org-roam-node-id node)))))
+                                                               (amsha/okm-get-children (org-roam-node-id node)))))
                      (plist-multi-put (copy-sequence amsha/org-consult-notes-org-roam--nodes)
                                       :name (propertize "Forwardlink" 'face 'consult-help)
                                       :narrow ?f
@@ -77,7 +77,7 @@
                                       :items (lambda () (--map (propertize
                                                                 (org-roam-node-title (org-roam-node-from-id it))
                                                                 'node (org-roam-node-from-id it))
-                                                               (okm-get-parents (org-roam-node-id node)))))
+                                                               (amsha/okm-get-parents (org-roam-node-id node)))))
                      )
                     :require-match t
                     :prompt "Related nodes:"))
@@ -258,7 +258,7 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
 (defun amsha/org-roam-db-sync ()
   (interactive)
   (org-roam-db-sync)
-  (okm-org-agenda-recompute-org-roam-ql))
+  (amsha/okm-org-agenda-recompute-org-roam-ql))
 
 ;;;###autoload
 (defmacro org-roam-node-action (name &rest body)
@@ -268,17 +268,17 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
      (when-let* ((node (org-roam-node-at-point))
                  (buffer (find-file-noselect (org-roam-node-file node)))
                  (pos (org-roam-node-point node)))
-       (when (okm-is-research-paper (buffer-file-name buffer))
+       (when (amsha/okm-is-research-paper (buffer-file-name buffer))
          (save-window-excursion
            (with-current-buffer buffer
              (goto-char pos)
              ,@body))))))
 
 ;;;###autoload
-(defun okm-org-roam-quick-capture-topic (topic)
+(defun amsha/okm-org-roam-quick-capture-topic (topic)
   "Quick add a topic to unclassified indices."
   (interactive (list (read-string "Topic: " (when (region-active-p) (buffer-substring (region-beginning) (region-end))))))
-  (org-roam-with-file (file-truename (expand-file-name "unclassified_index.org" okm-base-directory)) t
+  (org-roam-with-file (file-truename (expand-file-name "unclassified_index.org" amsha/okm-base-directory)) t
     (goto-char (marker-position (org-roam-capture-find-or-create-olp (list topic))))
     (org-id-get-create)
     (org-roam-db-update-file)))
@@ -303,7 +303,7 @@ prompt when used interactively"
 Copied  from `org-roam-backlink-get'.
 see also `org-roam-backlinks-section-with-ql-filter'.
 "
-  (let* ((backlinks (seq-sort #'org-roam-backlinks-sort (okm-links-get node)))
+  (let* ((backlinks (seq-sort #'org-roam-backlinks-sort (amsha/okm-links-get node)))
          (filter org-roam-ql-buffer-filter)
          (filter-node-ids (and filter
                                (condition-case _err
@@ -399,7 +399,7 @@ see also `org-roam-backlinks-section-with-ql-filter'.
                                  "+notebody" org-map-scope))))
                             (string-join content "\n\n")))
                   (buffer-substring-no-properties beg end))))
-               "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "HIGHLIGHT" okm-parent-property-name "PROPERTIES:\n *:END")))
+               "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "HIGHLIGHT" amsha/okm-parent-property-name "PROPERTIES:\n *:END")))
     (org-roam-preview-default-function)))
 
 ;; (org-roam-node-action org-roam-node-ref-hydra
@@ -432,7 +432,7 @@ see also `org-roam-backlinks-section-with-ql-filter'.
                      (condition-case err
                          (org-roam-node-from-title-or-alias (org-no-properties cand))
                        (error nil))))
-              (file (concat (s-replace ".org" "" (f-relative (org-roam-node-file node) okm-base-directory))
+              (file (concat (s-replace ".org" "" (f-relative (org-roam-node-file node) amsha/okm-base-directory))
                             (when (> (org-roam-node-level node) 1) (concat "::" (string-join (org-roam-node-olp node) " > "))))))
     (marginalia--fields
      (file :face 'shadow :truncate 1.0)
@@ -441,9 +441,9 @@ see also `org-roam-backlinks-section-with-ql-filter'.
 (org-roam-node-action org-roam-node-view-noter
   (org-noter))
 (org-roam-node-action org-roam-node-view-topics
-  (okm-print-parents))
+  (amsha/okm-print-parents))
 (org-roam-node-action org-roam-node-add-parents
-  (okm-add-parent-topic))
+  (amsha/okm-add-parent-topic))
 
 (defmacro amsha/org-roam-with-file (file keep-buf-p &rest body)
   "Like `org-roam-with-file', with kill-buffer hooks disabled.
@@ -568,7 +568,7 @@ the type of the link."
                                 (apply #'vector (--map (f-expand (format "%s.org" it) bibtex-completion-notes-path)
                                                        keys))))))
 
-(defun okm-get-all-roam-nodes-in-file (f)
+(defun amsha/okm-get-all-roam-nodes-in-file (f)
   (org-roam-ql-nodes (list [:select [id] :from nodes :where (= file $s1)] f)))
 
 
@@ -596,7 +596,7 @@ Returns the sql statement that can be used with `org-roam-ql-nodes'."
     (bibtex-keys-to-nodes entries)))
 
 ;;;###autoload
-(defun okm-org-roam-list-notes (entries)
+(defun amsha/okm-org-roam-list-notes (entries)
   "Filter based on the list nodes in the notes files. Interactive only handles only one node.
 If prefix arg used, search whole db."
   (interactive (list ;;(org-roam-node-read nil nil nil 'require-match "Filter on Nodes:")))
@@ -605,7 +605,7 @@ If prefix arg used, search whole db."
                  (-flatten
                   (--map (let ((node (if (stringp it) (org-roam-node-from-title-or-alias it) it)))
                            (if (equal (org-roam-node-level node) 0)
-                               (list node (okm-get-all-roam-nodes-in-file (org-roam-node-file node)))
+                               (list node (amsha/okm-get-all-roam-nodes-in-file (org-roam-node-file node)))
                              node))
                          entries))))
          (names (s-join "," (--map (concat (org-roam-node-title it) "…") entries)))
@@ -618,10 +618,10 @@ If prefix arg used, search whole db."
      (format "(%s)" names)
      (format "*notes: %s*" names))))
 
-(defvar okm-org-roam-preview-kills '())
+(defvar amsha/okm-org-roam-preview-kills '())
 
 ;;;###autoload
-(defun okm-org-roam-ql-copy-preview ()
+(defun amsha/okm-org-roam-ql-copy-preview ()
   (interactive)
   (let* ((section (plist-get (text-properties-at (point))
                              'magit-section))
@@ -632,18 +632,18 @@ If prefix arg used, search whole db."
                            (org-roam-preview-get-contents
                             (oref section file)
                             (oref section point))))))
-    (setq okm-org-roam-preview-kills (append okm-org-roam-preview-kills `(,content)))
+    (setq amsha/okm-org-roam-preview-kills (append amsha/okm-org-roam-preview-kills `(,content)))
     (kill-new content)))
 
 ;;;###autoload
-(defun okm-org-roam-preview-kills-yank ()
+(defun amsha/okm-org-roam-preview-kills-yank ()
   (interactive)
-  (dolist (content okm-org-roam-preview-kills)
+  (dolist (content amsha/okm-org-roam-preview-kills)
     (insert content "\n\n"))
-  (setq okm-org-roam-preview-kills nil))
+  (setq amsha/okm-org-roam-preview-kills nil))
 
 ;;;###autoload
-(defun okm-insert-paper-ids-for-query ()
+(defun amsha/okm-insert-paper-ids-for-query ()
   "Prompt for nodes and print the file names a org style list."
   (interactive)
   (insert "\n")
@@ -655,7 +655,7 @@ If prefix arg used, search whole db."
 
 
 ;;;###autoload
-(defun okm-goto-last-dailies (args)
+(defun amsha/okm-goto-last-dailies (args)
   "Go the last dailies without going the capture process."
   (interactive "P")
   (when args
@@ -680,7 +680,7 @@ If prefix arg used, search whole db."
 (org-roam-ql-defexpansion 'child-of
   "Child of node with a specific title"
   (lambda (title)
-    (org-roam-ql--expand-backlinks `(title ,title t) :type okm-parent-id-type-name)))
+    (org-roam-ql--expand-backlinks `(title ,title t) :type amsha/okm-parent-id-type-name)))
 
 (org-roam-ql-defexpansion 'regexp-rg
   "Regex on all org files."
@@ -743,7 +743,7 @@ If prefix arg used, search whole db."
 ;;                      "Attached PDF has string"
 ;;                      (lambda (node)
 ;;                        (cdr (assoc "PDF_TEXT_FILE" (org-roam-node-properties node))))
-;;                      #'okm--test-regexp-on-file)
+;;                      #'amsha/okm--test-regexp-on-file)
 
 (org-roam-ql-defexpansion 'pdf-string
   "Regex on attached pdfs"
@@ -834,14 +834,14 @@ If prefix arg used, search whole db."
 
 (setq org-roam-v2-ack t
       org-roam-database-connector 'sqlite-builtin  ;;sqlite-builtin sqlite
-      org-roam-directory (file-truename okm-base-directory)
+      org-roam-directory (file-truename amsha/okm-base-directory)
       org-roam-file-extensions '("org" "org_archive")
       org-roam-dailies-directory "dailies"
-      org-roam-dailies-capture-templates '(("d" "default" entry "%(okm-board-task-location)"
+      org-roam-dailies-capture-templates '(("d" "default" entry "%(amsha/okm-board-task-location)"
                                             :target (file+head
                                                      "~/Documents/org/brain/work/notes/%<%Y-%m-%d-%A>.org" "#+title: %<%Y-%m-%d-%A>\n\n")
                                             :jump-to-captured t)
-                                           ("p" "personal" entry "%(okm-board-task-location)"
+                                           ("p" "personal" entry "%(amsha/okm-board-task-location)"
                                             :target (file+head
                                                      "~/Documents/org/brain/personal/notes/%<%Y-%m-%d-%A>.org" "#+title: %<%Y-%m-%d-%A>\n\n")
                                             :jump-to-captured t))
@@ -852,7 +852,7 @@ If prefix arg used, search whole db."
                                     :target
                                     (file+head+olp
                                      (lambda () (completing-read "File: "
-                                                                 (f-glob "*.org" (file-truename okm-base-directory))
+                                                                 (f-glob "*.org" (file-truename amsha/okm-base-directory))
                                                                  nil nil))
                                      nil nil)
                                     :prepend t

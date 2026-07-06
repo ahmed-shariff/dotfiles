@@ -10,12 +10,12 @@
 ;; (require 'org-capture-pop-frame)
 ;(ido-mode)
 
-(defvar okm-base-directory (file-truename "~/Documents/org/brain") "org knowladge management base direcory.")
-(defvar okm-research-papers-id "34854c23-cf0a-40ba-b0c6-c9e5b3bb3030" "The id of the research_papers file.") ;; research_papers id TODO: think of a better way to do this?
-(defvar okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
-(defvar okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
+(defvar amsha/okm-base-directory (file-truename "~/Documents/org/brain") "org knowladge management base direcory.")
+(defvar amsha/okm-research-papers-id "34854c23-cf0a-40ba-b0c6-c9e5b3bb3030" "The id of the research_papers file.") ;; research_papers id TODO: think of a better way to do this?
+(defvar amsha/okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
+(defvar amsha/okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 
-(add-to-list 'safe-local-variable-directories okm-base-directory)
+(add-to-list 'safe-local-variable-directories amsha/okm-base-directory)
 
 (use-package org-roam-extensions
   :straight nil
@@ -26,7 +26,7 @@
          ;;("C-c n g" . org-roam-graph)
          ("C-c n i" . org-roam-node-insert)
          ("C-c n c" . org-roam-capture)
-         ("C-c n t" . okm-org-roam-quick-capture-topic)
+         ("C-c n t" . amsha/okm-org-roam-quick-capture-topic)
          ("C-c n y" . amsha/org-roam-db-sync)
          ;; Dailies
          ("C-c n j" . org-roam-dailies-capture-today)
@@ -50,18 +50,18 @@
          ("C-c o s" . org-roam-node-view-topics)
          ("C-c o o" . org-roam-node-view-noter)
          ("C-c o p" . org-roam-node-add-parents)
-         ("w" . okm-org-roam-ql-copy-preview)
+         ("w" . amsha/okm-org-roam-ql-copy-preview)
          ;; ("C-c o r" . org-roam-node-ref-hydra)
          :map minibuffer-mode-map
          ("C-c n i" . org-roam-ql-insert-node-title)))
 
-(org-link-set-parameters okm-parent-id-type-name
+(org-link-set-parameters amsha/okm-parent-id-type-name
                          :follow 'org-roam-id-open
                          :help-echo (lambda (_win _obj pos) (format "Link: %s" (org-roam-node-title
                                                                                 (org-roam-node-from-id
                                                                                  (substring
                                                                                   (cadr (get-text-property (point) 'htmlize-link))
-                                                                                  (1+ (length okm-parent-id-type-name))))))))
+                                                                                  (1+ (length amsha/okm-parent-id-type-name))))))))
 
 (with-eval-after-load 'magit
   (magit-sync-repo "org" "~/Documents/org" git-message ("brain/research_papers"
@@ -154,7 +154,7 @@
         ("ej" "Add Journal entry")
         ;; ("ejt" "for task"
         ;;  entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
-        ;;  "%(okm-board-task-location)")
+        ;;  "%(amsha/okm-board-task-location)")
         ;;       ("eje" "for experiment"
         ;;        entry (file+olp+datetree "~/Documents/org/brain/work/notes.org")
         ;;        "* [[file:experiments_log.org::#%^{EXP_ID}][%\\1]] %? :e%\\1:")
@@ -169,7 +169,7 @@
         ;;        :jump-to-captured t)
         ;;      ("es" "Add sprint"
         ;;       entry (file+function "~/Documents/org/brain/work/projects.org" org-ask-title-location)
-        ;;       "** TODO Sprint %(okm--org-templates-get-sprint-id): %^{TITLE}
+        ;;       "** TODO Sprint %(amsha/okm--org-templates-get-sprint-id): %^{TITLE}
         ;;    :PROPERTIES:
         ;;    :EXPORT_TOC: nil
         ;;    :EXPORT_TITLE: %\\1
@@ -187,9 +187,9 @@
         ;; " :jump-to-captured t)
         ;;      ("ep" "Add project"
         ;;       entry (file "~/Documents/org/brain/work/projects.org")
-        ;;       "* TODO <<%(okm--org-templates-get-project-id)>> %^{TITLE}
+        ;;       "* TODO <<%(amsha/okm--org-templates-get-project-id)>> %^{TITLE}
         ;;   :PROPERTIES:
-        ;;   :CUSTOM_ID: %(okm--org-templates-get-project-id)
+        ;;   :CUSTOM_ID: %(amsha/okm--org-templates-get-project-id)
         ;;   :ID:       %(org-id-new)
         ;;   :END:
         ;; ** Related repos:
@@ -201,12 +201,12 @@
         ;; "
         ;;       :jump-to-captured t)
         ("ep" "Add project board"
-         plain (function okm-add-new-project-board)
+         plain (function amsha/okm-add-new-project-board)
          "%?"
-         :after-finalize okm-add-new-project-finalize
+         :after-finalize amsha/okm-add-new-project-finalize
          :jump-to-captured t)
         ("et" "Add task"
-         entry (function okm-goto-task-board)
+         entry (function amsha/okm-goto-task-board)
          "* TODO %^{TITLE}
   :PROPERTIES:
   :ID:       %(org-id-new)
@@ -216,13 +216,13 @@
          :jump-to-captured t)
         ("b" "Org brain")
         ("bp" "Add research paper"
-         entry (function (lambda () (org-id-goto okm-research-papers-id)));(file "~/Documents/org/brain/research_papers.org")
+         entry (function (lambda () (org-id-goto amsha/okm-research-papers-id)));(file "~/Documents/org/brain/research_papers.org")
          "* (%^{YEAR}) %^{TITLE}\n  :PROPERTIES:\n  :LINK: %^{LINK\}n  :ID:  %(org-id-new)\n  :YEAR: %\\1 \n  :END:
   \n  - %^{LINK}"
          :jump-to-captured t)
         ("er" "Add repository"
          entry (file "~/Documents/org/brain/repositories.org")
-         "* %(okm-add-repository)"
+         "* %(amsha/okm-add-repository)"
          :jump-to-captured t)))
 
 (repeatize 'org-babel-map)
@@ -232,7 +232,7 @@
   :straight nil
   :after org-roam
   :config
-  (setq org-roam-gocal-new-node-file (f-expand "google_calender_unlisted.org" okm-base-directory)))
+  (setq org-roam-gocal-new-node-file (f-expand "google_calender_unlisted.org" amsha/okm-base-directory)))
 
 (use-package org-protocol
   :ensure nil
@@ -246,7 +246,7 @@
 
   (defvar previous-add-doi-and-pdf-data nil)
 
-  (defun okm-retry-last-add-doi-and-pdf (args)
+  (defun amsha/okm-retry-last-add-doi-and-pdf (args)
     (interactive "p")
     (if previous-add-doi-and-pdf-data
         (add-doi-and-pdf (if args
@@ -566,7 +566,7 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
         bibtex-completion-notes-template-one-file
         (format
          "* (${year}) ${title} [${author}]\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :Keywords: ${keywords}\n  :LINK: ${pdf}\n  :YEAR: ${year}\n  :RPC-TAGS: NO_LINK NO_PARENTS NO_CITE_KEY\n  :BRAIN_PARENTS: %s:%s\n  :END:\n\n  - cite:${=key=}"
-         okm-parent-id-type-name okm-research-papers-id)
+         amsha/okm-parent-id-type-name amsha/okm-research-papers-id)
         bibtex-completion-notes-template-multiple-files bibtex-completion-notes-template-one-file
         ;;":PROPERTIES:\n:Custom_ID: ${=key=}\n:Keywords: ${keywords}\n:LINK: ${pdf}\n:YEAR: ${year}\n:RPC-TAGS: :NO_LINK NO_PARENTS NO_CITE_KEY\n:END:\n\n#+TITLE: (${year}) ${title} [${author}]\n\n"
         doi-utils-open-pdf-after-download nil
@@ -580,7 +580,7 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
     (interactive)
     (org-ref-citation-hydra/body))
 
-  (defun org-ref-get-bibtex-key-under-cursor-with-latex-and-okm (old-func)
+  (defun amsha/org-ref-get-bibtex-key-under-cursor-with-latex-and-okm (old-func)
     (cond
      ((derived-mode-p 'latex-mode)
       (bibtex-completion-get-key-latex))
@@ -589,7 +589,7 @@ When ABBREV is non-nil, format in abbreviated APA style instead."
      (t
       (funcall old-func))))
 
-  (advice-add 'org-ref-get-bibtex-key-under-cursor :around #'org-ref-get-bibtex-key-under-cursor-with-latex-and-okm)
+  (advice-add 'org-ref-get-bibtex-key-under-cursor :around #'amsha/org-ref-get-bibtex-key-under-cursor-with-latex-and-okm)
   ;; (advice-remove 'org-ref-get-bibtex-key-under-cursor #'org-ref-get-bibtex-key-under-cursor-with-latex)
 
   (require 'org-ref-latex)
@@ -858,7 +858,7 @@ Else create a text annotations at point."
               ("C-c o s" . org-ql-view-topics)
               ("C-c o o" . org-ql-view-noter)
               ("C-c o p" . org-ql-add-parents))
-  :commands (org-ql-defpred okm-query-boards)
+  :commands (org-ql-defpred amsha/okm-query-boards)
   :config
   ;; (setq org-super-agenda-header-map
   ;;       (let ((map (make-sparse-keymap)))
@@ -869,15 +869,15 @@ Else create a text annotations at point."
   (org-agenda-action org-ql-view-noter
     (org-noter))
   (org-agenda-action org-ql-view-topics
-    (okm-print-parents))
+    (amsha/okm-print-parents))
   (org-agenda-action org-ql-add-parents
-    (okm-add-parent-topic))
+    (amsha/okm-add-parent-topic))
 
-  (defun okm-query-boards ()
+  (defun amsha/okm-query-boards ()
     "List the in progress items in the project boards directory.
 Either show all or filter based on a sprint."
     (interactive)
-    (let* ((files (f-glob "*/project_boards/*.org" okm-base-directory))
+    (let* ((files (f-glob "*/project_boards/*.org" amsha/okm-base-directory))
            (selection-list (append '(("ALL"))
                                    ;; (amsha/get-sprints '("INPROGRESS" "TODO"))
                                    (--map (list (format "%s/project_boards::%s"
@@ -896,7 +896,7 @@ Either show all or filter based on a sprint."
       ;;   (setq predicate
       ;;         (append predicate
       ;;                 `((member ,(cdr selection)
-      ;;                           (org-entry-get-multivalued-property (point) okm-parent-property-name)))))))
+      ;;                           (org-entry-get-multivalued-property (point) amsha/okm-parent-property-name)))))))
       (unless (member "ALL" selection-car)
         (let ((-files '()))
           (--map (cond
@@ -904,7 +904,7 @@ Either show all or filter based on a sprint."
                    (push (cadr it) -files))
                   ((not (string= (car it) "ALL"))
                    (setq predicate (append predicate`((member ,(cdr it)
-                                                              (okm-org-get-parent-ids)))))))
+                                                              (amsha/okm-org-get-parent-ids)))))))
                  selection)
           (when -files
             (setq files -files))))
@@ -921,14 +921,14 @@ Either show all or filter based on a sprint."
                            :title "okm: day-to-day active tasks")))
   (add-to-list 'org-ql-views
                (cons "okm: project boards query"
-                     #'okm-query-boards)))
+                     #'amsha/okm-query-boards)))
 
 
 (use-package org-download
   :straight (org-download :type git :host github :repo "abo-abo/org-download"
                           :fork (:host github :repo "ahmed-shariff/org-download"))
   :custom
-  (org-download-image-dir (f-join okm-base-directory "work/figures/"))
+  (org-download-image-dir (f-join amsha/okm-base-directory "work/figures/"))
   (org-download-screenshot-method (if (eq system-type 'windows-nt) "magick convert clipboard: %s" "scrot"))
 
   :config
@@ -1028,30 +1028,30 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 
 ;;  ***************************************************************
 
-(defun okm--ask-id (file prompt property)
+(defun amsha/okm--ask-id (file prompt property)
   "."
   (save-window-excursion
     (find-file file)
     (org-ask-title-location prompt)
     (org-entry-get (point) property)))
 
-(defun okm--org-templates-get-project-id ()
+(defun amsha/okm--org-templates-get-project-id ()
   "Get the new project id."
   (number-to-string
    (1+ (apply #'max
-              (org-ql-select (expand-file-name "work/projects.org" okm-base-directory) `(level 1)
+              (org-ql-select (expand-file-name "work/projects.org" amsha/okm-base-directory) `(level 1)
                 :action (lambda ()
                           (condition-case nil
                               (string-to-number (cadr (s-match "<<\\([0-9]+\\)>>" (org-get-heading t t t t))))
                             (wrong-type-argument 0))))))))
 
-(defun okm--org-templates-get-sprint-id ()
+(defun amsha/okm--org-templates-get-sprint-id ()
   "Get the new sprint id."
   (number-to-string
    (1+
     (apply #'max
            (org-ql-select
-             (expand-file-name "work/projects.org" okm-base-directory)
+             (expand-file-name "work/projects.org" amsha/okm-base-directory)
              `(parent (heading ,(s-replace-regexp "/$" "" (car org-refile-history))))
              :action  (lambda ()
                         (condition-case nil
@@ -1059,20 +1059,20 @@ The screenshot tool is determined by `org-download-screenshot-method'."
                                                              (org-get-heading t t t t))))
                           (wrong-type-argument 0))))))))
 
-(defun okm-ask-experiment-id ()
+(defun amsha/okm-ask-experiment-id ()
   "."
   (save-window-excursion
     (find-file "~/Documents/org/brain/work/experiments_log.org")
     (org-ask-title-location  "Experiment ")
     (org-entry-get (point) "CUSTOM_ID"))
-  ;;(okm--ask-id "~/Documents/org/brain/work/experiments_log.org"  "Experiment " "CUSTOM_ID"))
+  ;;(amsha/okm--ask-id "~/Documents/org/brain/work/experiments_log.org"  "Experiment " "CUSTOM_ID"))
 )
 
-(defun okm-ask-project-id ()
+(defun amsha/okm-ask-project-id ()
   "."
-  (okm--ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
+  (amsha/okm--ask-id "~/Documents/org/brain/work/projects.org"  "Project " "CUSTOM_ID"))
 
-(defun okm-goto-task-board ()
+(defun amsha/okm-goto-task-board ()
   "Move the cursor to a location in a task board."
   (interactive)
   (let* ((project-boards (mapcar (lambda (file) (cons (format "%-10s %s"
@@ -1081,12 +1081,12 @@ The screenshot tool is determined by `org-download-screenshot-method'."
                                                        file))
                                  (--keep
                                   (when (not (s-contains-p "#" it)) it)
-                                  (f-glob "*/project_boards/*.org" okm-base-directory))))
+                                  (f-glob "*/project_boards/*.org" amsha/okm-base-directory))))
          (board-file (cdr (assoc (completing-read "Select poject board: " project-boards) project-boards))))
     (find-file board-file)
     (goto-char (point-max))))
 
-(defun okm-board-task-location ()
+(defun amsha/okm-board-task-location ()
   "Return a org title with board task after prompting for it."
   (let* ((ts (format-time-string "%I:%M %p" (current-time)))
          (targets
@@ -1113,11 +1113,11 @@ The screenshot tool is determined by `org-download-screenshot-method'."
                 (nth 1 target))
       (format "**** [%s] %%?" ts))))
 
-(defun okm-insert-timestamp ()
+(defun amsha/okm-insert-timestamp ()
   (interactive)
   (insert "[" (format-time-string "%I:%M %p" (current-time)) "]"))
 
-(defun okm-add-repository ()
+(defun amsha/okm-add-repository ()
   "Take a repo link and add that to the file as a node."
   (let* ((link (read-string "Repository url: "))
          (title (cond
@@ -1134,7 +1134,7 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading)
 
-(defun okm-add-new-project-board ()
+(defun amsha/okm-add-new-project-board ()
   (let* ((title (read-string "title: "))
          (new-file (file-truename
                     (format
@@ -1158,7 +1158,7 @@ The screenshot tool is determined by `org-download-screenshot-method'."
       (org-id-get-create)
       (goto-char (point-max)))))
 
-(defun okm-add-new-project-finalize ()
+(defun amsha/okm-add-new-project-finalize ()
   (when org-note-abort
     (when-let* ((new-file (plist-get org-capture-plist :amsha-file-created))
                 (_ (yes-or-no-p "Delete file for aborted capture?")))
@@ -1235,17 +1235,17 @@ The screenshot tool is determined by `org-download-screenshot-method'."
                         (org-agenda-error)))
             (buffer (marker-buffer marker))
             (pos (marker-position marker)))
-       (when (okm-is-research-paper (buffer-file-name buffer))
+       (when (amsha/okm-is-research-paper (buffer-file-name buffer))
          (save-window-excursion
            (with-current-buffer buffer
              (goto-char pos)
              ,@body))))))
 
-(org-ql-defpred okm-parent (&rest args)
+(org-ql-defpred amsha/okm-parent (&rest args)
   "args - (pred ...parent-ids).
 `pred' can be 'or or 'and."
   :body
-  (let ((parents (okm-get-parents));;(org-entry-get-multivalued-property (point) okm-parent-property-name))
+  (let ((parents (amsha/okm-get-parents));;(org-entry-get-multivalued-property (point) amsha/okm-parent-property-name))
         (pred (car args))
         (parent-ids (--map (if (consp it) (cdr it) it) (cdr args))))
     (when parents
@@ -1265,10 +1265,10 @@ The screenshot tool is determined by `org-download-screenshot-method'."
         (insert-file-contents text-file)
         (s-match-strings-all regexp (buffer-string))))))
 
-(defun okm-is-research-paper (path)
-  (f-descendant-of-p (file-truename path) (file-truename (f-join okm-base-directory "research_papers"))))
+(defun amsha/okm-is-research-paper (path)
+  (f-descendant-of-p (file-truename path) (file-truename (f-join amsha/okm-base-directory "research_papers"))))
 
-(defun okm--test-regexp-on-file (f regexp)
+(defun amsha/okm--test-regexp-on-file (f regexp)
   (if (f-exists-p f)
       (with-temp-buffer
         (insert-file-contents f)
@@ -1283,14 +1283,14 @@ The screenshot tool is determined by `org-download-screenshot-method'."
     (message "ERROR: Missing %s" f)
     nil))
 
-(defun okm-search-papers-by-pdf-string (regexp)
+(defun amsha/okm-search-papers-by-pdf-string (regexp)
   "Search without opening org files."
   (interactive "xRegexp: ")
   (let* ((results (--filter
                    (cdr it)
                    (-map (lambda (f)
                            (cons (f-base f)
-                                 (okm--test-regexp-on-file f regexp)))
+                                 (amsha/okm--test-regexp-on-file f regexp)))
                          (f-glob "*.txt" bibtex-completion-library-path))))
          (nodes (--map (cons
                         (org-roam-node-id it)
@@ -1309,7 +1309,7 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 
 (defun amsha/get-sprints (states)
   "Return sprints based on STATUS."
-  (org-ql-select (expand-file-name "work/projects.org" okm-base-directory)
+  (org-ql-select (expand-file-name "work/projects.org" amsha/okm-base-directory)
     `(and (level 2) (todo ,@states) (h* "Sprint"))
     :action (lambda () (let ((todo-state (org-entry-get (point) "TODO")))
                          (cons
@@ -1330,7 +1330,7 @@ The screenshot tool is determined by `org-download-screenshot-method'."
                                   (org-no-properties (org-get-heading t t t t)))
                           (org-id-get))))))
 
-(defun okm-org-roam-is-parent (parent-id &optional child-id)
+(defun amsha/okm-org-roam-is-parent (parent-id &optional child-id)
   "Return non-nil if PARENT-ID is in CHILD-ID's :brain-parent: property."
   (unless child-id
     (org-id-get-closest))
@@ -1340,14 +1340,14 @@ The screenshot tool is determined by `org-download-screenshot-method'."
             :where (= type $s1)
             :and (= dest $s2)
             :and (= source $s3)]
-   okm-parent-id-type-name parent-id child-id))
+   amsha/okm-parent-id-type-name parent-id child-id))
 
-(defun okm-org-get-parent-ids ()
+(defun amsha/okm-org-get-parent-ids ()
   "."
-  (--map (s-replace (format "%s:" okm-parent-id-type-name) "" it) (org-entry-get-multivalued-property (point) okm-parent-property-name)))
+  (--map (s-replace (format "%s:" amsha/okm-parent-id-type-name) "" it) (org-entry-get-multivalued-property (point) amsha/okm-parent-property-name)))
 
 ;; copied from `org-roam-backlinks-get'
-(cl-defun okm-links-get (node &optional is-forwardlink &key unique)
+(cl-defun amsha/okm-links-get (node &optional is-forwardlink &key unique)
   "Return the brain-parent link for NODE.
  If IS-FORWARDLINK is non-nil, get backlink, else get forwardlinks.
 
@@ -1366,7 +1366,7 @@ The screenshot tool is determined by `org-download-screenshot-method'."
                         :from 'links
                         :where `(= ,where-clause $s1)
                         :and '(= type $s2))))
-         (backlinks (org-roam-db-query sql (org-roam-node-id node) okm-parent-id-type-name)))
+         (backlinks (org-roam-db-query sql (org-roam-node-id node) amsha/okm-parent-id-type-name)))
     (cl-loop for backlink in backlinks
              collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) backlink))
                        (org-roam-populate
@@ -1381,34 +1381,34 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 ;;   (interactive (list (org-roam-node-read-multiple)))
 ;;   (let (topics other-parents)
 ;;     (mapcar (lambda (child-entry)
-;;               (-let (((-topics . -other-parents) (okm-parents-by-topics (org-roam-node-id (org-roam-backlink-target-node child-entry)))))
+;;               (-let (((-topics . -other-parents) (amsha/okm-parents-by-topics (org-roam-node-id (org-roam-backlink-target-node child-entry)))))
 ;;                 (setq topics (append topics -topics)
 ;;                       other-parents (append other-parents -other-parents))))
 ;;             (org-roam-backlinks-get entry))
 ;;     (setq topics (-uniq topics)
 ;;           other-parents (-uniq other-parents))
-;;     (okm-print-parents topics other-parents)
+;;     (amsha/okm-print-parents topics other-parents)
 ;;     (cons topics other-parents)))
 
-(defun okm-org-ql-query-topics ()
+(defun amsha/okm-org-ql-query-topics ()
   "List all parent topics of all results from QUERY.
 Currently written to work in org-ql buffer."
   (interactive)
   (when (and org-ql-view-query org-ql-view-buffers-files)
     (let* (topics other-parents)
       (org-ql-select org-ql-view-buffers-files org-ql-view-query
-        :action (lambda () (-let (((-topics . -other-parents) (okm-parents-by-topics (org-id-get))))
+        :action (lambda () (-let (((-topics . -other-parents) (amsha/okm-parents-by-topics (org-id-get))))
                              (setq topics (append topics -topics)
                                    other-parents (append other-parents -other-parents)))))
       (setq topics (-map #'org-roam-node-from-title-or-alias (--filter (not (string-empty-p it)) (-uniq topics)))
             other-parents (-map #'org-roam-node-from-title-or-alias (--filter (not (string-empty-p it)) (-uniq other-parents))))
-      ;;(okm-print-parents topics other-parents))))
+      ;;(amsha/okm-print-parents topics other-parents))))
       (let ((all-topics (append topics other-parents)))
         (org-roam-ql-search (-uniq all-topics) 'org-ql "Query parents" `(member (org-id-get) (list ,@(-map #'org-roam-node-id all-topics)))
                           (--map (list :file-path it) (list "research topics.org" "People.org" "Projects.org")))))))
 
 
-(defun okm-org-roam-query-topics ()
+(defun amsha/okm-org-roam-query-topics ()
   "List all parent topics of results in buffer."
   (interactive)
   (when (derived-mode-p 'org-roam-mode)
@@ -1417,7 +1417,7 @@ Currently written to work in org-ql buffer."
           topics
           topic-nodes)
       (dolist (node nodes)
-        (-let (((-topics . -other-parents) (okm-parents-by-topics (org-roam-node-id node))))
+        (-let (((-topics . -other-parents) (amsha/okm-parents-by-topics (org-roam-node-id node))))
           (setq topics (append topics -topics -other-parents))))
       (setq topics (--map (cons (car it) (length (cdr it)))
                           (--group-by it
@@ -1447,7 +1447,7 @@ Currently written to work in org-ql buffer."
                                            (org-roam-ql--get-formatted-buffer-name
                                             (org-roam-ql--get-formatted-title
                                              (format "Topics - %s" (prin1-to-string org-roam-ql-buffer-title)) nil))
-                                           ;; `(backlinks-to ,org-roam-ql-buffer-query :type ,okm-parent-id-type-name)
+                                           ;; `(backlinks-to ,org-roam-ql-buffer-query :type ,amsha/okm-parent-id-type-name)
                                            nil
                                            (lambda (strings)
                                              (let ((org-super-agenda-groups (--map
@@ -1495,7 +1495,7 @@ With C-u C-u C-u prefix, force run all research-papers."
                                                    (lambda (f)
                                                      (equal (f-ext f) "org")))
                                         (--> (buffer-file-name)
-                                             (when (and it (okm-is-research-paper it))
+                                             (when (and it (amsha/okm-is-research-paper it))
                                                (list it)))))
         "Processing research papers ..."
       (when (or force-files
@@ -1571,13 +1571,13 @@ With C-u C-u C-u prefix, force run all research-papers."
             (unless (or (org-entry-get pom "ABSTRACT") (string-empty-p (org-entry-get pom "ABSTRACT"))
                         (org-entry-get pom "SUMMARY") (string-empty-p (org-entry-get pom "SUMMARY")))
               (when (org-entry-get pom "PDF_TEXT_FILE")
-                (okm-gptel-get-paper-abstract-summary)))
+                (amsha/okm-gptel-get-paper-abstract-summary)))
 
             (when changes
               (save-buffer))
             (setq tags
                   ;; If error, most likely node not created
-                  (if (ignore-errors (remove okm-research-papers-id (okm-get-parents)))
+                  (if (ignore-errors (remove amsha/okm-research-papers-id (amsha/okm-get-parents)))
                       (delete "NO_PARENTS" tags)
                     (append tags '("NO_PARENTS"))))
             (when (cl-set-exclusive-or (org-entry-get-multivalued-property pom "RPC-TAGS") (delete-dups tags))
@@ -1669,28 +1669,28 @@ With C-u C-u C-u prefix, force run all research-papers."
                          (let ((file-path (org-entry-get (point) "INTERLEAVE_PDF")))
                            (when (and file-path
                                       (member parent-id
-                                              (org-entry-get-multivalued-property (point) okm-parent-property-name)))
+                                              (org-entry-get-multivalued-property (point) amsha/okm-parent-property-name)))
                              (message "Copied %s" (file-name-nondirectory file-path))
                              (copy-file file-path
                                         (expand-file-name (file-name-nondirectory file-path)
                                                           out-dir)))))))
     (dired out-dir)))
 
-(defvar okm-org-agenda-copy-research-papers-directory nil)
+(defvar amsha/okm-org-agenda-copy-research-papers-directory nil)
 
-(defun org-agenda-okm-copy-research-papers ()
+(defun org-agenda-amsha/okm-copy-research-papers ()
   "Copy research papers from org-ql buffer to a directory."
-  (unless okm-org-agenda-copy-research-papers-directory
-    (setq okm-org-agenda-copy-research-papers-directory
+  (unless amsha/okm-org-agenda-copy-research-papers-directory
+    (setq amsha/okm-org-agenda-copy-research-papers-directory
           (file-truename (expand-file-name (secure-hash 'md5 (format "%s" (current-time))) "~/Downloads"))
           org-agenda-bulk-action-post-execution-function
           (lambda ()
-            (em (format "Copied files to %s" okm-org-agenda-copy-research-papers-directory))
+            (em (format "Copied files to %s" amsha/okm-org-agenda-copy-research-papers-directory))
             ;; ranger looks for a file, not a directory
-            (dired okm-org-agenda-copy-research-papers-directory)
-            (setq okm-org-agenda-copy-research-papers-directory nil)))
+            (dired amsha/okm-org-agenda-copy-research-papers-directory)
+            (setq amsha/okm-org-agenda-copy-research-papers-directory nil)))
     (condition-case nil
-        (make-directory okm-org-agenda-copy-research-papers-directory)
+        (make-directory amsha/okm-org-agenda-copy-research-papers-directory)
       (file-already-exists
        (progn
          (message "Deleting directory and creating anew: %s" out-dir)
@@ -1703,7 +1703,7 @@ With C-u C-u C-u prefix, force run all research-papers."
           (message "Copied %s" (file-name-nondirectory file-path))
           (copy-file file-path
                      (expand-file-name (file-name-nondirectory file-path)
-                                       okm-org-agenda-copy-research-papers-directory)))
+                                       amsha/okm-org-agenda-copy-research-papers-directory)))
       (message "FAILED to copy %s" file-path))))
 
 
@@ -1753,7 +1753,7 @@ With C-u C-u C-u prefix, force run all research-papers."
 
 (defvar org-agenda-copy-query-notes-and-bib-func nil)
 
-(defun org-agenda-okm-copy-query-notes-and-bib ()
+(defun org-agenda-amsha/okm-copy-query-notes-and-bib ()
   "To be used with the org-agenda-bulk-action."
   (unless org-agenda-copy-query-notes-and-bib-func
     (setq org-agenda-copy-query-notes-and-bib-func (copy-notes-and-bib-function))
@@ -1764,7 +1764,7 @@ With C-u C-u C-u prefix, force run all research-papers."
                          (org-agenda-error))
     (funcall org-agenda-copy-query-notes-and-bib-func)))
 
-(defun okm-insert-reading-list-entries ()
+(defun amsha/okm-insert-reading-list-entries ()
   "To be used with reading lists."
   (let* ((nodes-of-interest (save-excursion
                               (goto-char 0)
@@ -1777,7 +1777,7 @@ With C-u C-u C-u prefix, force run all research-papers."
                                 (--filter (not (string-empty-p it))
                                           (--map (cadr it)
                                                  (s-match-strings-all "id:\\([a-z0-9-]*\\)"  (buffer-substring-no-properties beg end)))))))
-         (nodes (-uniq (-flatten (--map (okm-get-children it) nodes-of-interest))))
+         (nodes (-uniq (-flatten (--map (amsha/okm-get-children it) nodes-of-interest))))
          (nodes-in-file (-non-nil (org-map-entries (lambda () (org-entry-get (point) "NODE_ID")) "LEVEL=1")))
          (new-nodes (-difference nodes nodes-in-file)))
     ;; (list nodes nodes-in-file))
@@ -1794,7 +1794,7 @@ With C-u C-u C-u prefix, force run all research-papers."
                           node
                           (car (org-roam-node-refs (org-roam-node-from-id node))))))))))
 
-(defun okm-roam-buffer-from-reading-list ()
+(defun amsha/okm-roam-buffer-from-reading-list ()
   "Run a roam query on the readinglist genreated."
   (interactive)
   (org-roam-ql-search (list [(in id $v1)]
@@ -1844,34 +1844,34 @@ With C-u C-u C-u prefix, force run all research-papers."
           (org-set-property "LINK" arxiv-link)
           (research-papers-configure 'force-file))))))
 
-(defun okm-add-parents (parents &optional entry-id)
+(defun amsha/okm-add-parents (parents &optional entry-id)
   "Add PARENTS, which are expected to be ids to the entry with ENTRY-ID or in entry at point."
   (unless entry-id
     (setq entry-id (org-id-get-closest)))
   (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
   (save-excursion
     (org-id-goto entry-id)
-    (apply #'org-entry-put-multivalued-property (point) okm-parent-property-name
-           (-uniq (append (org-entry-get-multivalued-property (point) okm-parent-property-name)
-                   (--map (format "%s:%s" okm-parent-id-type-name it) parents))))))
+    (apply #'org-entry-put-multivalued-property (point) amsha/okm-parent-property-name
+           (-uniq (append (org-entry-get-multivalued-property (point) amsha/okm-parent-property-name)
+                   (--map (format "%s:%s" amsha/okm-parent-id-type-name it) parents))))))
 
-(defun okm-get-parents (&optional entry-id)
+(defun amsha/okm-get-parents (&optional entry-id)
   "Get the parent IDs for entry with id entry-id or in current entry.
 Parent-child relation is defined by the brain-parent links."
   (unless entry-id
     (setq entry-id (org-id-get-closest)))
   (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
-  (--map (org-roam-node-id (org-roam-backlink-target-node it)) (okm-links-get (org-roam-node-from-id entry-id) t :unique t)))
+  (--map (org-roam-node-id (org-roam-backlink-target-node it)) (amsha/okm-links-get (org-roam-node-from-id entry-id) t :unique t)))
 
-(defun okm-get-children (&optional entry-id)
+(defun amsha/okm-get-children (&optional entry-id)
   "Get the child IDs for entry with id entry-id or in the current entry.
 Parent-child relation is defined by the brain-parent links."
   (unless entry-id
     (setq entry-id (org-id-get-closest)))
   (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
-  (--map (org-roam-node-id (org-roam-backlink-source-node it)) (okm-links-get (org-roam-node-from-id entry-id) nil :unique t)))
+  (--map (org-roam-node-id (org-roam-backlink-source-node it)) (amsha/okm-links-get (org-roam-node-from-id entry-id) nil :unique t)))
 
-(defun okm-add-parent-topic (&optional parents entry)
+(defun amsha/okm-add-parent-topic (&optional parents entry)
   "PARENTS should be a list of IDs. ENTRY should be an ID."
   (interactive)
   ;; forgoing interactive args to allow this to be called interactively.
@@ -1885,10 +1885,10 @@ Parent-child relation is defined by the brain-parent links."
   (unless entry
     (setq entry (org-id-get-closest)))
   (let ((embark-quit-after-action nil))
-    (okm-add-parents parents entry)
-    (okm-print-parents entry)))
+    (amsha/okm-add-parents parents entry)
+    (amsha/okm-print-parents entry)))
 
-(defun okm-remove-parent-topic (&optional entry-id)
+(defun amsha/okm-remove-parent-topic (&optional entry-id)
   "Prompt and remove a parent for entry at point or entry with id ENTRY-ID"
   (interactive)
   (unless entry-id
@@ -1896,39 +1896,39 @@ Parent-child relation is defined by the brain-parent links."
   (cl-assert entry-id nil "entry-id cannot be nil/not under a valid entry.")
   (let* ((collection (--remove (string-empty-p (car it))
                                (--map (cons (org-roam-node-title it) (org-roam-node-id it))
-                                      (-map #'org-roam-node-from-id (okm-get-parents entry-id)))))
+                                      (-map #'org-roam-node-from-id (amsha/okm-get-parents entry-id)))))
          (remove-entry (cdr (assoc (completing-read "Parent to remove: " collection nil t)
                             collection))))
-    (apply #'org-entry-put-multivalued-property (point) okm-parent-property-name
+    (apply #'org-entry-put-multivalued-property (point) amsha/okm-parent-property-name
            (--remove (s-contains-p remove-entry it)
                      (org-entry-get-multivalued-property
-                      (org-roam-node-point (org-roam-node-from-id entry-id)) okm-parent-property-name)))))
+                      (org-roam-node-point (org-roam-node-from-id entry-id)) amsha/okm-parent-property-name)))))
 
-(defvar org-agenda-okm-add-parents--parents nil)
+(defvar amsha/org-agenda-okm-add-parents--parents nil)
 
-(defun org-agenda-okm-add-parents ()
+(defun amsha/org-agenda-okm-add-parents ()
   "To be used with the org-agenda-bulk-action."
-  (unless org-agenda-okm-add-parents--parents
-    (setq org-agenda-okm-add-parents--parents (list (org-roam-node-id (org-roam-node-read "Add parents: ")))
+  (unless amsha/org-agenda-okm-add-parents--parents
+    (setq amsha/org-agenda-okm-add-parents--parents (list (org-roam-node-id (org-roam-node-read "Add parents: ")))
           org-agenda-bulk-action-post-execution-function (lambda ()
-                                                           (em "Cleared org-agenda-okm-add-parents--parents")
-                                                           (setq org-agenda-okm-add-parents--parents nil))))
+                                                           (em "Cleared amsha/org-agenda-okm-add-parents--parents")
+                                                           (setq amsha/org-agenda-okm-add-parents--parents nil))))
   (org-with-point-at (or (org-get-at-bol 'org-hd-marker)
                          (org-agenda-error))
-    (okm-add-parent-topic org-agenda-okm-add-parents--parents (org-id-get))))
+    (amsha/okm-add-parent-topic amsha/org-agenda-okm-add-parents--parents (org-id-get))))
 
 (defun org-brain-goto-button-at-pt ()
   "."
   (interactive)
   (org-brain-goto (car (org-brain-button-at-point))))
 
-(defun okm-parents-by-topics (&optional entry-id)
+(defun amsha/okm-parents-by-topics (&optional entry-id)
   "ENTRY-ID should be an ID."
   (interactive)
   (unless entry-id
     (setq entry-id (org-id-get-closest)))
-  (let ((parents (--map (org-roam-node-from-id it) (okm-get-parents entry-id)))
-        (research-topics-file (file-truename (f-join okm-base-directory "research topics.org")))
+  (let ((parents (--map (org-roam-node-from-id it) (amsha/okm-get-parents entry-id)))
+        (research-topics-file (file-truename (f-join amsha/okm-base-directory "research topics.org")))
         (topics '())
         (other-parents '()))
     (mapcar (lambda (entry)
@@ -1940,15 +1940,15 @@ Parent-child relation is defined by the brain-parent links."
             parents)
     (cons topics other-parents)))
 
-(defun okm-print-parents (&optional topics other-parents)
+(defun amsha/okm-print-parents (&optional topics other-parents)
   "."
   (interactive)
   (when (and (null topics)
              (null other-parents))
-    (-setq (topics . other-parents) (okm-parents-by-topics)))
+    (-setq (topics . other-parents) (amsha/okm-parents-by-topics)))
   (message "%s \n********************************\n\t\t%s" (mapconcat 'identity (-list topics) "\n") (mapconcat 'identity (-list other-parents) "\n\t\t")))
 
-(defun okm-delete-interleve-entry ()
+(defun amsha/okm-delete-interleve-entry ()
   "Deletes the pdf entry of an okm entry bib at point at point."
   (interactive)
   (when (y-or-n-p "Sure you want to delete the pdf file and the interleve entry here? ")
@@ -1975,7 +1975,7 @@ Parent-child relation is defined by the brain-parent links."
                            (delete "ATTACH"
                                    (delete-dups (org-entry-get-multivalued-property (point) "RPC-TAGS"))))))))
 
-(defun okm-delete-node-and-files ()
+(defun amsha/okm-delete-node-and-files ()
   "Deletes this note and the pdf/txt files associated with it."
   (interactive)
   (when (y-or-n-p "Sure you want to delete the entry and it's associated pdf file? ")
@@ -2007,17 +2007,17 @@ Parent-child relation is defined by the brain-parent links."
 
 (advice-add 'org-archive--compute-location :filter-return #'org-archive--compute-location-to-dir)
 
-(defun okm-get-pdf-txt (paper-id)
+(defun amsha/okm-get-pdf-txt (paper-id)
   "Given the paper ID get the full text extracted using pdf-tools."
   (with-temp-buffer
     (insert-file-contents (file-truename (expand-file-name (format "%s.txt" paper-id) bibtex-completion-library-path)))
     (buffer-string)))
 
 
-(defvar-local okm-gptel-get-paper-abstract-summary--request nil)
+(defvar-local amsha/okm-gptel-get-paper-abstract-summary--request nil)
 
 ;; meant to be used as tool-call-function
-(defun okm-gptel-get-paper-abstract-summary (&optional tool-callback custom-id)
+(defun amsha/okm-gptel-get-paper-abstract-summary (&optional tool-callback custom-id)
   "Given the custom-id, get the abstract and summary as a single string.
 Meant to be used for LLMs.
 The tool-callback should take one value, the result.
@@ -2046,7 +2046,7 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
         (if tool-callback
             (funcall tool-callback (format ret-string abstract summary))
           (format ret-string abstract summary))
-      (if okm-gptel-get-paper-abstract-summary--request
+      (if amsha/okm-gptel-get-paper-abstract-summary--request
           (if tool-callback
               (let (timer
                     (repeat-count 0))
@@ -2057,21 +2057,21 @@ If CUSTOM-ID is not provided, assume the point it at the corresponding node."
                          (em "calling timer")
                          (cl-incf repeat-count)
                          (cond
-                          ((not okm-gptel-get-paper-abstract-summary--request)
+                          ((not amsha/okm-gptel-get-paper-abstract-summary--request)
                            (cancel-timer timer)
-                           (okm-gptel-get-paper-abstract-summary tool-callback custom-id))
+                           (amsha/okm-gptel-get-paper-abstract-summary tool-callback custom-id))
                           ((> repeat-count 10)
                            (cancel-timer timer)
                            (if tool-callback
                                (funcall tool-callback "Error occurred - PDF/abstract/summary not retrieved")
                              (user-error "Error occurred - PDF/abstract/summary not retrieved"))))))))
             (em "Abstract is being processed!" custom-id))
-        (if-let (pdf-text (okm-get-pdf-txt custom-id))
+        (if-let (pdf-text (amsha/okm-get-pdf-txt custom-id))
             (gptel-with-preset 'default
               (condition-case err
                   (with-current-buffer buf
                     (setq-local
-                     okm-gptel-get-paper-abstract-summary--request
+                     amsha/okm-gptel-get-paper-abstract-summary--request
                      (gptel-request (format "%s
 
 The above is the text extracted from a paper using pdf-tools.
@@ -2087,7 +2087,7 @@ The format of the response should be as follows:
                                             pdf-text)
                        :context ret-string
                        :callback (lambda (response info)
-                                   (setq-local okm-gptel-get-paper-abstract-summary--request nil)
+                                   (setq-local amsha/okm-gptel-get-paper-abstract-summary--request nil)
                                    (cond
                                     ((null response)
                                      (em "ERROR" info)
@@ -2114,7 +2114,7 @@ The format of the response should be as follows:
                                            (funcall tool-callback (format (plist-get info :context) abstract summary))))))))))
                 (t
                  (progn
-                   (setq-local okm-gptel-get-paper-abstract-summary--request nil)
+                   (setq-local amsha/okm-gptel-get-paper-abstract-summary--request nil)
                    (if tool-callback
                        (funcall tool-callback (format "Error occurred %s" err))
                      (user-error (format "Error occurred %s" err)))))))
@@ -2122,8 +2122,8 @@ The format of the response should be as follows:
               (funcall tool-callback "Error occurred - PDF/abstract/summary not available")
             (user-error "Error occurred - PDF/abstract/summary not available")))))))
 
-(defun okm-org-agenda-recompute-org-roam-ql ()
-  "Same as `okm-org-agenda-recompute', but uses org-roam-ql"
+(defun amsha/okm-org-agenda-recompute-org-roam-ql ()
+  "Same as `amsha/okm-org-agenda-recompute', but uses org-roam-ql"
   (interactive)
   (unless (featurep 'org-roam-ql)
     (require 'org-roam-ql))
@@ -2148,10 +2148,10 @@ The format of the response should be as follows:
     (write-region (point-min) (point-max)
                   (file-truename (expand-file-name "~/.emacs.d/org-agenda-org-roam-ql-cache")))))
 
-(defun okm-summarize-project-board ()
+(defun amsha/okm-summarize-project-board ()
   "A stripped down version of the board usable with LLMs."
   (interactive)
-  (okm-goto-task-board)
+  (amsha/okm-goto-task-board)
   (goto-char (point-min))
   (--> (--map (concat (if (eq (org-element-property :level it) 1)
                           "#" "##")
@@ -2272,9 +2272,9 @@ To use add something like this in the org buffer:
           (lambda ()
             (define-key org-mode-map "\C-c!" 'org-time-stamp-inactive)
             (define-key org-mode-map "\C-coo" 'org-noter)
-            (define-key org-mode-map "\C-cop" 'okm-add-parent-topic)
+            (define-key org-mode-map "\C-cop" 'amsha/okm-add-parent-topic)
             (define-key org-mode-map "\C-coc" 'research-papers-configure)
-            (define-key org-mode-map "\C-cos" 'okm-print-parents)
+            (define-key org-mode-map "\C-cos" 'amsha/okm-print-parents)
             (define-key org-mode-map "\C-cor" 'org-ref-citation-hydra/body)
             ;; (define-key org-mode-map "\C-coa" 'org-asana-hydra/body)
             (define-key org-mode-map (kbd "C-'") nil)
