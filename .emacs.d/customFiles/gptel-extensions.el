@@ -1563,6 +1563,349 @@ then it will be set here."
 ;;         (_
 ;;          (funcall callback `(:error "unknown-action" :action ,action)))))))
 
+;;; composable agents *********************************************************************
+
+(cl-defstruct (gptel-agent-tool (:constructor nil)
+                                (:constructor gptel--make-agent-tool-internal
+                                              (&key function name description snippet guideline
+                                                    args async category confirm include
+                                                    &allow-other-keys))
+                                (:copier gptel--copy-tool)
+                                (:include gptel-tool))
+  "Same as `gptel-tool', but haddles additional information like snippets and guidelines.
+
+When an agent executes with this tool, snippets will be added to the list of tools in the agent.
+Guidelines will be placed under guidelines in the system prompt."
+  (snippet nil :type string :documentation "The snippet added to the system prompt under list of tools.")
+  (guideline nil :type string :documentation "The guideline added to the system prompt under guidelines."))
+
+(defun gptel--make-agent-tool (&rest spec)
+  "Construct a gptel-tool according to SPEC."
+  (gptel--preprocess-tool-args (plist-get spec :args))
+  (apply #'gptel--make-agent-tool-internal spec))
+
+(defun gptel-make-agent-tool (&rest slots)
+  "Same as `gptel-make-tool', creates the `gptel-agent-tool' instead."
+  (let* ((tool (apply #'gptel--make-agent-tool slots))
+         (category (or (gptel-tool-category tool) "misc")))
+    (setf (alist-get
+           (gptel-tool-name tool)
+           (alist-get category gptel--known-tools nil nil #'equal)
+           nil nil #'equal)
+          tool)))
+
+;; gptel-agent tools as gptel-agent-tool's
+(defun amsha/gptel-agent--edit-files-batch (edits)
+  "Apply multiple edit operations in EDITS."
+  (let ((results '()))
+    (dolist (edit edits)
+      (let ((path (alist-get 'path edit))
+            (old-str (alist-get 'old_str edit))
+            (new-str (alist-get 'new_str edit))
+            (diff (alist-get 'diff edit)))
+        (push (gptel-agent--edit-files path old-str new-str diff) results)))
+    (mapconcat #'identity (nreverse results) "\n")))
+
+(gptel-make-agent-tool
+ :name "Bash"
+ :function #'gptel-agent--execute-bash
+ :description "Execute a bash command in the current working directory. Returns output of running a command in bash."
+ :snippet "Execute bash commands (ls, grep, find, etc.)"
+ :args '(( :name "command"
+           :type string
+           :description "The Bash command to execute.  \
+Can include pipes and standard shell operators.
+Example: 'ls -la | head -20' or 'grep -i error app.log | tail -50'"))
+ :category "amsha/gptel-agent"
+ :confirm t
+ :include t
+ :async t)
+
+(gptel-make-agent-tool
+ :name "EditBatch"
+ :description
+ "Replace text in multiple files with a batch of targeted edits.
+
+Use this tool when you need to make several precise changes at once.
+
+Each edit applies to the specified path independently. Do not rely on edits
+being applied incrementally, and do not include overlapping or nested edits.
+If two changes affect the same block or nearby lines, merge them into a
+single edit.
+
+For each edit:
+- provide `path`
+- provide `old_str` and `new_str` for a normal replacement, or
+- set `is_diff` to true and provide a unified diff in `new_str`
+
+Use string replacement for exact, unique matches. Use diff mode for longer
+or more complex changes.
+
+When editing multiple files, each item in `edits` may target a different file
+or directory as appropriate."
+ :snippet "Apply multiple file edits in one batch."
+ :guideline "- Use EditBatch for multiple independent edits. Keep each edit minimal and non-overlapping. Merge adjacent or related changes into one edit. Use diff mode for complex replacements or multi-file changes."
+ :function #'amsha/gptel-agent--edit-files-batch
+ :args '((:name "edits"
+          :description "A list of file edits to apply in one batch. Each edit must be independent and non-overlapping."
+          :type array
+          :items (:type object
+                  :properties
+                  (:path
+                    (:type string
+                     :description "File or directory path to edit")
+                   :old_str
+                    (:type string
+                     :description "Original string to replace. If `is_diff` is true, this should be empty or omitted."
+                     :optional t)
+                   :new_str
+                    (:type string
+                     :description "Replacement string OR unified diff text")
+                   :is_diff
+                   (:type boolean
+                    :description "Whether new_str contains a unified diff"
+                    :optional t)))))
+ :category "amsha/gptel-agent"
+ :confirm t
+ :include t)
+
+(gptel-make-agent-tool
+ :name "Write"
+ :description "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories."
+ :snippet "Create or overwrite files"
+ :guideline "- Use `Write` only for new files or complete rewrites."
+ :function #'gptel-agent--write-file
+ :args (list '( :name "path"
+                :type "string"
+                :description "The directory where to create the file, \".\" is the current directory.")
+             '( :name "filename"
+                :type "string"
+                :description "The name of the file to create.")
+             '( :name "content"
+                :type "string"
+                :description "The content to write to the file"))
+ :category "amsha/gptel-agent"
+ :confirm t)
+
+(gptel-make-agent-tool
+ :name "Read"
+ :description
+ (format
+  "Read file contents between specified line numbers `start_line` and `end_line`,
+with both ends included.
+
+Reads the whole file if the line range is not provided.
+
+Files over %d KB in size can only be read by specifying a line range."
+                      gptel-agent-read-file-size-threshold)
+ :snippet "Read file contents"
+ :guideline "- Use read to examine files instead of cat or sed."
+ :function #'gptel-agent--read-file-lines
+ :args '(( :name "file_path"
+           :type string
+           :description "The path to the file to be read.")
+         ( :name "start_line"
+           :type integer
+           :description "The line to start reading from, defaults to the start of the file"
+           :optional t)
+         ( :name "end_line"
+           :type integer
+           :description "The line up to which to read, defaults to the end of the file."
+           :optional t))
+ :category "amsha/gptel-agent"
+ :include t)
+
+(gptel-make-agent-tool
+ :name "Grep"
+ :description "Search for text in file(s) at `path`.
+
+Use this tool to find relevant parts of files to read.
+
+Returns a list of matches prefixed by the line number, and grouped by file.  Can search an individual file (if providing a file path) or a directory.
+
+When searching directories, optionally restrict the types of files in the search with a `glob`.  Can request context lines around each match using the `context_lines` parameters."
+ :snippet "Search file contents for patterns."
+ :guideline "- Consider using `Grep` tool to find the right line range for the `Read` tool."
+ :function #'gptel-agent--grep
+ :args '(( :name "regex"
+           :description "Regular expression to search for in file contents."
+           :type string)
+         ( :name "path"
+           :description "File or directory to search in."
+           :type string)
+         ( :name "glob"
+           :description "Optional glob to restrict file types to search for.
+Only required when path is a directory.
+Examples: *.md, *.rs"
+           :type string
+           :optional t)
+         ( :name "context_lines"
+           :description "Number of lines of context to retrieve around each match (0-15 inclusive).
+Optional, defaults to 0."
+           :optional t
+           :type integer
+           :maximum 15))
+ :category "amsha/gptel-agent"
+ :include t)
+
+(gptel-make-agent-tool
+ :name "Glob"
+ :description "Recursively find files matching a provided glob pattern.
+
+- Supports glob patterns like \"*.md\" or \"*test*.py\".
+  The glob applies to the basename of the file (with extension).
+- Does not support double wildcard \"**/*\".
+- Returns matching file paths at all depths sorted by modification time.
+  Limit the depth of the search by providing the `depth` argument."
+ :snippet "Find files by glob pattern"
+ :function #'gptel-agent--glob
+ :args '(( :name "pattern"
+           :type string
+           :description "Glob pattern to match, for example \"*.el\". Must not be empty.
+Use \"*\" to list all files in a directory.")
+         ( :name "path"
+           :type string
+           :description "Directory to search in.  Supports relative paths and defaults to \".\""
+           :optional t)
+         ( :name "depth"
+           :description "Limit directory depth of search, 1 or higher. Defaults to no limit."
+           :type integer
+           :optional t))
+ :category "amsha/gptel-agent"
+ :include t)
+
+;; This can come from an md/org file
+(gptel-make-preset 'amsha/agent-base-message
+  :system
+  "You are an expert coding assistant operating inside emacs. You help users by reading files, executing commands, editing code, and writing new files.
+
+Available tools:
+{{TOOLSLIST}}
+
+In addition to the tools above, you may have access to other custom tools depending on the project.
+
+Guidelines:
+{{GUIDELINES}}
+
+{{SKILLS}}")
+
+(gptel-make-preset 'amsha/agentmd-ctx
+  :description "Add agent.md to context"
+  :context
+  `(:function (lambda (ctx)
+                (append ctx (list
+                             (expand-file-name "AGENT.md"
+                                               (locate-dominating-file default-directory "AGENT.md")))))))
+
+(gptel-make-preset 'amsha/agent-add-skills
+  :tools '("Skill")
+  :system
+  `(:function (lambda (sys-prompt)
+                (lazy-require 'gptel-agent)
+                (when (string-match "{{SKILLS}}" sys-prompt)
+                  (with-temp-buffer
+                    (insert sys-prompt)
+                    (gptel-agent--expand-templates
+                     (point-min)
+                     `(("SKILLS" . ,(if-let (skills (gptel-agent--update-skills))
+                                        (gptel-agent--skills-system-message skills)
+                                      ""))))
+                    (buffer-string))))))
+
+(gptel-make-preset 'amsha/agent-add-tools-info
+  :system
+  `(:function (lambda (sys-prompt)
+                (lazy-require 'gptel-agent)
+                (let (snippets guidelines)
+                  (cl-loop for tool in gptel-tools
+                           when (gptel-agent-tool-p tool)
+                           do (let ((snippet (gptel-agent-tool-snippet tool))
+                                    (guideline (gptel-agent-tool-guideline tool)))
+                                (when snippet
+                                  (push (format "- %s: %s" (gptel-agent-tool-name tool) snippet) snippets))
+                                (when guideline
+                                  (push guideline guidelines))))
+                  (when (or snippets guidelines)
+                    (with-temp-buffer
+                      (insert sys-prompt)
+                      (gptel-agent--expand-templates
+                       (point-min)
+                       `(("TOOLSLIST" .
+                          ,(if snippets
+                             (string-join (nreverse snippets) "\n")
+                           "None"))
+                         ("GUIDELINES" .
+                          ,(if guidelines
+                               (string-join (nreverse guidelines) "\n")
+                             "None"))))
+                      (buffer-string)))))))
+
+(gptel-make-preset 'amsha/cleanup-variables
+  :system
+  `(:function (lambda (sys-prompt)
+                (with-temp-buffer
+                  (insert sys-prompt)
+                  (goto-char (point-min))
+                  (replace-regexp "{{.?*}}" "")
+                  (buffer-string)))))
+
+(gptel-make-preset 'amsha/base-tools
+  :tools (mapcar (lambda (el) (list "amsha/gptel-agent" el))
+                 '("Bash" "Read" "EditBatch" "Write"
+                   "Grep" "Glob")))
+
+(gptel-make-preset 'amsha/agent-with-all
+  :parents `(amsha/agent-base-message
+             amsha/base-tools
+             amsha/agentmd-ctx
+             amsha/agent-add-skills
+             amsha/agent-add-tools-info
+             amsha/cleanup-variables))
+
+(gptel-make-preset 'amsha/agent-no-skills
+  :parents `(amsha/agent-base-message
+             amsha/base-tools
+             amsha/agentmd-ctx
+             amsha/agent-add-tools-info
+             amsha/cleanup-variables))
+
+  ;; :parents `(amsha/agent-base-message))
+
+;; (setq xx (gptel-make-agent-tool
+;;  :function (lambda (location unit)
+;;              (format "Temp in %s is 25 %s" location unit))
+;;  :name "get_weather"
+;;  :description "Get the current weather in a given location"
+;;  :snippet "hahah"
+;;  :guideline "whaaaa"
+;;  :confirm t
+;;  :args (list '(:name "location"
+;;                      :type string
+;;                      :description "The city and state, e.g. San Francisco, CA")
+;;              '(:name "unit"
+;;                      :type string
+;;                      :enum ["celsius" "farenheit"]
+;;                      :description
+;;                      "The unit of temperature, either 'celsius' or 'fahrenheit'"
+;;                      :optional t))))
+
+;; (gptel-make-agent-tool
+;;  :function (lambda (location unit)
+;;              (format "Temp in %s is 25 %s" location unit))
+;;  :name "get_weather2"
+;;  :description "Get the current weather in a given location"
+;;  :guideline "only guidelines"
+;;  :confirm t
+;;  :args (list '(:name "location"
+;;                      :type string
+;;                      :description "The city and state, e.g. San Francisco, CA")
+;;              '(:name "unit"
+;;                      :type string
+;;                      :enum ["celsius" "farenheit"]
+;;                      :description
+;;                      "The unit of temperature, either 'celsius' or 'fahrenheit'"
+;;                      :optional t)))
+
 ;;; code introspection tools **************************************************************
 (defun gptel--get-file-relative-to-root (file)
   (if (file-name-absolute-p file)
