@@ -2759,10 +2759,10 @@ then close the *gptel-context* buffer and return to gptel menu."
     :key (gethash 'openrouter-apk configurations)                   ;can be a function that returns the key
     :models '(deepseek/deepseek-r1-distill-llama-70b:free)))
 
-(setq gptel--openai (gptel-make-openai-responses "gptel-responses"
-                      :models gptel--openai-models
-                      :key gptel-api-key
-                      :stream t))
+;; (setq gptel--openai (gptel-make-openai-responses "gptel-responses"
+;;                       :models gptel--openai-models
+;;                       :key gptel-api-key
+;;                       :stream t))
 
 (dolist (def (gethash 'gptel-local-models configurations nil))
   (apply (car def) (cdr def)))
