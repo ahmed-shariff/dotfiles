@@ -2303,7 +2303,7 @@ decoration is applied via text properties during construction."
 (define-derived-mode gptel-context-buffer-mode magit-section-mode "gptel-context"
   "Major-mode for inspecting gptel context using magit sections."
   :group 'gptel
-  (setq-local revert-buffer-function #'gptel-context--buffer-setup)
+  (setq-local revert-buffer-function #'gptel-context--revert-buffer)
   ;; keys on top of magit-section-mode's keys
   (let ((map gptel-context-buffer-mode-map))
     (define-key map (kbd "C-c C-c") #'gptel-context-confirm)
@@ -2315,7 +2315,25 @@ decoration is applied via text properties during construction."
     (define-key map (kbd "C-c <")   #'gptel-context-move-up)
     (define-key map (kbd "C-c >")   #'gptel-context-move-down)))
 
-(defun gptel-context--buffer-setup (&optional _ignore-auto _noconfirm context-alist)
+(defun gptel-context--revert-buffer (ignore-auto noconfirm)
+  "Wrapper around `gptel-context--buffer-setup' suitable as
+`revert-buffer-function' which handles the position correctly."
+  ;; based on `magit-refresh-buffer'
+  (let* ((section (magit-section-at))
+         (rel-position (and section
+                            (magit-section-get-relative-position section))))
+    (funcall #'gptel-context--buffer-setup ignore-auto noconfirm nil 'is-refreshed)
+    (when section
+      (magit-section-goto-successor section (car rel-position) (cadr rel-position)))
+
+    (let ((magit-section-cache-visibility nil))
+      (magit-section-show magit-root-section))
+    (magit-section-update-highlight)
+    ;; (set-buffer-modified-p nil) ;; why is this here?
+    (push (current-buffer) magit-section--refreshed-buffers)))
+
+;; This works by shadowing the definition in `gptel-context'
+(defun gptel-context--buffer-setup (&optional _ignore-auto _noconfirm context-alist is-refreshed)
   "Populate *gptel-context* with magit sections for `gptel-context'.
 If CONTEXT-ALIST is supplied, use that instead of the global `gptel-context'."
   (with-current-buffer (get-buffer-create "*gptel-context*")
@@ -2342,7 +2360,13 @@ If CONTEXT-ALIST is supplied, use that instead of the global `gptel-context'."
                (pcase-dolist (`(,src . ,spec) contexts)
                  (gptel-context--make-entry-section src spec)
                  (insert "\n\n"))))))))
-    (magit-section-show-level-2-all)
+
+    (unless is-refreshed
+      (magit-section-show-level-2-all))
+    (let ((magit-section-cache-visibility nil))
+      (magit-section-show magit-root-section))
+    (magit-section-update-highlight)
+
     (display-buffer (current-buffer)
                     '((display-buffer-reuse-window
                        display-buffer-reuse-mode-window
