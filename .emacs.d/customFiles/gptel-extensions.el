@@ -1562,9 +1562,13 @@ then it will be set here."
 ;;            (gptel-agent-skill--tool-run-script-async callback skill path args)))
 ;;         (_
 ;;          (funcall callback `(:error "unknown-action" :action ,action)))))))
-;;; fabric patters and stratergies ********************************************************
+
+;;; fabric patterns and stratergies *******************************************************
 (defvar amsha/fabric-patters-dir "~/.config/fabric/patterns/")
 (defvar amsha/fabric-strategies-dir "~/.config/fabric/strategies/")
+(defconst amsha/fabric-input-sentinel "__FABRIC_INPUT_SENTINEL_TOKEN__"
+  "Temporary placeholder for {{input}} during variable resolution.")
+(defvar amsha/fabric--patterns-alist '())
 
 (defun amsha/fabric-download-assets (&optional patterns-dest-dir strategies-dest-dir)
   "Download fabric patterns and strategies in one go.
@@ -1608,8 +1612,6 @@ STRATEGIES-DEST-DIR defaults to `amsha/fabric-strategies-dir'."
         (when (file-directory-p tmp)
           (delete-directory tmp t))))))
 
-(defvar amsha/fabric--patterns-alist '())
-
 (defun amsha/gptel-update-fabric-assets ()
   "Update the known patterns & strategies into presets."
   (interactive)
@@ -1623,7 +1625,7 @@ STRATEGIES-DEST-DIR defaults to `amsha/fabric-strategies-dir'."
                 (setf (alist-get name amsha/fabric--patterns-alist nil nil #'string-equal)
                       (file-name-directory pattern-file))
                 (apply #'gptel-make-preset
-                       (concat "fabric-p-" name)
+                       (intern (concat "fabric-p-" name))
                        `(:system (:function (lambda (system-prompt)
                                               (concat system-prompt "\n"
                                                       (amsha/gptel--get-pattern ,name))))))))))
@@ -1636,7 +1638,7 @@ STRATEGIES-DEST-DIR defaults to `amsha/fabric-strategies-dir'."
                      (json-object-type 'plist)
                      (strategy (json-read-file strategy-file)))
                 (apply #'gptel-make-preset
-                       (concat "fabric-strategy-" name)
+                       (intern (concat "fabric-strategy-" name))
                        `(:description ,(plist-get strategy :description)
                          :system (:append ,(plist-get strategy :prompt))))))))
         (list amsha/fabric-strategies-dir)))
@@ -1654,9 +1656,6 @@ STRATEGIES-DEST-DIR defaults to `amsha/fabric-strategies-dir'."
         (format "Could not load body of pattern %s" pattern)))))
 
 ;;;; * variable-handling
-(defconst amsha/fabric-input-sentinel "__FABRIC_INPUT_SENTINEL_TOKEN__"
-  "Temporary placeholder for {{input}} during variable resolution.")
-
 (defvar amsha/fabric-plugin-alist
   '(("text"     . amsha/fabric-plugin-text)
     ("datetime" . amsha/fabric-plugin-datetime)
@@ -2971,7 +2970,6 @@ then close the *gptel-context* buffer and return to gptel menu."
 ;;;; setup (gptel-agent) *******************************************************************
 (add-to-list 'gptel-agent-skill-dirs (expand-file-name "~/.emacs.d/.cache/gptel-skills/"))
 (add-to-list 'gptel-agent-dirs "~/.emacs.d/customFiles/gptel-paper-agent/")
-(add-to-list 'gptel-agent-skill-dirs "~/.emacs.d/.cache/gptel-skills/")
 (defun amsha/agent-post-update (&rest _)
   ;; Make "paper-agent" a top-level preset
   (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
@@ -2979,13 +2977,14 @@ then close the *gptel-context* buffer and return to gptel menu."
   ;; Make skills presets
   (pcase-dolist (`(,name ,_ . ,skill-plist) gptel-agent--skills)
     (apply #'gptel-make-preset
-           (concat "skill-" name)
+           (intern (concat "skill-" name))
            (append skill-plist `(:system (:function (lambda (system-prompt)
                                                       (concat system-prompt "\n"
                                                               (gptel-agent--get-skill ,name)))))))))
 (advice-add 'gptel-agent-update :after #'amsha/agent-post-update)
 
 (gptel-agent-update)         ;Read files from agents directories
+(amsha/gptel-update-fabric-assets)
 
 (provide 'gptel-extensions)
 ;;; gptel-extensions.el ends here
