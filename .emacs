@@ -1632,6 +1632,12 @@ targets."
          ("C-h F" . helpful-function)
          ("C-h C" . helpful-command)))
 
+;;helpful ****************************************************************************
+(use-package lorem-ipsum
+  :commands (lorem-ipsum-insert-list
+             lorem-ipsum-insert-paragraphs
+             lorem-ipsum-insert-sentences))
+
 ;; ;;lsp-bridge *************************************************************************
 ;; (use-package lsp-bridge
 ;;   :bind-keymap ("C-x l" . lsp-bridge-keymap)
