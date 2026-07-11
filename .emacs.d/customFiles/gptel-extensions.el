@@ -1562,6 +1562,196 @@ then it will be set here."
 ;;            (gptel-agent-skill--tool-run-script-async callback skill path args)))
 ;;         (_
 ;;          (funcall callback `(:error "unknown-action" :action ,action)))))))
+;;; fabric patters and stratergies ********************************************************
+(defvar amsha/fabric-patters-dir "~/.config/fabric/patterns/")
+(defvar amsha/fabric-strategies-dir "~/.config/fabric/strategies/")
+
+(defun amsha/fabric-download-assets (&optional patterns-dest-dir strategies-dest-dir)
+  "Download fabric patterns and strategies in one go.
+
+PATTERNS-DEST-DIR defaults to `amsha/fabric-patters-dir'.
+STRATEGIES-DEST-DIR defaults to `amsha/fabric-strategies-dir'."
+  (interactive)
+  (let* ((patterns-dest (expand-file-name (or patterns-dest-dir amsha/fabric-patters-dir)))
+         (strategies-dest (expand-file-name (or strategies-dest-dir amsha/fabric-strategies-dir)))
+         (tmp (make-temp-file "fabric-clone-" t))
+         (repo "https://github.com/danielmiessler/fabric.git")
+         (patterns-src (expand-file-name "data/patterns" tmp))
+         (strategies-src (expand-file-name "data/strategies" tmp)))
+    (unless (yes-or-no-p (format "Download Fabric patterns to %s and strategies to %s? "
+                                 patterns-dest strategies-dest))
+      (user-error "Download cancelled"))
+    (message "Cloning fabric repo (shallow)...")
+    (let ((exit-code (call-process "git" nil "*fabric-setup*" t
+                                   "clone" "--depth=1" "--filter=blob:none"
+                                   "--sparse" repo tmp)))
+      (unwind-protect
+          (if (not (zerop exit-code))
+              (error "git clone failed; see *fabric-setup* buffer")
+            (call-process "git" nil "*fabric-setup*" t
+                          "-C" tmp "sparse-checkout" "set"
+                          "data/patterns" "data/strategies")
+            (when (and (file-exists-p patterns-dest)
+                       (not (yes-or-no-p (format "Overwrite existing patterns directory %s? "
+                                                 patterns-dest))))
+              (user-error "Patterns download cancelled"))
+            (when (and (file-exists-p strategies-dest)
+                       (not (yes-or-no-p (format "Overwrite existing strategies directory %s? "
+                                                 strategies-dest))))
+              (user-error "Strategies download cancelled"))
+            (make-directory patterns-dest t)
+            (make-directory strategies-dest t)
+            (copy-directory patterns-src patterns-dest nil t t)
+            (copy-directory strategies-src strategies-dest nil t t)
+            (message "Patterns downloaded to %s" patterns-dest)
+            (message "Strategies downloaded to %s" strategies-dest))
+        (when (file-directory-p tmp)
+          (delete-directory tmp t))))))
+
+(defvar amsha/fabric--patterns-alist '())
+
+(defun amsha/gptel-update-fabric-assets ()
+  "Update the known patterns & strategies into presets."
+  (interactive)
+  (mapc (lambda (dir)
+          (when (file-directory-p dir)
+            (dolist (pattern-file (directory-files-recursively
+                                 dir "SYSTEM\\.md$" nil nil t))
+              (let ((name (file-name-nondirectory
+                                (directory-file-name
+                                 (file-name-directory pattern-file)))))
+                (setf (alist-get name amsha/fabric--patterns-alist nil nil #'string-equal)
+                      (file-name-directory pattern-file))
+                (apply #'gptel-make-preset
+                       (concat "fabric-p-" name)
+                       `(:system (:function (lambda (system-prompt)
+                                              (concat system-prompt "\n"
+                                                      (amsha/gptel--get-pattern ,name))))))))))
+        (list amsha/fabric-patters-dir))
+  (mapc (lambda (dir)
+          (when (file-directory-p dir)
+            (dolist (strategy-file (directory-files-recursively
+                                    dir "\\.json$" nil nil t))
+              (let* ((name (file-name-base strategy-file))
+                     (json-object-type 'plist)
+                     (strategy (json-read-file strategy-file)))
+                (apply #'gptel-make-preset
+                       (concat "fabric-strategy-" name)
+                       `(:description ,(plist-get strategy :description)
+                         :system (:append ,(plist-get strategy :prompt))))))))
+        (list amsha/fabric-strategies-dir)))
+
+(defun amsha/gptel--get-pattern (pattern &optional _args)
+  "Get the pattern after processing the variables."
+  (let ((pattern-dir (alist-get pattern amsha/fabric--patterns-alist nil nil #'string-equal)))
+    (if (not pattern-dir)
+        (format "Error: pattern %s not found." pattern)
+      (if-let (body (plist-get
+                     (cdr (gptel-agent-read-file
+                           (expand-file-name "SYSTEM.md" pattern-dir)))
+                     :system))
+          (amsha/fabric-apply-variables body nil "") ;; TODO: INPUT should be something?
+        (format "Could not load body of pattern %s" pattern)))))
+
+;;;; * variable-handling
+(defconst amsha/fabric-input-sentinel "__FABRIC_INPUT_SENTINEL_TOKEN__"
+  "Temporary placeholder for {{input}} during variable resolution.")
+
+(defvar amsha/fabric-plugin-alist
+  '(("text"     . amsha/fabric-plugin-text)
+    ("datetime" . amsha/fabric-plugin-datetime)
+    ("file"     . amsha/fabric-plugin-file)
+    ("fetch"    . amsha/fabric-plugin-fetch)
+    ("sys"      . amsha/fabric-plugin-sys)))
+
+(defun amsha/fabric-plugin-text (operation value)
+  (pcase operation
+    ("upper" (upcase value))
+    ("lower" (downcase value))
+    (_ (error "Unknown text operation: %s" operation))))
+
+(defun amsha/fabric-plugin-datetime (operation _value)
+  (pcase operation
+    ("now" (format-time-string "%Y-%m-%dT%H:%M:%S"))
+    (_ (error "Unknown datetime operation: %s" operation))))
+
+(defun amsha/fabric-plugin-file (operation value)
+  (pcase operation
+    ("read" (with-temp-buffer
+              (insert-file-contents value)
+              (buffer-string)))
+    (_ (error "Unknown file operation: %s" operation))))
+
+(defun amsha/fabric-plugin-fetch (_operation value)
+  (url-retrieve-synchronously value)          ; simplified stub
+  (error "fetch plugin not fully implemented"))
+
+(defun amsha/fabric-plugin-sys (operation _value)
+  (pcase operation
+    ("hostname" (system-name))
+    (_ (error "Unknown sys operation: %s" operation))))
+
+(defun amsha/fabric-dispatch-plugin (namespace operation value)
+  (if-let (namespace-func (alist-get namespace amsha/fabric-plugin-alist nil nil #'string-equal))
+      (funcall namsepace-func operation value)
+    (prog1 ""
+      (warn "Unknown plugin namespace: %s" namespace))))
+
+;; TODO: Implement this?
+(defun amsha/fabric-dispatch-extension (name operation value)
+  ;; Replace with real extension registry lookup
+  ;; (error "Extension not found: %s:%s:%s" name operation value))
+  (prog1 ""
+    (warn "Extension not found: %s:%s:%s" name operation value)))
+
+(defun amsha/fabric-apply-variables (pattern variables input &optional no-ask-variable)
+  "Apply VARIABLES and INPUT to PATTERN, expanding innermost {{...}} first."
+  (with-temp-buffer
+    (insert pattern)
+    (goto-char (point-min))
+
+    (let ((sentinel amsha/fabric-input-sentinel)
+          (continue-match t))
+      ;; Protect literal {{input}} so nested processing doesn't treat it specially too early.
+      (while (search-forward "{{input}}" nil t)
+        (replace-match sentinel t t))
+
+      ;; Repeatedly resolve brace-free tokens: {{...}} where ... contains no { or }.
+      (goto-char (point-min))
+      (while (and continue-match (re-search-forward "{{" nil t))
+        (goto-char (match-beginning 0))
+        (save-excursion
+          (if (re-search-forward "{{\\([^{}]+\\)}}")
+              (replace-match
+               (save-match-data
+                 (pcase (match-string 1)
+                   ;; Handling plugin and ext
+                   ((rx (let type (or "plugin" "ext"))
+                        ":"
+                        (let name (+ (not ?:)))
+                        ":"
+                        (let operation (+ (not ?:)))
+                        (? ":"
+                           (let param (+ (not ?})))))
+                    (pcase type
+                      ("ext" (amsha/fabric-dispatch-extension name operation param))
+                      ("plugin" (amsha/fabric-dispatch-plugin name operation param))))
+                   ;; Plain variable
+                   (raw
+                    (or (alist-get raw variables nil nil #'string=)
+                        (and (not no-ask-variable)
+                             (let ((new-val (read-from-minibuffer
+                                             (format "Variable value %s: " raw))))
+                               (push (cons raw new-val) variables)
+                               new-val))
+                        (prog1 ""
+                          (warn "Variable substitution skipped for %s" raw)))))))
+            (setq continue-match nil))))
+
+      (goto-char (point-min))
+      (while (search-forward sentinel nil t)
+        (replace-match input t t))
+      (buffer-string))))
 
 ;;; composable agents *********************************************************************
 
