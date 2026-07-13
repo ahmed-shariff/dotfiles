@@ -874,6 +874,33 @@ Signals an error if a region is active, since region-based compaction is not imp
   (interactive)
   (gptel-agent okm-base-directory 'paper-agent))
 
+(defun amsha/gptel-buffer ()
+  "Create or switch to a `gptel' session buffer.
+
+Prompts for an existing `gptel-mode' buffer or a new buffer name
+(defaulting to `*gptel-buffer-N*'). Unlike `gptel', this command does
+not require choosing a backend first, making it convenient for opening
+a chat session quickly.
+
+If the region is active, its text is inserted into the new session."
+  (interactive)
+  (gptel (read-buffer
+          "Create or choose gptel buffer: "
+          (cl-loop for i upfrom 1
+                   for buf = (format "*gptel-buffer-%s*" i)
+                   until (or (null (get-buffer buf)) (> i 100))
+                   finally return buf)
+          nil          ; DEFAULT and REQUIRE-MATCH
+          (lambda (b)                    ; PREDICATE
+            ;; NOTE: buffer check is required (#450)
+            (and-let* ((buf (get-buffer (or (car-safe b) b))))
+              (buffer-local-value 'gptel-mode buf))))
+         nil
+         (and (use-region-p)
+              (buffer-substring (region-beginning)
+                                (region-end)))
+         t))
+
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
 (defvar gptel--mode-line-status " ")
@@ -2900,12 +2927,16 @@ then close the *gptel-context* buffer and return to gptel menu."
 ;;;; setup *********************************************************************************
 (bind-keys :package gptel
            ("C-c o q m" . gptel-menu)
-           ("C-c o q b" . gptel)
+           ("C-c o q b" . amsha/gptel-buffer)
            ("C-c o q Q" . gptel-send)
            ("C-c o q n" . gptel-context-add)
            ("C-c o q y" . amsha/gptel-yank)
            :map gptel-mode-map
            ("C-c DEL" . amsha/erase-buffer-with-confirmation))
+
+(transient-insert-suffix 'gptel-menu '(-1 -1)
+  '("B" "get/create gptel buffer"
+    amsha/gptel-buffer))
 
 ;; Not sure where this is getting bound! 🤷
 (evil-define-key '(normal visual) gptel-mode-map (kbd "RET") nil)
