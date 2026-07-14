@@ -325,6 +325,9 @@ Code
                      "\n  #+END_SRC"))))
     (user-error "No last fsm and no info provided.")))
 
+(gptel-make-preset 'oai-web-m
+  :openai-responses-extended--tools '(:append ((:type "web_search" :search_context_size "medium"))))
+
 ;;; Tool use ******************************************************************************
 (gptel-make-tool
  :function (lambda (url)
@@ -702,7 +705,7 @@ Your summary should be comprehensive enough to provide context but concise enoug
 
 If the conversation involved iteratively refining something, provide the summary of the final version. The summary should be detailed enough to cover all points.
 
-DO NOT provide followup suggestions."))
+DO NOT provide followup suggestions and the output should be in thrid person where you are the AI agent."))
 
 (gptel-make-preset 'summarize
   :description "System prompt for detailed summarize of context."
@@ -2230,7 +2233,7 @@ Supported method:
                                        directory-files-no-dot-files-regexp))
   (gptel-make-preset (intern (format "%s-c" (f-base context-file)))
     :description (format "Use persistent context %s" (f-base context-file))
-    :context `((,context-file))))
+    :context `(:append (,context-file))))
 
 (defun amsha/gptel--get-persistent-context ()
   (completing-read "Context name: "
