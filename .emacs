@@ -3294,8 +3294,13 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
           (links (list (cons (concat (all-the-icons-octicon
                                       "logo-github"
                                       :height 1 :v-adjust 0.0 :face 'magit-hash)
-                                     " Github")
+                                     " Github ahmed-shariff")
                              "https://github.com/ahmed-shariff")
+                       (cons (concat (all-the-icons-octicon
+                                      "logo-github"
+                                      :height 1 :v-adjust 0.0 :face 'magit-hash)
+                                     " Github ovi-lab")
+                             "https://github.com/ovi-lab")
                        (cons (concat (all-the-icons-octicon
                                       "pulse"
                                       :height 1 :v-adjust 0.0 :face 'magit-hash)
