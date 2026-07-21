@@ -1815,15 +1815,155 @@ Guidelines will be placed under guidelines in the system prompt."
 
 ;; gptel-agent tools as gptel-agent-tool's
 (defun amsha/gptel-agent--edit-files-batch (edits)
-  "Apply multiple edit operations in EDITS."
-  (let ((results '()))
-    (dolist (edit edits)
-      (let ((path (alist-get 'path edit))
-            (old-str (alist-get 'old_str edit))
-            (new-str (alist-get 'new_str edit))
-            (diff (alist-get 'diff edit)))
-        (push (gptel-agent--edit-files path old-str new-str diff) results)))
-    (mapconcat #'identity (nreverse results) "\n")))
+  "Edit multiple files atomically.
+
+EDITS is an vector of (:path PATH :ols_str OLD-STR :new_str NEW-STR) triples."
+  (unless edits
+    (error "Error: No edits provided"))
+
+  (let ((file-edits (make-hash-table :test 'equal))
+        (file-order '()))
+    (cl-loop for edit across edits
+             for path = (plist-get edit :path)
+             for old-str = (plist-get edit :old_str)
+             for new-str = (plist-get edit :new_str)
+             do
+             (unless (gethash path file-edits)
+               (push path file-order))
+             (puthash path
+                      (append (gethash path file-edits)
+                              (list (cons old-str new-str)))
+                      file-edits))
+    (setq file-order (nreverse file-order))
+
+    ;; Phase 1: validate + apply inside a temp buffer per file.
+    ;; Extract (buffer-string) only after all edits for that file pass.
+    ;; Nothing is written to disk yet.
+    (let ((final-contents (make-hash-table :test 'equal)))
+      (dolist (path file-order)
+        (unless (file-readable-p path)
+          (error "Error: File %s is not readable" path))
+        (when (file-directory-p path)
+          (error "Error: %s is a directory" path))
+
+        (with-temp-buffer
+          (insert-file-contents path)
+          (cl-loop for (old-str . new-str) in (gethash path file-edits)
+                   for i from 0
+                   do
+                   (goto-char (point-min))
+                   (unless (search-forward old-str nil t)
+                     (error "Error: Could not find edits[%d] old_str \"%s\" in %s"
+                            i (truncate-string-to-width old-str 40 nil nil t) path))
+                   (when (save-excursion (save-match-data (search-forward old-str nil t)))
+                     (error "Error: edits[%d] old_str \"%s\" matches multiple times in %s"
+                            i (truncate-string-to-width old-str 40 nil nil t) path))
+                   (replace-match (string-replace "\\" "\\\\" new-str) t t))
+          ;; All edits for this file passed — snapshot the buffer
+          (puthash path (buffer-string) final-contents)))
+
+      ;; Phase 2: all files validated — write each exactly once
+      (dolist (path file-order)
+        (with-temp-buffer
+          (insert (gethash path final-contents))
+          (write-region nil nil path nil 'silent)))
+
+      (format "Successfully applied %d edit(s) across %d file(s)"
+              (length edits)
+              (hash-table-count final-contents)))))
+
+(defun amsha/gptel-agent--edit-files-batch-preview-setup (arg-values _info)
+  "Insert tool call preview for ARG-VALUES for \"Edit batch\" tool."
+  (let ((from (point))
+        (files-affected '()))
+    (pcase-let ((`(,edits) arg-values))
+      (dolist (edit (append edits nil))
+        (let ((path (plist-get edit :path))
+              (old-str (plist-get edit :old_str))
+              (new-str (plist-get edit :new_str)))
+          (push path files-affected)
+          (insert
+           "(" (propertize "ReplaceIn" 'font-lock-face 'font-lock-keyword-face)
+           " "
+           (propertize (concat "\"" path "\"") 'font-lock-face 'font-lock-constant-face)
+           ")\n"
+           (propertize old-str
+                       'font-lock-face 'diff-removed
+                       'line-prefix (propertize "-" 'face 'diff-removed))
+           "\n"
+           (propertize new-str
+                       'font-lock-face 'diff-added
+                       'line-prefix (propertize "+" 'face 'diff-added))
+           "\n"))))
+    (insert "\n")
+    (font-lock-append-text-property
+     from (1- (point)) 'font-lock-face (gptel-agent--block-bg))
+    (when (derived-mode-p 'org-mode)
+      (org-escape-code-in-region from (1- (point))))
+    (save-excursion
+      (goto-char from)
+      (insert
+       (propertize "Files To Edit:" 'font-lock-face 'font-lock-keyword-face)
+       " " (mapconcat (lambda (f)
+                        (propertize (concat "\"" f "\"")
+                                    'font-lock-face 'font-lock-constant-face))
+                      (delete-dups (nreverse files-affected)) " ")
+       "\n"))
+    (gptel-agent--confirm-overlay from (point) t)))
+
+(defun gptel-agent--execute-pwsh (callback command)
+  "Execute COMMAND asynchronously in pwsh and call CALLBACK with output.
+
+CALLBACK is called with the command output string when the process finishes.
+COMMAND is the psh command string to execute."
+  (let* ((output-buffer (generate-new-buffer " *gptel-agent-pwsh*"))
+         (proc (make-process
+                :name "gptel-agent-bash"
+                :buffer output-buffer
+                  :command (list "pwsh" "-NoProfile" "-Command" command)
+                :connection-type 'pipe
+                :file-handler t
+                :sentinel
+                (lambda (process _event)
+                  (when (memq (process-status process) '(exit signal))
+                    (let* ((exit-code (process-exit-status process))
+                           (output (with-current-buffer (process-buffer process)
+                                     (buffer-string))))
+                      (kill-buffer (process-buffer process))
+                      (funcall callback
+                               (if (zerop exit-code)
+                                   output
+                                 (format "Command failed with exit code %d:\nSTDOUT+STDERR:\n%s"
+                                         exit-code output)))))))))
+    proc))
+
+(defun amsha/gptel-agent--execute-powershell-preview-setup (arg-values _info)
+  "Setup preview overlay for powershell command execution tool call.
+
+ARG-VALUES is the list of arguments for the tool call."
+  (let ((command (car arg-values))
+        (from (point)) (inner-from))
+    (insert
+     "(" (propertize "PowerShell" 'font-lock-face 'font-lock-keyword-face)
+     " in " (propertize (abbreviate-file-name default-directory)
+                        'font-lock-face 'font-lock-string-face)
+     ")\n")
+    (setq inner-from (point))
+    (insert command)
+    (gptel-agent--fontify-block 'powershell-mode inner-from (point))
+    (insert "\n\n")
+    (font-lock-append-text-property
+     inner-from (1- (point)) 'font-lock-face (gptel-agent--block-bg))
+    (gptel-agent--confirm-overlay from (point) t)))
+
+
+(setf (alist-get "EditBatch" gptel--tool-preview-alist
+                   nil nil #'string-equal)
+      `(,#'amsha/gptel-agent--edit-files-batch-preview-setup))
+
+(setf (alist-get "PowerShell" gptel--tool-preview-alist
+                   nil nil #'string-equal)
+      `(,#'amsha/gptel-agent--execute-powershell-preview-setup))
 
 (gptel-make-agent-tool
  :name "Bash"
@@ -1841,6 +1981,70 @@ Example: 'ls -la | head -20' or 'grep -i error app.log | tail -50'"))
  :async t)
 
 (gptel-make-agent-tool
+ :name "PowerShell"
+ :function #'gptel-agent--execute-pwsh
+ :description "Execute a PowerShell command in the current working directory. Returns output of running a command in pwsh (with msys2, so commands like ls, pwd, grep, find also work)."
+ :snippet "Execute PowerShell commands (including ls, pwd, grep, find, etc.)"
+ :args '((:name "command"
+          :type string
+          :description "The PowerShell command to execute.
+Can include pipes and shell operators.
+Example: 'ls | Select-Object -First 20' or 'Get-ChildItem | Select-String error'"))
+ :category "amsha/gptel-agent"
+ :confirm t
+ :include t
+ :async t)
+
+(gptel-make-agent-tool
+ :name "Edit"
+ :description
+ "Replace text in one or more files.
+
+To edit a single file, provide the file `path`.
+
+For the replacement, there are two methods:
+- Single replacements: Provide both `old_str` and `new_str`, in which case `old_str` \
+needs to exactly match one unique section of the original file, including any whitespace.  \
+Make sure to include enough context that the match is not ambiguous.  \
+The entire original string will be replaced with `new str`.
+- Unified diff based replacement: set the `diff` parameter to true and provide a unified diff \
+in `new_str`. `old_str` can be ignored.
+
+Prefer the Unified diff method when related edits are being made.
+
+To edit multiple files,
+- provide the directory path,
+- set the `diff` parameter to true
+- and provide a unified diff in `new_str`.
+
+Diff instructions:
+
+- The diff must be provided within fenced code blocks (=diff or =patch) and be in unified format.
+- The LLM should generate the diff such that the file paths within the diff \
+  (e.g., '--- a/filename' '+++ b/filename') are appropriate for the 'path'.
+
+To simply insert text at some line, use the \"Insert\" instead."
+ :snippet "Apply file edit."
+ :guideline "- Use Edit for editing file(s). Prefer using diff mode. Merge adjacent or related changes into one edit."
+ :function #'gptel-agent--edit-files
+ :args '(( :name "path"
+           :description "File path or directory to edit"
+           :type string)
+         ( :name "old_str"
+           :description "Original string to replace.  If providing a unified diff, this should be false"
+           :type string
+           :optional t)
+         ( :name "new_str"
+           :description "Replacement string OR unified diff text"
+           :type string)
+         ( :name "diff"
+           :description "Whether the replacement is a string or a diff.  `true` for a diff, `false` otherwise."
+           :type boolean))
+ :category "amsha/gptel-agent"
+ :confirm t
+ :include t)
+
+(gptel-make-agent-tool
  :name "EditBatch"
  :description
  "Replace text in multiple files with a batch of targeted edits.
@@ -1853,17 +2057,14 @@ If two changes affect the same block or nearby lines, merge them into a
 single edit.
 
 For each edit:
-- provide `path`
-- provide `old_str` and `new_str` for a normal replacement, or
-- set `is_diff` to true and provide a unified diff in `new_str`
-
-Use string replacement for exact, unique matches. Use diff mode for longer
-or more complex changes.
+- provide absolute `path`
+- provide `old_str` and `new_str` for replacement. Provide sufficient
+  context for old_str such that there's no ambiguity.
 
 When editing multiple files, each item in `edits` may target a different file
 or directory as appropriate."
  :snippet "Apply multiple file edits in one batch."
- :guideline "- Use EditBatch for multiple independent edits. Keep each edit minimal and non-overlapping. Merge adjacent or related changes into one edit. Use diff mode for complex replacements or multi-file changes."
+ :guideline "- Use EditBatch for multiple independent edits. Keep each edit minimal and non-overlapping. Merge adjacent or related changes into one edit."
  :function #'amsha/gptel-agent--edit-files-batch
  :args '((:name "edits"
           :description "A list of file edits to apply in one batch. Each edit must be independent and non-overlapping."
@@ -1872,18 +2073,14 @@ or directory as appropriate."
                   :properties
                   (:path
                     (:type string
-                     :description "File or directory path to edit")
+                     :description "File or directory path to edit. Should be an absolute path.")
                    :old_str
                     (:type string
-                     :description "Original string to replace. If `is_diff` is true, this should be empty or omitted."
+                     :description "Original string to replace."
                      :optional t)
                    :new_str
                     (:type string
-                     :description "Replacement string OR unified diff text")
-                   :is_diff
-                   (:type boolean
-                    :description "Whether new_str contains a unified diff"
-                    :optional t)))))
+                     :description "Replacement string")))))
  :category "amsha/gptel-agent"
  :confirm t
  :include t)
@@ -2082,8 +2279,14 @@ Guidelines:
                   (buffer-string)))))
 
 (gptel-make-preset 'amsha/base-tools
+  :description (if (eq system-type 'windows-nt)
+                   "PowerShell, Read, EditBatch, Write, Grep, Glob"
+                 "Bash, Read, EditBatch, Write, Grep, Glob")
   :tools (mapcar (lambda (el) (list "amsha/gptel-agent" el))
-                 '("Bash" "Read" "EditBatch" "Write"
+                 `(,(if (eq system-type 'windows-nt)
+                        "PowerShell"
+                      "Bash")
+                   "Read" "EditBatch" "Write"
                    "Grep" "Glob")))
 
 (gptel-make-preset 'amsha/agent-with-all
