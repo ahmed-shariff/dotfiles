@@ -1996,7 +1996,7 @@ Use \"*\" to list all files in a directory.")
 ;; This can come from an md/org file
 (gptel-make-preset 'amsha/agent-base-message
   :system
-  "You are an expert coding assistant operating inside emacs. You help users by reading files, executing commands, editing code, and writing new files.
+  (format "You are an expert coding assistant operating inside emacs on a %s operating system. You help users by reading files, executing commands, editing code, and writing new files.
 
 Available tools:
 {{TOOLSLIST}}
@@ -2006,7 +2006,17 @@ In addition to the tools above, you may have access to other custom tools depend
 Guidelines:
 {{GUIDELINES}}
 
-{{SKILLS}}")
+{{SKILLS}}"
+          (pcase system-type
+            ('windows-nt "Windows")
+            ('gnu/linux "Linux")
+            ('gnu "GNU")
+            ('darwin "macOS")
+            ('berkeley-unix "BSD")
+            ('cygwin "Cygwin")
+            ('ms-dos "MS-DOS")
+            ('android "Android")
+            (_ (symbol-name system-type)))))
 
 (gptel-make-preset 'amsha/agentmd-ctx
   :description "Add agent.md to context"
@@ -2017,6 +2027,7 @@ Guidelines:
                                                (locate-dominating-file default-directory "AGENT.md")))))))
 
 (gptel-make-preset 'amsha/agent-add-skills
+  :description "Replace {{SKILL}} with skills."
   :tools '("Skill")
   :system
   `(:function (lambda (sys-prompt)
@@ -2032,6 +2043,7 @@ Guidelines:
                     (buffer-string))))))
 
 (gptel-make-preset 'amsha/agent-add-tools-info
+  :description "Fill {{TOOLSLIST}} and {{GUIDELINES}} in sys prompt."
   :system
   `(:function (lambda (sys-prompt)
                 (lazy-require 'gptel-agent)
@@ -2060,6 +2072,7 @@ Guidelines:
                       (buffer-string)))))))
 
 (gptel-make-preset 'amsha/cleanup-variables
+  :description "Cleanup {{VAR}} in sys prompt."
   :system
   `(:function (lambda (sys-prompt)
                 (with-temp-buffer
@@ -2074,6 +2087,7 @@ Guidelines:
                    "Grep" "Glob")))
 
 (gptel-make-preset 'amsha/agent-with-all
+  :description "Agent with skills, tool descs, and ctx."
   :parents `(amsha/agent-base-message
              amsha/base-tools
              amsha/agentmd-ctx
@@ -2082,6 +2096,7 @@ Guidelines:
              amsha/cleanup-variables))
 
 (gptel-make-preset 'amsha/agent-no-skills
+  :description "Agent without skills."
   :parents `(amsha/agent-base-message
              amsha/base-tools
              amsha/agentmd-ctx
