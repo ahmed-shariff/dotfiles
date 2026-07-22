@@ -2562,7 +2562,31 @@ Used with atomic-chrome."
   (advice-add 'projectile-recentf
               :override 'consult-projectile-recentf)
   (advice-add 'projectile-switch-to-buffer
-              :override 'consult-projectile-switch-to-buffer))
+              :override 'consult-projectile-switch-to-buffer)
+  (advice-add 'projectile-find-file-in-known-projects
+              :override 'amsha/consult-projectile-find-file-in-other-project)
+
+  (defun amsha/consult-projectile-find-file-in-other-project ()
+    "Find a file in a known Projectile project using Consult."
+    (interactive)
+    (let ((default-directory
+           (car
+            (consult--multi (list
+                             (list
+                              :name     "Known Project"
+                              :narrow   '(?p . "Project")
+                              :category 'consult-projectile-project
+                              :face     'consult-projectile-projects
+                              :history  'consult-projectile--project-history
+                              :annotate (lambda (dir)
+                                          (when consult-projectile-display-info
+                                            (format "Project: %s [%s]"
+                                                    (projectile-project-name dir)
+                                                    (projectile-project-vcs dir))))
+                              :items    #'projectile-relevant-known-projects))))))
+      (project-find-file))))
+
+
 
 ;; (use-package persp-projectile)  ;; for bridging the projectile functions with persp
 ;;   (define-key projectile-mode-map [remap projectile-switch-project] 'consult-projectile))
