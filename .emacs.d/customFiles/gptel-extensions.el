@@ -2229,15 +2229,16 @@ Guidelines:
   :system
   `(:function (lambda (sys-prompt)
                 (lazy-require 'gptel-agent)
-                (when (string-match "{{SKILLS}}" sys-prompt)
-                  (with-temp-buffer
-                    (insert sys-prompt)
-                    (gptel-agent--expand-templates
-                     (point-min)
-                     `(("SKILLS" . ,(if-let (skills (gptel-agent--update-skills))
-                                        (gptel-agent--skills-system-message skills)
-                                      ""))))
-                    (buffer-string))))))
+                (if (string-match "{{SKILLS}}" sys-prompt)
+                    (with-temp-buffer
+                      (insert sys-prompt)
+                      (gptel-agent--expand-templates
+                       (point-min)
+                       `(("SKILLS" . ,(if-let (skills (gptel-agent--update-skills))
+                                          (gptel-agent--skills-system-message skills)
+                                        ""))))
+                      (buffer-string))
+                  sys-prompt))))
 
 (gptel-make-preset 'amsha/agent-add-tools-info
   :description "Fill {{TOOLSLIST}} and {{GUIDELINES}} in sys prompt."
@@ -2253,20 +2254,21 @@ Guidelines:
                                   (push (format "- %s: %s" (gptel-agent-tool-name tool) snippet) snippets))
                                 (when guideline
                                   (push guideline guidelines))))
-                  (when (or snippets guidelines)
-                    (with-temp-buffer
-                      (insert sys-prompt)
-                      (gptel-agent--expand-templates
-                       (point-min)
-                       `(("TOOLSLIST" .
-                          ,(if snippets
-                             (string-join (nreverse snippets) "\n")
-                           "None"))
-                         ("GUIDELINES" .
-                          ,(if guidelines
-                               (string-join (nreverse guidelines) "\n")
-                             "None"))))
-                      (buffer-string)))))))
+                  (if (or snippets guidelines)
+                      (with-temp-buffer
+                        (insert sys-prompt)
+                        (gptel-agent--expand-templates
+                         (point-min)
+                         `(("TOOLSLIST" .
+                            ,(if snippets
+                                 (string-join (nreverse snippets) "\n")
+                               "None"))
+                           ("GUIDELINES" .
+                            ,(if guidelines
+                                 (string-join (nreverse guidelines) "\n")
+                               "None"))))
+                        (buffer-string))
+                    sys-prompt)))))
 
 (gptel-make-preset 'amsha/cleanup-variables
   :description "Cleanup {{VAR}} in sys prompt."
