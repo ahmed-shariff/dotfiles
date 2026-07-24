@@ -24,6 +24,7 @@
 (defvar amsha/gptel-default-prompt-transform-functions gptel-prompt-transform-functions)
 (defvar amsha/gptel-default-model 'gpt-5.4-mini)
 (defvar amsha/gptel-high-model 'gpt-5.4)
+(defvar amsha/gptel-skill-base-dir "~/.emacs.d/.cache/gptel-skills/")
 
 ;;; packages ******************************************************************************
 (use-package elysium
@@ -2249,7 +2250,7 @@ Guidelines:
 
 (gptel-make-preset 'amsha/agent-add-skills
   :description "Replace {{SKILL}} with skills."
-  :tools '("Skill")
+  :tools '(:append ("Skill"))
   :system
   `(:function (lambda (sys-prompt)
                 (lazy-require 'gptel-agent)
@@ -2329,6 +2330,47 @@ Guidelines:
   :parents `(amsha/agent-base-message
              amsha/base-tools
              amsha/agentmd-ctx
+             amsha/agent-add-tools-info
+             amsha/cleanup-variables))
+
+(gptel-make-preset 'amsha/--skill-reviewer-base-message
+  :tools '("EditBatch" "Write")
+  :system
+  (format
+   "You are reviewing a conversation to determine skill-library changes.
+Use the existing skills list, the loaded skill-authoring guidance, and the conversation context.
+
+{{SKILLS}}
+
+Loaded skill:
+- skill-generate-reusable-skills
+
+Task:
+ Decide whether:
+   1. a new skill should be created,
+   2. an existing skill should be updated,
+   3. an existing skill should be removed,
+   or 4. no change is needed.
+
+Then, execute based on your decision.
+
+If you want to read a skill, use the `Skill` tool.
+
+The skills are located in the directory %S. Each subdirectory here is an individual skill. A skill is a directory with a SKILL.md file.
+
+Available tools:
+{{TOOLSLIST}}
+
+In addition to the tools above, you may have access to other custom tools depending on the project.
+
+Guidelines:
+{{GUIDELINES}}"
+   amsha/gptel-skill-base-dir))
+
+(gptel-make-preset 'amsha/skill-updater-agent
+  :parents '(amsha/--skill-reviewer-base-message
+             skill-generate-reusable-skills
+             amsha/agent-add-skills
              amsha/agent-add-tools-info
              amsha/cleanup-variables))
 
@@ -3253,12 +3295,16 @@ then close the *gptel-context* buffer and return to gptel menu."
   (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
     (apply #'gptel-make-preset 'paper-agent paper-agent-plist))
   ;; Make skills presets
-  (pcase-dolist (`(,name ,_ . ,skill-plist) gptel-agent--skills)
+  (pcase-dolist (`(,name ,dir . ,skill-plist) gptel-agent--skills)
     (apply #'gptel-make-preset
            (intern (concat "skill-" name))
            (append skill-plist `(:system (:function (lambda (system-prompt)
-                                                      (concat system-prompt "\n"
-                                                              (gptel-agent--get-skill ,name)))))))))
+                                                      (concat system-prompt "\n\nSkills loaded:\n----"
+                                                              "\nSkill name: " ,name
+                                                              "\nSkill base dir: " ,dir
+                                                              "\n----"
+                                                              (gptel-agent--get-skill ,name)
+                                                              "\n\n"))))))))
 (advice-add 'gptel-agent-update :after #'amsha/agent-post-update)
 
 (gptel-agent-update)         ;Read files from agents directories
