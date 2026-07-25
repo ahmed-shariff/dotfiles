@@ -18,6 +18,7 @@
 (require 'lsp)
 (require 'magit-section)
 (require 'f)
+(require 'shrink-path)
 
 ;;; Some top level defaults*****************************************************************
 (defvar amsha/gptel-default-prompt-transform-functions gptel-prompt-transform-functions)
@@ -987,6 +988,29 @@ If the region is active, its text is inserted into the new session."
 (add-hook 'buffer-list-update-hook #'gptel--update-mode-line)
 
 (cl-pushnew '((:eval gptel--mode-line-format)) global-mode-string)
+
+;;; header line ***************************************************************************
+(defun amsha/gptel-use-header-set-dir ()
+  "Add the default directory to header."
+  (setq header-line-format
+        (append
+         `((:eval
+            (concat (propertize " " 'display '(space :align-to 0))
+                    "{In: "
+                    (propertize
+                     (pcase-let ((`(,prefix ,project-name ,rel-path ,base)
+                                  (shrink-path-file-mixed
+                                   (project-root (project-current))
+                                   (file-name-directory (directory-file-name default-directory))
+                                   (file-name-nondirectory (directory-file-name default-directory)))))
+                       (if (string-equal project-name base)
+                           (concat prefix project-name)
+                         (concat prefix project-name (shrink-path--dirs-internal rel-path 'truncate-all) base)))
+                     'face 'dired-directory)
+                    "}  ")))
+         header-line-format)))
+
+(advice-add 'gptel-use-header-line :after #'amsha/gptel-use-header-set-dir)
 
 ;;; okm tools for tool use ****************************************************************
 (defun amsha/gptel-get-bib-entry-from-citation (citation)
