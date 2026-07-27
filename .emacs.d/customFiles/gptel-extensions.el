@@ -22,9 +22,9 @@
 
 ;;; Some top level defaults*****************************************************************
 (defvar amsha/gptel-default-prompt-transform-functions gptel-prompt-transform-functions)
-(defvar amsha/gptel-default-model 'gpt-5.4-mini)
-(defvar amsha/gptel-high-model 'gpt-5.4)
-(defvar amsha/gptel-skill-base-dir "~/.emacs.d/.cache/gptel-skills/")
+(defvar amsha/gptel-default-model 'gpt-5.6-luna)
+(defvar amsha/gptel-high-model 'gpt-5.6-terra)
+(defvar amsha/gptel-skill-base-dir "~/.emacs.d/agents/gptel-skills/")
 
 ;;; packages ******************************************************************************
 (use-package elysium
@@ -630,7 +630,7 @@ Note: LSP servers must be configured for the file type. If no server is availabl
   :description "Preset with defaults"
   ;; :backend '(:eval amsha/gptel-default-backend)
   :backend gptel-openai-response-backend
-  :model amsha/gptel-default-model
+  :model '(:eval amsha/gptel-default-model)
   :system 'default
   :tools nil
   :openai-responses--tools nil
@@ -668,11 +668,11 @@ Note: LSP servers must be configured for the file type. If no server is availabl
 
 (gptel-make-preset 'model-high
   :description (format "Search using high model %s" amsha/gptel-high-model)
-  :model '(:function (lambda (_) amsha/gptel-high-model)))
+  :model '(:eval amsha/gptel-high-model))
 
 (gptel-make-preset 'model-default
   :description (format "Search using default model %s" amsha/gptel-default-model)
-  :model '(:function (lambda (_) amsha/gptel-default-model)))
+  :model '(:eval amsha/gptel-default-model))
 
 (gptel-make-preset 'readurl
   :description "Tool: read url"
@@ -988,7 +988,7 @@ If the region is active, its text is inserted into the new session."
 (add-hook 'transient-exit-hook #'gptel--update-mode-line)
 (add-hook 'buffer-list-update-hook #'gptel--update-mode-line)
 
-(cl-pushnew '((:eval gptel--mode-line-format)) global-mode-string)
+(cl-pushnew '(:eval gptel--mode-line-format) global-mode-string :test #'equal)
 
 ;;; header line ***************************************************************************
 (defun amsha/gptel-use-header-set-dir ()
@@ -2511,7 +2511,7 @@ Supported method:
     ("implementation" (gptel--lsp-mode-implementation file line char))))
 
 ;;; persistent context ********************************************************************
-(defvar gptel-persistent-context-dir "~/.emacs.d/.cache/gptel-temp-context")
+(defvar gptel-persistent-context-dir "~/.emacs.d/agents/gptel-temp-context")
 
 (make-directory gptel-persistent-context-dir t)
 (dolist (context-file (directory-files gptel-persistent-context-dir
@@ -3038,12 +3038,14 @@ then close the *gptel-context* buffer and return to gptel menu."
 (defun amsha/gptel-roam-ql-search-and-add-to-context (query)
   "Search the org-roam-ql results buffer for QUERY and add the current buffer to gptel context."
   (interactive (list (org-roam-ql--read-query)))
+  (lazy-require 'org-roam-ql)
   (with-current-buffer (window-buffer (org-roam-ql-search query query))
     (gptel-context-add)))
 
 (defun amsha/gptel-roam-ql-search-backlinks-and-add-to-context (query)
   "Search backlinks with QUERY and add the current result buffer to gptel context."
   (interactive (list (org-roam-ql--read-query)))
+  (lazy-require 'org-roam-ql)
   (with-current-buffer (window-buffer (org-roam-ql-search-backlinks query query))
     (gptel-context-add)))
 
@@ -3288,8 +3290,9 @@ then close the *gptel-context* buffer and return to gptel menu."
 ;;   (error (message "ERROR %s" err)))
 
 ;;;; setup (gptel-agent) *******************************************************************
-(add-to-list 'gptel-agent-skill-dirs (expand-file-name "~/.emacs.d/.cache/gptel-skills/"))
-(add-to-list 'gptel-agent-dirs "~/.emacs.d/customFiles/gptel-paper-agent/")
+(add-to-list 'gptel-agent-skill-dirs (expand-file-name "~/.emacs.d/agents/gptel-skills/"))
+(add-to-list 'gptel-agent-dirs "~/.emacs.d/agents/gptel-paper-agent/")
+
 (defun amsha/agent-post-update (&rest _)
   ;; Make "paper-agent" a top-level preset
   (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
