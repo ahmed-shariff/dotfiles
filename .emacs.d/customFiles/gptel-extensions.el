@@ -2411,6 +2411,162 @@ Guidelines:
 ;;                      "The unit of temperature, either 'celsius' or 'fahrenheit'"
 ;;                      :optional t)))
 
+;;; Memory tool ***************************************************************************
+;; Based on how hermes-agent handles this.
+
+(defvar amsha/gptel-memory-root (expand-file-name "~/.emacs.d/agents/gptel-memory/")
+  "Base directory for memory files.")
+
+(defvar amsha/gptel-memory-target-file-alist
+  '(("AGENT_MEMORY" . "AGENT-MEMORY.md")
+    ("USER" . "USER.md"))
+  "Alist mapping memory targets to relative filenames.")
+
+(defvar amsha/gptel-memory-target-limit-alist
+  '(("AGENT_MEMORY" . 2200)
+    ("USER" . 1375))
+  "Alist mapping memory targets to character limits.")
+
+(defun amsha/gptel-memory (include-content)
+  "Provide the current summary of memory."
+  (concat
+   "\n====================
+Current memories:
+---------------\n"
+   (mapconcat
+    (lambda (target)
+      (when-let* ((rel (alist-get target amsha/gptel-memory-target-file-alist nil nil #'string-equal))
+                  (path (expand-file-name rel amsha/gptel-memory-root)))
+        (unless (file-exists-p path)
+          (with-temp-buffer
+            (write-file path)))
+        (let* ((limit (alist-get target amsha/gptel-memory-target-limit-alist nil nil #'string-equal))
+               (current (with-temp-buffer
+                          (insert-file-contents path)
+                          (buffer-size)))
+               (summary (format "%s [%d%% - %d/%d chars]"
+                                (upcase target)
+                                (min 100 (floor (* 100.0 (/ (float current) limit))))
+                                current
+                                limit)))
+          (apply #'string-join
+                 (if include-content
+                     (list
+                      (list
+                       summary
+                       (with-temp-buffer
+                         (insert-file-contents path)
+                         (buffer-string)))
+                      "\n")
+                   `((,summary)))))))
+    (mapcar #'car amsha/gptel-memory-target-file-alist)
+    "\n---------------\n")
+    "\n====================\n"))
+
+(defun amsha/gptel-memory-tool (operations)
+  "Apply memory OPERATIONS as batch replacements."
+  (condition-case err
+      (let ((projected-sizes
+             (mapcar (lambda (target-and-file-name)
+                       (let* ((target-name (car target-and-file-name))
+                              (path (expand-file-name
+                                     (cdr target-and-file-name)
+                                     amsha/gptel-memory-root)))
+                         (list target-name
+                               (with-temp-buffer
+                                 (insert-file-contents path)
+                                 (buffer-size))
+                               (alist-get target-name amsha/gptel-memory-target-limit-alist nil nil #'string-equal)
+                               path)))
+                     amsha/gptel-memory-target-file-alist)))
+        (amsha/gptel-agent--edit-files-batch
+         (vconcat
+          (mapcar
+           (lambda (op)
+             (pcase-let* ((target (plist-get op :target))
+                          (`(,current-size ,limit ,path) (alist-get target projected-sizes nil nil #'string-equal))
+                          (old (plist-get op :old_str))
+                          (new (plist-get op :new_str))
+                          (delta (- (length new) (length old))))
+               (when (> (+ current-size delta) limit)
+                 (error "Memory for %S would exceed limit (%d > %d chars). No memory was updated."
+                        target (+ current-size delta) limit))
+               (list :path path :old_str old :new_str new)))
+           operations)))
+        (amsha/gptel-memory nil))
+    (error
+     "Failed to update %s" err
+     )))
+
+(gptel-make-tool
+ :name "Memory"
+ :description
+  "Persistent memory tool.
+Use this to save or update durable facts, preferences, and stable
+project notes.
+
+Input format:
+- operations: a list of replacements
+
+For each operation provide:
+- target, whose memory to update.
+- `old_str` and `new_str` for replacement. Provide sufficient
+  context for old_str such that there's no ambiguity.
+
+The tool applies batch replacements atomically. On success, will show the summary state of the memories."
+ :function #'amsha/gptel-memory-tool
+ :args
+ (list
+  '(:name "operations"
+    :type array
+    :description
+    "List of replacement operations. Each item must contain target, old_str, and new_str."
+    :items
+    (:type object
+     :properties
+     (:target
+      (:type string
+       :description "Memory target to update.")
+      :old_str
+      (:type string
+       :description "Existing entry text to replace.")
+      :new_str
+      (:type string
+       :description "Replacement entry text.")))))
+ :category "amsha/gptel-agent"
+ :include t)
+
+(gptel-make-preset 'amsha/gptel-memory-review
+  :description "gptel preset that allows updating memory"
+  :system
+  `(:function
+    (lambda (sys-prompt)
+      (concat
+       sys-prompt
+       "\nReview the conversation above and consider saving to memory if appropriate.
+
+Focus on:
+1. Has the user revealed stable preferences, identity details, or other
+   enduring facts worth remembering?
+2. Has the user expressed how they want you to behave, respond, or work?
+
+If something matters, save it with the memory tool."
+       (unless (string-match "====================
+Current memories:" sys-prompt)
+         (amsha/gptel-memory t)))))
+  :tools '(("amsha/gptel-agent" "Memory")))
+
+(gptel-make-preset 'amsha/gptel-memory
+  :description "gptel memory entry"
+  :system
+  `(:function
+    (lambda (sys-prompt)
+      (concat
+       sys-prompt
+       (unless (string-match "====================
+Current memories:" sys-prompt)
+         (amsha/gptel-memory t))))))
+
 ;;; code introspection tools **************************************************************
 (defun gptel--get-file-relative-to-root (file)
   (if (file-name-absolute-p file)
