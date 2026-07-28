@@ -906,6 +906,55 @@ If the region is active, its text is inserted into the new session."
                                 (region-end)))
          t))
 
+(defun amsha/gptel-agent--read-url (tool-cb url)
+  "Fetch URL text and call TOOL-CB with it,
+but also show links."
+  (gptel-agent--fetch-with-timeout
+   url
+   (lambda (cb)
+     (goto-char (point-min))
+     (forward-paragraph)
+     (condition-case errdata
+         (let ((dom (libxml-parse-html-region (point) (point-max))))
+           (with-temp-buffer
+             (eww-score-readability dom)
+             (shr-insert-document (eww-highest-readability dom))
+
+             (let ((out ""))
+               (goto-char (point-min))
+               (while (< (point) (point-max))
+                 (let* ((next (or (next-single-property-change
+                                   (point) 'shr-url nil (point-max))
+                                  (point-max)))
+                        (text (buffer-substring (point) next))
+                        (url (get-text-property (point) 'shr-url)))
+                   (setq out
+                         (concat out
+                                 (if url
+                                     (format "[[%s][%s]]" url text)
+                                   text)))
+                   (goto-char next)))
+               (funcall cb (with-temp-buffer
+                             (insert out)
+                             (decode-coding-region (point-min) (point-max) 'utf-8)
+                             (buffer-string))))))
+       (error
+        (funcall cb
+                 (format "Error: Request failed with error data:\n%S"
+                         errdata)))))
+   tool-cb
+   (format "Fetch for \"%s\"" url)))
+
+(defun amsha/read-url-and-add-with-org-babel (url)
+  "Read a URL and insert the response as an Org Babel result in the current buffer."
+  (let* ((it (current-buffer))
+         (func `(lambda (response)
+                  (with-current-buffer ,it
+                    (org-babel-insert-result response '("org"))))))
+    (amsha/gptel-agent--read-url func url)))
+
+(advice-add 'gptel-agent--read-url :override #'amsha/gptel-agent--read-url)
+
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
 (defvar gptel--mode-line-status " ")
