@@ -2632,7 +2632,15 @@ Used with atomic-chrome."
   :straight (persp-harpoon :type git :host github :repo "ahmed-shariff/persp-harpoon")
   :custom
   (persp-harpoon-keymap-prefix-key "C-c h")
+  (persp-harpoon-kill-non-harpoon-buffer-ignore-predicate #'amsha/persp-harpoon-kill-non-harpoon-buffer-ignore-predicate)
   :config
+  (defun amsha/persp-harpoon-kill-non-harpoon-buffer-ignore-predicate (buffer)
+    "Exclude gptel buffers from non-Harpoon buffer cleanup."
+    (setq buffer (get-buffer buffer))
+    (and (buffer-live-p buffer)
+         (with-current-buffer buffer
+           (bound-and-true-p gptel-mode))))
+
   (persp-harpoon-mode t)
   (persp-harpoon-configure-for-perspective))
 
