@@ -24,6 +24,7 @@
 (defvar amsha/gptel-default-prompt-transform-functions gptel-prompt-transform-functions)
 (defvar amsha/gptel-default-model 'gpt-5.6-luna)
 (defvar amsha/gptel-high-model 'gpt-5.6-terra)
+(defvar amsha/gptel-cheap-model 'gpt-5.4-nano)
 (defvar amsha/gptel-skill-base-dir "~/.emacs.d/agents/gptel-skills/")
 
 ;;; packages ******************************************************************************
@@ -673,6 +674,10 @@ Note: LSP servers must be configured for the file type. If no server is availabl
 (gptel-make-preset 'model-default
   :description (format "Search using default model %s" amsha/gptel-default-model)
   :model '(:eval amsha/gptel-default-model))
+
+(gptel-make-preset 'model-cheap
+  :description (format "Search using cheap model %s" amsha/gptel-cheap-model)
+  :model '(:eval amsha/gptel-cheap-model))
 
 (gptel-make-preset 'readurl
   :description "Tool: read url"
@@ -2376,6 +2381,16 @@ Guidelines:
                    "Read" "EditBatch" "Write"
                    "Grep" "Glob")))
 
+(gptel-make-preset 'amsha/read-only-tools
+  :description (if (eq system-type 'windows-nt)
+                   "PowerShell, Read, Grep, Glob"
+                 "Bash, Read, Grep, Glob")
+  :tools (mapcar (lambda (el) (list "amsha/gptel-agent" el))
+                 `(,(if (eq system-type 'windows-nt)
+                        "PowerShell"
+                      "Bash")
+                   "Read" "Grep" "Glob")))
+
 (gptel-make-preset 'amsha/agent-with-all
   :description "Agent with skills, tool descs, and ctx."
   :parents `(amsha/agent-base-message
@@ -2384,6 +2399,15 @@ Guidelines:
              amsha/agent-add-skills
              amsha/agent-add-tools-info
              amsha/cleanup-variables))
+
+(gptel-make-preset 'amsha/agent-read-only
+  :description "Agent with skills and also read only tools."
+  :parents `(amsha/agent-base-message
+             amsha/read-only-tools
+             amsha/agentmd-ctx
+             amsha/agent-add-tools-info
+             amsha/cleanup-variables)
+  :system '(:append "Absolutely do NOT make any changes to any files."))
 
 (gptel-make-preset 'amsha/agent-no-skills
   :description "Agent without skills."
