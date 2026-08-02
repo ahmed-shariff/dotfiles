@@ -251,6 +251,198 @@ Code
 (use-package gptel-autocomplete
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
 
+;;; misc-functions ************************************************************************
+(defun amsha/gptel-append-prompt-transform-functions (prompt)
+  "Append PROMPT to the end of the GPTel prompt.
+To be used as for `:prompt-transform-functions' in presets."
+  (list :append `((lambda (_)
+                    (goto-char (point-max))
+                    (insert ,prompt)))))
+
+(defun add-before-special-or-append (lst elem special)
+  "If last element of LST is SPECIAL, add ELEM before it.
+Otherwise, add ELEM as the last element."
+  (let* ((len (length lst)))
+    (cond
+     ((and (> len 0) (equal (nth (1- len) lst) special))
+      (append (butlast lst) (list elem) (last lst)))
+     (t
+      (append lst (list elem))))))
+
+;;;###autoload
+(defun amsha/gptel-yank (arg)
+  "Yank without excluding 'gptel prop."
+  (interactive "p")
+  (gptel-mode +1)
+  (let ((yank-excluded-properties (remove 'gptel yank-excluded-properties)))
+    (yank arg)))
+
+;;;###autoload
+(defun amsha/org-gptel-mode-hook ()
+  "Check and load gptel-mode if gptel props exists."
+  (when (save-excursion
+          (or (org-entry-get (point-min) "GPTEL_MODEL")
+              (org-entry-get (point-min) "GPTEL_PRESET")))
+    (gptel-mode +1)))
+
+(add-hook 'org-mode-hook #'amsha/org-gptel-mode-hook)
+
+(defvar amsha/w32-active-notification nil)
+
+(defun amsha/notify-tool-calls (tool-calls info &optional _)
+  "On windows, send out notification of tool call confirmation requests."
+  (when (eq system-type 'windows-nt)
+    (when amsha/w32-active-notification
+      (w32-notification-close amsha/w32-active-notification))
+    (setq amsha/w32-active-notification
+          (w32-notification-notify :title "gptel tool confirmation"
+                                   :body (em (format "Awaiting %s tool confirmation in %s"
+                                                     (length tool-calls) (plist-get info :buffer)))))))
+
+(defun amsha/gptel-org-set-topic (old-fn &rest r)
+  (interactive)
+  (funcall old-fn (completing-read "Set topic as: "
+                                   (org-property-values "GPTEL_TOPIC")
+                                   nil nil (downcase
+                                            (truncate-string-to-width
+                                             (substring-no-properties
+                                              (replace-regexp-in-string
+                                               "\\[id:.*?\\]" ""
+                                               (replace-regexp-in-string
+                                                "\\s-+" "-"
+                                                (org-entry-get nil "ITEM"))))
+                                             50)))))
+
+(advice-add 'gptel-org-set-topic :around #'amsha/gptel-org-set-topic)
+
+(defun amsha/add-compact-summary (arg)
+  "Compact the current Org subtree using gptel and insert a \"Compaction results\" heading tagged :compaction: after the current heading.
+
+With ARG, pass the prefix argument to `gptel-send`.
+
+Signals an error if a region is active, since region-based compaction is not implemented."
+  (interactive "P")
+  (when (derived-mode-p 'org-mode)
+    (let ((gptel-context nil)
+          (gptel-tools nil)
+          (gptel-openai-responses-extended--tools nil)
+          (gptel-org-branching-context nil)
+          heading-mark
+          heading-level)
+      (when (use-region-p)
+        (user-error "That is not entirely implemented/tested"))
+      (goto-char (pos-eol))
+      (setq heading-mark (point-marker))
+      (if-let (pos (gptel-org--get-topic-start))
+          (goto-char pos)
+        (while (org-up-heading-safe) nil))
+      (setq heading-level (org-current-level))
+
+      ;; KLUDGE: `org-mark-subtree' sets the end point on the begining
+      ;; of the next heading. gptel reads the topic based on the end
+      ;; of the region. If the next heading had a topic, thats the
+      ;; point that gptel uses, resulting in an empty request.
+      ;; Hence using this:
+      (let ((element (org-element-at-point)))
+        (push-mark (1- (org-element-end element)) t t)
+        (goto-char (org-element-begin element)))
+
+      (setq hook-fn
+            (let ((lvl heading-level))
+              (lambda (start end)
+                (remove-hook 'gptel-post-response-functions hook-fn t)
+                (goto-char (marker-position heading-mark))
+                (org-insert-heading nil nil (1+ heading-level))
+                (insert "Compaction results")
+                (goto-char (pos-eol))
+                (org-set-tags "compaction"))))
+      (add-hook 'gptel-post-response-functions hook-fn 99 t)
+      (when (y-or-n-p "Send?")
+        (gptel-with-preset 'compaction
+          (gptel-send arg))))))
+
+(defun amsha/gptel-paper-agent ()
+  "Paper agent."
+  (interactive)
+  (gptel-agent okm-base-directory 'paper-agent))
+
+(defun amsha/gptel-buffer ()
+  "Create or switch to a `gptel' session buffer.
+
+Prompts for an existing `gptel-mode' buffer or a new buffer name
+(defaulting to `*gptel-buffer-N*'). Unlike `gptel', this command does
+not require choosing a backend first, making it convenient for opening
+a chat session quickly.
+
+If the region is active, its text is inserted into the new session."
+  (interactive)
+  (gptel (read-buffer
+          "Create or choose gptel buffer: "
+          (cl-loop for i upfrom 1
+                   for buf = (format "*gptel-buffer-%s*" i)
+                   until (or (null (get-buffer buf)) (> i 100))
+                   finally return buf)
+          nil          ; DEFAULT and REQUIRE-MATCH
+          (lambda (b)                    ; PREDICATE
+            ;; NOTE: buffer check is required (#450)
+            (and-let* ((buf (get-buffer (or (car-safe b) b))))
+              (buffer-local-value 'gptel-mode buf))))
+         nil
+         (and (use-region-p)
+              (buffer-substring (region-beginning)
+                                (region-end)))
+         t))
+
+(defun amsha/gptel-agent--read-url (tool-cb url)
+  "Fetch URL text and call TOOL-CB with it,
+but also show links."
+  (gptel-agent--fetch-with-timeout
+   url
+   (lambda (cb)
+     (goto-char (point-min))
+     (forward-paragraph)
+     (condition-case errdata
+         (let ((dom (libxml-parse-html-region (point) (point-max))))
+           (with-temp-buffer
+             (eww-score-readability dom)
+             (shr-insert-document (eww-highest-readability dom))
+
+             (let ((out ""))
+               (goto-char (point-min))
+               (while (< (point) (point-max))
+                 (let* ((next (or (next-single-property-change
+                                   (point) 'shr-url nil (point-max))
+                                  (point-max)))
+                        (text (buffer-substring (point) next))
+                        (url (get-text-property (point) 'shr-url)))
+                   (setq out
+                         (concat out
+                                 (if url
+                                     (format "[[%s][%s]]" url text)
+                                   text)))
+                   (goto-char next)))
+               (funcall cb (with-temp-buffer
+                             (insert out)
+                             (decode-coding-region (point-min) (point-max) 'utf-8)
+                             (buffer-string))))))
+       (error
+        (funcall cb
+                 (format "Error: Request failed with error data:\n%S"
+                         errdata)))))
+   tool-cb
+   (format "Fetch for \"%s\"" url)))
+
+(defun amsha/read-url-and-add-with-org-babel (url)
+  "Read a URL and insert the response as an Org Babel result in the current buffer."
+  (let* ((it (current-buffer))
+         (func `(lambda (response)
+                  (with-current-buffer ,it
+                    (org-babel-insert-result response '("org"))))))
+    (amsha/gptel-agent--read-url func url)))
+
+(advice-add 'gptel-agent--read-url :override #'amsha/gptel-agent--read-url)
+
+
 ;;; openai reponse related setup **********************************************************
 (unless (featurep 'gptel-openai-responses-backend)
   (require 'gptel-openai-responses-backend))
@@ -777,197 +969,6 @@ Write in the third person as the AI agent. Do not provide follow-up suggestions,
     (add-before-special-or-append gptel-prompt-transform-functions
                                   #'amsha/okm-gptel-transform-add-pdf-txt
                                   #'gptel--transform-add-context)))
-
-;;; misc-functions ************************************************************************
-(defun amsha/gptel-append-prompt-transform-functions (prompt)
-  "Append PROMPT to the end of the GPTel prompt.
-To be used as for `:prompt-transform-functions' in presets."
-  (list :append `((lambda (_)
-                    (goto-char (point-max))
-                    (insert ,prompt)))))
-
-(defun add-before-special-or-append (lst elem special)
-  "If last element of LST is SPECIAL, add ELEM before it.
-Otherwise, add ELEM as the last element."
-  (let* ((len (length lst)))
-    (cond
-     ((and (> len 0) (equal (nth (1- len) lst) special))
-      (append (butlast lst) (list elem) (last lst)))
-     (t
-      (append lst (list elem))))))
-
-;;;###autoload
-(defun amsha/gptel-yank (arg)
-  "Yank without excluding 'gptel prop."
-  (interactive "p")
-  (gptel-mode +1)
-  (let ((yank-excluded-properties (remove 'gptel yank-excluded-properties)))
-    (yank arg)))
-
-;;;###autoload
-(defun amsha/org-gptel-mode-hook ()
-  "Check and load gptel-mode if gptel props exists."
-  (when (save-excursion
-          (or (org-entry-get (point-min) "GPTEL_MODEL")
-              (org-entry-get (point-min) "GPTEL_PRESET")))
-    (gptel-mode +1)))
-
-(add-hook 'org-mode-hook #'amsha/org-gptel-mode-hook)
-
-(defvar amsha/w32-active-notification nil)
-
-(defun amsha/notify-tool-calls (tool-calls info &optional _)
-  "On windows, send out notification of tool call confirmation requests."
-  (when (eq system-type 'windows-nt)
-    (when amsha/w32-active-notification
-      (w32-notification-close amsha/w32-active-notification))
-    (setq amsha/w32-active-notification
-          (w32-notification-notify :title "gptel tool confirmation"
-                                   :body (em (format "Awaiting %s tool confirmation in %s"
-                                                     (length tool-calls) (plist-get info :buffer)))))))
-
-(defun amsha/gptel-org-set-topic (old-fn &rest r)
-  (interactive)
-  (funcall old-fn (completing-read "Set topic as: "
-                                   (org-property-values "GPTEL_TOPIC")
-                                   nil nil (downcase
-                                            (truncate-string-to-width
-                                             (substring-no-properties
-                                              (replace-regexp-in-string
-                                               "\\[id:.*?\\]" ""
-                                               (replace-regexp-in-string
-                                                "\\s-+" "-"
-                                                (org-entry-get nil "ITEM"))))
-                                             50)))))
-
-(advice-add 'gptel-org-set-topic :around #'amsha/gptel-org-set-topic)
-
-(defun amsha/add-compact-summary (arg)
-  "Compact the current Org subtree using gptel and insert a \"Compaction results\" heading tagged :compaction: after the current heading.
-
-With ARG, pass the prefix argument to `gptel-send`.
-
-Signals an error if a region is active, since region-based compaction is not implemented."
-  (interactive "P")
-  (when (derived-mode-p 'org-mode)
-    (let ((gptel-context nil)
-          (gptel-tools nil)
-          (gptel-openai-responses-extended--tools nil)
-          (gptel-org-branching-context nil)
-          heading-mark
-          heading-level)
-      (when (use-region-p)
-        (user-error "That is not entirely implemented/tested"))
-      (goto-char (pos-eol))
-      (setq heading-mark (point-marker))
-      (if-let (pos (gptel-org--get-topic-start))
-          (goto-char pos)
-        (while (org-up-heading-safe) nil))
-      (setq heading-level (org-current-level))
-
-      ;; KLUDGE: `org-mark-subtree' sets the end point on the begining
-      ;; of the next heading. gptel reads the topic based on the end
-      ;; of the region. If the next heading had a topic, thats the
-      ;; point that gptel uses, resulting in an empty request.
-      ;; Hence using this:
-      (let ((element (org-element-at-point)))
-        (push-mark (1- (org-element-end element)) t t)
-        (goto-char (org-element-begin element)))
-
-      (setq hook-fn
-            (let ((lvl heading-level))
-              (lambda (start end)
-                (remove-hook 'gptel-post-response-functions hook-fn t)
-                (goto-char (marker-position heading-mark))
-                (org-insert-heading nil nil (1+ heading-level))
-                (insert "Compaction results")
-                (goto-char (pos-eol))
-                (org-set-tags "compaction"))))
-      (add-hook 'gptel-post-response-functions hook-fn 99 t)
-      (when (y-or-n-p "Send?")
-        (gptel-with-preset 'compaction
-          (gptel-send arg))))))
-
-(defun amsha/gptel-paper-agent ()
-  "Paper agent."
-  (interactive)
-  (gptel-agent okm-base-directory 'paper-agent))
-
-(defun amsha/gptel-buffer ()
-  "Create or switch to a `gptel' session buffer.
-
-Prompts for an existing `gptel-mode' buffer or a new buffer name
-(defaulting to `*gptel-buffer-N*'). Unlike `gptel', this command does
-not require choosing a backend first, making it convenient for opening
-a chat session quickly.
-
-If the region is active, its text is inserted into the new session."
-  (interactive)
-  (gptel (read-buffer
-          "Create or choose gptel buffer: "
-          (cl-loop for i upfrom 1
-                   for buf = (format "*gptel-buffer-%s*" i)
-                   until (or (null (get-buffer buf)) (> i 100))
-                   finally return buf)
-          nil          ; DEFAULT and REQUIRE-MATCH
-          (lambda (b)                    ; PREDICATE
-            ;; NOTE: buffer check is required (#450)
-            (and-let* ((buf (get-buffer (or (car-safe b) b))))
-              (buffer-local-value 'gptel-mode buf))))
-         nil
-         (and (use-region-p)
-              (buffer-substring (region-beginning)
-                                (region-end)))
-         t))
-
-(defun amsha/gptel-agent--read-url (tool-cb url)
-  "Fetch URL text and call TOOL-CB with it,
-but also show links."
-  (gptel-agent--fetch-with-timeout
-   url
-   (lambda (cb)
-     (goto-char (point-min))
-     (forward-paragraph)
-     (condition-case errdata
-         (let ((dom (libxml-parse-html-region (point) (point-max))))
-           (with-temp-buffer
-             (eww-score-readability dom)
-             (shr-insert-document (eww-highest-readability dom))
-
-             (let ((out ""))
-               (goto-char (point-min))
-               (while (< (point) (point-max))
-                 (let* ((next (or (next-single-property-change
-                                   (point) 'shr-url nil (point-max))
-                                  (point-max)))
-                        (text (buffer-substring (point) next))
-                        (url (get-text-property (point) 'shr-url)))
-                   (setq out
-                         (concat out
-                                 (if url
-                                     (format "[[%s][%s]]" url text)
-                                   text)))
-                   (goto-char next)))
-               (funcall cb (with-temp-buffer
-                             (insert out)
-                             (decode-coding-region (point-min) (point-max) 'utf-8)
-                             (buffer-string))))))
-       (error
-        (funcall cb
-                 (format "Error: Request failed with error data:\n%S"
-                         errdata)))))
-   tool-cb
-   (format "Fetch for \"%s\"" url)))
-
-(defun amsha/read-url-and-add-with-org-babel (url)
-  "Read a URL and insert the response as an Org Babel result in the current buffer."
-  (let* ((it (current-buffer))
-         (func `(lambda (response)
-                  (with-current-buffer ,it
-                    (org-babel-insert-result response '("org"))))))
-    (amsha/gptel-agent--read-url func url)))
-
-(advice-add 'gptel-agent--read-url :override #'amsha/gptel-agent--read-url)
 
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
