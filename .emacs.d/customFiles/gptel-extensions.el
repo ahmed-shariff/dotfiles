@@ -2399,6 +2399,7 @@ Guidelines:
 (gptel-make-preset 'amsha/agent-with-all
   :description "Agent with skills, tool descs, and ctx."
   :parents `(amsha/agent-base-message
+             amsha/gptel-memory-review
              amsha/base-tools
              amsha/agentmd-ctx
              amsha/agent-add-skills
@@ -2422,14 +2423,12 @@ Guidelines:
              amsha/agent-add-tools-info
              amsha/cleanup-variables))
 
-(gptel-make-preset 'amsha/skill-updater-agent
-  :parents '(amsha/agent-with-all
-             skill-using-gptel-agent-apis)
-  :tools '("EditBatch" "Write")
+(gptel-make-preset 'amsha/--skill-updater-agent-prompt
   :prompt-transform-functions
   (amsha/gptel-append-prompt-transform-functions
-   (format
-    "Now you are reviewing the current conversation to determine skill-library changes.
+   (format "
+
+Also, you are reviewing the current conversation to determine skill-library changes.
 Use the existing skills list, the loaded skill-authoring guidance, and the conversation context.
 
 Loaded skill:
@@ -2448,6 +2447,13 @@ If you want to read a skill, use the `Skill` tool.
 
 The skills are located in the directory %S. Each subdirectory here is an individual skill. A skill is a directory with a SKILL.md file."
     amsha/gptel-skill-base-dir)))
+
+(gptel-make-preset 'amsha/skill-updater-agent
+  :parents '(amsha/agent-with-all
+             skill-using-gptel-agent-apis
+             amsha/--skill-updater-agent-prompt)
+  :include-tool-results nil
+  :tools '("EditBatch" "Write"))
 
   ;; :parents `(amsha/agent-base-message))
 
@@ -2629,7 +2635,7 @@ The tool applies batch replacements atomically. On success, will show the summar
                    nil nil #'string-equal)
       `(,#'amsha/gptel-agent--memory-preview-setup))
 
-(gptel-make-preset 'amsha/gptel-memory-review
+(gptel-make-preset 'amsha/--gptel-memory-review-prompts
   :description "gptel preset that allows updating memory"
   :system
   `(:function
@@ -2641,8 +2647,9 @@ The tool applies batch replacements atomically. On success, will show the summar
 Current memories:" sys-prompt)
          (amsha/gptel-memory t)))))
   :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions
-   "\nReview the conversation above and consider saving to memory if appropriate.
+  (amsha/gptel-append-prompt-transform-functions "
+
+Also, review the conversation above and consider saving to memory if appropriate.
 
 Focus on:
 1. Has the user revealed stable preferences, identity details, or other
@@ -2650,11 +2657,16 @@ Focus on:
 2. Has the user expressed how they want you to behave, respond, or work?
 
 If something matters, save it with the memory tool.
-Once you are done, do not say anything.")
+Once you are done, do not say anything."))
+
+(gptel-make-preset 'amsha/gptel-memory-review
+  :description "gptel preset that allows updating memory"
+  :include-tool-results nil
   :tools '(("amsha/gptel-agent" "Memory")))
 
 (gptel-make-preset 'amsha/gptel-memory
   :description "gptel memory entry"
+  :parents '(amsha/--gptel-memory-review-prompts)
   :system
   `(:function
     (lambda (sys-prompt)
@@ -2663,6 +2675,16 @@ Once you are done, do not say anything.")
        (unless (string-match "====================
 Current memories:" sys-prompt)
          (amsha/gptel-memory t))))))
+
+(gptel-make-preset 'amsha/skill-and-memory-updater-agent
+  :parents '(amsha/agent-with-all
+             skill-using-gptel-agent-apis
+             amsha/--skill-updater-agent-prompt
+             amsha/--gptel-memory-review-prompts)
+  :include-tool-results nil
+  :tools '(("amsha/gptel-agent" "EditBatch")
+           ("amsha/gptel-agent" "Write")
+           ("amsha/gptel-agent" "Memory")))
 
 ;;; code introspection tools **************************************************************
 (defun gptel--get-file-relative-to-root (file)
