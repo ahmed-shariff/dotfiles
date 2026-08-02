@@ -1059,7 +1059,9 @@ but also show links."
                     (propertize
                      (pcase-let ((`(,prefix ,project-name ,rel-path ,base)
                                   (shrink-path-file-mixed
-                                   (project-root (project-current))
+                                   (if-let (cur-project (project-current))
+                                       (project-root cur-project)
+                                     "")
                                    (file-name-directory (directory-file-name default-directory))
                                    (file-name-nondirectory (directory-file-name default-directory)))))
                        (if (string-equal project-name base)
