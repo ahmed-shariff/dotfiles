@@ -807,6 +807,7 @@ If prefix arg used, search whole db."
 (org-roam-ql-add-saved-query 'dailies-last-two-days "dailies last two days" '(dailies-range "-2d"))
 (org-roam-ql-add-saved-query 'dailies-last-week "dailies last week" '(dailies-range "-8d"))
 (org-roam-ql-add-saved-query 'dailies-yesterday "dailies yesterday" '(dailies-range "-2d" "-1d"))
+(org-roam-ql-add-saved-query 'dailies "all dailies" '(dailies-range))
 
 (with-eval-after-load 'org-ql
   (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
