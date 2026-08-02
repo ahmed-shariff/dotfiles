@@ -2137,24 +2137,28 @@ To simply insert text at some line, use the \"Insert\" instead."
 (gptel-make-agent-tool
  :name "EditBatch"
  :description
- "Replace text in multiple files with a batch of targeted edits.
+ "Apply multiple precise, non-overlapping text replacements across files.
 
-Use this tool when you need to make several precise changes at once.
+Use this tool for several independent edits. Each edit is validated before
+any changes are written. If an edit's path is invalid, its old_str is not
+found exactly once, or edits overlap within the same file, the batch is
+rejected without modifying any files.
 
-Each edit applies to the specified path independently. Do not rely on edits
-being applied incrementally, and do not include overlapping or nested edits.
-If two changes affect the same block or nearby lines, merge them into a
-single edit.
+Requirements:
+- Every path must be absolute and refer to a readable file.
+- old_str must match the file contents exactly, including line endings.
+- old_str must be non-empty and occur exactly once in its target file.
+- Edits in the same file must not overlap.
+- Do not rely on edits being applied incrementally.
+- Merge related or adjacent changes into one edit.
+- Use sufficient surrounding context to make each old_str unambiguous.
+- new_str replaces old_str verbatim; no formatting or regex processing is
+  performed.
 
-For each edit:
-- provide absolute `path`
-- provide `old_str` and `new_str` for replacement. Provide sufficient
-  context for old_str such that there's no ambiguity.
-
-When editing multiple files, each item in `edits` may target a different file
-or directory as appropriate."
+After successful application, return a summary of changed files and
+replacement counts."
  :snippet "Apply multiple file edits in one batch."
- :guideline "- Use EditBatch for multiple independent edits. Keep each edit minimal and non-overlapping. Merge adjacent or related changes into one edit."
+ :guideline "- Use EditBatch for multiple independent, targeted text replacements across files. Provide absolute paths, exact old_str/new_str pairs, and enough context to make each old_str unambiguous. Keep edits minimal and non-overlapping; merge related or adjacent changes into one edit. Edits are applied independently, so do not rely on one edit being applied before another."
  :function #'amsha/gptel-agent--edit-files-batch
  :args '((:name "edits"
           :description "A list of file edits to apply in one batch. Each edit must be independent and non-overlapping."
