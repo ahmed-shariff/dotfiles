@@ -695,8 +695,9 @@ Note: LSP servers must be configured for the file type. If no server is availabl
 ;; based on https://github.com/anomalyco/opencode/blob/022265829eca0032d310e0f177d729290eb6f8fa/packages/opencode/src/agent/prompt/compaction.txt
 (gptel-make-preset 'compaction
   :description "Compaction system prompt"
-  :system '(:append "
-provide a detailed but concise summary of the current conversation and context.
+  :prompt-transform-functions
+  (amsha/gptel-append-prompt-transform-functions
+   "provide a detailed but concise summary of the current conversation and context.
 Focus on information that would be helpful for decision making, including:
 - What was done
 - What needs to be done next
@@ -711,7 +712,9 @@ DO NOT provide followup suggestions and the output should be in thrid person whe
 
 (gptel-make-preset 'summarize
   :description "System prompt for detailed summarize of context."
-  :system "Summarize the context thoroughly and comprehensively.
+  :prompt-transform-functions
+  (amsha/gptel-append-prompt-transform-functions
+   "Summarize the context thoroughly and comprehensively.
 
   Goals:
   - Prioritize completeness and fidelity over brevity.
@@ -753,7 +756,7 @@ DO NOT provide followup suggestions and the output should be in thrid person whe
   - Quote exact phrases where useful for precision.
   - If a section is sparse, still include it.
 
-  Provide as much detail as necessary, and err on the side of providing too much information.  Be thorough.")
+  Provide as much detail as necessary, and err on the side of providing too much information.  Be thorough."))
 
 (gptel-make-preset 'cite-add-abstract-summary
   :description "Add abstract and summary for `cite:`"
@@ -772,6 +775,13 @@ DO NOT provide followup suggestions and the output should be in thrid person whe
                                   #'gptel--transform-add-context)))
 
 ;;; misc-functions ************************************************************************
+(defun amsha/gptel-append-prompt-transform-functions (prompt)
+  "Append PROMPT to the end of the GPTel prompt.
+To be used as for `:prompt-transform-functions' in presets."
+  (list :append `((lambda (_)
+                    (goto-char (point-max))
+                    (insert ,prompt)))))
+
 (defun add-before-special-or-append (lst elem special)
   "If last element of LST is SPECIAL, add ELEM before it.
 Otherwise, add ELEM as the last element."
@@ -2382,17 +2392,18 @@ Guidelines:
              amsha/agent-add-tools-info
              amsha/cleanup-variables))
 
-(gptel-make-preset 'amsha/--skill-reviewer-base-message
+(gptel-make-preset 'amsha/skill-updater-agent
+  :parents '(amsha/agent-with-all
+             skill-using-gptel-agent-apis)
   :tools '("EditBatch" "Write")
-  :system
-  (format
-   "You are reviewing a conversation to determine skill-library changes.
+  :prompt-transform-functions
+  (amsha/gptel-append-prompt-transform-functions
+   (format
+    "Now you are reviewing the current conversation to determine skill-library changes.
 Use the existing skills list, the loaded skill-authoring guidance, and the conversation context.
 
-{{SKILLS}}
-
 Loaded skill:
-- skill-generate-reusable-skills
+- skill-generate-reusable-skills - no need to load this unless its missing in the context.
 
 Task:
  Decide whether:
@@ -2405,23 +2416,8 @@ Then, execute based on your decision.
 
 If you want to read a skill, use the `Skill` tool.
 
-The skills are located in the directory %S. Each subdirectory here is an individual skill. A skill is a directory with a SKILL.md file.
-
-Available tools:
-{{TOOLSLIST}}
-
-In addition to the tools above, you may have access to other custom tools depending on the project.
-
-Guidelines:
-{{GUIDELINES}}"
-   amsha/gptel-skill-base-dir))
-
-(gptel-make-preset 'amsha/skill-updater-agent
-  :parents '(amsha/--skill-reviewer-base-message
-             skill-generate-reusable-skills
-             amsha/agent-add-skills
-             amsha/agent-add-tools-info
-             amsha/cleanup-variables))
+The skills are located in the directory %S. Each subdirectory here is an individual skill. A skill is a directory with a SKILL.md file."
+    amsha/gptel-skill-base-dir)))
 
   ;; :parents `(amsha/agent-base-message))
 
@@ -2592,17 +2588,20 @@ The tool applies batch replacements atomically. On success, will show the summar
     (lambda (sys-prompt)
       (concat
        sys-prompt
-       "\nReview the conversation above and consider saving to memory if appropriate.
+
+       (unless (string-match "====================
+Current memories:" sys-prompt)
+         (amsha/gptel-memory t)))))
+  :prompt-transform-functions
+  (amsha/gptel-append-prompt-transform-functions
+   "\nReview the conversation above and consider saving to memory if appropriate.
 
 Focus on:
 1. Has the user revealed stable preferences, identity details, or other
    enduring facts worth remembering?
 2. Has the user expressed how they want you to behave, respond, or work?
 
-If something matters, save it with the memory tool."
-       (unless (string-match "====================
-Current memories:" sys-prompt)
-         (amsha/gptel-memory t)))))
+If something matters, save it with the memory tool.")
   :tools '(("amsha/gptel-agent" "Memory")))
 
 (gptel-make-preset 'amsha/gptel-memory
