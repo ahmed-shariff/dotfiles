@@ -945,6 +945,10 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   :init
   (recentf-mode))
 
+(use-package whitespace-cleanup-mode
+  :init
+  (global-whitespace-cleanup-mode))
+
 ;; Configure directory extension.
 (use-package vertico-directory
   :after vertico
