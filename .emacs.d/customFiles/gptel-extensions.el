@@ -697,18 +697,17 @@ Note: LSP servers must be configured for the file type. If no server is availabl
   :description "Compaction system prompt"
   :prompt-transform-functions
   (amsha/gptel-append-prompt-transform-functions
-   "provide a detailed but concise summary of the current conversation and context.
-Focus on information that would be helpful for decision making, including:
-- What was done
-- What needs to be done next
-- Key issues, constraints, or preferences that should persist
-- Important decisions and why they were made
+   "Produce a concise, decision-oriented summary of the current conversation and context.
 
-Your summary should be comprehensive enough to provide context but concise enough to be quickly understood.
+Include only information that should persist:
+- What was done and the current outcome
+- Important decisions and their rationale
+- Key issues, constraints, and preferences
+- What remains to be done next
 
-If the conversation involved iteratively refining something, provide the summary of the final version. The summary should be detailed enough to cover all points.
+For iterative discussions, summarize the final position rather than the full evolution. Preserve essential distinctions, especially between competing approaches, their purposes, strengths, and limitations. Remove repetition, minor details, and unsupported interpretation.
 
-DO NOT provide followup suggestions and the output should be in thrid person where you are the AI agent."))
+Write in the third person as the AI agent. Do not provide follow-up suggestions, commentary, or questions."))
 
 (gptel-make-preset 'summarize
   :description "System prompt for detailed summarize of context."
@@ -2558,6 +2557,8 @@ For each operation provide:
 - `old_str` and `new_str` for replacement. Provide sufficient
   context for old_str such that there's no ambiguity.
 
+Strings should not use Unicode's.
+
 The tool applies batch replacements atomically. On success, will show the summary state of the memories."
  :function #'amsha/gptel-memory-tool
  :args
@@ -2601,7 +2602,8 @@ Focus on:
    enduring facts worth remembering?
 2. Has the user expressed how they want you to behave, respond, or work?
 
-If something matters, save it with the memory tool.")
+If something matters, save it with the memory tool.
+Once you are done, do not say anything.")
   :tools '(("amsha/gptel-agent" "Memory")))
 
 (gptel-make-preset 'amsha/gptel-memory
