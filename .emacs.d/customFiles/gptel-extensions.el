@@ -1957,7 +1957,7 @@ EDITS is an vector of (:path PATH :ols_str OLD-STR :new_str NEW-STR) triples."
               (length edits)
               (hash-table-count final-contents)))))
 
-(defun amsha/gptel-agent--edit-files-batch-preview-setup (arg-values _info)
+(defun amsha/gptel-agent--edit-files-batch-preview-setup (arg-values &optional _info)
   "Insert tool call preview for ARG-VALUES for \"Edit batch\" tool."
   (let ((from (point))
         (files-affected '()))
@@ -2544,6 +2544,17 @@ Current memories:
      "Failed to update %s" err
      )))
 
+(defun amsha/gptel-agent--memory-preview-setup (arg-values _info)
+  (amsha/gptel-agent--edit-files-batch-preview-setup
+   (list
+    (vconcat
+     (cl-loop for obj across (car-safe arg-values)
+                  for target = (plist-get obj :target)
+                  for old_str = (plist-get obj :old_str)
+                  for new_str = (plist-get obj :new_str)
+                  collect
+                  `(:path ,target :old_str ,old_str :new_str ,new_str))))))
+
 (gptel-make-tool
  :name "Memory"
  :description
@@ -2582,7 +2593,12 @@ The tool applies batch replacements atomically. On success, will show the summar
       (:type string
        :description "Replacement entry text.")))))
  :category "amsha/gptel-agent"
- :include t)
+ :confirm t
+ :include nil)
+
+(setf (alist-get "Memory" gptel--tool-preview-alist
+                   nil nil #'string-equal)
+      `(,#'amsha/gptel-agent--memory-preview-setup))
 
 (gptel-make-preset 'amsha/gptel-memory-review
   :description "gptel preset that allows updating memory"
