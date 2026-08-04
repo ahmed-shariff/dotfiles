@@ -252,12 +252,16 @@ Code
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
 
 ;;; misc-functions ************************************************************************
-(defun amsha/gptel-append-prompt-transform-functions (prompt)
+(defmacro amsha/gptel-append-prompt-transform-functions (prompt &optional append-p)
   "Append PROMPT to the end of the GPTel prompt.
 To be used as for `:prompt-transform-functions' in presets."
-  (list :append `((lambda (_)
-                    (goto-char (point-max))
-                    (insert ,prompt)))))
+  `(list :append
+         (list
+          (lambda (_)
+            (goto-char (point-max))
+            ,(when append-p
+               `(text-property-search-backward 'gptel nil t))
+            (insert ,prompt)))))
 
 (defun add-before-special-or-append (lst elem special)
   "If last element of LST is SPECIAL, add ELEM before it.
@@ -894,7 +898,9 @@ Note: LSP servers must be configured for the file type. If no server is availabl
   :description "Compaction system prompt"
   :prompt-transform-functions
   (amsha/gptel-append-prompt-transform-functions
-   "Produce a concise, decision-oriented summary of the current conversation and context.
+   "
+
+Produce a concise, decision-oriented summary of the current conversation and context.
 
 Include only information that should persist:
 - What was done and the current outcome
@@ -910,7 +916,9 @@ Write in the third person as the AI agent. Do not provide follow-up suggestions,
   :description "System prompt for detailed summarize of context."
   :prompt-transform-functions
   (amsha/gptel-append-prompt-transform-functions
-   "Summarize the context thoroughly and comprehensively.
+   "
+
+Summarize the context thoroughly and comprehensively.
 
   Goals:
   - Prioritize completeness and fidelity over brevity.
@@ -2681,6 +2689,10 @@ Current memories:" sys-prompt)
              skill-using-gptel-agent-apis
              amsha/--skill-updater-agent-prompt
              amsha/--gptel-memory-review-prompts)
+  :prompt-transform-functions
+  (amsha/gptel-append-prompt-transform-functions "
+
+Make sure to check for both memory and skill updates."))
   :include-tool-results nil
   :tools '(("amsha/gptel-agent" "EditBatch")
            ("amsha/gptel-agent" "Write")
@@ -3576,14 +3588,20 @@ then close the *gptel-context* buffer and return to gptel menu."
   (pcase-dolist (`(,name ,dir . ,skill-plist) gptel-agent--skills)
     (apply #'gptel-make-preset
            (intern (concat "skill-" name))
-           (append skill-plist `(:system (:function (lambda (system-prompt)
-                                                      (concat system-prompt "\n\nSkills loaded:\n----"
-                                                              "\nSkill name: " ,name
-                                                              "\nSkill base dir: " ,dir
-                                                              "\n----"
-                                                              (gptel-agent--get-skill ,name)
-                                                              "\n\n"))))))))
-(advice-add 'gptel-agent-update :after #'amsha/agent-post-update)
+           (append skill-plist
+                   `(:prompt-transform-functions
+                     ,(amsha/gptel-append-prompt-transform-functions
+                       (concat "\n----"
+                               "\nThe user had the following skill loaded:"
+                               "\nSkill name: " name
+                               "\nSkill base dir: " dir
+                               "\n----\n"
+                               (gptel-agent--get-skill name)
+                               "\n----\n"
+                               (propertize "What should I do next?" 'gptel 'response))
+                       t))))))
+
+(advice-add 'gptel-agent--update-skills :after #'amsha/agent-post-update)
 
 (gptel-agent-update)         ;Read files from agents directories
 (amsha/gptel-update-fabric-assets)
