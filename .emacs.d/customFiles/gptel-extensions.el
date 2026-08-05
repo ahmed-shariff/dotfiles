@@ -2692,7 +2692,7 @@ Current memories:" sys-prompt)
   :prompt-transform-functions
   (amsha/gptel-append-prompt-transform-functions "
 
-Make sure to check for both memory and skill updates."))
+Make sure to check for both memory and skill updates.")
   :include-tool-results nil
   :tools '(("amsha/gptel-agent" "EditBatch")
            ("amsha/gptel-agent" "Write")
@@ -2877,56 +2877,56 @@ Supported method:
 
 ;;;; * Save preset with only context
 
-(defun amsha/gptel--save-context-as-preset (name &optional description)
-  "Save a preset with only the context.
+;; (defun amsha/gptel--save-context-as-preset (name &optional description)
+;;   "Save a preset with only the context.
 
-Same as `gptel--save-preset', only save context."
-  (interactive
-   (list (intern (completing-read "Save gptel settings to (existing or new) preset: "
-                                  gptel--known-presets))
-         (read-string "Description (optional): ")))
-  (let ((preset-code
-         `(gptel-make-preset ',name
-           :description ,(when (and description
-                                (not (string-blank-p description)))
-                           description)
-           :context ',gptel-context)))
-    (kill-new (pp-to-string preset-code))
-    (eval preset-code)
-    (message "Preset %s saved. (Lisp expression for preset saved to kill-ring)"
-             (propertize (symbol-name name) 'face 'highlight))))
+;; Same as `gptel--save-preset', only save context."
+;;   (interactive
+;;    (list (intern (completing-read "Save gptel settings to (existing or new) preset: "
+;;                                   gptel--known-presets))
+;;          (read-string "Description (optional): ")))
+;;   (let ((preset-code
+;;          `(gptel-make-preset ',name
+;;            :description ,(when (and description
+;;                                 (not (string-blank-p description)))
+;;                            description)
+;;            :context ',gptel-context)))
+;;     (kill-new (pp-to-string preset-code))
+;;     (eval preset-code)
+;;     (message "Preset %s saved. (Lisp expression for preset saved to kill-ring)"
+;;              (propertize (symbol-name name) 'face 'highlight))))
 
-(defun amsha/gptel-context-remove-all-except-overlays (&optional verbose)
-  "Remove all gptel context.
+;; (defun amsha/gptel-context-remove-all-except-overlays (&optional verbose)
+;;   "Remove all gptel context.
 
-If VERBOSE is non-nil, ask for confirmation and message
-afterwards."
-  (interactive (list t))
-  (if (null gptel-context)
-      (when verbose (message "No gptel context sources to remove."))
-    (when (or (not verbose) (y-or-n-p "Remove all context except overlays? "))
-      (cl-loop
-       for context in gptel-context
-       for (source . ovs) = (ensure-list context)
-       unless (cl-every #'overlayp ovs) do ; unless buffers and buffer regions
-       (gptel-context-remove source) ;files or other types
-       finally do (setq gptel-context nil)))
-    (when verbose (message "Removed all gptel context sources except overlays."))))
+;; If VERBOSE is non-nil, ask for confirmation and message
+;; afterwards."
+;;   (interactive (list t))
+;;   (if (null gptel-context)
+;;       (when verbose (message "No gptel context sources to remove."))
+;;     (when (or (not verbose) (y-or-n-p "Remove all context except overlays? "))
+;;       (cl-loop
+;;        for context in gptel-context
+;;        for (source . ovs) = (ensure-list context)
+;;        unless (cl-every #'overlayp ovs) do ; unless buffers and buffer regions
+;;        (gptel-context-remove source) ;files or other types
+;;        finally do (setq gptel-context nil)))
+;;     (when verbose (message "Removed all gptel context sources except overlays."))))
 
-(defun amsha/remove-context-at-point ()
-  (interactive)
-  (gptel-context-remove))
+;; (defun amsha/remove-context-at-point ()
+;;   (interactive)
+;;   (gptel-context-remove))
 
-(transient-suffix-put 'gptel-menu '(0 1 6) :key "-D")
-(transient-insert-suffix 'gptel-menu '(0 1 6)
-  '("-d" "Remove non overlays" amsha/gptel-context-remove-all-except-overlays
-    :if (lambda () gptel-context)
-    :transient t))
+;; (transient-suffix-put 'gptel-menu '(0 1 6) :key "-D")
+;; (transient-insert-suffix 'gptel-menu '(0 1 6)
+;;   '("-d" "Remove non overlays" amsha/gptel-context-remove-all-except-overlays
+;;     :if (lambda () gptel-context)
+;;     :transient t))
 
-(transient-insert-suffix 'gptel-menu '(0 1 7)
-  '("/r" "Remove context at point" amsha/remove-context-at-point
-    :if (lambda () (or (region-active-p) (gptel-context--at-point)))
-    :transient t))
+;; (transient-insert-suffix 'gptel-menu '(0 1 7)
+;;   '("/r" "Remove context at point" amsha/remove-context-at-point
+;;     :if (lambda () (or (region-active-p) (gptel-context--at-point)))
+;;     :transient t))
 
 ;; (transient-append-suffix 'gptel--preset '(0 0 -1)
 ;;   '("/C" "Save current context as new preset" amsha/gptel--save-context-as-preset :if (lambda () gptel-context)))
