@@ -2806,7 +2806,7 @@ Supported method:
                                        directory-files-no-dot-files-regexp))
   (gptel-make-preset (intern (format "%s-c" (f-base context-file)))
     :description (format "Use persistent context %s" (f-base context-file))
-    :context `(:append (,context-file))))
+    :context `(:append (,(expand-file-name context-file gptel-persistent-context-dir)))))
 
 (defun amsha/gptel--get-persistent-context ()
   (completing-read "Context name: "
@@ -2858,7 +2858,9 @@ Supported method:
   (let ((context-file (amsha/gptel--get-context-file context-name)))
     (when (y-or-n-p (format "Delete the context file for context %s" context-name))
       (delete-file context-file)
-      (setf (alist-get (intern context-name) gptel--known-presets nil 'remove) nil))))
+      (setf (alist-get (intern (format "%s-c" context-name))
+                       gptel--known-presets nil 'remove)
+            nil))))
 
 (defun amsha/gptel-add-persistent-context-to-context (context-name)
   "Add persistent-context to context."
