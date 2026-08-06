@@ -510,7 +510,7 @@ but also show links."
   (if-let (info (or info
                     (and gptel--fsm-last
                          (gptel-fsm-info gptel--fsm-last))))
-      (when-let ((action (plist-get info :web-search-action)))
+      (when-let ((action (plist-get info :web-search-call-action)))
         (pcase (plist-get action :type)
           ("search"
            (insert "\n * Queries:\n- " (string-join (plist-get action :queries) "\n- ")
