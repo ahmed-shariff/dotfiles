@@ -1,5 +1,6 @@
 local wezterm = require("wezterm")
 local config = wezterm.config_builder()
+local mux = wezterm.mux
 
 -- ===============
 -- Basics
@@ -98,4 +99,15 @@ if wezterm.target_triple:find("windows") then
   }
 end
 
+-- ===============
+-- Maximize on startup
+-- ===============
+
+wezterm.on("gui-startup", function(cmd)
+  local _, _, window = mux.spawn_window({
+    args = cmd and cmd.args or nil,
+  })
+
+  window:gui_window():maximize()
+end)
 return config
