@@ -2458,7 +2458,7 @@ The skills are located in the directory %S. Each subdirectory here is an individ
 
 (gptel-make-preset 'amsha/skill-updater-agent
   :parents '(amsha/agent-with-all
-             skill-using-gptel-agent-apis
+             skill-generate-reusable-skills
              amsha/--skill-updater-agent-prompt)
   :include-tool-results nil
   :tools '("EditBatch" "Write"))
@@ -2686,7 +2686,7 @@ Current memories:" sys-prompt)
 
 (gptel-make-preset 'amsha/skill-and-memory-updater-agent
   :parents '(amsha/agent-with-all
-             skill-using-gptel-agent-apis
+             skill-generate-reusable-skills
              amsha/--skill-updater-agent-prompt
              amsha/--gptel-memory-review-prompts)
   :prompt-transform-functions
