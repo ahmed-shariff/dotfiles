@@ -26,6 +26,9 @@
 (defvar amsha/gptel-high-model 'gpt-5.6-terra)
 (defvar amsha/gptel-cheap-model 'gpt-5.4-nano)
 (defvar amsha/gptel-skill-base-dir "~/.emacs.d/agents/gptel-skills/")
+(defvar amsha/gptel-skill-archive-dir "~/.emacs.d/agents/gptel-skills-archive/")
+(defvar amsha/agent-templates `(("GLOBAL_SKILL_LINE" . ,(format "Global skills are in %S" amsha/gptel-skill-base-dir))
+                                ("ARCHIVE_LOCATION" . ,(format "%S" amsha/gptel-skill-archive-dir))))
 
 ;;; packages ******************************************************************************
 (use-package elysium
@@ -252,17 +255,6 @@ Code
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
 
 ;;; misc-functions ************************************************************************
-(defmacro amsha/gptel-append-prompt-transform-functions (prompt &optional append-p)
-  "Append PROMPT to the end of the GPTel prompt.
-To be used as for `:prompt-transform-functions' in presets."
-  `(list :append
-         (list
-          (lambda (_)
-            (goto-char (point-max))
-            ,(when append-p
-               `(text-property-search-backward 'gptel nil t))
-            (insert ,prompt)))))
-
 (defun add-before-special-or-append (lst elem special)
   "If last element of LST is SPECIAL, add ELEM before it.
 Otherwise, add ELEM as the last element."
@@ -1912,6 +1904,17 @@ Guidelines will be placed under guidelines in the system prompt."
            nil nil #'equal)
           tool)))
 
+(defmacro amsha/gptel-append-prompt-transform-functions (prompt &optional append-p)
+  "Append PROMPT to the end of the GPTel prompt.
+To be used as for `:prompt-transform-functions' in presets."
+  `(list :append
+         (list
+          (lambda (_)
+            (goto-char (point-max))
+            ,(when append-p
+               `(text-property-search-backward 'gptel nil t))
+            (insert ,prompt)))))
+
 ;; gptel-agent tools as gptel-agent-tool's
 (defun amsha/gptel-agent--edit-files-batch (edits)
   "Edit multiple files atomically.
@@ -2294,7 +2297,7 @@ Use \"*\" to list all files in a directory.")
  :include t)
 
 ;; This can come from an md/org file
-(gptel-make-preset 'amsha/agent-base-message
+(gptel-make-preset 'amsha/--agent-base-message
   :system
   (format "You are an expert coding assistant operating inside emacs on a %s operating system. You help users by reading files, executing commands, editing code, and writing new files.
 
@@ -2394,6 +2397,12 @@ Guidelines:
                    "Read" "EditBatch" "Write"
                    "Grep" "Glob")))
 
+(gptel-make-preset 'amsha/web-tools
+  :description "WebFetch, WebSearch"
+  :tools `(:append
+           ,(mapcar (lambda (el) (list "gptel-agent" el))
+                    `("WebFetch" "WebSearch"))))
+
 (gptel-make-preset 'amsha/read-only-tools
   :description (if (eq system-type 'windows-nt)
                    "PowerShell, Read, Grep, Glob"
@@ -2406,9 +2415,10 @@ Guidelines:
 
 (gptel-make-preset 'amsha/agent-with-all
   :description "Agent with skills, tool descs, and ctx."
-  :parents `(amsha/agent-base-message
-             amsha/gptel-memory-review
+  :parents `(amsha/--agent-base-message
+             amsha/gptel-memory
              amsha/base-tools
+             amsha/web-tools
              amsha/agentmd-ctx
              amsha/agent-add-skills
              amsha/agent-add-tools-info
@@ -2416,8 +2426,9 @@ Guidelines:
 
 (gptel-make-preset 'amsha/agent-read-only
   :description "Agent with skills and also read only tools."
-  :parents `(amsha/agent-base-message
+  :parents `(amsha/--agent-base-message
              amsha/read-only-tools
+             amsha/web-tools
              amsha/agentmd-ctx
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
@@ -2425,80 +2436,42 @@ Guidelines:
 
 (gptel-make-preset 'amsha/agent-no-skills
   :description "Agent without skills."
-  :parents `(amsha/agent-base-message
+  :parents `(amsha/--agent-base-message
              amsha/base-tools
+             amsha/web-tools
              amsha/agentmd-ctx
              amsha/agent-add-tools-info
              amsha/cleanup-variables))
 
-(gptel-make-preset 'amsha/--skill-updater-agent-prompt
-  :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions
-   (format "
+;; (gptel-make-preset 'amsha/--skill-updater-agent-prompt
+;;   :prompt-transform-functions
+;;   (amsha/gptel-append-prompt-transform-functions
+;;    (format "
 
-Also, you are reviewing the current conversation to determine skill-library changes.
-Use the existing skills list, the loaded skill-authoring guidance, and the conversation context.
+;; Also, you are reviewing the current conversation to determine skill-library changes.
+;; Use the existing skills list, the loaded skill-authoring guidance, and the conversation context.
 
-Loaded skill:
-- skill-generate-reusable-skills - no need to load this unless its missing in the context.
+;; Loaded skill:
+;; - skill-generate-reusable-skills - no need to load this unless its missing in the context.
 
-Task:
- Decide whether:
-   1. a new skill should be created,
-   2. an existing skill should be updated,
-   3. an existing skill should be removed,
-   or 4. no change is needed.
+;; Task:
+;;  Decide whether:
+;;    1. a new skill should be created,
+;;    2. an existing skill should be updated,
+;;    3. an existing skill should be removed,
+;;    or 4. no change is needed.
 
-Then, execute based on your decision.
+;; Then, execute based on your decision.
 
-If you want to read a skill, use the `Skill` tool.
+;; If you want to read a skill, use the `Skill` tool. "
+;;     amsha/gptel-skill-base-dir)))
 
-The skills are located in the directory %S. Each subdirectory here is an individual skill. A skill is a directory with a SKILL.md file."
-    amsha/gptel-skill-base-dir)))
-
-(gptel-make-preset 'amsha/skill-updater-agent
-  :parents '(amsha/agent-with-all
-             skill-generate-reusable-skills
-             amsha/--skill-updater-agent-prompt)
-  :include-tool-results nil
-  :tools '("EditBatch" "Write"))
-
-  ;; :parents `(amsha/agent-base-message))
-
-;; (setq xx (gptel-make-agent-tool
-;;  :function (lambda (location unit)
-;;              (format "Temp in %s is 25 %s" location unit))
-;;  :name "get_weather"
-;;  :description "Get the current weather in a given location"
-;;  :snippet "hahah"
-;;  :guideline "whaaaa"
-;;  :confirm t
-;;  :args (list '(:name "location"
-;;                      :type string
-;;                      :description "The city and state, e.g. San Francisco, CA")
-;;              '(:name "unit"
-;;                      :type string
-;;                      :enum ["celsius" "farenheit"]
-;;                      :description
-;;                      "The unit of temperature, either 'celsius' or 'fahrenheit'"
-;;                      :optional t))))
-
-;; (gptel-make-agent-tool
-;;  :function (lambda (location unit)
-;;              (format "Temp in %s is 25 %s" location unit))
-;;  :name "get_weather2"
-;;  :description "Get the current weather in a given location"
-;;  :guideline "only guidelines"
-;;  :confirm t
-;;  :args (list '(:name "location"
-;;                      :type string
-;;                      :description "The city and state, e.g. San Francisco, CA")
-;;              '(:name "unit"
-;;                      :type string
-;;                      :enum ["celsius" "farenheit"]
-;;                      :description
-;;                      "The unit of temperature, either 'celsius' or 'fahrenheit'"
-;;                      :optional t)))
+;; (gptel-make-preset 'amsha/skill-updater-agent
+;;   :parents '(amsha/agent-with-all
+;;              skill-generate-reusable-skills
+;;              amsha/--skill-updater-agent-prompt)
+;;   :include-tool-results nil
+;;   :tools '("EditBatch" "Write"))
 
 ;;; Memory tool ***************************************************************************
 ;; Based on how hermes-agent handles this.
@@ -2643,38 +2616,37 @@ The tool applies batch replacements atomically. On success, will show the summar
                    nil nil #'string-equal)
       `(,#'amsha/gptel-agent--memory-preview-setup))
 
-(gptel-make-preset 'amsha/--gptel-memory-review-prompts
-  :description "gptel preset that allows updating memory"
-  :system
-  `(:function
-    (lambda (sys-prompt)
-      (concat
-       sys-prompt
+;; (gptel-make-preset 'amsha/--gptel-memory-review-prompts
+;;   :description "gptel preset that allows updating memory"
+;;   :system
+;;   `(:function
+;;     (lambda (sys-prompt)
+;;       (concat
+;;        sys-prompt
 
-       (unless (string-match "====================
-Current memories:" sys-prompt)
-         (amsha/gptel-memory t)))))
-  :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions "
+;;        (unless (string-match "====================
+;; Current memories:" sys-prompt)
+;;          (amsha/gptel-memory t)))))
+;;   :prompt-transform-functions
+;;   (amsha/gptel-append-prompt-transform-functions "
 
-Also, review the conversation above and consider saving to memory if appropriate.
+;; Also, review the conversation above and consider saving to memory if appropriate.
 
-Focus on:
-1. Has the user revealed stable preferences, identity details, or other
-   enduring facts worth remembering?
-2. Has the user expressed how they want you to behave, respond, or work?
+;; Focus on:
+;; 1. Has the user revealed stable preferences, identity details, or other
+;;    enduring facts worth remembering?
+;; 2. Has the user expressed how they want you to behave, respond, or work?
 
-If something matters, save it with the memory tool.
-Once you are done, do not say anything."))
+;; If something matters, save it with the memory tool.
+;; Once you are done, do not say anything."))
 
-(gptel-make-preset 'amsha/gptel-memory-review
-  :description "gptel preset that allows updating memory"
-  :include-tool-results nil
-  :tools '(("amsha/gptel-agent" "Memory")))
+;; (gptel-make-preset 'amsha/gptel-memory-review
+;;   :description "gptel preset that allows updating memory"
+;;   :include-tool-results nil
+;;   :tools '(("amsha/gptel-agent" "Memory")))
 
 (gptel-make-preset 'amsha/gptel-memory
   :description "gptel memory entry"
-  :parents '(amsha/--gptel-memory-review-prompts)
   :system
   `(:function
     (lambda (sys-prompt)
@@ -2684,19 +2656,50 @@ Once you are done, do not say anything."))
 Current memories:" sys-prompt)
          (amsha/gptel-memory t))))))
 
-(gptel-make-preset 'amsha/skill-and-memory-updater-agent
-  :parents '(amsha/agent-with-all
-             skill-generate-reusable-skills
-             amsha/--skill-updater-agent-prompt
-             amsha/--gptel-memory-review-prompts)
+(gptel-make-preset 'amsha/refine-agent-self
+  :description "Update skills/memory"
+  :parents `(amsha/gptel-memory
+             amsha/base-tools
+             amsha/agentmd-ctx
+             amsha/agent-add-skills
+             amsha/agent-add-tools-info
+             amsha/cleanup-variables)
   :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions "
+  (let ((prompt (plist-get (cdr (gptel-agent-read-file
+                     "~/.emacs.d/customFiles/agents/--refine-self-prompt.md"
+                     amsha/agent-templates))
+                           :system)))
+    (amsha/gptel-append-prompt-transform-functions prompt)))
 
-Make sure to check for both memory and skill updates.")
-  :include-tool-results nil
-  :tools '(("amsha/gptel-agent" "EditBatch")
-           ("amsha/gptel-agent" "Write")
-           ("amsha/gptel-agent" "Memory")))
+(gptel-make-preset 'amsha/curate-skills-agent
+  :description "Curate skills"
+  :parents `(amsha/gptel-memory
+             amsha/base-tools
+             amsha/agentmd-ctx
+             amsha/agent-add-skills
+             amsha/agent-add-tools-info
+             amsha/cleanup-variables)
+  :prompt-transform-functions
+  (let ((prompt (plist-get (cdr (gptel-agent-read-file
+                     "~/.emacs.d/customFiles/agents/--skill-curator-prompt.md"
+                     amsha/agent-templates))
+                           :system)))
+    (amsha/gptel-append-prompt-transform-functions prompt)))
+
+(gptel-make-preset 'amsha/learn-agent
+  :description "Learn a new skill."
+  :parents `(amsha/gptel-memory
+             amsha/base-tools
+             amsha/agentmd-ctx
+             amsha/agent-add-skills
+             amsha/agent-add-tools-info
+             amsha/cleanup-variables)
+  :prompt-transform-functions
+  (let ((prompt (plist-get (cdr (gptel-agent-read-file
+                     "~/.emacs.d/customFiles/agents/--skill-learn-prompt.md"
+                     amsha/agent-templates))
+                           :system)))
+    (amsha/gptel-append-prompt-transform-functions prompt)))
 
 ;;; code introspection tools **************************************************************
 (defun gptel--get-file-relative-to-root (file)
