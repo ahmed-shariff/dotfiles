@@ -27,8 +27,6 @@
 (defvar amsha/gptel-cheap-model 'gpt-5.4-nano)
 (defvar amsha/gptel-skill-base-dir "~/.emacs.d/agents/gptel-skills/")
 (defvar amsha/gptel-skill-archive-dir "~/.emacs.d/agents/gptel-skills-archive/")
-(defvar amsha/agent-templates `(("GLOBAL_SKILL_LINE" . ,(format "Global skills are in %S" amsha/gptel-skill-base-dir))
-                                ("ARCHIVE_LOCATION" . ,(format "%S" amsha/gptel-skill-archive-dir))))
 
 ;;; packages ******************************************************************************
 (use-package elysium
@@ -1904,6 +1902,16 @@ Guidelines will be placed under guidelines in the system prompt."
            nil nil #'equal)
           tool)))
 
+(defun amsha/generate-agent-templates ()
+  `(("GLOBAL_SKILL_LINE" . ,(format "Global skills are in %S" amsha/gptel-skill-base-dir))
+    ("ARCHIVE_LOCATION" . ,(format "%S" amsha/gptel-skill-archive-dir))
+    ("PROJECT_ROOT_LINE" . ,(if-let* ((cur-project (project-current))
+                                      (root (project-root cur-project))
+                                      (_ (not (equal (expand-file-name root)
+                                                     (expand-file-name "~/")))))
+                                (format "The current project root is: %S" root)
+                              "The agent is not in a project directory. You can ignore project-specific instructions."))))
+
 (defmacro amsha/gptel-append-prompt-transform-functions (prompt &optional append-p)
   "Append PROMPT to the end of the GPTel prompt.
 To be used as for `:prompt-transform-functions' in presets."
@@ -2665,11 +2673,11 @@ Current memories:" sys-prompt)
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
   :prompt-transform-functions
-  (let ((prompt (plist-get (cdr (gptel-agent-read-file
-                     "~/.emacs.d/customFiles/agents/--refine-self-prompt.md"
-                     amsha/agent-templates))
-                           :system)))
-    (amsha/gptel-append-prompt-transform-functions prompt)))
+  (amsha/gptel-append-prompt-transform-functions
+   (plist-get (cdr (gptel-agent-read-file
+                    "~/.emacs.d/customFiles/agents/--refine-self-prompt.md"
+                    (amsha/generate-agent-templates)))
+              :system)))
 
 (gptel-make-preset 'amsha/curate-skills-agent
   :description "Curate skills"
@@ -2680,11 +2688,30 @@ Current memories:" sys-prompt)
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
   :prompt-transform-functions
-  (let ((prompt (plist-get (cdr (gptel-agent-read-file
-                     "~/.emacs.d/customFiles/agents/--skill-curator-prompt.md"
-                     amsha/agent-templates))
-                           :system)))
-    (amsha/gptel-append-prompt-transform-functions prompt)))
+  (amsha/gptel-append-prompt-transform-functions
+   (plist-get
+    (cdr
+     (gptel-agent-read-file
+      "~/.emacs.d/customFiles/agents/--skill-curator-prompt.md"
+      (append
+       (amsha/generate-agent-templates)
+       `(("SKILLS" . ,(if-let (skills (--filter (equal "emacs" (plist-get it :author))
+                                                (gptel-agent--update-skills)))
+                          (concat
+                           "\n<available_skills>\n"
+                           (mapconcat (lambda (skill-def)
+                                        (format "  <skill>
+    <name>%s</name>
+    <location>%s</location>
+    <description>%s</description>
+  </skill>"
+                                                (car skill-def)
+                                                (cadr skill-def)
+                                                (plist-get (cddr skill-def) :description)))
+                                      skills "\n")
+                           "\n</available_skills>")
+                        ""))))))
+    :system)))
 
 (gptel-make-preset 'amsha/learn-agent
   :description "Learn a new skill."
@@ -2695,11 +2722,11 @@ Current memories:" sys-prompt)
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
   :prompt-transform-functions
-  (let ((prompt (plist-get (cdr (gptel-agent-read-file
-                     "~/.emacs.d/customFiles/agents/--skill-learn-prompt.md"
-                     amsha/agent-templates))
-                           :system)))
-    (amsha/gptel-append-prompt-transform-functions prompt)))
+  (amsha/gptel-append-prompt-transform-functions
+   (plist-get (cdr (gptel-agent-read-file
+                    "~/.emacs.d/customFiles/agents/--skill-learn-prompt.md"
+                    (amsha/generate-agent-templates)))
+              :system)))
 
 ;;; code introspection tools **************************************************************
 (defun gptel--get-file-relative-to-root (file)

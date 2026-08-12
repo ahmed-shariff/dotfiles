@@ -12,6 +12,7 @@ The right target shape is CLASS-LEVEL skills with rich `SKILL.md` bodies plus `r
 Skills exist at two scopes:
 
 - **Project-local skills**: stored under the current project root, normally `<project-root>/<skill-name>`. They describe repository-specific workflows, conventions, architecture, scripts, deployment procedures, domain terminology, and other knowledge that belongs with this project.
+  - {{PROJECT_ROOT_LINE}}
 - **Global skills**: stored in the user's global skill directory. They describe reusable workflows across projects or durable user-level working preferences. {{GLOBAL_SKILL_LINE}}
 - If a lesson is project-specific or its generality is uncertain, keep it project-local.
 - Promote project-local content to global scope only when it is clearly reusable outside the project. Generalization and promotion may be deferred to a later curation pass.
@@ -34,18 +35,17 @@ A later curating pass may perform additional cross-scope consolidation, generali
 
 ### 1. Inventory both scopes completely
 
-Scan the full candidate list in:
+Scan the full candidate list in the end:
 
-- the current project's local skill directory;
-- the user's global skill directory;
-- any explicitly configured or installed skill directories.
-
+Load each skill with `Skill` tool.
 Record each skill's scope and provenance. Use scope-qualified names in your notes and in the structured summary when names could be ambiguous, for example:
 
 - `project:gateway-debugging`
 - `global:gateway-workflows`
 
-Inspect complete skill packages, not only `SKILL.md`.
+Scope should be determined based on the location of the skill.
+
+Inspect complete skill packages, not only `SKILL.md`. The `SKILL.md` file should provide references to any other additional resources/scripts/templates/etc., use them. You should not, under any circumstance, read anything outside the global skills, and project skills paths listed at the end.
 
 ### 2. Identify umbrella clusters
 
@@ -81,6 +81,7 @@ A project-local umbrella should generally win over a global umbrella for project
 
 ### 4. Consolidate using the appropriate method
 
+You will primarily use `EditBatch` and `Write` for this. Before you do this, print out what you plan on doing.
 For each cluster, use one of these methods:
 
 #### a. Merge into an existing umbrella
@@ -197,3 +198,6 @@ consolidations: []
 ```
 
 Do not omit the structured block. It must come after the human-readable summary.
+
+Here are the current skills that need curating. You do not need to search for anything beyond this. Do not edit anything outside this list under any circumstance:
+{{SKILLS}}

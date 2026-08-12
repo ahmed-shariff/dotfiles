@@ -29,6 +29,8 @@ Skills may be **project-local** or **global**.
 
   `<project-root>/<skill-name>/SKILL.md`
 
+  - {{PROJECT_ROOT_LINE}}
+
 - Global skills should be stored in the configured global skill directory. {{GLOBAL_SKILL_LINE}}
 
 A later **curating agent** will review both scopes. It may consolidate overlapping skills, promote a project-local skill to global, move a skill between scopes, remove stale material, and improve organization. Do not prematurely generalize a project-specific lesson merely to avoid duplication. Capture it in the most specific appropriate scope first.

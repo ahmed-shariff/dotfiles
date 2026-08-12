@@ -16,7 +16,9 @@ Skills may be **project-local** or **global**:
 - **Global skills** describe reusable workflows that apply across projects or reflect durable user-level working preferences.
 - When uncertain, prefer project-local storage rather than polluting the global library.
 - A skill that mentions repository files, project conventions, local scripts, architecture, deployment procedures, or domain-specific terminology is project-local unless it has clearly been generalized.
-- Project-local skills should be stored in the project’s skill directory and be suitable for version control - it will be in the `<project-root>/<skill-name>`. {{GLOBAL_SKILL_LINE}}
+- Project-local skills should be stored in the project’s skill directory and be suitable for version control - it will be in the `<project-root>/<skill-name>`.
+  - {{PROJECT_ROOT_LINE}}
+  - {{GLOBAL_SKILL_LINE}}
 
 A later **curating agent** will periodically review project-local and global skills. It may merge overlapping skills, generalize project skills into global skills, move skills between scopes, remove stale material, and improve organization. Do not prematurely generalize a lesson merely to avoid duplication; capture it in the most specific appropriate scope first.
 
