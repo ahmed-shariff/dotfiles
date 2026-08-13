@@ -253,6 +253,17 @@ Code
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
 
 ;;; misc-functions ************************************************************************
+(defmacro amsha/gptel-append-prompt-transform-functions (prompt &optional append-p)
+  "Append PROMPT to the end of the GPTel prompt.
+To be used as for `:prompt-transform-functions' in presets."
+  `(list :append
+         (list
+          (lambda (_)
+            (goto-char (point-max))
+            ,(when append-p
+               `(text-property-search-backward 'gptel nil t))
+            (insert ,prompt)))))
+
 (defun add-before-special-or-append (lst elem special)
   "If last element of LST is SPECIAL, add ELEM before it.
 Otherwise, add ELEM as the last element."
@@ -1911,17 +1922,6 @@ Guidelines will be placed under guidelines in the system prompt."
                                                      (expand-file-name "~/")))))
                                 (format "The current project root is: %S" root)
                               "The agent is not in a project directory. You can ignore project-specific instructions."))))
-
-(defmacro amsha/gptel-append-prompt-transform-functions (prompt &optional append-p)
-  "Append PROMPT to the end of the GPTel prompt.
-To be used as for `:prompt-transform-functions' in presets."
-  `(list :append
-         (list
-          (lambda (_)
-            (goto-char (point-max))
-            ,(when append-p
-               `(text-property-search-backward 'gptel nil t))
-            (insert ,prompt)))))
 
 ;; gptel-agent tools as gptel-agent-tool's
 (defun amsha/gptel-agent--edit-files-batch (edits)
