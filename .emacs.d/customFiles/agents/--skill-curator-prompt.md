@@ -9,43 +9,26 @@ The goal of the skill collection is a LIBRARY OF CLASS-LEVEL INSTRUCTIONS AND EX
 
 The right target shape is CLASS-LEVEL skills with rich `SKILL.md` bodies plus `references/`, `templates/`, and `scripts/` subfiles for session-specific detail—not one-session-one-skill micro-entries.
 
-Skills exist at two scopes:
+All skills in this pass are **global skills**, stored in the user's global skill directory. They describe reusable workflows across projects or durable user-level working preferences. {{GLOBAL_SKILL_LINE}}
 
-- **Project-local skills**: stored under the current project root, normally `<project-root>/<skill-name>`. They describe repository-specific workflows, conventions, architecture, scripts, deployment procedures, domain terminology, and other knowledge that belongs with this project.
-  - {{PROJECT_ROOT_LINE}}
-- **Global skills**: stored in the user's global skill directory. They describe reusable workflows across projects or durable user-level working preferences. {{GLOBAL_SKILL_LINE}}
-- If a lesson is project-specific or its generality is uncertain, keep it project-local.
-- Promote project-local content to global scope only when it is clearly reusable outside the project. Generalization and promotion may be deferred to a later curation pass.
-- Do not contaminate global skills with repository paths, local commands, project-specific assumptions, secrets, or unverified generalizations.
-- A project-local skill may override a global skill with the same name for that project. Preserve that relationship unless consolidation clearly improves discoverability.
-
-A later curating pass may perform additional cross-scope consolidation, generalization, promotion, deduplication, and cleanup. Do not prematurely move content between scopes merely to eliminate duplication. First preserve the most specific correct scope; then promote only when the resulting skill is genuinely reusable.
+The candidate list contains only global skills. Do not search for or include separate project-local skill roots. However, project- or session-specific material found inside a listed global skill is in scope: extract its reusable lesson into the global umbrella when it can be generalized safely, and preserve useful concrete detail as a clearly labeled reference or example when it cannot be generalized without losing value. Do not copy secrets, unnecessary repository paths, local commands, or unsupported project-specific claims into the main reusable instructions.
 
 ## Hard rules
 
 1. DO NOT delete any skill. Archiving—moving the skill's complete directory package into the appropriate `{{ARCHIVE_LOCATION}}`—is the maximum destructive action. Archives are recoverable; deletion is not.
 2. DO NOT reject consolidation because each skill has a distinct trigger. Pairwise distinctness is the wrong bar. Ask: “Would a human maintainer write this as N separate skills, or as one skill with N labeled subsections?” When the answer is the latter, merge.
-3. Do not merge project-local and global skills solely because they share a keyword. Consolidate across scopes only when:
-   - the project-local material can be generalized without losing correctness, and
-   - the resulting global umbrella is useful independently of the project.
-   Otherwise, consolidate within the project-local scope.
-4. Do not move a global skill into project-local scope unless it is actually specific to this project. If a global skill contains project-specific material, split or extract that material into a project-local skill or reference file, preserving both packages safely.
+3. Do not inspect or merge any separate project-local skill root. This pass is restricted to the global candidate list, but it must process project- or session-specific details contained within those global skills.
+4. Do not move global skills into project-local scope or create project-local support files. Generalize embedded project/session lessons into the global umbrella when safe; otherwise preserve them as labeled global references or examples, with identifying details minimized and secrets removed.
 
 ## How to work
 
-### 1. Inventory both scopes completely
+### 1. Inventory the global scope completely
 
-Scan the full candidate list in the end:
+Scan the full candidate list at the end.
 
-Load each skill with `Skill` tool.
-Record each skill's scope and provenance. Use scope-qualified names in your notes and in the structured summary when names could be ambiguous, for example:
+Load each global skill with the `Skill` tool. Record each skill's global provenance. Do not inspect or search for project-local skills, even if they appear related or have the same name.
 
-- `project:gateway-debugging`
-- `global:gateway-workflows`
-
-Scope should be determined based on the location of the skill.
-
-Inspect complete skill packages, not only `SKILL.md`. The `SKILL.md` file should provide references to any other additional resources/scripts/templates/etc., use them. You should not, under any circumstance, read anything outside the global skills, and project skills paths listed at the end.
+Inspect complete skill packages, not only `SKILL.md`. The `SKILL.md` file should provide references to any other additional resources/scripts/templates/etc.; use them. You should not, under any circumstance, read anything outside the global skill paths listed at the end.
 
 ### 2. Identify umbrella clusters
 
@@ -57,27 +40,23 @@ Expect 10–25 clusters where the collection is large enough.
 
 For every cluster with two or more members, ask:
 
-1. What UMBRELLA CLASS do these skills serve?
-2. Would a maintainer name that class and write one skill for it?
-3. Is the umbrella project-local, global, or potentially promotable?
+1. What GLOBAL UMBRELLA CLASS do these skills serve?
+2. Would a maintainer name that class and write one global skill for it?
+3. Which material is reusable across projects, and which concrete project/session details should be retained as labeled references or examples?
 4. Which content belongs in `SKILL.md`, and which belongs in `references/`, `templates/`, or `scripts/`?
 
 Do not stop after the first few merges. Iterate until all obvious clusters have been reconsidered.
 
-### 3. Choose the correct consolidation scope
+### 3. Choose the correct global consolidation target
 
 Use this precedence:
 
-1. Consolidate into an existing currently loaded project-local umbrella when the lesson concerns the current project.
-2. Consolidate into another project-local umbrella.
-3. Add a project-local support file under an existing umbrella.
-4. Consolidate into an existing currently loaded global umbrella when the material is reusable across projects.
-5. Consolidate into another global umbrella.
-6. Add a global support file under an existing global umbrella.
-7. Create a new project-local class-level umbrella when no suitable project umbrella exists.
-8. Create a new global class-level umbrella only when no suitable global umbrella exists and the workflow is clearly reusable.
+1. Consolidate into an existing currently loaded global umbrella.
+2. Consolidate into another global umbrella.
+3. Add a global support file under an existing global umbrella.
+4. Create a new global class-level umbrella only when no suitable global umbrella exists and the workflow is clearly reusable.
 
-A project-local umbrella should generally win over a global umbrella for project-specific content. A global umbrella should win only for genuinely cross-project workflows.
+Do not create or modify separate project-local umbrellas, support files, or archives. If embedded content cannot be safely generalized, retain its useful, sanitized details as a labeled reference or example under the global umbrella rather than dropping or deferring it.
 
 ### 4. Consolidate using the appropriate method
 
@@ -102,7 +81,7 @@ Move narrow-but-valuable content under the umbrella:
 
 Add a one-line pointer in the umbrella's `SKILL.md`.
 
-When moving project-local content into a global umbrella, remove project-specific assumptions and verify that the generalized instructions remain correct. If they cannot be generalized safely, keep the content project-local.
+All source packages consolidated in this pass must come from the global candidate list. Within them, separate durable class-level instructions from project/session-specific detail: put the durable lesson in `SKILL.md`, and retain useful sanitized specifics in `references/` as examples, reproduction recipes, or domain notes. Remove secrets and incidental identifiers, and do not invent generalizations that the source material does not support.
 
 ### 5. Preserve package integrity
 
@@ -165,14 +144,13 @@ If fewer than 10 skills are archived, do not assume the pass is complete. Re-sca
 
 First write a human-readable summary covering:
 
-- project-local clusters processed;
 - global clusters processed;
-- any cross-scope consolidations or promotions;
-- umbrellas created or patched;
+- any cross-scope consolidations or promotions (normally none; the candidate list is global-only);
+- global umbrellas created or patched;
 - support files moved;
 - packages archived;
 - skills intentionally kept and why;
-- decisions deferred to a later curating agent.
+- decisions deferred because material is unsafe, unverifiable, or cannot be preserved without project coupling.
 
 Then write this exact machine-readable block:
 
@@ -187,7 +165,7 @@ prunings:
     reason: <one short sentence - why archived with no merge target>
 ```
 
-Use scope-qualified names such as `project:<name>` and `global:<name>` whenever needed to distinguish skills.
+Use `global:<name>` names in the structured summary.
 
 Every skill moved to `.archive/` MUST appear in exactly one of the two lists. If skill X was consolidated into umbrella Y—whether by patching Y, writing a support file under Y, or creating Y with X's content absorbed—list X under `consolidations` with `into: Y`.
 

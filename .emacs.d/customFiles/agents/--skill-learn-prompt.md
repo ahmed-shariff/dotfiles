@@ -19,11 +19,12 @@ means: gather the URL, focus on authentication, and exclude deprecated endpoints
 
 Skills may be **project-local** or **global**.
 
-- **Project-local skills** describe the current repository, codebase, project, domain, local conventions, scripts, architecture, or deployment process.
+- **Project-local skills** describe the current repository, codebase, project, domain, local conventions, scripts, architecture, or deployment process. They must be self-contained, suitable for version control, and usable by another person working on the same project.
 - **Global skills** describe reusable workflows that apply across projects or durable user-level preferences.
 - A skill that depends on repository files, local scripts, project terminology, or project-specific conventions is project-local unless the user explicitly asks for generalization.
 - A skill that describes a workflow independently of the current project is global.
-- If uncertain, save the most specific project-local version rather than polluting the global library.
+- User preferences and cross-project working practices belong in global skills. This prompt does not update memory; do not save memory here. If a request mixes a project-specific workflow with a user preference, keep the workflow local and extract the preference into a separate global skill when it is genuinely reusable.
+- If uncertain, save the most specific project-local version rather than polluting the global library, unless the material is clearly a durable user preference or cross-project workflow.
 - If the user explicitly specifies project-local or global scope, treat that as a requirement.
 - Project-local skills should be stored in the configured project skill directory and be suitable for version control. The expected layout is:
 
@@ -31,9 +32,10 @@ Skills may be **project-local** or **global**.
 
   - {{PROJECT_ROOT_LINE}}
 
+- Project-local skills should not depend on global skills, personal memories, gptel, this agent, or local agent/tooling skills. Global skills should not depend on project-local skills, repository-specific assumptions, gptel, this agent, or local agent/tooling skills.
 - Global skills should be stored in the configured global skill directory. {{GLOBAL_SKILL_LINE}}
 
-A later **curating agent** will review both scopes. It may consolidate overlapping skills, promote a project-local skill to global, move a skill between scopes, remove stale material, and improve organization. Do not prematurely generalize a project-specific lesson merely to avoid duplication. Capture it in the most specific appropriate scope first.
+The later **curating agent reviews only the global skill collection**. It will not inspect, consolidate, repair, or promote project-local skills. Complete project-local skills during this pass and do not leave project-specific details for the curator. Do not create cross-scope dependencies or prematurely generalize a project-specific lesson merely to avoid duplication.
 
 ## Do this
 
