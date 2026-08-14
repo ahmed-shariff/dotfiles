@@ -253,14 +253,14 @@ Code
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
 
 ;;; misc-functions ************************************************************************
-(defmacro amsha/gptel-append-prompt-transform-functions (prompt &optional append-p)
+(defmacro amsha/gptel-append-prompt-transform-functions (prompt &optional prepend-p)
   "Append PROMPT to the end of the GPTel prompt.
 To be used as for `:prompt-transform-functions' in presets."
   `(list :append
          (list
           (lambda (_)
             (goto-char (point-max))
-            ,(when append-p
+            ,(when prepend-p
                `(text-property-search-backward 'gptel nil t))
             (insert ,prompt)))))
 
@@ -2505,6 +2505,13 @@ Guidelines:
              amsha/agent-add-tools-info
              amsha/cleanup-variables))
 
+(gptel-make-preset 'amsha/generate-title
+  :description "Used to generate a title for a conversation"
+  :parents '(model-cheap)
+  :prompt-transform-functions
+  (amsha/gptel-append-prompt-transform-functions
+   "Generate a title for this conversation."))
+
 ;; (gptel-make-preset 'amsha/--skill-updater-agent-prompt
 ;;   :prompt-transform-functions
 ;;   (amsha/gptel-append-prompt-transform-functions
@@ -2780,7 +2787,8 @@ Current memories:" sys-prompt)
    (plist-get (cdr (gptel-agent-read-file
                     "~/.emacs.d/customFiles/agents/--skill-learn-prompt.md"
                     (amsha/generate-agent-templates)))
-              :system)))
+              :system)
+   'prepend))
 
 ;;; code introspection tools **************************************************************
 (defun gptel--get-file-relative-to-root (file)
