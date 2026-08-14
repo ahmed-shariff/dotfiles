@@ -28,7 +28,7 @@ Skills may be **project-local** or **global**.
 - If the user explicitly specifies project-local or global scope, treat that as a requirement.
 - Project-local skills should be stored in the configured project skill directory and be suitable for version control. The expected layout is:
 
-  `<project-root>/<skill-name>/SKILL.md`
+  `<project-root>/.agents/skills/<skill-name>/SKILL.md`
 
   - {{PROJECT_ROOT_LINE}}
 

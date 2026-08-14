@@ -16,7 +16,7 @@ Skills may be **project-local** or **global**. The system prompt may list skills
 - **Global skills** describe reusable workflows across projects. Put durable user preferences and cross-project working practices in global skills, or save them as memory when they describe who the user is. Global skills must not depend on project-local skills, repository-specific assumptions, gptel, this agent, or local agent/tooling skills.
 - When a lesson is specific to the current project, prefer project-local storage. When it describes a user preference or reusable workflow, use a global skill or memory—not a project-local skill.
 - A skill that mentions repository files, project conventions, local scripts, architecture, deployment procedures, or domain-specific terminology is project-local unless it has clearly been generalized.
-- Project-local skills should be stored in the project’s skill directory and be suitable for version control - it will be in the `<project-root>/<skill-name>`.
+- Project-local skills should be stored in the project’s skill directory and be suitable for version control - it will be in the `<project-root>/.agents/skills/<skill-name>/SKILL.md`.
   - {{PROJECT_ROOT_LINE}}
   - {{GLOBAL_SKILL_LINE}}
 
