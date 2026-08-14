@@ -14,6 +14,7 @@
 (defvar amsha/okm-research-papers-id "34854c23-cf0a-40ba-b0c6-c9e5b3bb3030" "The id of the research_papers file.") ;; research_papers id TODO: think of a better way to do this?
 (defvar amsha/okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
 (defvar amsha/okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
+(defvar amsha/org-capture--skip-completing-read nil "Set when org-capture GOTO is non-nil")
 
 (add-to-list 'safe-local-variable-directories amsha/okm-base-directory)
 
@@ -1028,6 +1029,12 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 
 ;;  ***************************************************************
 
+(defun amsha/filter-org-capture-args (oldfun &rest args)
+  (let ((amsha/org-capture--skip-completing-read (car args)))
+    (apply oldfun args)))
+
+(advice-add #'org-capture :around #'amsha/filter-org-capture-args)
+
 (defun amsha/okm--ask-id (file prompt property)
   "."
   (save-window-excursion
@@ -1088,30 +1095,32 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 
 (defun amsha/okm-board-task-location ()
   "Return a org title with board task after prompting for it."
-  (let* ((ts (format-time-string "%I:%M %p" (current-time)))
-         (targets
-          (append
-           '(("--None--"))
-           (--map
-            (let* ((title (s-replace-regexp " \\[[0-9]+/[0-9]+\\]" "" (org-roam-node-title it)))
-                   (full-file-name (org-roam-node-file it))
-                   (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
-                   (todo-state (or (org-roam-node-todo it) "")))
-              (list (format "%-10s  %-30s %s"
-                            (propertize todo-state 'face (org-get-todo-face todo-state))
-                            (propertize file-name 'face 'marginalia-documentation)
-                            title)
-                    title
-                    (org-roam-node-id it)))
-            (org-roam-ql-nodes '([(and (= level 1) (like file $s1))] "%project_boards%")))))
-         (target (progn
-                   (assoc (completing-read "Select task: " targets nil t) targets))))
-    (if (cdr target)
-        (format "**** [%s] [[id:%s][%s]]  %%?"
-                ts
-                (nth 2 target)
-                (nth 1 target))
-      (format "**** [%s] %%?" ts))))
+  (if amsha/org-capture--skip-completing-read
+      ""
+    (let* ((ts (format-time-string "%I:%M %p" (current-time)))
+           (targets
+            (append
+             '(("--None--"))
+             (--map
+              (let* ((title (s-replace-regexp " \\[[0-9]+/[0-9]+\\]" "" (org-roam-node-title it)))
+                     (full-file-name (org-roam-node-file it))
+                     (file-name (format "%s/%s" (f-base (f-parent (f-parent full-file-name))) (file-name-base full-file-name)))
+                     (todo-state (or (org-roam-node-todo it) "")))
+                (list (format "%-10s  %-30s %s"
+                              (propertize todo-state 'face (org-get-todo-face todo-state))
+                              (propertize file-name 'face 'marginalia-documentation)
+                              title)
+                      title
+                      (org-roam-node-id it)))
+              (org-roam-ql-nodes '([(and (= level 1) (like file $s1))] "%project_boards%")))))
+           (target (progn
+                     (assoc (completing-read "Select task: " targets nil t) targets))))
+      (if (cdr target)
+          (format "**** [%s] [[id:%s][%s]]  %%?"
+                  ts
+                  (nth 2 target)
+                  (nth 1 target))
+        (format "**** [%s] %%?" ts)))))
 
 (defun amsha/okm-insert-timestamp ()
   (interactive)
@@ -1119,17 +1128,19 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 
 (defun amsha/okm-add-repository ()
   "Take a repo link and add that to the file as a node."
-  (let* ((link (read-string "Repository url: "))
-         (title (cond
-                 ((s-match "github" link)
-                  (format "github/%s"
-                          (s-replace ".git" "" (car (last (s-split "/" link))))))
-                 (t (read-string "Title: " link)))))
-    (format "%s
+  (if amsha/org-capture--skip-completing-read
+      ""
+    (let* ((link (read-string "Repository url: "))
+           (title (cond
+                   ((s-match "github" link)
+                    (format "github/%s"
+                            (s-replace ".git" "" (car (last (s-split "/" link))))))
+                   (t (read-string "Title: " link)))))
+      (format "%s
   :PROPERTIES:
   :ID:      %s
   :END:
-- %s" title (org-id-new) link)))
+- %s" title (org-id-new) link))))
 
 ;; (defun org-ask-location ()
 ;;   org-project-sprint-target-heading)
