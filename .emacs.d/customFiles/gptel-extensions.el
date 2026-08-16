@@ -437,22 +437,22 @@ Signals an error if a region is active, since region-based compaction is not imp
           (with-current-buffer source
             (goto-char (point-max))
             (setq-local amsha/gptel-archive-info archive-info)
-            (setq boo (gptel-request nil
-                        ;; Can't use with-preset 'amsha/generate-title because how gptel-request handles `gptel-prompt-transform-function'
-                        :transforms
-                        (cadr (plist-get (gptel-get-preset 'amsha/generate-title) :prompt-transform-functions))
-                        :callback
-                        (lambda (response _info)
-                          (when (stringp response)
-                            (with-current-buffer (find-file-noselect (car archive-info))
-                              (goto-char (point-min))
-                              (search-forward (cdr archive-info))
-                              (org-back-to-heading t)
-                              (when (re-search-forward
-                                     "\\[\\[.*\\]\\][ \t]*"
-                                     (line-end-position) t)
-                                (delete-region (point) (line-end-position))
-                                (insert (string-trim response))))))))))
+            (gptel-with-preset 'amsha/generate-title
+              (gptel-request nil
+                ;; Can't use just with-preset 'amsha/generate-title because how gptel-request handles `gptel-prompt-transform-function'
+                :transforms gptel-prompt-transform-functions
+                :callback
+                (lambda (response _info)
+                  (when (stringp response)
+                    (with-current-buffer (find-file-noselect (car archive-info))
+                      (goto-char (point-min))
+                      (search-forward (cdr archive-info))
+                      (org-back-to-heading t)
+                      (when (re-search-forward
+                             "\\[\\[.*\\]\\][ \t]*"
+                             (line-end-position) t)
+                        (delete-region (point) (line-end-position))
+                        (insert (string-trim response))))))))))
         (org-end-of-subtree t t)
         (amsha/add-compact-summary nil t)))))
 
