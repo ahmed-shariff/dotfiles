@@ -320,10 +320,12 @@ Otherwise, add ELEM as the last element."
 
 (advice-add 'gptel-org-set-topic :around #'amsha/gptel-org-set-topic)
 
-(defun amsha/add-compact-summary (arg)
-  "Compact the current Org subtree using gptel and insert a \"Compaction results\" heading tagged :compaction: after the current heading.
+(defun amsha/add-compact-summary (arg &optional no-confirm)
+  "Compact the current Org subtree using gptel.
 
-With ARG, pass the prefix argument to `gptel-send`.
+Insert a \"Compaction results\" heading tagged :compaction: after the
+current heading.  With ARG, pass the prefix argument to `gptel-send`.
+When NO-CONFIRM is non-nil, send without asking for confirmation.
 
 Signals an error if a region is active, since region-based compaction is not implemented."
   (interactive "P")
@@ -362,9 +364,83 @@ Signals an error if a region is active, since region-based compaction is not imp
                 (goto-char (pos-eol))
                 (org-set-tags "compaction"))))
       (add-hook 'gptel-post-response-functions hook-fn 99 t)
-      (when (y-or-n-p "Send?")
+      (when (or no-confirm (y-or-n-p "Send?"))
         (gptel-with-preset 'compaction
           (gptel-send arg))))))
+
+(defvar-local amsha/gptel-archive-info nil) ;;(buffer . headring-marker)
+
+(defun amsha/gptel-archive-conversation ()
+  "Archive or update the current gptel conversation in today's work daily."
+  (interactive)
+  (unless gptel-mode
+    (user-error "This command must be run in a gptel buffer"))
+  (let* ((source (current-buffer))
+         (start (save-excursion
+                  (goto-char (point-min))
+                  (skip-chars-forward "\n\t ")
+                  (org-roam-end-of-meta-data t)
+                  (point)))
+         (end (point-max))
+         (conversation (buffer-substring start end)))
+    (if (and (buffer-live-p (car-safe amsha/gptel-archive-info))
+             (marker-position (cdr-safe amsha/gptel-archive-info)))
+        (with-current-buffer (car amsha/gptel-archive-info)
+          (goto-char (marker-position (cdr amsha/gptel-archive-info)))
+          (org-back-to-heading t)
+          (forward-line)
+          (beginning-of-line)
+          (save-excursion
+            (delete-region
+             (point)
+             (save-excursion (org-end-of-subtree t t) (point))))
+          (insert-buffer-substring source start end)
+          (org-end-of-subtree t t)
+          (amsha/add-compact-summary nil t)
+          (display-buffer (current-buffer)))
+      (let ((org-roam-dailies-capture-templates
+             (list (append
+                    (copy-tree (assoc "d" org-roam-dailies-capture-templates))
+                    '(:immediate-finish t)))))
+        (org-roam-dailies-capture-today nil "d"))
+      (org-capture-goto-last-stored)
+      (gptel-mode +1)
+      (org-back-to-heading t)
+      ;; TODO: Use regexp match instead of maker - what if the note buffer got killed.
+      (let ((archive-info (cons (current-buffer) (point-marker))))
+        (goto-char (line-end-position))
+        (org-roam-node-insert)
+        (catch 'amsha/gptel-break-node-loop
+          (while t
+            (minibuffer-with-setup-hook
+                (lambda ()
+                  (define-key minibuffer-local-map (kbd "C-<return>")
+                              (lambda () (interactive)
+                                (throw 'amsha/gptel-break-node-loop nil))))
+              (org-roam-node-insert))))
+        (insert "\n")
+        (insert-buffer-substring source start end)
+        (save-excursion
+          (with-current-buffer source
+            (goto-char (point-max))
+            (setq-local amsha/gptel-archive-info archive-info)
+            (setq boo (gptel-request nil
+                        ;; Can't use with-preset 'amsha/generate-title because how gptel-request handles `gptel-prompt-transform-function'
+                        :transforms
+                        (cadr (plist-get (gptel-get-preset 'amsha/generate-title) :prompt-transform-functions))
+                        :callback
+                        (lambda (response _info)
+                          (when (stringp response)
+                            (with-current-buffer (car archive-info)
+                              (goto-char (cdr archive-info))
+                              (org-back-to-heading t)
+                              (when (re-search-forward
+                                     "\\[\\[.*\\]\\][ \t]*"
+                                     (line-end-position) t)
+                                (delete-region (point) (line-end-position))
+                                (insert (string-trim response))))))))))
+        (org-end-of-subtree t t)
+        (amsha/add-compact-summary nil t)))))
 
 (defun amsha/gptel-paper-agent ()
   "Paper agent."
@@ -3608,6 +3684,7 @@ then close the *gptel-context* buffer and return to gptel menu."
            ("C-c o q Q" . gptel-send)
            ("C-c o q n" . gptel-context-add)
            ("C-c o q y" . amsha/gptel-yank)
+           ("C-c o q a" . amsha/gptel-archive-conversation)
            :map gptel-mode-map
            ("C-c DEL" . amsha/erase-buffer-with-confirmation))
 
