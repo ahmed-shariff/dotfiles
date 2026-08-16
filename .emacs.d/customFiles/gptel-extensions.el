@@ -368,7 +368,7 @@ Signals an error if a region is active, since region-based compaction is not imp
         (gptel-with-preset 'compaction
           (gptel-send arg))))))
 
-(defvar-local amsha/gptel-archive-info nil) ;;(buffer . headring-marker)
+(defvar-local amsha/gptel-archive-info nil) ;;(buffer-file-name . ts-string to search)
 
 (defun amsha/gptel-archive-conversation ()
   "Archive or update the current gptel conversation in today's work daily."
@@ -383,10 +383,18 @@ Signals an error if a region is active, since region-based compaction is not imp
                   (point)))
          (end (point-max))
          (conversation (buffer-substring start end)))
-    (if (and (buffer-live-p (car-safe amsha/gptel-archive-info))
-             (marker-position (cdr-safe amsha/gptel-archive-info)))
-        (with-current-buffer (car amsha/gptel-archive-info)
-          (goto-char (marker-position (cdr amsha/gptel-archive-info)))
+    (if-let* ((source-buffer (car-safe amsha/gptel-archive-info))
+              (source-search-string (cdr-safe amsha/gptel-archive-info))
+              (_ (and (find-file-noselect source-buffer)
+                      (or (with-current-buffer (find-file-noselect source-buffer)
+                            (re-search-forward
+                             (format "^\\*[ \t]*\\[%s\\]" source-search-string)
+                             nil t))
+                          (prog1 nil
+                            (message "[ERROR] Missing ts string for archive replacement '%s'" source-search-string))))))
+        (with-current-buffer (find-file-noselect source-buffer)
+          (goto-char (point-min))
+          (re-search-forward (format "^\\*[ \t]*\\[%s\\]" source-search-string))
           (org-back-to-heading t)
           (forward-line)
           (beginning-of-line)
@@ -406,10 +414,15 @@ Signals an error if a region is active, since region-based compaction is not imp
       (org-capture-goto-last-stored)
       (gptel-mode +1)
       (org-back-to-heading t)
-      ;; TODO: Use regexp match instead of maker - what if the note buffer got killed.
-      (let ((archive-info (cons (current-buffer) (point-marker))))
+      (let ((archive-info (cons (buffer-file-name)
+                                (save-excursion
+                                  (beginning-of-line)
+                                  (when (re-search-forward
+                                         "\\[\\([0-9][0-9]:[0-9][0-9] [AP]M\\)\\]"
+                                         (line-end-position) t)
+                                    (match-string-no-properties 1))))))
         (goto-char (line-end-position))
-        (org-roam-node-insert)
+        (insert " ")
         (catch 'amsha/gptel-break-node-loop
           (while t
             (minibuffer-with-setup-hook
@@ -431,8 +444,9 @@ Signals an error if a region is active, since region-based compaction is not imp
                         :callback
                         (lambda (response _info)
                           (when (stringp response)
-                            (with-current-buffer (car archive-info)
-                              (goto-char (cdr archive-info))
+                            (with-current-buffer (find-file-noselect (car archive-info))
+                              (goto-char (point-min))
+                              (search-forward (cdr archive-info))
                               (org-back-to-heading t)
                               (when (re-search-forward
                                      "\\[\\[.*\\]\\][ \t]*"
