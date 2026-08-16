@@ -2725,10 +2725,15 @@ The tool applies batch replacements atomically. On success, will show the summar
 Current memories:" sys-prompt)
          (amsha/gptel-memory t))))))
 
+(gptel-make-preset 'amsha/--memory-tool
+  :tools '(:append
+           (("amsha/gptel-agent" "Memory"))))
+
 (gptel-make-preset 'amsha/refine-agent-self
   :description "Update skills/memory"
   :parents `(amsha/gptel-memory
              amsha/base-tools
+             amsha/--memory-tool
              amsha/agentmd-ctx
              amsha/agent-add-skills
              amsha/agent-add-tools-info

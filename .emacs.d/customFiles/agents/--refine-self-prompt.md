@@ -4,7 +4,7 @@ as-prmopt: true
 ---
 Review the conversation above and update two things:
 
-**Memory**: who the user is. Did the user reveal persona, desires, preferences, personal details, or expectations about how you should behave? Save facts about the user and durable preferences with the memory tool.
+**Memory**: who the user is. Did the user reveal persona, desires, preferences, personal details, or expectations about how you should behave? Save facts about the user and durable preferences with the `Memory` tool.
 
 **Skills**: how to do this class of task. Be ACTIVE—most sessions produce at least one skill update. A pass that does nothing is a missed learning opportunity, not a neutral outcome.
 
