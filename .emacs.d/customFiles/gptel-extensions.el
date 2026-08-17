@@ -2463,7 +2463,7 @@ demonstrate something to the user."
 ;; This can come from an md/org file
 (gptel-make-preset 'amsha/--agent-base-message
   :system
-  (format "You are an expert coding assistant operating inside emacs on a %s operating system. You help users by reading files, executing commands, editing code, and writing new files.
+  (format "You are an expert coding assistant operating inside emacs on a %s operating system on pc %S. You help users by reading files, executing commands, editing code, and writing new files.
 
 Available tools:
 {{TOOLSLIST}}
@@ -2483,7 +2483,8 @@ Guidelines:
             ('cygwin "Cygwin")
             ('ms-dos "MS-DOS")
             ('android "Android")
-            (_ (symbol-name system-type)))))
+            (_ (symbol-name system-type)))
+          (gethash 'system-name configurations "YELL AT USER NOW - missing pc name")))
 
 (gptel-make-preset 'amsha/agentmd-ctx
   :description "Add agent.md to context"
@@ -2577,7 +2578,7 @@ Guidelines:
                       "Bash")
                    "Read" "Grep" "Glob")))
 
-(gptel-make-preset 'amsha/agent-with-all
+(gptel-make-preset 'amsha/agent
   :description "Agent with skills, tool descs, and ctx."
   :parents `(amsha/--agent-base-message
              amsha/gptel-memory
