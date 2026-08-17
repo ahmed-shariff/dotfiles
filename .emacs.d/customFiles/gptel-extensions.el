@@ -376,6 +376,16 @@ Signals an error if a region is active, since region-based compaction is not imp
   (unless gptel-mode
     (user-error "This command must be run in a gptel buffer"))
   (let* ((source (current-buffer))
+         (context-line (if-let* ((cur-project (project-current))
+                                 (root (project-root cur-project))
+                                 (_ (not (equal (expand-file-name root)
+                                                (expand-file-name "~/")))))
+                           (format "- Conversation happened under project %S in directory %S on pc: %S\n\n"
+                                   root default-directory
+                                   (gethash 'system-name configurations "Check system-name in configurations.el"))
+                         (format "- Conversation happened in directory %S that didn't belong to a project on pc: %S\n\n"
+                                 default-directory
+                                 (gethash 'system-name configurations "Check system-name in configurations.el"))))
          (start (save-excursion
                   (goto-char (point-min))
                   (skip-chars-forward "\n\t ")
@@ -402,6 +412,7 @@ Signals an error if a region is active, since region-based compaction is not imp
             (delete-region
              (point)
              (save-excursion (org-end-of-subtree t t) (point))))
+          (insert context-line)
           (insert-buffer-substring source start end)
           (org-end-of-subtree t t)
           (amsha/add-compact-summary nil t)
@@ -432,6 +443,7 @@ Signals an error if a region is active, since region-based compaction is not imp
                                 (throw 'amsha/gptel-break-node-loop nil))))
               (org-roam-node-insert))))
         (insert "\n")
+        (insert context-line)
         (insert-buffer-substring source start end)
         (save-excursion
           (with-current-buffer source
