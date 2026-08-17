@@ -999,7 +999,7 @@ Include only information that should persist:
 - Key issues, constraints, and preferences
 - What remains to be done next
 
-For iterative discussions, summarize the final position rather than the full evolution. Preserve essential distinctions, especially between competing approaches, their purposes, strengths, and limitations. Remove repetition, minor details, and unsupported interpretation.
+For iterative discussions, summarize the final position relative to the beginning rather than the full evolution. Preserve essential distinctions, especially between competing approaches, their purposes, strengths, and limitations. Remove repetition, minor details, and unsupported interpretation.
 
 Write in the third person as the AI agent. Do not provide follow-up suggestions, commentary, or questions."))
 
