@@ -309,5 +309,8 @@ neofetch
 # rclone----------------------------------------------------------------------
 # source .sh_functions/rclone.sh 
 
+# zoxide----------------------------------------------------------------------
+eval "$(zoxide init zsh)"
+
 export PATH="$HOME/.poetry/bin:$PATH"
 export PATH="$PATH:$(go env GOBIN):$(go env GOPATH)/bin"
