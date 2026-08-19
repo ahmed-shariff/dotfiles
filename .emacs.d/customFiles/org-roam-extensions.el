@@ -788,14 +788,14 @@ If prefix arg used, search whole db."
                                             (like file $s5)
                                             (and (like file $s6) (like title $s7))
                                             (like file $s8)))]
-    "%index.org%" ;1
-    "%misc_topics.org%" ;2
-    "%People.org%" ;3
-    "%research topics.org%" ;4
-    "%tags.org%" ;5
-    "%project_boards/%.org%" ;6
+    "%/index.org%" ;1
+    "%/misc_topics.org%" ;2
+    "%/People.org%" ;3
+    "%/research topics.org%" ;4
+    "%/tags.org%" ;5
+    "%/project_boards/%.org%" ;6
     "%literature%" ;7
-    "%unclassified_index.org%" ;8
+    "%/unclassified_index.org%" ;8
     ))
 (org-roam-ql-add-saved-query 'lvl0 "file nodes" '(level= 0))
 (org-roam-ql-add-saved-query 'lvl1 "head nodes lvl1" '(level= 1))
