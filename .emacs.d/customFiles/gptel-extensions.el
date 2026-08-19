@@ -269,6 +269,34 @@ To be used as for `:prompt-transform-functions' in presets."
   (plist-get (cdr (gptel-agent-read-file file templates))
              :system))
 
+;; TODO Handle suffix returning lists
+(defmacro amsha/gptel-preset-system-append (suffix)
+  `(list
+    :function
+    (lambda (sys)
+      (lambda ()
+        (let ((res (gptel--parse-directive sys 'raw)))
+          (setf (car res)
+                (concat
+                 (car res)
+                 "\n\n"
+                 (cond
+                  ((stringp ,suffix) ,suffix)
+                  ((functionp ,suffix) (funcall ,suffix))
+                  (t (error "Unsupported suffix: %S" ,suffix)))))
+          res)))))
+
+;; TODO Handle suffix returning lists
+(defmacro amsha/gptel-preset-system-transform (suffix)
+  `(list
+    :function
+    (lambda (sys)
+      (lambda ()
+        (let ((res (gptel--parse-directive sys 'raw)))
+          (setf (car res)
+                (funcall ,suffix (car res)))
+          res)))))
+
 (defun add-before-special-or-append (lst elem special)
   "If last element of LST is SPECIAL, add ELEM before it.
 Otherwise, add ELEM as the last element."
@@ -2478,7 +2506,9 @@ In addition to the tools above, you may have access to other custom tools depend
 Guidelines:
 {{GUIDELINES}}
 
-{{SKILLS}}"
+{{SKILLS}}
+
+Writing patterns to follow:\n%s"
           (pcase system-type
             ('windows-nt "Windows")
             ('gnu/linux "Linux")
@@ -2495,68 +2525,76 @@ Guidelines:
 
 (gptel-make-preset 'amsha/agentmd-ctx
   :description "Add agent.md to context"
-  :context
-  `(:function (lambda (ctx)
-                (append ctx (list
-                             (expand-file-name "AGENT.md"
-                                               (locate-dominating-file default-directory "AGENT.md")))))))
+  :system
+  (amsha/gptel-preset-system-append
+   (lambda ()
+     (with-temp-buffer
+       (when-let* ((file (expand-file-name
+                         "AGENT.md"
+                         (locate-dominating-file default-directory "AGENT.md")))
+                   (_ (file-exists-p file)))
+         (gptel--insert-file-string file))
+       (buffer-string)))))
 
 (gptel-make-preset 'amsha/agent-add-skills
   :description "Replace {{SKILL}} with skills."
   :tools '(:append ("Skill"))
   :system
-  `(:function (lambda (sys-prompt)
-                (lazy-require 'gptel-agent)
-                (if (string-match "{{SKILLS}}" sys-prompt)
-                    (with-temp-buffer
-                      (insert sys-prompt)
-                      (gptel-agent--expand-templates
-                       (point-min)
-                       `(("SKILLS" . ,(if-let (skills (gptel-agent--update-skills))
-                                          (gptel-agent--skills-system-message skills)
-                                        ""))))
-                      (buffer-string))
-                  sys-prompt))))
+  (amsha/gptel-preset-system-transform
+   (lambda (sys-prompt)
+     (lazy-require 'gptel-agent)
+     (if (string-match "{{SKILLS}}" sys-prompt)
+         (with-temp-buffer
+           (insert sys-prompt)
+           (gptel-agent--expand-templates
+            (point-min)
+            `(("SKILLS" . ,(if-let (skills (gptel-agent--update-skills))
+                               (gptel-agent--skills-system-message skills)
+                             ""))))
+           (buffer-string))
+       sys-prompt))))
 
 (gptel-make-preset 'amsha/agent-add-tools-info
   :description "Fill {{TOOLSLIST}} and {{GUIDELINES}} in sys prompt."
   :system
-  `(:function (lambda (sys-prompt)
-                (lazy-require 'gptel-agent)
-                (let (snippets guidelines)
-                  (cl-loop for tool in gptel-tools
-                           when (gptel-agent-tool-p tool)
-                           do (let ((snippet (gptel-agent-tool-snippet tool))
-                                    (guideline (gptel-agent-tool-guideline tool)))
-                                (when snippet
-                                  (push (format "- %s: %s" (gptel-agent-tool-name tool) snippet) snippets))
-                                (when guideline
-                                  (push guideline guidelines))))
-                  (if (or snippets guidelines)
-                      (with-temp-buffer
-                        (insert sys-prompt)
-                        (gptel-agent--expand-templates
-                         (point-min)
-                         `(("TOOLSLIST" .
-                            ,(if snippets
-                                 (string-join (nreverse snippets) "\n")
-                               "None"))
-                           ("GUIDELINES" .
-                            ,(if guidelines
-                                 (string-join (nreverse guidelines) "\n")
-                               "None"))))
-                        (buffer-string))
-                    sys-prompt)))))
+  (amsha/gptel-preset-system-transform
+   (lambda (sys-prompt)
+     (lazy-require 'gptel-agent)
+     (let (snippets guidelines)
+       (cl-loop for tool in gptel-tools
+                when (gptel-agent-tool-p tool)
+                do (let ((snippet (gptel-agent-tool-snippet tool))
+                         (guideline (gptel-agent-tool-guideline tool)))
+                     (when snippet
+                       (push (format "- %s: %s" (gptel-agent-tool-name tool) snippet) snippets))
+                     (when guideline
+                       (push guideline guidelines))))
+       (if (or snippets guidelines)
+           (with-temp-buffer
+             (insert sys-prompt)
+             (gptel-agent--expand-templates
+              (point-min)
+              `(("TOOLSLIST" .
+                 ,(if snippets
+                      (string-join (nreverse snippets) "\n")
+                    "None"))
+                ("GUIDELINES" .
+                 ,(if guidelines
+                      (string-join (nreverse guidelines) "\n")
+                    "None"))))
+             (buffer-string))
+         sys-prompt)))))
 
 (gptel-make-preset 'amsha/cleanup-variables
   :description "Cleanup {{VAR}} in sys prompt."
   :system
-  `(:function (lambda (sys-prompt)
-                (with-temp-buffer
-                  (insert sys-prompt)
-                  (goto-char (point-min))
-                  (replace-regexp "{{.?*}}" "")
-                  (buffer-string)))))
+  (amsha/gptel-preset-system-transform
+   (lambda (sys-prompt)
+     (with-temp-buffer
+       (insert sys-prompt)
+       (goto-char (point-min))
+       (replace-regexp "{{.?*}}" "")
+       (buffer-string)))))
 
 (gptel-make-preset 'amsha/base-tools
   :description (if (eq system-type 'windows-nt)
