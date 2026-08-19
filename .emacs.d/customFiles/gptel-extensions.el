@@ -264,6 +264,11 @@ To be used as for `:prompt-transform-functions' in presets."
                `(text-property-search-backward 'gptel nil t))
             (insert ,prompt)))))
 
+(defun amsha/gptel-agent-read-system-from-file (file &optional templates)
+  "Load the file with `gptel-agent-read-file' and get `:system'."
+  (plist-get (cdr (gptel-agent-read-file file templates))
+             :system))
+
 (defun add-before-special-or-append (lst elem special)
   "If last element of LST is SPECIAL, add ELEM before it.
 Otherwise, add ELEM as the last element."
@@ -1880,10 +1885,8 @@ STRATEGIES-DEST-DIR defaults to `amsha/fabric-strategies-dir'."
   (let ((pattern-dir (alist-get pattern amsha/fabric--patterns-alist nil nil #'string-equal)))
     (if (not pattern-dir)
         (format "Error: pattern %s not found." pattern)
-      (if-let (body (plist-get
-                     (cdr (gptel-agent-read-file
-                           (expand-file-name "SYSTEM.md" pattern-dir)))
-                     :system))
+      (if-let (body (amsha/gptel-agent-read-system-from-file
+                     (expand-file-name "SYSTEM.md" pattern-dir)))
           (amsha/fabric-apply-variables body nil "") ;; TODO: INPUT should be something?
         (format "Could not load body of pattern %s" pattern)))))
 
@@ -2182,6 +2185,7 @@ ARG-VALUES is the list of arguments for the tool call."
  :function #'gptel-agent--execute-bash
  :description "Execute a bash command in the current working directory. Returns output of running a command in bash."
  :snippet "Execute bash commands (ls, grep, find, etc.)"
+ :guideline "- When other tools can be used prefer them over Bash as it is high friction and requires more effort from user."
  :args '(( :name "command"
            :type string
            :description "The Bash command to execute.  \
@@ -2197,6 +2201,7 @@ Example: 'ls -la | head -20' or 'grep -i error app.log | tail -50'"))
  :function #'gptel-agent--execute-pwsh
  :description "Execute a PowerShell command in the current working directory. Returns output of running a command in pwsh (with msys2, so commands like ls, pwd, grep, find also work)."
  :snippet "Execute PowerShell commands (including ls, pwd, grep, find, etc.)"
+ :guideline "- When other tools can be used prefer them over Powershell as it is high friction and requires more effort from user."
  :args '((:name "command"
           :type string
           :description "The PowerShell command to execute.
@@ -2484,7 +2489,9 @@ Guidelines:
             ('ms-dos "MS-DOS")
             ('android "Android")
             (_ (symbol-name system-type)))
-          (gethash 'system-name configurations "YELL AT USER NOW - missing pc name")))
+          (gethash 'system-name configurations "YELL AT USER NOW - missing pc name")
+          (amsha/gptel-agent-read-system-from-file
+           "~/.emacs.d/customFiles/agents/--unslop.md")))
 
 (gptel-make-preset 'amsha/agentmd-ctx
   :description "Add agent.md to context"
@@ -2843,10 +2850,9 @@ Current memories:" sys-prompt)
              amsha/cleanup-variables)
   :prompt-transform-functions
   (amsha/gptel-append-prompt-transform-functions
-   (plist-get (cdr (gptel-agent-read-file
-                    "~/.emacs.d/customFiles/agents/--refine-self-prompt.md"
-                    (amsha/generate-agent-templates)))
-              :system)))
+   (amsha/gptel-agent-read-system-from-file
+    "~/.emacs.d/customFiles/agents/--refine-self-prompt.md"
+    (amsha/generate-agent-templates))))
 
 (gptel-make-preset 'amsha/curate-skills-agent
   :description "Curate skills"
@@ -2858,29 +2864,26 @@ Current memories:" sys-prompt)
              amsha/cleanup-variables)
   :prompt-transform-functions
   (amsha/gptel-append-prompt-transform-functions
-   (plist-get
-    (cdr
-     (gptel-agent-read-file
-      "~/.emacs.d/customFiles/agents/--skill-curator-prompt.md"
-      (append
-       (amsha/generate-agent-templates)
-       `(("SKILLS" . ,(if-let (skills (--filter (equal "emacs" (plist-get it :author))
-                                                (gptel-agent--update-skills)))
-                          (concat
-                           "\n<available_skills>\n"
-                           (mapconcat (lambda (skill-def)
-                                        (format "  <skill>
+   (amsha/gptel-agent-read-system-from-file
+    "~/.emacs.d/customFiles/agents/--skill-curator-prompt.md"
+    (append
+     (amsha/generate-agent-templates)
+     `(("SKILLS" . ,(if-let (skills (--filter (equal "emacs" (plist-get it :author))
+                                              (gptel-agent--update-skills)))
+                        (concat
+                         "\n<available_skills>\n"
+                         (mapconcat (lambda (skill-def)
+                                      (format "  <skill>
     <name>%s</name>
     <location>%s</location>
     <description>%s</description>
   </skill>"
-                                                (car skill-def)
-                                                (cadr skill-def)
-                                                (plist-get (cddr skill-def) :description)))
-                                      skills "\n")
-                           "\n</available_skills>")
-                        ""))))))
-    :system)))
+                                              (car skill-def)
+                                              (cadr skill-def)
+                                              (plist-get (cddr skill-def) :description)))
+                                    skills "\n")
+                         "\n</available_skills>")
+                      "")))))))
 
 (gptel-make-preset 'amsha/learn-agent
   :description "Learn a new skill."
@@ -2892,10 +2895,9 @@ Current memories:" sys-prompt)
              amsha/cleanup-variables)
   :prompt-transform-functions
   (amsha/gptel-append-prompt-transform-functions
-   (plist-get (cdr (gptel-agent-read-file
-                    "~/.emacs.d/customFiles/agents/--skill-learn-prompt.md"
-                    (amsha/generate-agent-templates)))
-              :system)
+   (amsha/gptel-agent-read-system-from-file
+    "~/.emacs.d/customFiles/agents/--skill-learn-prompt.md"
+    (amsha/generate-agent-templates))
    'prepend))
 
 ;;; code introspection tools **************************************************************
@@ -3736,7 +3738,13 @@ then close the *gptel-context* buffer and return to gptel menu."
       gptel-quick-backend gptel-openai-response-backend
       ;; the gpt 5 models are reasoning models and the max tokens set is too small with quick.
       ;; See https://github.com/openai/openai-python/issues/2546
-      gptel-quick-model 'gpt-4.1-mini)
+      gptel-quick-model 'gpt-4.1-mini
+
+      gptel-system-prompt
+      (concat
+       "You are a large language model living in Emacs and a helpful assistant. Respond concisely.\n\n"
+       (amsha/gptel-agent-read-system-from-file
+        "~/.emacs.d/customFiles/agents/--unslop.md")))
 
 (custom-set-faces
  '(gptel-response-highlight ((t (:background "#112233" :extend t)))))
