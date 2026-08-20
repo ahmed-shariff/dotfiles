@@ -582,6 +582,117 @@ but also show links."
 
 (advice-add 'gptel-agent--read-url :override #'amsha/gptel-agent--read-url)
 
+(defun amsha/org-database-for-gptel (type query filter-query)
+  "Query the user's org-roam database.
+
+TYPE must be either \"nodes\" or \"notes\".
+
+When TYPE is \"nodes\", return nodes matching QUERY.  Each result
+contains the node's file, title, Org level, and TODO state.
+
+When TYPE is \"notes\", return previews for notes that reference nodes
+matching QUERY.  Each result contains the referring node's file, title,
+Org level, TODO state, and preview content.
+
+QUERY and FILTER-QUERY are strings containing valid org-roam-ql query
+expressions.  FILTER-QUERY may be nil or an empty string. If QUERY is
+nil or an empty string it will load all nodes.
+
+The return value is a JSON string."
+  (lazy-require 'org-roam-ql)
+  (unless (member type '("nodes" "notes"))
+    (user-error "TYPE must be either \"nodes\" or \"notes\", got %S" type))
+  (condition-case err
+      (let* ((query (when (and query
+                               (not (string-empty-p (string-trim query))))
+                      (read query)))
+             (nodes (if query
+                        (org-roam-ql-nodes query)
+                      (org-roam-ql--node-list)))
+             (filter-nodes
+              (when (and filter-query
+                         (not (string-empty-p (string-trim filter-query))))
+                (org-roam-ql-nodes (read filter-query))))
+             (filter-ids (mapcar #'org-roam-node-id filter-nodes))
+             (json-encoding-pretty-print t))
+        (when (and (null query) (null filter-nodes))
+          (error "QUERY and FILTER_NODES are both empty."))
+        (json-encode
+         `(("type" . ,type)
+           ("results" .
+            ,(pcase type
+               ("nodes"
+                (mapcar
+                 (lambda (node)
+                   `(("file" . ,(f-filename (org-roam-node-file node)))
+                     ("title" . ,(org-roam-node-title node))
+                     ("level" . ,(org-roam-node-level node))
+                     ("state" . ,(org-roam-node-todo node))))
+                 (if filter-nodes
+                     (seq-filter
+                      (lambda (node)
+                        (member (org-roam-node-id node) filter-ids))
+                      nodes)
+                   nodes)))
+
+               ("notes"
+                (let ((seen-content (make-hash-table :test #'equal))
+                      results)
+                  (em query (length (org-roam-ql-backlinks-get query :unique nil)))
+                  (dolist (backlink
+                           (if query
+                               (org-roam-ql-backlinks-get query :unique nil)
+                             (cl-loop for b in (org-roam-db-query
+                                                [:select [source dest pos properties]
+                                                         :from links
+                                                         :where (in source $v1)
+                                                         :and (= type "id")]
+                                                (apply #'vector
+                                                       filter-ids))
+                                      collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) b))
+                                                (org-roam-populate
+                                                 (org-roam-backlink-create
+                                                  :source-node (org-roam-node-create :id source-id)
+                                                  :target-node (org-roam-node-create :id dest-id)
+                                                  :point pos
+                                                  :properties properties))))))
+                    (let* ((source-node (org-roam-backlink-source-node backlink))
+                           (source-id (org-roam-node-id source-node)))
+                      (when (or (null filter-nodes)
+                                (member source-id filter-ids))
+                        (let ((content
+                               (org-roam-fontify-like-in-org-mode
+                                (save-excursion
+                                  (org-roam-with-temp-buffer
+                                      (org-roam-node-file source-node)
+                                    (org-with-wide-buffer
+                                     (goto-char (org-roam-backlink-point backlink))
+                                     (let ((preview
+                                            (funcall
+                                             org-roam-ql-preview-function
+                                             source-node
+                                             query)))
+                                       (dolist
+                                           (fn
+                                            org-roam-ql-preview-postprocess-functions)
+                                         (setq preview (funcall fn preview)))
+                                       preview)))))))
+                          ;; A file can contain several level-one headings
+                          ;; without those headings having node IDs.  Deduplicate
+                          ;; rendered previews rather than source node IDs.
+                          (let ((content-hash
+                                 (secure-hash 'sha256 content)))
+                            (unless (gethash content-hash seen-content)
+                              (puthash content-hash t seen-content)
+                              (push
+                               `(("file" . ,(f-filename (org-roam-node-file source-node)))
+                                 ("title" . ,(org-roam-node-title source-node))
+                                 ("level" . ,(org-roam-node-level source-node))
+                                 ("state" . ,(org-roam-node-todo source-node))
+                                 ("content" . ,content))
+                               results)))))))
+                  (nreverse results))))))))
+    (error (format "Failed to execulte - error %s" err))))
 
 ;;; openai reponse related setup **********************************************************
 (unless (featurep 'gptel-openai-responses-backend)
@@ -2493,6 +2604,83 @@ demonstrate something to the user."
  :confirm t
  :include t)
 
+(gptel-make-agent-tool
+ :name "org-database"
+ :function #'amsha/org-database-for-gptel
+ :description
+ "Query the user's org-roam database which includes user notes, project tasks and previous chat sessions.
+
+TYPE must be either \"nodes\" or \"notes\".
+
+For \"nodes\", return nodes matching QUERY. Each result includes:
+- file: the node's file name
+- title: the node title
+- level: the Org heading level, where 0 is a file node
+- state: the TODO state, if any
+
+For \"notes\", return previews for notes that reference nodes matching
+QUERY. Each result includes the referring note's file, title, Org level,
+TODO state, and rendered preview content.
+
+QUERY and FILTER_QUERY are strings containing valid query
+expressions. FILTER_QUERY is optional. When provided, it filters the
+returned nodes or referring notes. If QUERY is an empty string, that
+will consider notes referencing all nodes. Both FILTER_QUERY and QUERY
+cannot be empty at the same time.
+
+Valid query forms include:
+- (dailies-range &optional min max) - `min` and `max` date values.
+- (projects &optional file-filter state-filter) - project tasks, can be filted by file and state
+- (topics &optional file-filter) - topics/indices
+- (title str &optional exact-match) - nodes that match title, if `exact-match` is non-nil, match title exactly.
+- (file str) - nodes with file matching `str`
+- (and exp1 exp2 ...)
+- (or exp1 exp2 ...)
+- (not exp)
+
+Date values for dailies-range use Org date prompts, such as
+\"-2d\", \"+1m\", \"today\", \"tomorrow\", or \"<2025-01-01 Wed>\".
+
+`file-filter`,`state-filter`, `str` should be compatible with sql LIKE statements.
+
+Examples:
+(org-database
+ \"nodes\"
+ \"(or (project \\\"%hpui%\\\") (title \\\"%hpui%\\\"))\"
+ \"(file \\\"%papers%\\\")\")
+
+(org-database
+ \"notes\"
+ \"(title \\\"transformable wearable\\\")\"
+ nil)
+
+(org-database
+ \"notes\"
+ \"\"
+ \"(dailies-range \\\"-3w\\\")\")
+
+The return value is a JSON string."
+ :guideline "- Use `org-database` when you want to gather notes and previous chat sessions with user.\n- NEVER edit user's org-database under ANY circumstance. If there is somthing that needs change, bring it to the users attention."
+ :snippet "Get notes and session info from users org-database."
+ :args
+ '((:name "type"
+          :type string
+          :description
+          "The type of data to return. Must be either \"nodes\" or \"notes\"."
+          :enum ["nodes" "notes"])
+   (:name "query"
+          :type string
+          :description
+          "A string containing a valid org-roam-ql query expression.")
+   (:name "filter_query"
+          :type string
+          :optional t
+          :description
+          "An optional string containing a valid org-roam-ql query expression.
+The returned nodes or referring notes must also match this query."))
+ :category "okm"
+ :include t)
+
 ;; This can come from an md/org file
 (gptel-make-preset 'amsha/--agent-base-message
   :system
@@ -2522,6 +2710,9 @@ Writing patterns to follow:\n%s"
           (gethash 'system-name configurations "YELL AT USER NOW - missing pc name")
           (amsha/gptel-agent-read-system-from-file
            "~/.emacs.d/customFiles/agents/--unslop.md")))
+
+(gptel-make-preset 'amsha/org-database-tool
+  :tools '(:append (("okm" "org-database"))))
 
 (gptel-make-preset 'amsha/agentmd-ctx
   :description "Add agent.md to context"
@@ -2629,6 +2820,7 @@ Writing patterns to follow:\n%s"
              amsha/gptel-memory
              amsha/base-tools
              amsha/web-tools
+             amsha/org-database-tool
              amsha/agentmd-ctx
              amsha/agent-add-skills
              amsha/agent-add-tools-info
@@ -2639,6 +2831,7 @@ Writing patterns to follow:\n%s"
   :parents `(amsha/--agent-base-message
              amsha/read-only-tools
              amsha/web-tools
+             amsha/org-database-tool
              amsha/agentmd-ctx
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
@@ -2649,6 +2842,7 @@ Writing patterns to follow:\n%s"
   :parents `(amsha/--agent-base-message
              amsha/base-tools
              amsha/web-tools
+             amsha/org-database-tool
              amsha/agentmd-ctx
              amsha/agent-add-tools-info
              amsha/cleanup-variables))

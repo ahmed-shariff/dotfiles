@@ -764,6 +764,22 @@ If prefix arg used, search whole db."
            (push (cons key idx) bibtex-keys))))
       (bibtex-keys-to-nodes (-map #'car (-take N bibtex-keys))))))
 
+(org-roam-ql-defexpansion 'topics
+  "Topics filtering."
+  (lambda (&optional file-filter)
+    (append '(and 'tp)
+            (when file-filter
+              `((file ,file-filter))))))
+
+(org-roam-ql-defexpansion 'projects
+  "Projects filtering."
+  (lambda (&optional file-filter state-filter)
+    (append '(and 'pr)
+            (when file-filter
+              `((file ,file-filter)))
+            (when state-filter
+              `((todo ,state-filter))))))
+
 (org-roam-ql-register-sort-fn "key-order-inc" (lambda (el1 el2)
                                                 (string< (cdr (assoc "KEY_ORDER" (org-roam-node-properties el1)))
                                                          (cdr (assoc "KEY_ORDER" (org-roam-node-properties el2))))))
