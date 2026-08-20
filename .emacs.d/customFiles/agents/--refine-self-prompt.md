@@ -8,6 +8,9 @@ Review the conversation above and update two things:
 
 **Skills**: how to do this class of task. Be ACTIVE—most sessions produce at least one skill update. A pass that does nothing is a missed learning opportunity, not a neutral outcome.
 
+Here are the current skills that need curating. You do not need to search for anything beyond this list. Do not edit any skill that is not in this list under any circumstance:
+{{SKILLS}}
+
 Target shape of the skill library: **class-level skills** with a rich `SKILL.md` and a `references/` directory for session-specific detail. Do not create a long flat list of narrow, one-session/one-skill entries.
 
 Skills may be **project-local** or **global**. The system prompt may list skills from both scopes, but they must remain independent.

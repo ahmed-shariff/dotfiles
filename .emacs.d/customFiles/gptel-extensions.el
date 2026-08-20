@@ -2877,6 +2877,26 @@ Current memories:" sys-prompt)
   :tools '(:append
            (("amsha/gptel-agent" "Memory"))))
 
+(defun amsha/generate-agent-template-with-emacs-skills ()
+  (append
+   (amsha/generate-agent-templates)
+   `(("SKILLS" . ,(if-let (skills (--filter (equal "emacs" (plist-get it :author))
+                                            (gptel-agent--update-skills)))
+                      (concat
+                       "\n<available_skills>\n"
+                       (mapconcat (lambda (skill-def)
+                                    (format "  <skill>
+    <name>%s</name>
+    <location>%s</location>
+    <description>%s</description>
+  </skill>"
+                                            (car skill-def)
+                                            (cadr skill-def)
+                                            (plist-get (cddr skill-def) :description)))
+                                  skills "\n")
+                       "\n</available_skills>")
+                    "")))))
+
 (gptel-make-preset 'amsha/refine-agent-self
   :description "Update skills/memory"
   :parents `(amsha/gptel-memory
@@ -2890,7 +2910,7 @@ Current memories:" sys-prompt)
   (amsha/gptel-append-prompt-transform-functions
    (amsha/gptel-agent-read-system-from-file
     "~/.emacs.d/customFiles/agents/--refine-self-prompt.md"
-    (amsha/generate-agent-templates))))
+    (amsha/generate-agent-template-with-emacs-skills))))
 
 (gptel-make-preset 'amsha/curate-skills-agent
   :description "Curate skills"
@@ -2904,24 +2924,7 @@ Current memories:" sys-prompt)
   (amsha/gptel-append-prompt-transform-functions
    (amsha/gptel-agent-read-system-from-file
     "~/.emacs.d/customFiles/agents/--skill-curator-prompt.md"
-    (append
-     (amsha/generate-agent-templates)
-     `(("SKILLS" . ,(if-let (skills (--filter (equal "emacs" (plist-get it :author))
-                                              (gptel-agent--update-skills)))
-                        (concat
-                         "\n<available_skills>\n"
-                         (mapconcat (lambda (skill-def)
-                                      (format "  <skill>
-    <name>%s</name>
-    <location>%s</location>
-    <description>%s</description>
-  </skill>"
-                                              (car skill-def)
-                                              (cadr skill-def)
-                                              (plist-get (cddr skill-def) :description)))
-                                    skills "\n")
-                         "\n</available_skills>")
-                      "")))))))
+    (amsha/generate-agent-template-with-emacs-skills))))
 
 (gptel-make-preset 'amsha/learn-agent
   :description "Learn a new skill."
