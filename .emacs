@@ -630,7 +630,10 @@ advice, files on WSL can not be saved."
     (let ((gitignore-location (expand-file-name ".cache/gitignore" user-emacs-directory)))
       (magit--with-safe-default-directory gitignore-location
         (magit-run-git-with-editor "pull"))
-      (let* ((gitignore-files (--map (cons (f-base it) it) (f-files gitignore-location (lambda (f) (string= "gitignore" (f-ext f))))))
+      (let* ((gitignore-files (--map (cons (s-replace ".gitignore" "" (f-relative it gitignore-location)) it)
+                                     (f-files gitignore-location
+                                              (lambda (f) (string= "gitignore" (f-ext f)))
+                                              'recursive)))
              (target-gitignore-content (f-read-text (cdr (assoc (completing-read "Add gitignore for: " gitignore-files) gitignore-files)))))
         (magit-with-toplevel
           (magit--gitignore target-gitignore-content ".gitignore")))))
