@@ -63,6 +63,7 @@ First, write a high-level one-line summary of the commit.
 
 Finally, provide a detail of the changes being made.
 The detailed summary should contain, at a high-level, what changes were made, why they were made.
+For each file include a summary of what was done, then a high level summary at the end.
 
 Here's an example diff:
 ```
@@ -80,11 +81,19 @@ modified   gptel-openai.el
 The one-line summary of the above diff would look like:
 \"gptel--request-data get reasoning capability from prop\"
 
-Here's an example of the detailed summary that may follow the above one-line summary:
-\"The models with reasoning capabilities were hard coded in openai's
-`gptel--request-data`. This commit replaces it with
-`gptel--model-capable-p` to get the reasoning capabilitie from the
-model properties.\"
+Here's an example of the detailed summary that may follow the above one-line summary that include file level details and high level information:
+\"* (em/st/re/gp/gptel-request.el): Fixed the reasoning capability
+strings.
+* (em/st/re/gp/gptel-openai.el, em/st/re/gp/gptel-anthropic.el): Update the
+reasoning capability prop
+
+Now the reasoning capability is uniform across the backends.
+\"
+
+- Try and group files as much as possible when generating summary
+- Each file or file list should be in paranthesis
+- Keep it concise
+- Full path should not be included as is: If including full paths (relative to root), the MUST use shortened style - where the first two letters of each directory is used, like `ex/hp/sr/ex/exp.hy` for `experiment/hpui/src/experiment/exp.hy`
 
 If there are parts in the detailed summary that I need to provide more details for, include them as follows
 \"[TODO: provide reason for X]\", where X is the part that needs more clarification.
@@ -92,7 +101,7 @@ If there are parts in the detailed summary that I need to provide more details f
 If there are any potentials bug or issues in the changes, include them as follows:
 \"FIX:\n X\", where X is the short explanation of the bugs/issues.
 
-The number of charachters in a single line should never exceed 80 charachters.
+The number of charachters in a single line should never exceed 70 charachters.
 
 THE FILE DIFFS:
 ```
