@@ -1772,7 +1772,11 @@ targets."
    lsp-pylsp-plugins-yapf-enabled t
    lsp-pylsp-plugins-pylint-enabled nil
    lsp-completion-provider :none ;; we use Corfu!
-   )
+
+   lsp-clients-clangd-executable nil
+   lsp-clients-clangd-args '("--background-index" "--clang-tidy" "--completion-style=detailed")
+  )
+  (add-to-list 'lsp-language-id-configuration '(c++-mode . "cpp"))
   (lsp-register-custom-settings '(("omnisharp.useGlobalMono" "always"))))
 
 
@@ -2513,6 +2517,12 @@ This is a fix for pet-mode running on edits in org-mode."
   :custom
   (arduino-cli-warnings 'all)
   (arduino-cli-verify t))
+
+;;arduino-mode***********************************************************
+(use-package platformio-mode
+  :hook (c++-mode . (lambda ()
+                      (platformio-conditionally-enable)
+                      (lsp-deferred))))
 
 ;;lua mdoe **************************************************************
 (use-package lua-mode
