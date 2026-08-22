@@ -325,6 +325,26 @@ Otherwise, add ELEM as the last element."
     (yank arg)))
 
 ;;;###autoload
+(defun amsha/insert-persp-buffer-name ()
+  "Insert a persp buffer at point."
+  (interactive)
+  (lazy-require 'consult)
+  (let* ((state-func (consult--buffer-preview))
+         (buf (consult--read
+               (funcall
+                (plist-get consult--source-perspective
+                           :items))
+               :prompt        "Buffer to insert: "
+               :category      'buffer
+               :require-match t
+               :async-wrap    nil
+               :state         state-func)))
+    (insert
+     (if-let (file (buffer-file-name (get-buffer buf)))
+         (concat "file:" file)
+       (concat "buffer:" buf)))))
+
+;;;###autoload
 (defun amsha/org-gptel-mode-hook ()
   "Check and load gptel-mode if gptel props exists."
   (when (save-excursion
@@ -3958,8 +3978,10 @@ then close the *gptel-context* buffer and return to gptel menu."
            ("C-c o q n" . gptel-context-add)
            ("C-c o q y" . amsha/gptel-yank)
            ("C-c o q a" . amsha/gptel-archive-conversation)
+
            :map gptel-mode-map
-           ("C-c DEL" . amsha/erase-buffer-with-confirmation))
+           ("C-c DEL" . amsha/erase-buffer-with-confirmation)
+           ("C-c i" . amsha/insert-persp-buffer-name))
 
 (transient-insert-suffix 'gptel-menu '(-1 -1)
   '("B" "get/create gptel buffer"
