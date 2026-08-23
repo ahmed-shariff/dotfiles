@@ -2320,6 +2320,88 @@ COMMAND is the psh command string to execute."
                                          exit-code output)))))))))
     proc))
 
+(defvar gptel-agent--pwsh-command-rules
+  '(("Get-ChildItem")
+    ("Get-Location")
+    ("Get-Content")
+    ("Get-Date")
+    ("Select-String")
+    ("Select-Object")
+    ("Where-Object")
+    ("Format-Table")
+    ("Format-List")
+    ("Test-Path")
+    ("Resolve-Path")
+    ("Measure-Object")
+    ("Compare-Object")
+    ("git" "git[ \t]+\\(?:diff\\|log\\|status\\|show\\|grep\\|check-ignore\\|rev-parse\\|ls-files\\)")
+    ("git" nil t)
+    ("dotnet" "dotnet[ \t]+--version[ \t\r\n]*\\>")
+    ("New-Item" nil t)
+    ("Set-Item" nil t)
+    ("Set-Content" nil t)
+    ("Add-Content" nil t)
+    ("Out-File" nil t)
+    ("Export-" nil t)
+    ("Remove-Item" nil t)
+    ("Move-Item" nil t)
+    ("Copy-Item" nil t)
+    ("Rename-Item" nil t)
+    ("Clear-Content" nil t)
+    ("Start-Process" nil t)
+    ("python" "python[ \t]+-m[ \t]+py_compile")
+    ("poetry" "poetry[ \t]+\\(list\\)" "poetry[ \t]+run\\>")
+    (nil "[<>$()]\\|::\\|Invoke-\\|ForEach-Object[ \t]*{" t))
+  "PowerShell confirmation rules.
+
+Each rule is (COMMAND-NAME ALLOWED-REGEXP DISALLOWED-REGEXP).  A one-element
+rule allows the command with any arguments.  A two-element rule allows only
+matching arguments.  DISALLOWED-REGEXP may be t to reject every invocation.
+A nil COMMAND-NAME rule applies to every command segment.  An allowed rule
+for a command takes precedence over its disallowed catch-all rule.")
+
+(defun gptel-agent--pwsh-command-read-only-p (command)
+  "Return nil when every segment of COMMAND is obviously read-only.
+
+This heuristic skips confirmation only for configured rules.  Unknown commands
+and disallowed commands return nil.  COMMAND is inspected in Elisp and is not
+executed."
+  (let ((unsafe nil))
+    (dolist (segment (split-string command "[;|&\n\r]+" t))
+      (let* ((segment (string-trim segment))
+             (name (car (split-string segment "[ \t\r\n]+" t)))
+             (rules (cl-remove-if-not
+                     (lambda (rule)
+                       (or (null (car rule))
+                           (string-equal name (car rule))))
+                     gptel-agent--pwsh-command-rules))
+             (allowed (cl-some
+                       (lambda (rule)
+                         (let ((regexp (nth 1 rule)))
+                           (or (and (null regexp) (null (nth 2 rule)))
+                               (and regexp (string-match-p regexp segment)))))
+                       rules))
+             (disallowed (cl-some
+                          (lambda (rule)
+                            (let ((regexp (nth 2 rule)))
+                              (or (eq regexp t)
+                                  (and regexp
+                                       (string-match-p regexp segment)))))
+                          rules)))
+        (--map (em (list
+                          segment
+                          name
+                          it
+                          (and (nth 1 it) (string-match-p (nth 1 it) segment))
+                          (and (nth 2 it) (or
+                                           (eq (nth 2 it) t)
+                                           (string-match-p (nth 2 it) segment)))))
+                     rules)
+        (unless (or allowed
+                    (and rules (not disallowed)))
+          (setq unsafe t))))
+    unsafe))
+
 (defun amsha/gptel-agent--execute-powershell-preview-setup (arg-values _info)
   "Setup preview overlay for powershell command execution tool call.
 
@@ -2376,7 +2458,7 @@ Example: 'ls -la | head -20' or 'grep -i error app.log | tail -50'"))
 Can include pipes and shell operators.
 Example: 'ls | Select-Object -First 20' or 'Get-ChildItem | Select-String error'"))
  :category "amsha/gptel-agent"
- :confirm t
+ :confirm #'gptel-agent--pwsh-command-read-only-p
  :include t
  :async t)
 
