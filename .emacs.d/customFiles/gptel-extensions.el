@@ -2535,7 +2535,7 @@ Requirements:
 After successful application, return a summary of changed files and
 replacement counts."
  :snippet "Apply multiple file edits in one batch."
- :guideline "- Use EditBatch for multiple independent, targeted text replacements across files. Provide absolute paths, exact old_str/new_str pairs, and enough context to make each old_str unambiguous. Keep edits minimal and non-overlapping; merge related or adjacent changes into one edit. Edits are applied independently, so do not rely on one edit being applied before another."
+ :guideline "- When EditBatch is there, do not use other tools to edit files. EditBatch allows multiple independent, targeted text replacements across files. Provide absolute paths, exact old_str/new_str pairs, and enough context to make each old_str unambiguous. Keep edits minimal and non-overlapping; merge related or adjacent changes into one edit. Edits are applied independently, so do not rely on one edit being applied before another."
  :function #'amsha/gptel-agent--edit-files-batch
  :args '((:name "edits"
           :description "A list of file edits to apply in one batch. Each edit must be independent and non-overlapping."
