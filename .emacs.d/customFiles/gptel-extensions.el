@@ -448,6 +448,7 @@ Signals an error if a region is active, since region-based compaction is not imp
                          (format "- Conversation happened in directory %S that didn't belong to a project on pc: %S\n\n"
                                  default-directory
                                  (gethash 'system-name configurations "Check system-name in configurations.el"))))
+         (title amsha/gptel-buffer-title)
          (start (save-excursion
                   (goto-char (point-min))
                   (skip-chars-forward "\n\t ")
@@ -504,31 +505,42 @@ Signals an error if a region is active, since region-based compaction is not imp
                               (lambda () (interactive)
                                 (throw 'amsha/gptel-break-node-loop nil))))
               (org-roam-node-insert))))
-        (insert "\n")
-        (insert context-line)
+        (insert " " title "\n"
+                context-line)
         (insert-buffer-substring source start end)
         (save-excursion
           (with-current-buffer source
-            (goto-char (point-max))
-            (setq-local amsha/gptel-archive-info archive-info)
-            (gptel-with-preset 'amsha/generate-title
-              (gptel-request nil
-                ;; Can't use just with-preset 'amsha/generate-title because how gptel-request handles `gptel-prompt-transform-function'
-                :transforms gptel-prompt-transform-functions
-                :callback
-                (lambda (response _info)
-                  (when (stringp response)
-                    (with-current-buffer (find-file-noselect (car archive-info))
-                      (goto-char (point-min))
-                      (search-forward (cdr archive-info))
-                      (org-back-to-heading t)
-                      (when (re-search-forward
-                             "\\[\\[.*\\]\\][ \t]*"
-                             (line-end-position) t)
-                        (delete-region (point) (line-end-position))
-                        (insert (string-trim response))))))))))
+            (setq-local amsha/gptel-archive-info archive-info)))
         (org-end-of-subtree t t)
         (amsha/add-compact-summary nil t)))))
+
+(defvar-local amsha/gptel-buffer-title nil)
+
+(defun amsha/generate-title-for-gptel-buffer (&optional _beg _end)
+  "Generate a title on a gptel buffer and store it in `amsha/gptel-buffer-title'."
+  (interactive)
+  (let ((buf (current-buffer)))
+    (when (or
+           (null _beg) ;; if this is nil, then its being called interactively
+           ;; MAYBE: Consider file buffers as well?
+           (and
+            (null amsha/gptel-buffer-title)
+            (null (buffer-file-name buf)))) ;; in a gptel buffer
+      (gptel-with-preset 'amsha/generate-title
+        (gptel-request nil
+          ;; Can't use just with-preset 'amsha/generate-title because how gptel-request handles `gptel-prompt-transform-function'
+          :transforms gptel-prompt-transform-functions
+          :callback
+          (lambda (response _info)
+            (when (stringp response)
+              (with-current-buffer buf
+                (message "Generated title for buffer (%s): %S" (buffer-name buf) response)
+                (setq amsha/gptel-buffer-title response)
+                ;; NOTE: if something else has set this, respect that?
+                (unless list-buffers-directory
+                  (setq list-buffers-directory response))))))))))
+
+(add-to-list 'gptel-post-response-functions #'amsha/generate-title-for-gptel-buffer)
 
 (defun amsha/gptel-paper-agent ()
   "Paper agent."
