@@ -2963,7 +2963,9 @@ Writing patterns to follow:\n%s"
   :parents '(model-cheap)
   :prompt-transform-functions
   (amsha/gptel-append-prompt-transform-functions
-   "Generate a title for this conversation."))
+   (concat
+    (propertize "What should I do next?" 'gptel 'response) ;; making sure presets and such dont get triggered.
+    "Generate a title for this conversation. Return plain text title only.")))
 
 ;; (gptel-make-preset 'amsha/--skill-updater-agent-prompt
 ;;   :prompt-transform-functions
