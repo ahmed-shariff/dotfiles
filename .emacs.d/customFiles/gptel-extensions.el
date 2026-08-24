@@ -545,22 +545,31 @@ a chat session quickly.
 
 If the region is active, its text is inserted into the new session."
   (interactive)
-  (gptel (read-buffer
-          "Create or choose gptel buffer: "
-          (cl-loop for i upfrom 1
-                   for buf = (format "*gptel-buffer-%s*" i)
-                   until (or (null (get-buffer buf)) (> i 100))
-                   finally return buf)
-          nil          ; DEFAULT and REQUIRE-MATCH
-          (lambda (b)                    ; PREDICATE
-            ;; NOTE: buffer check is required (#450)
-            (and-let* ((buf (get-buffer (or (car-safe b) b))))
-              (buffer-local-value 'gptel-mode buf))))
-         nil
-         (and (use-region-p)
-              (buffer-substring (region-beginning)
-                                (region-end)))
-         t))
+  (lazy-require 'consult)
+  (gptel
+   (let* ((state-func (consult--buffer-preview))
+          (buf (consult--read
+                (-map
+                 #'buffer-name
+                 (--filter
+                  (buffer-local-value 'gptel-mode it)
+                  (buffer-list)))
+                :prompt        "Create or choose gptel buffer: "
+                :category      'buffer
+                :require-match nil
+                :async-wrap    nil
+                :state         state-func)))
+     (if (string-empty-p buf)
+         (cl-loop for i upfrom 1
+                  for buf = (format "*gptel-buffer-%s*" i)
+                  until (or (null (get-buffer buf)) (> i 100))
+                  finally return buf)
+       buf))
+   nil
+   (and (use-region-p)
+        (buffer-substring (region-beginning)
+                          (region-end)))
+   t))
 
 (defun amsha/gptel-agent--read-url (tool-cb url)
   "Fetch URL text and call TOOL-CB with it,
