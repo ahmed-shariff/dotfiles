@@ -535,10 +535,11 @@ Signals an error if a region is active, since region-based compaction is not imp
             (when (stringp response)
               (with-current-buffer buf
                 (message "Generated title for buffer (%s): %S" (buffer-name buf) response)
-                (setq amsha/gptel-buffer-title response)
                 ;; NOTE: if something else has set this, respect that?
-                (unless list-buffers-directory
-                  (setq list-buffers-directory response))))))))))
+                (when (or (null list-buffers-directory)
+                          (string-equal list-buffers-directory amsha/gptel-buffer-title))
+                  (setq list-buffers-directory response))
+                (setq amsha/gptel-buffer-title response)))))))))
 
 (add-to-list 'gptel-post-response-functions #'amsha/generate-title-for-gptel-buffer)
 
