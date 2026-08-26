@@ -2848,14 +2848,14 @@ Writing patterns to follow:\n%s"
   :tools '(:append (("okm" "org-database"))))
 
 (gptel-make-preset 'amsha/agentmd-ctx
-  :description "Add agent.md to context"
+  :description "Add agents.md to context"
   :system
   (amsha/gptel-preset-system-append
    (lambda ()
      (with-temp-buffer
        (when-let* ((file (expand-file-name
-                         "AGENT.md"
-                         (locate-dominating-file default-directory "AGENT.md")))
+                         "AGENTS.md"
+                         (locate-dominating-file default-directory "AGENTS.md")))
                    (_ (file-exists-p file)))
          (gptel--insert-file-string file))
        (buffer-string)))))
@@ -3155,8 +3155,7 @@ The tool applies batch replacements atomically. On success, will show the summar
       (:type string
        :description "Replacement entry text.")))))
  :category "amsha/gptel-agent"
- :confirm t
- :include nil)
+ :confirm t)
 
 (setf (alist-get "Memory" gptel--tool-preview-alist
                    nil nil #'string-equal)
