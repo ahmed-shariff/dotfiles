@@ -2308,13 +2308,54 @@ EDITS is an vector of (:path PATH :ols_str OLD-STR :new_str NEW-STR) triples."
     (save-excursion
       (goto-char from)
       (insert
-       (propertize "Files To Edit:" 'font-lock-face 'font-lock-keyword-face)
+       (propertize "Files To Edit:\n" 'font-lock-face 'font-lock-keyword-face)
        " " (mapconcat (lambda (f)
-                        (propertize (concat "\"" f "\"")
+                        (propertize (concat "- \"" f "\"\n")
                                     'font-lock-face 'font-lock-constant-face))
                       (delete-dups (nreverse files-affected)) " ")
        "\n"))
     (gptel-agent--confirm-overlay from (point) t)))
+
+(defvar-local amsha/gptel-agent--edit-files-batch-always-allow nil
+  "Files that may be edited without confirmation.")
+
+(defun amsha/gptel-agent--edit-files-batch-confirm (edits)
+  "Return nil if every file in EDITS is allowed."
+  (and edits
+       (let ((allowed
+              (mapcar #'expand-file-name
+                      amsha/gptel-agent--edit-files-batch-always-allow)))
+         (cl-loop
+          for edit across edits
+          for path = (plist-get edit :path)
+          thereis
+          (not (and path
+                    (member (expand-file-name path) allowed)))))))
+
+(defun amsha/gptel-agent-add-allowed-files-to-edit ()
+  "Add a file selected from the current perspective to the allow list."
+  (interactive)
+  (lazy-require 'consult)
+  (let* ((state-func (consult--buffer-preview))
+         (buf (consult--read
+               (funcall
+                (plist-get consult--source-perspective :items))
+               :prompt "File to allow: "
+               :category 'buffer
+               :require-match t
+               :async-wrap nil
+               :state state-func))
+         (buffer (get-buffer buf))
+         (file (and buffer (buffer-file-name buffer))))
+    (unless file
+      (user-error "Selected buffer is not visiting a file"))
+    (setq-local
+     amsha/gptel-agent--edit-files-batch-always-allow
+     (cons (expand-file-name file)
+           (delete
+            (expand-file-name file)
+            amsha/gptel-agent--edit-files-batch-always-allow)))
+    (message "Added %s to the edit allow list" file)))
 
 (defun gptel-agent--execute-pwsh (callback command)
   "Execute COMMAND asynchronously in pwsh and call CALLBACK with output.
@@ -2575,7 +2616,7 @@ replacement counts."
                     (:type string
                      :description "Replacement string")))))
  :category "amsha/gptel-agent"
- :confirm t
+ :confirm #'amsha/gptel-agent--edit-files-batch-confirm
  :include t)
 
 (gptel-make-agent-tool
