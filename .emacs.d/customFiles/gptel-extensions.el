@@ -325,24 +325,47 @@ Otherwise, add ELEM as the last element."
     (yank arg)))
 
 ;;;###autoload
-(defun amsha/insert-persp-buffer-name ()
-  "Insert a persp buffer at point."
+(defun amsha/insert-buffer-file-name ()
+  "Insert a buffer of file name from either project or persp at point."
   (interactive)
   (lazy-require 'consult)
-  (let* ((state-func (consult--buffer-preview))
-         (buf (consult--read
-               (funcall
-                (plist-get consult--source-perspective
-                           :items))
-               :prompt        "Buffer to insert: "
-               :category      'buffer
-               :require-match t
-               :async-wrap    nil
-               :state         state-func)))
-    (insert
-     (if-let (file (buffer-file-name (get-buffer buf)))
-         (concat "file:" file)
-       (concat "buffer:" buf)))))
+  (consult--multi
+   (list
+    ;; copied from `consult-projectile--source-projectile-file'
+    (list :name     "Project File"
+          :narrow   '(?f . "File")
+          :category 'file
+          :face     'consult-file
+          :history  'file-name-history
+          :state    #'consult--file-preview
+          :enabled  #'projectile-project-root
+          :action
+          (lambda (file)
+            (insert
+             (concat "file:" (expand-file-name file (project-root (project-current))))))
+          :items
+          (lambda ()
+            (projectile-project-files (projectile-acquire-root))))
+
+    ;; copied from `consult--source-perspective'
+    (list :name     "Perspective"
+          :narrow   '(?p . "Perspective")
+          :category 'buffer
+          :state    #'consult--buffer-preview
+          :action
+          (lambda (buf)
+            (insert
+             (if-let (file (buffer-file-name (get-buffer buf)))
+                 (concat "file:" file)
+               (concat "buffer:" buf))))
+          :items
+          (lambda ()
+            (let ((current-persp-buffers (persp-get-buffer-names)))
+              (consult--buffer-query :sort 'visibility
+                                     :as #'buffer-name
+                                     :predicate
+                                     (lambda (it)
+                                       (member (buffer-name it) current-persp-buffers)))))))))
 
 ;;;###autoload
 (defun amsha/org-gptel-mode-hook ()
@@ -4153,7 +4176,7 @@ then close the *gptel-context* buffer and return to gptel menu."
 
            :map gptel-mode-map
            ("C-c DEL" . amsha/erase-buffer-with-confirmation)
-           ("C-c i" . amsha/insert-persp-buffer-name))
+           ("C-c i" . amsha/insert-buffer-file-name))
 
 (transient-insert-suffix 'gptel-menu '(-1 -1)
   '("B" "get/create gptel buffer"
