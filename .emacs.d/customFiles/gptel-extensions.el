@@ -2383,8 +2383,28 @@ COMMAND is the psh command string to execute."
                                          exit-code output)))))))))
     proc))
 
-(defvar gptel-agent--pwsh-command-rules
-  '(("Get-ChildItem")
+(defvar gptel-agent--shell-command-rules
+  '(;; Shared commands
+    ("git" "git[ \t]+\\(?:diff\\|log\\|status\\|show\\|grep\\|check-ignore\\|rev-parse\\|ls-files\\)")
+    ("dotnet" "dotnet[ \t]+--version[ \t\r\n]*\\>")
+    ("python" "python\\(?:3\\)?[ \t]+-m[ \t]+py_compile")
+    ("poetry" "poetry[ \t]+\\(list\\)")
+
+    ;; Bash and MSYS commands
+    ("ls")
+    ("pwd")
+    ("cat")
+    ("grep")
+    ("rg")
+    ("find")
+    ("head")
+    ("tail")
+    ("sort")
+    ("uniq")
+    ("wc")
+
+    ;; PowerShell cmdlets and aliases
+    ("Get-ChildItem")
     ("Get-Location")
     ("Get-Content")
     ("Get-Date")
@@ -2397,9 +2417,15 @@ COMMAND is the psh command string to execute."
     ("Resolve-Path")
     ("Measure-Object")
     ("Compare-Object")
-    ("git" "git[ \t]+\\(?:diff\\|log\\|status\\|show\\|grep\\|check-ignore\\|rev-parse\\|ls-files\\)")
-    ("git" nil t)
-    ("dotnet" "dotnet[ \t]+--version[ \t\r\n]*\\>")
+
+    ;; Always reject write-oriented commands
+    ("rm" nil t)
+    ("mv" nil t)
+    ("cp" nil t)
+    ("mkdir" nil t)
+    ("touch" nil t)
+    ("chmod" nil t)
+    ("chown" nil t)
     ("New-Item" nil t)
     ("Set-Item" nil t)
     ("Set-Content" nil t)
@@ -2412,8 +2438,8 @@ COMMAND is the psh command string to execute."
     ("Rename-Item" nil t)
     ("Clear-Content" nil t)
     ("Start-Process" nil t)
-    ("python" "python[ \t]+-m[ \t]+py_compile")
-    ("poetry" "poetry[ \t]+\\(list\\)" "poetry[ \t]+run\\>")
+
+    ;; Shell syntax that should remain conservative
     (nil "[<>$()]\\|::\\|Invoke-\\|ForEach-Object[ \t]*{" t))
   "PowerShell confirmation rules.
 
@@ -2423,7 +2449,7 @@ matching arguments.  DISALLOWED-REGEXP may be t to reject every invocation.
 A nil COMMAND-NAME rule applies to every command segment.  An allowed rule
 for a command takes precedence over its disallowed catch-all rule.")
 
-(defun gptel-agent--pwsh-command-read-only-p (command)
+(defun gptel-agent--shell-command-read-only-p (command)
   "Return nil when every segment of COMMAND is obviously read-only.
 
 This heuristic skips confirmation only for configured rules.  Unknown commands
@@ -2437,7 +2463,7 @@ executed."
                      (lambda (rule)
                        (or (null (car rule))
                            (string-equal name (car rule))))
-                     gptel-agent--pwsh-command-rules))
+                     gptel-agent--shell-command-rules))
              (allowed (cl-some
                        (lambda (rule)
                          (let ((regexp (nth 1 rule)))
@@ -2505,7 +2531,7 @@ ARG-VALUES is the list of arguments for the tool call."
 Can include pipes and standard shell operators.
 Example: 'ls -la | head -20' or 'grep -i error app.log | tail -50'"))
  :category "amsha/gptel-agent"
- :confirm t
+ :confirm #'gptel-agent--shell-command-read-only-p
  :include t
  :async t)
 
@@ -2521,7 +2547,7 @@ Example: 'ls -la | head -20' or 'grep -i error app.log | tail -50'"))
 Can include pipes and shell operators.
 Example: 'ls | Select-Object -First 20' or 'Get-ChildItem | Select-String error'"))
  :category "amsha/gptel-agent"
- :confirm #'gptel-agent--pwsh-command-read-only-p
+ :confirm #'gptel-agent--shell-command-read-only-p
  :include t
  :async t)
 
