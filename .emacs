@@ -254,6 +254,35 @@ Used for debugging."
   (advice-remove func #'amsha/benchmark-function-wrapper)
   (setq amsha/benchmark-tracked-functions (remove func amsha/benchmark-tracked-functions)))
 
+(cl-defmacro amsha/defun-with-timed-retry (name args (&key delay retry (limit 3) on-error-form local-counter) &rest body)
+  "Define NAME with BODY. One error attempt timed retries.
+
+ARGS is NAME's argument list.
+
+DELAY is the number of seconds before retrying.  RETRY is a no-argument
+function called by the timer.  LIMIT is the number of retries, defaulting
+to 3.  ON-ERROR-FORM runs before each retry attempt.
+
+When LOCAL-COUNTER is non-nil, make the generated counter buffer-local."
+  (declare (indent 2) (debug defun))
+  (let ((counter (intern (format "%s--retry-count" name)))
+        (counter-definition (if local-counter 'defvar-local 'defvar))
+        (err-sym (gensym 'err)))
+    `(progn
+       (,counter-definition ,counter 0)
+       (defun ,name ,args
+         (condition-case ,err-sym
+             (prog1 (progn ,@body)
+               (setq ,counter 0))
+           (error ,on-error-form
+            (if (>= ,counter ,limit)
+                (progn
+                  (setq ,counter 0)
+                  (error "Retried %d times and %s did not succeed: %s"
+                         ,limit ',name (error-message-string ,err-sym)))
+              (cl-incf ,counter)
+              (run-with-timer ,delay nil ,retry))))))))
+
 (defmacro plist-multi-put (plist &rest args)
   "Put KEY VALUES list in setq."
   (let ((list nil)
@@ -2960,9 +2989,13 @@ Used with atomic-chrome."
   :defer t
   :straight git-gutter-fringe
   :diminish
-  :hook ((text-mode . git-gutter-mode)
-         (prog-mode . git-gutter-mode))
+  :hook ((text-mode . amsha/enable-git-gutter)
+         (prog-mode . amsha/enable-git-gutter))
   :config
+  (amsha/defun-with-timed-retry amsha/enable-git-gutter ()
+    (:delay 0.2 :retry #'amsha/enable-git-gutter :local-counter t)
+    (git-gutter-mode +1))
+
   (setq git-gutter:update-interval 2)
   (setq git-gutter-fr:side 'right-fringe)
   (unless nil ;; dw/is-termux
@@ -3412,20 +3445,10 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 
   (advice-add 'dashboard-agenda--formatted-time :around #'amsha/dashboard-agenda--formatted-time)
 
-  (defvar amsha/dashboard-get-agenda-wrapper--calls 0)
-
   ;; Handling opening too many files on windows and mode not being set correctly
-  (defun amsha/dashboard-get-agenda-wrapper (oldfun)
-    (condition-case err
-        (prog1 (funcall oldfun)
-          (setq amsha/dashboard-get-agenda-wrapper--calls 0))
-      (error (amsha/refresh-mode-in-org-mode-buffers)
-             (if (> amsha/dashboard-get-agenda-wrapper--calls 3)
-                 (progn
-                   (setq amsha/dashboard-get-agenda-wrapper--calls 0)
-                   (error "Retried 3 times and dashboard-open didn't work: %s" err))
-               (prog1 (run-with-timer 0.1 nil #'dashboard-open)
-                 (cl-incf amsha/dashboard-get-agenda-wrapper--calls))))))
+  (amsha/defun-with-timed-retry amsha/dashboard-get-agenda-wrapper (oldfun)
+    (:delay 0.1 :retry #'dashboard-open :on-error-form (amsha/refresh-mode-in-org-mode-buffers))
+    (funcall oldfun))
 
   (advice-add 'dashboard-get-agenda :around #'amsha/dashboard-get-agenda-wrapper)
 
