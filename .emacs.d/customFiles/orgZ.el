@@ -15,6 +15,7 @@
 (defvar amsha/okm-parent-property-name "BRAIN_PARENTS" "Property name containing parent ids.")
 (defvar amsha/okm-parent-id-type-name "brain-parent" "ID type name used to refer to parent.")
 (defvar amsha/org-capture--skip-completing-read nil "Set when org-capture GOTO is non-nil")
+(defvar amsha/org-agenda-org-roam-ql-cache-location "~/.emacs.d/org-agenda-org-roam-ql-cache")
 
 (add-to-list 'safe-local-variable-directories amsha/okm-base-directory)
 
@@ -117,10 +118,10 @@
       org-tag-alist '(("TEMP_BIB") ("notebody") ("compaction"))
       org-export-with-broken-links t
       org-agenda-persistent-marks t
-      org-agenda-files (when (f-exists-p "~/.emacs.d/org-agenda-org-roam-ql-cache")
+      org-agenda-files (when (f-exists-p amsha/org-agenda-org-roam-ql-cache-location)
                          (string-split
                           (with-temp-buffer
-                            (insert-file "~/.emacs.d/org-agenda-org-roam-ql-cache")
+                            (insert-file amsha/org-agenda-org-roam-ql-cache-location)
                             (buffer-string))
                           "\n"))
       org-refile-targets '((org-agenda-files :maxlevel . 6))
@@ -2157,7 +2158,7 @@ The format of the response should be as follows:
                    "%project_boards%" "agendatrack" "agendauntrack" "%google_calender_unlisted%" "%archive%")))
       "\n"))
     (write-region (point-min) (point-max)
-                  (file-truename (expand-file-name "~/.emacs.d/org-agenda-org-roam-ql-cache")))))
+                  (file-truename (expand-file-name amsha/org-agenda-org-roam-ql-cache-location)))))
 
 (defun amsha/okm-summarize-project-board ()
   "A stripped down version of the board usable with LLMs."
