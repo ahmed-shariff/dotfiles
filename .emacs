@@ -254,7 +254,7 @@ Used for debugging."
   (advice-remove func #'amsha/benchmark-function-wrapper)
   (setq amsha/benchmark-tracked-functions (remove func amsha/benchmark-tracked-functions)))
 
-(cl-defmacro amsha/defun-with-timed-retry (name args (&key delay retry (limit 3) on-error-form local-counter) &rest body)
+(cl-defmacro amsha/defun-with-timed-retry (name args (&key delay retry (limit 3) on-error-form local-counter enable-logs) &rest body)
   "Define NAME with BODY. One error attempt timed retries.
 
 ARGS is NAME's argument list.
@@ -263,25 +263,36 @@ DELAY is the number of seconds before retrying.  RETRY is a no-argument
 function called by the timer.  LIMIT is the number of retries, defaulting
 to 3.  ON-ERROR-FORM runs before each retry attempt.
 
+ENABLE-LOG prints logs on each retry.
+
 When LOCAL-COUNTER is non-nil, make the generated counter buffer-local."
   (declare (indent 2) (debug defun))
   (let ((counter (intern (format "%s--retry-count" name)))
         (counter-definition (if local-counter 'defvar-local 'defvar))
-        (err-sym (gensym 'err)))
+        (err-sym (gensym 'err))
+        (buf-sym (gensym 'buf)))
     `(progn
        (,counter-definition ,counter 0)
        (defun ,name ,args
-         (condition-case ,err-sym
-             (prog1 (progn ,@body)
-               (setq ,counter 0))
-           (error ,on-error-form
-            (if (>= ,counter ,limit)
-                (progn
-                  (setq ,counter 0)
-                  (error "Retried %d times and %s did not succeed: %s"
-                         ,limit ',name (error-message-string ,err-sym)))
-              (cl-incf ,counter)
-              (run-with-timer ,delay nil ,retry))))))))
+         (let ((,buf-sym (current-buffer)))
+           (condition-case ,err-sym
+               (prog1 (progn ,@body)
+                 (setq ,counter 0))
+             (error
+              ,on-error-form
+              ,(when enable-logs
+                 `(message "Retrying (%d/%d) %s in buffer %s - error: %s"
+                           ,counter ,limit ',name ,buf-sym (error-message-string ,err-sym)))
+              (if (>= ,counter ,limit)
+                  (progn
+                    (setq ,counter 0)
+                    (error "Retried %d times and %s did not succeed: %s"
+                           ,limit ',name (error-message-string ,err-sym)))
+                (cl-incf ,counter)
+                (run-with-timer (* ,delay ,counter) nil
+                                (lambda ()
+                                  (with-current-buffer ,buf-sym
+                                    (funcall ,retry))))))))))))
 
 (defmacro plist-multi-put (plist &rest args)
   "Put KEY VALUES list in setq."
@@ -3447,7 +3458,7 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 
   ;; Handling opening too many files on windows and mode not being set correctly
   (amsha/defun-with-timed-retry amsha/dashboard-get-agenda-wrapper (oldfun)
-    (:delay 0.1 :retry #'dashboard-open :on-error-form (amsha/refresh-mode-in-org-mode-buffers))
+    (:delay 0.1 :retry #'dashboard-open :on-error-form (amsha/refresh-mode-in-org-mode-buffers) :enable-logs t)
     (funcall oldfun))
 
   (advice-add 'dashboard-get-agenda :around #'amsha/dashboard-get-agenda-wrapper)
