@@ -814,7 +814,20 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
 
   (add-hook 'magit-status-sections-hook #'amsha/magit-visualize-keybinds 99)
   (add-hook 'magit-status-sections-hook #'amsha/magit-insert-branches-sections 'append)
-  (add-hook 'amsha/magit-minimal-status-sections-hook #'amsha/magit-visualize-keybinds 99))
+  (add-hook 'amsha/magit-minimal-status-sections-hook #'amsha/magit-visualize-keybinds 99)
+
+  (amsha/defun-with-timed-retry amsha/with-retry-magit-turn-on-auto-revert-mode-if-desired (oldfn &rest rest)
+    (:delay 0.5 :limit 5 :local-counter t :retry #'magit-turn-on-auto-revert-mode-if-desired :enable-logs nil)
+    (funcall oldfn rest))
+
+  (advice-add 'magit-turn-on-auto-revert-mode-if-desired :around #'amsha/with-retry-magit-turn-on-auto-revert-mode-if-desired)
+
+  (amsha/defun-with-timed-retry amsha/with-retry-vc-refresh-state (oldfn)
+    (:delay 0.45 :limit 5 :local-counter t :retry #'vc-refresh-state :enable-logs nil)
+    (funcall oldfn))
+
+  (advice-add 'vc-refresh-state :around #'amsha/with-retry-vc-refresh-state))
+
 
 (use-package magit-prime
   :config
