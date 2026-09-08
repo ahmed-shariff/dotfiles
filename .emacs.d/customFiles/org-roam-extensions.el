@@ -294,7 +294,7 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
 Like `org-roam-buffer-display-dedicated', but always
 prompt when used interactively"
   (interactive (list (org-roam-node-read (when (derived-mode-p 'org-roam-mode)
-                                           (when-let (_node (org-roam-node-at-point))
+                                           (when-let* (_node (org-roam-node-at-point))
                                              (org-roam-node-title _node))))))
   (org-roam-buffer-display-dedicated node))
 
@@ -369,17 +369,17 @@ see also `org-roam-backlinks-section-with-ql-filter'.
                  ;; if compaction results are there, use that
                  ;; TODO: have some sort of a toggle for this?
                  (or
-                  (when-let ((org-map-scope (if (org-before-first-heading-p) 'file 'tree))
-                             (content (save-excursion
-                                       (goto-char beg)
-                                       (org-map-entries
-                                        (lambda ()
-                                          (buffer-substring-no-properties
-                                           (progn (org-beginning-of-line)
-                                                  (point))
-                                           (progn (org-end-of-subtree)
-                                                  (point))))
-                                        "+compaction" org-map-scope))))
+                  (when-let* ((org-map-scope (if (org-before-first-heading-p) 'file 'tree))
+                              (content (save-excursion
+                                         (goto-char beg)
+                                         (org-map-entries
+                                          (lambda ()
+                                            (buffer-substring-no-properties
+                                             (progn (org-beginning-of-line)
+                                                    (point))
+                                             (progn (org-end-of-subtree)
+                                                    (point))))
+                                          "+compaction" org-map-scope))))
                     (format "%s\n%s\n%s"
                             (save-excursion
                               (goto-char beg)
@@ -724,7 +724,7 @@ If prefix arg used, search whole db."
   (lambda (min max)
     (->>
      (org-roam-db-query [:select [id properties] :from nodes :where (like file $s1) :and (= level 1)] "%research_papers%")
-     (--map (when-let ((key-order (alist-get "KEY_ORDER" (cadr it) nil nil #'string-equal))) 
+     (--map (when-let* ((key-order (alist-get "KEY_ORDER" (cadr it) nil nil #'string-equal))) 
               (cons (car it) (string-to-number key-order))))
      (--filter (and (cdr it) (> (cdr it) min) (< (cdr it) max)))
      (--map (org-roam-node-from-id (car it))))))
@@ -734,7 +734,7 @@ If prefix arg used, search whole db."
   (lambda (min max)
     (->>
      (org-roam-db-query [:select [id properties] :from nodes :where (like file $s1) :and (= level 1)] "%research_papers%")
-     (--map (when-let ((key-order (alist-get "YEAR" (cadr it) nil nil #'string-equal))) 
+     (--map (when-let* ((key-order (alist-get "YEAR" (cadr it) nil nil #'string-equal))) 
               (cons (car it) (string-to-number key-order))))
      (--filter (and (cdr it) (> (cdr it) min) (< (cdr it) max)))
      (--map (org-roam-node-from-id (car it))))))

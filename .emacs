@@ -335,7 +335,7 @@ git rev-parse --show-superproject-working-tree --show-toplevel | head -1"
   ;; KLUDGE: This is to prevent magit from loading during stratup
   (when (featurep 'magit)
     (let ((default-directory (magit--safe-default-directory (or filename default-directory))))
-      (when-let (project-root (magit-git-string "rev-parse" "--show-superproject-working-tree" "--show-toplevel"))
+      (when-let* (project-root (magit-git-string "rev-parse" "--show-superproject-working-tree" "--show-toplevel"))
         (file-truename (format "%s/" project-root))))))
 
 (defun copy-buffer-file-name (buffer-file-name)
@@ -1298,7 +1298,7 @@ targets."
   ;;;; 1. project.el (project-roots)
   (setq consult-project-root-function
         (lambda ()
-          (when-let (project (project-current))
+          (when-let* (project (project-current))
             (car (project-roots project)))))
   ;;;; 2. projectile.el (projectile-project-root)
   ;; (autoload 'projectile-project-root "projectile")
@@ -2883,7 +2883,7 @@ Used with atomic-chrome."
       (invert-face 'mode-line)
       (run-with-timer 0.1 nil #'invert-face 'mode-line)
       (when pomm-audio-enabled
-          (when-let (sound (alist-get kind pomm-audio-files))
+          (when-let* (sound (alist-get kind pomm-audio-files))
             (play-sound-file sound 0.05)))))
 
   (advice-add 'pomm--maybe-play-sound :override #'pomm--play-sound-file))

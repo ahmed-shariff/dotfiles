@@ -790,7 +790,7 @@ Else create a text annotations at point."
                   (org-noter--session-property-text session))
          (let ((location (org-noter--parse-location-property (org-noter--get-containing-element)))
                (content-to-add (org-get-heading t t t t))
-               (highlight-coords (when-let (highlight-data
+               (highlight-coords (when-let* (highlight-data
                                              (org-entry-get (point) "HIGHLIGHT"))
                                    (cadr (pdf-highlight-coords
                                     (eval ;; FIXME: Should I be worried about saftey here?
@@ -972,7 +972,7 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 
 ;; from https://emacs.stackexchange.com/questions/44664/apply-ansi-color-escape-sequences-for-org-babel-results
 (defun org-babel-ansi-color-result ()
-  (when-let ((beg (org-babel-where-is-src-block-result nil nil)))
+  (when-let* ((beg (org-babel-where-is-src-block-result nil nil)))
     (save-excursion
       (goto-char beg)
       (when (looking-at org-babel-result-regexp)
@@ -1575,7 +1575,7 @@ With C-u C-u C-u prefix, force run all research-papers."
                            (setq tags (append tags '("PDF_ERROR")))))
                   (push 'txt-file changes))))
             (unless (or (org-entry-get pom "OPENAI_FILE_ID") (string-empty-p (org-entry-get pom "OPENAI_FILE_ID")))
-              (when-let ((text-file-name (org-entry-get pom "PDF_TEXT_FILE")))
+              (when-let* ((text-file-name (org-entry-get pom "PDF_TEXT_FILE")))
                 (org-entry-put pom "OPENAI_FILE_ID"
                                (plist-get
                                 (amsha/add-file-to-openai text-file-name)

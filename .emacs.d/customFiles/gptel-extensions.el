@@ -813,8 +813,8 @@ The return value is a JSON string."
   (if-let (info (or info
                     (and gptel--fsm-last
                          (gptel-fsm-info gptel--fsm-last))))
-      (when-let ((queries (plist-get info :file-search-call-queries))
-                 (results (plist-get info :file-search-call-results)))
+      (when-let* ((queries (plist-get info :file-search-call-queries))
+                  (results (plist-get info :file-search-call-results)))
         (insert "\n * Queries:\n- " (string-join queries "\n- "))
         (insert "\n * Results:\n- "
                 (string-join (--map (format "id: ~%s~  name: ~%s~  score: ~%s~\n  #+BEGIN_QUOTE\n%s\n  #+END_QUOTE"
@@ -831,7 +831,7 @@ The return value is a JSON string."
   (if-let (info (or info
                     (and gptel--fsm-last
                          (gptel-fsm-info gptel--fsm-last))))
-      (when-let ((action (plist-get info :web-search-call-action)))
+      (when-let* ((action (plist-get info :web-search-call-action)))
         (pcase (plist-get action :type)
           ("search"
            (insert "\n * Queries:\n- " (string-join (plist-get action :queries) "\n- ")
@@ -1514,7 +1514,7 @@ Summarize the context thoroughly and comprehensively.
                                  (setf cite-list (-uniq
                                                   (append
                                                    (-flatten (s-match-strings-all "cite:[a-z0-9_\\-&]*" ret-string))
-                                                   (when-let (results (plist-get info :file-search-call-results))
+                                                   (when-let* (results (plist-get info :file-search-call-results))
                                                          (--map (concat "cite:" (string-replace ".txt" "" (plist-get it :filename)))
                                                                 results)))))
                                  ret-string))
@@ -3855,7 +3855,7 @@ If region is active, mark all sections within the region."
                     (save-excursion
                       (goto-char beg)
                       (while (< (point) end)
-                        (when-let ((s (magit-section-at)))
+                        (when-let* ((s (magit-section-at)))
                           (push s res)
                           (goto-char (oref s end)))
                         (forward-char 1)))
@@ -3913,7 +3913,7 @@ If region is active, mark all sections within the region."
        ((cl-typep sec 'gptel-context-preview-section)
         (let* ((parent (oref (oref sec parent) value))
                (parent-src parent))
-          (when-let ((idx (gptel-context--index-of-source parent-src)))
+          (when-let* ((idx (gptel-context--index-of-source parent-src)))
             (let* ((entry (nth idx gptel-context))
                    (spec (cdr (ensure-list entry)))
                    (ovs (plist-get spec :overlays))
@@ -3952,7 +3952,7 @@ If region is active, mark all sections within the region."
        ((cl-typep sec 'gptel-context-preview-section)
         (let* ((parent (oref (oref sec parent) value))
                (parent-src parent))
-          (when-let ((idx (gptel-context--index-of-source parent-src)))
+          (when-let* ((idx (gptel-context--index-of-source parent-src)))
             (let* ((entry (nth idx gptel-context))
                    (spec (cdr (ensure-list entry)))
                    (ovs (plist-get spec :overlays))
