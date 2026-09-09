@@ -355,7 +355,7 @@ Otherwise, add ELEM as the last element."
           :action
           (lambda (buf)
             (insert
-             (if-let (file (buffer-file-name (get-buffer buf)))
+             (if-let* ((file (buffer-file-name (get-buffer buf))))
                  (concat "file:" file)
                (concat "buffer:" buf))))
           :items
@@ -425,7 +425,7 @@ Signals an error if a region is active, since region-based compaction is not imp
         (user-error "That is not entirely implemented/tested"))
       (goto-char (pos-eol))
       (setq heading-mark (point-marker))
-      (if-let (pos (gptel-org--get-topic-start))
+      (if-let* ((pos (gptel-org--get-topic-start)))
           (goto-char pos)
         (while (org-up-heading-safe) nil))
       (setq heading-level (org-current-level))
@@ -810,9 +810,9 @@ The return value is a JSON string."
 
 (defun amsha/gptel-oai-response-insert-file-search-query-and-results (&optional info)
   (interactive)
-  (if-let (info (or info
-                    (and gptel--fsm-last
-                         (gptel-fsm-info gptel--fsm-last))))
+  (if-let* ((info (or info
+                      (and gptel--fsm-last
+                           (gptel-fsm-info gptel--fsm-last)))))
       (when-let* ((queries (plist-get info :file-search-call-queries))
                   (results (plist-get info :file-search-call-results)))
         (insert "\n * Queries:\n- " (string-join queries "\n- "))
@@ -828,9 +828,9 @@ The return value is a JSON string."
 
 (defun amsha/gptel-oai-response-insert-web-search-action-info (&optional info)
   (interactive)
-  (if-let (info (or info
-                    (and gptel--fsm-last
-                         (gptel-fsm-info gptel--fsm-last))))
+  (if-let* ((info (or info
+                      (and gptel--fsm-last
+                           (gptel-fsm-info gptel--fsm-last)))))
       (when-let* ((action (plist-get info :web-search-call-action)))
         (pcase (plist-get action :type)
           ("search"
@@ -1394,7 +1394,7 @@ Summarize the context thoroughly and comprehensively.
                     (propertize
                      (pcase-let ((`(,prefix ,project-name ,rel-path ,base)
                                   (shrink-path-file-mixed
-                                   (if-let (cur-project (project-current))
+                                   (if-let* ((cur-project (project-current)))
                                        (project-root cur-project)
                                      "")
                                    (file-name-directory (directory-file-name default-directory))
@@ -1537,7 +1537,7 @@ Summarize the context thoroughly and comprehensively.
                 (lambda (str)
                   (em "Answer: " str))
                 (if (derived-mode-p 'org-mode)
-                    (if-let (custom-id (org-entry-get (point) "Custom_ID" t))
+                    (if-let* ((custom-id (org-entry-get (point) "Custom_ID" t)))
                         custom-id
                       (error "No Custom_ID, is this point in a paper?")) ;; ask for paper instead?
                   (error "not in org-mode"))
@@ -2098,8 +2098,8 @@ STRATEGIES-DEST-DIR defaults to `amsha/fabric-strategies-dir'."
   (let ((pattern-dir (alist-get pattern amsha/fabric--patterns-alist nil nil #'string-equal)))
     (if (not pattern-dir)
         (format "Error: pattern %s not found." pattern)
-      (if-let (body (amsha/gptel-agent-read-system-from-file
-                     (expand-file-name "SYSTEM.md" pattern-dir)))
+      (if-let* ((body (amsha/gptel-agent-read-system-from-file
+                       (expand-file-name "SYSTEM.md" pattern-dir))))
           (amsha/fabric-apply-variables body nil "") ;; TODO: INPUT should be something?
         (format "Could not load body of pattern %s" pattern)))))
 
@@ -2139,7 +2139,7 @@ STRATEGIES-DEST-DIR defaults to `amsha/fabric-strategies-dir'."
     (_ (error "Unknown sys operation: %s" operation))))
 
 (defun amsha/fabric-dispatch-plugin (namespace operation value)
-  (if-let (namespace-func (alist-get namespace amsha/fabric-plugin-alist nil nil #'string-equal))
+  (if-let* ((namespace-func (alist-get namespace amsha/fabric-plugin-alist nil nil #'string-equal)))
       (funcall namespace-func operation value)
     (prog1 ""
       (warn "Unknown plugin namespace: %s" namespace))))
@@ -2966,7 +2966,7 @@ Writing patterns to follow:\n%s"
            (insert sys-prompt)
            (gptel-agent--expand-templates
             (point-min)
-            `(("SKILLS" . ,(if-let (skills (gptel-agent--update-skills))
+            `(("SKILLS" . ,(if-let* ((skills (gptel-agent--update-skills)))
                                (gptel-agent--skills-system-message skills)
                              ""))))
            (buffer-string))
@@ -3315,8 +3315,8 @@ Current memories:" sys-prompt)
 (defun amsha/generate-agent-template-with-emacs-skills ()
   (append
    (amsha/generate-agent-templates)
-   `(("SKILLS" . ,(if-let (skills (--filter (equal "emacs" (plist-get it :author))
-                                            (gptel-agent--update-skills)))
+   `(("SKILLS" . ,(if-let* ((skills (--filter (equal "emacs" (plist-get it :author))
+                                              (gptel-agent--update-skills))))
                       (concat
                        "\n<available_skills>\n"
                        (mapconcat (lambda (skill-def)
@@ -3871,7 +3871,7 @@ If region is active, mark all sections within the region."
 (defun gptel-context-visit ()
   "Jump to the original location of the context item at point."
   (interactive)
-  (if-let ((sec (magit-section-at)))
+  (if-let* ((sec (magit-section-at)))
       (let ((val (oref sec value)))
         (cond
          ((overlayp val)
@@ -3907,7 +3907,7 @@ If region is active, mark all sections within the region."
 (defun gptel-context-move-up ()
   "Move current top-level entry or preview up."
   (interactive)
-  (if-let ((sec (magit-section-at)))
+  (if-let* ((sec (magit-section-at)))
       (cond
        ;; preview: preview sections are instances of gptel-context-preview-section
        ((cl-typep sec 'gptel-context-preview-section)
@@ -3931,7 +3931,7 @@ If region is active, mark all sections within the region."
        ;; top-level entries are instances of gptel-context-section and have root as parent
        ((cl-typep sec 'gptel-context-section)
         (let ((src (oref sec value)))
-          (if-let ((idx (gptel-context--index-of-source src)))
+          (if-let* ((idx (gptel-context--index-of-source src)))
               (let ((n (length gptel-context)))
                 (if (< idx (1- n))
                     (progn
@@ -3947,7 +3947,7 @@ If region is active, mark all sections within the region."
 (defun gptel-context-move-down ()
   "Move current top-level entry or preview down."
   (interactive)
-  (if-let ((sec (magit-section-at)))
+  (if-let* ((sec (magit-section-at)))
       (cond
        ((cl-typep sec 'gptel-context-preview-section)
         (let* ((parent (oref (oref sec parent) value))
@@ -3968,7 +3968,7 @@ If region is active, mark all sections within the region."
                 (user-error "Already at bottom of previews"))))))
        ((cl-typep sec 'gptel-context-section)
         (let ((src (oref sec value)))
-          (if-let ((idx (gptel-context--index-of-source src)))
+          (if-let* ((idx (gptel-context--index-of-source src)))
               (if (> idx 0)
                   (progn
                     ;; The displayed order is reversed when
