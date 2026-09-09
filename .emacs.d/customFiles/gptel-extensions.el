@@ -1514,7 +1514,7 @@ Summarize the context thoroughly and comprehensively.
                                  (setf cite-list (-uniq
                                                   (append
                                                    (-flatten (s-match-strings-all "cite:[a-z0-9_\\-&]*" ret-string))
-                                                   (when-let* (results (plist-get info :file-search-call-results))
+                                                   (when-let* ((results (plist-get info :file-search-call-results)))
                                                          (--map (concat "cite:" (string-replace ".txt" "" (plist-get it :filename)))
                                                                 results)))))
                                  ret-string))

@@ -294,7 +294,7 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
 Like `org-roam-buffer-display-dedicated', but always
 prompt when used interactively"
   (interactive (list (org-roam-node-read (when (derived-mode-p 'org-roam-mode)
-                                           (when-let* (_node (org-roam-node-at-point))
+                                           (when-let* ((_node (org-roam-node-at-point)))
                                              (org-roam-node-title _node))))))
   (org-roam-buffer-display-dedicated node))
 

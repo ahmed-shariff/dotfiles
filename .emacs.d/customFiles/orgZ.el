@@ -790,8 +790,8 @@ Else create a text annotations at point."
                   (org-noter--session-property-text session))
          (let ((location (org-noter--parse-location-property (org-noter--get-containing-element)))
                (content-to-add (org-get-heading t t t t))
-               (highlight-coords (when-let* (highlight-data
-                                             (org-entry-get (point) "HIGHLIGHT"))
+               (highlight-coords (when-let* ((highlight-data
+                                              (org-entry-get (point) "HIGHLIGHT")))
                                    (cadr (pdf-highlight-coords
                                     (eval ;; FIXME: Should I be worried about saftey here?
                                      (car (read-from-string
