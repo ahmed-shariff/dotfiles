@@ -339,7 +339,22 @@ This prevents 'wrong-type-argument wholenump nil' errors in newer Org versions."
         element))
     (advice-add 'jupyter-org-results-drawer
                 :filter-return
-                #'my/jupyter-org-results-drawer-pre-blank-fix))
+                #'my/jupyter-org-results-drawer-pre-blank-fix)
+
+    (defun amsha/add-jupyter-header-to-buf-props ()
+      "Add the jupyter-python header as prop to buffer."
+      (interactive)
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (org-set-property "header-args:jupyter-python"
+                         (format ":kernel %s :display text/plain"
+                                 (completing-read "Kernel: "
+                                                  (-map #'jupyter-kernelspec-name
+                                                        (jupyter-available-kernelspecs)))))
+       (em "Setting up jupyter envs:
+  poetry run python -m ipykernel install --user --name hpui-system-sensing-analysis
+
+  Then run: (jupyter-available-kernelspecs 'refresh)"))))
 
   (use-package ox-ipynb
     :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb")))
