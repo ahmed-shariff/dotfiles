@@ -3334,7 +3334,8 @@ Current memories:" sys-prompt)
 
 (gptel-make-preset 'amsha/refine-agent-self
   :description "Update skills/memory"
-  :parents `(amsha/gptel-memory
+  :parents `(amsha/--agent-base-message
+             amsha/gptel-memory
              amsha/base-tools
              amsha/--memory-tool
              amsha/agentmd-ctx
@@ -3349,7 +3350,8 @@ Current memories:" sys-prompt)
 
 (gptel-make-preset 'amsha/curate-skills-agent
   :description "Curate skills"
-  :parents `(amsha/gptel-memory
+  :parents `(amsha/--agent-base-message
+             amsha/gptel-memory
              amsha/base-tools
              amsha/agentmd-ctx
              amsha/agent-add-skills
@@ -3363,7 +3365,8 @@ Current memories:" sys-prompt)
 
 (gptel-make-preset 'amsha/learn-agent
   :description "Learn a new skill."
-  :parents `(amsha/gptel-memory
+  :parents `(amsha/--agent-base-message
+             amsha/gptel-memory
              amsha/base-tools
              amsha/agentmd-ctx
              amsha/agent-add-skills
