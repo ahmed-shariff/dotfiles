@@ -342,7 +342,7 @@ Otherwise, add ELEM as the last element."
           :action
           (lambda (file)
             (insert
-             (concat "file:" (expand-file-name file (project-root (project-current))))))
+             (concat "[[" (expand-file-name file (project-root (project-current)) "]]"))))
           :items
           (lambda ()
             (projectile-project-files (projectile-acquire-root))))
@@ -356,7 +356,7 @@ Otherwise, add ELEM as the last element."
           (lambda (buf)
             (insert
              (if-let* ((file (buffer-file-name (get-buffer buf))))
-                 (concat "file:" file)
+                 (concat "[[" file "]]")
                (concat "buffer:" buf))))
           :items
           (lambda ()
