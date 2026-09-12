@@ -243,7 +243,9 @@ Used for debugging."
      ,(car args)))
 
 (defun amsha/benchmark-function-wrapper (func &rest all)
-  "Simple wrapper function that prints the elapsed time."
+  "Simple wrapper function that prints the elapsed time running FUNC.
+
+Apply ALL to the FUNC."
   (let ((res))
     (em (benchmark-elapse (setq res (apply func all))) func)
     res))
@@ -251,13 +253,13 @@ Used for debugging."
 (defvar amsha/benchmark-tracked-functions nil)
 
 (defun amsha/benchmark-function-add (func)
-  "Add `amsha/benchmark-function-wrapper' as an advice to func"
+  "Add `amsha/benchmark-function-wrapper' as an advice to FUNC."
   (interactive (help-fns--describe-function-or-command-prompt))
   (advice-add func :around #'amsha/benchmark-function-wrapper)
   (add-to-list 'amsha/benchmark-tracked-functions func))
 
 (defun amsha/benchmark-function-remove (func)
-  "Remove `amsha/benchmark-function-wrapper' as an advice to tracked func"
+  "Remove `amsha/benchmark-function-wrapper' as an advice to tracked FUNC."
   (interactive (list (intern-soft (completing-read "Function: " amsha/benchmark-tracked-functions))))
   (advice-remove func #'amsha/benchmark-function-wrapper)
   (setq amsha/benchmark-tracked-functions (remove func amsha/benchmark-tracked-functions)))
@@ -513,15 +515,13 @@ When ARG, even if the buffer is in org-mode, restart org-mode."
   ;;fix for issues with ACL on WLS ***********************************
   ;; from https://github.com/microsoft/WSL/issues/6004
   (when (eq system-type 'windows-nt)
-    (defun fp/ignore-wsl-acls (orig-fun &rest args)
+    (define-advice file-acl (:around (orig-fun &rest args) fp/ignore-wsl-acls)
       "Ignore ACLs on WSL. WSL does not provide an ACL, but emacs
 expects there to be one before saving any file. Without this
 advice, files on WSL can not be saved."
       (if (string-match-p "^//wsl\$/" (car args))
           (progn (message "ignoring wsl acls") "")
-        (apply orig-fun args)))
-
-    (advice-add 'file-acl :around 'fp/ignore-wsl-acls))
+        (apply orig-fun args))))
 
   (put 'upcase-region 'disabled nil)
   (put 'narrow-to-region 'disabled nil)
@@ -692,7 +692,7 @@ advice, files on WSL can not be saved."
 
   (defvar home-dir-magit-files '("~/" "~/.emacs.d/customFiles/"))
 
-  (defun home-dir-magit-process-environment (env)
+  (define-advice magit-process-environment (:filter-return (env) home-dir-magit-process-environment)
     "Add GIT_DIR and GIT_WORK_TREE to ENV when in a special directory.
 https://github.com/magit/magit/issues/460 (@cpitclaudel)."
     (let* ((default (file-name-as-directory (expand-file-name default-directory)))
@@ -702,9 +702,6 @@ https://github.com/magit/magit/issues/460 (@cpitclaudel)."
           (push (format "GIT_WORK_TREE=%s" (car dot-dirs)) env) ;; car of dot-dirs should be ~/
           (push (format "GIT_DIR=%s" gitdir) env))))
     env)
-
-  (advice-add 'magit-process-environment
-              :filter-return #'home-dir-magit-process-environment)
 
   (transient-append-suffix 'magit-commit '(1 0 -1)
     '("/m" "commit with gm"
@@ -926,13 +923,11 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   ;;    ((string-prefix-p "!" pattern)
   ;;     `(orderless-without-literal . ,(substring pattern 1)))))
 
-  (defun amsha/match-components-literally (orig-fun &rest args)
+  (define-advice org-set-property (:around (orig-fun &rest args) amsha/match-components-literally)
     "Funtion to add as advice for interactive functions that will always use lietral completion."
     (interactive (lambda (spec) (advice-eval-interactive-spec spec)))
     (let ((orderless-matching-styles '(orderless-literal)))
-      (apply orig-fun args)))
-
-  (advice-add #'org-set-property :around #'amsha/match-components-literally))
+      (apply orig-fun args))))
 
 (use-package corfu
   :demand t
@@ -1061,7 +1056,8 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
 ;;embark & consult**************************************************
 (use-package embark
   :bind
-  (("C-." . embark-act)         ;; pick some comfortable binding
+  (("M-SPC" . embark-act)         ;; pick some comfortable binding
+   ("M-S-SPC" . embark-select)
    ("C-;" . embark-dwim)        ;; good alternative: M-.
    ("C-h B" . embark-bindings) ;; alternative for `describe-bindings'
    :map minibuffer-mode-map
@@ -1072,7 +1068,8 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   (embark-confirm-act-all nil)
   :init
   ;; Optionally replace the key help with a completing-read interface
-  (setq prefix-help-command #'embark-prefix-help-command)
+  (setq prefix-help-command #'embark-prefix-help-command
+        embark-cycle-key "SPC")
 
   :config
   ;; Hide the mode line of the Embark live/completions buffers
@@ -1102,13 +1099,11 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
     (let ((embark-prompter #'embark-non-propmter-with-default-action))
       (embark-act-all arg)))
 
-  (defun embark-minibuffer-exit (other &rest rest)
+  (define-advice vertico-exit (:around (other &rest rest) embark-minibuffer-exit)
     "If embark-selection has been run, run `embark-act-all-with-default-action'."
     (if embark--selection
         (apply #'embark-act-all-with-default-action rest)
       (apply other rest)))
-
-  (advice-add 'vertico-exit :around #'embark-minibuffer-exit)
 
   (defun embark-which-key-indicator ()
     "An embark indicator that displays keymaps using which-key.
@@ -1138,15 +1133,12 @@ targets."
           embark-highlight-indicator
           embark-isearch-highlight-indicator))
 
-  (defun embark-hide-which-key-indicator (fn &rest args)
+  (define-advice embark-completing-read-prompter (:around (fn &rest args) hide-which-key-indicator)
     "Hide the which-key indicator immediately when using the completing-read prompter."
     (which-key--hide-popup-ignore-command)
     (let ((embark-indicators
            (remq #'embark-which-key-indicator embark-indicators)))
-      (apply fn args)))
-
-  (advice-add #'embark-completing-read-prompter
-              :around #'embark-hide-which-key-indicator))
+      (apply fn args))))
 
 (use-package consult
   ;; Replace bindings. Lazily loaded due by `use-package'.
@@ -2088,7 +2080,7 @@ See `pdf-annot-activate-created-annotations' for more details."
 ;; Flycheck: On the fly syntax checking
 (use-package flycheck
   :defer 3
-  :hook (lsp-mode . flycheck-mode)
+  ;; :hook (lsp-mode . flycheck-mode)
   :init (global-flycheck-mode)
   :config
   (define-key flycheck-mode-map flycheck-keymap-prefix nil)
@@ -2270,7 +2262,7 @@ T - tag prefix
 (use-package wdired
   :straight nil
   :config
-  (defun amsha/wdired-get-filename (oldfn &optional no-dir old)
+  (define-advice wdired-get-filename (:around (oldfn &optional no-dir old) amsha/wdired-get-filename)
     "If it is a line not propertized by wdired, then treat that as a
 line that creates a new file."
     (if-let (retval (funcall oldfn no-dir old))
@@ -2279,7 +2271,7 @@ line that creates a new file."
           ""
         (expand-file-name (s-trim (buffer-substring (pos-bol) (pos-eol)))))))
 
-  (defun amsha/wdired-do-renames (oldfn renames)
+  (define-advice wdired-do-renames (:around (oldfn renames) amsha/wdired-do-renames)
     "We are hijacking renames to do the file creation.
 
 If old name is empty, create the file, else let `wdired-do-renames' to
@@ -2287,10 +2279,7 @@ its thing."
     (funcall oldfn (cl-loop for rename in renames
                             if (string-empty-p (car rename))
                             do (make-empty-file (cdr rename) t)
-                            else collect rename)))
-
-  (advice-add 'wdired-get-filename :around #'amsha/wdired-get-filename)
-  (advice-add 'wdired-do-renames :around #'amsha/wdired-do-renames))
+                            else collect rename))))
 
 
 (use-package dirvish
@@ -2442,7 +2431,7 @@ its thing."
          (setq ,last-time ,now-sym))))
 
   ;; Lite version of pet-mode
-  (defun amsha/pet-buffer-local-vars-setup ()
+  (define-advice pet-buffer-local-vars-setup (:override () amsha/pet-buffer-local-vars-setup-lite)
     "Set up the buffer local variables for Python tools.
 
 Assign all supported Python tooling executable variables to
@@ -2518,7 +2507,6 @@ buffer local values."
         (amsha/record-elapsed "var set and hook run" times last-time)
         (message (concat ">>>> Pet buffer loacal var setup report:\n" (string-join (nreverse times) "\n")))
       )))
-  (advice-add #'pet-buffer-local-vars-setup :override #'amsha/pet-buffer-local-vars-setup)
 
   (defun amsha/pet-mode ()
     "Pet mode that guards from running on non file buffers.
@@ -2913,12 +2901,11 @@ Used with atomic-chrome."
         atomic-chrome-buffer-open-style 'frame
         atomic-chrome-default-major-mode 'markdown-mode)
 
-  (defun atomic-chrome-setup (socket url title text)
+  (define-advice atomic-chrome-create-buffer (:after (socket url title text) atomic-chrome-setup)
     (with-current-buffer (atomic-chrome-get-buffer-by-socket socket)
       (projectile-set-buffer-directory)))
       ;; (write-file ".temp-atomic-chrome-file.tex")))
-
-  (advice-add 'atomic-chrome-create-buffer :after #'atomic-chrome-setup))
+  )
 
 ;;latex setup***********************************************************************************
 
@@ -3103,12 +3090,9 @@ Used with atomic-chrome."
   (add-to-list 'magit-todos-exclude-globs "*.ipynb")
   (magit-todos-mode)
 
-  (cl-defun amsha/magit-todos--insert-items-refresh-keybind (magit-status-buffer &rest _)
+  (define-advice magit-todos--insert-items (:after (magit-status-buffer &rest _) amsha/magit-todos--insert-items-refresh-keybind)
     (with-current-buffer magit-status-buffer
-      (amsha/magit-visualize-keybinds)))
-
-  (advice-add 'magit-todos--insert-items :after #'amsha/magit-todos--insert-items-refresh-keybind))
-
+      (amsha/magit-visualize-keybinds))))
 
 (use-package blamer
   :bind (("s-i" . blamer-show-commit-info))
@@ -3461,12 +3445,10 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
   ;; From https://github.com/emacs-dashboard/emacs-dashboard/issues/471
   (advice-add #'dashboard-replace-displayable :override #'identity)
 
-  (defun amsha/dashboard-due-date-for-agenda-n-days () ;; 20 days
+  (define-advice dashboard-due-date-for-agenda (:override () in-20-days) ;; 20 days
     (time-add (current-time) (* 86400 20)))
 
-  (advice-add 'dashboard-due-date-for-agenda :override #'amsha/dashboard-due-date-for-agenda-n-days)
-
-  (defun amsha/dashboard-agenda--formatted-time (oldfun)
+  (define-advice dashboard-agenda--formatted-time (:around (oldfun) with-ago-and-in-info)
     (let ((time-string (funcall oldfun))
           (today-day-number (org-today)))
       (format "%s  %s"
@@ -3480,8 +3462,6 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
                        "  -  ")
                    (format " %-7s " it)
                    (propertize it 'face 'highlight)))))
-
-  (advice-add 'dashboard-agenda--formatted-time :around #'amsha/dashboard-agenda--formatted-time)
 
   ;; Handling opening too many files on windows and mode not being set correctly
   (amsha/defun-with-timed-retry amsha/dashboard-get-agenda-wrapper (oldfun)

@@ -379,7 +379,7 @@ Otherwise, add ELEM as the last element."
 
 (defvar amsha/w32-active-notification nil)
 
-(defun amsha/notify-tool-calls (tool-calls info &optional _)
+(define-advice gptel--display-tool-calls (:before (tool-calls info &optional _) notify)
   "On windows, send out notification of tool call confirmation requests."
   (when (eq system-type 'windows-nt)
     (when amsha/w32-active-notification
@@ -389,7 +389,7 @@ Otherwise, add ELEM as the last element."
                                    :body (em (format "Awaiting %s tool confirmation in %s"
                                                      (length tool-calls) (plist-get info :buffer)))))))
 
-(defun amsha/gptel-org-set-topic (old-fn &rest r)
+(define-advice gptel-org-set-topic (:around (old-fn &rest r))
   (interactive)
   (funcall old-fn (completing-read "Set topic as: "
                                    (org-property-values "GPTEL_TOPIC")
@@ -402,8 +402,6 @@ Otherwise, add ELEM as the last element."
                                                 "\\s-+" "-"
                                                 (org-entry-get nil "ITEM"))))
                                              50)))))
-
-(advice-add 'gptel-org-set-topic :around #'amsha/gptel-org-set-topic)
 
 (defun amsha/add-compact-summary (arg &optional no-confirm)
   "Compact the current Org subtree using gptel.
@@ -1384,7 +1382,7 @@ Summarize the context thoroughly and comprehensively.
 (cl-pushnew '(:eval gptel--mode-line-format) global-mode-string :test #'equal)
 
 ;;; header line ***************************************************************************
-(defun amsha/gptel-use-header-set-dir ()
+(define-advice gptel-use-header-line (:after () use-header-set-dir)
   "Add the default directory to header."
   (setq header-line-format
         (append
@@ -1405,8 +1403,6 @@ Summarize the context thoroughly and comprehensively.
                      'face 'dired-directory)
                     "}  ")))
          header-line-format)))
-
-(advice-add 'gptel-use-header-line :after #'amsha/gptel-use-header-set-dir)
 
 ;;; okm tools for tool use ****************************************************************
 (defun amsha/gptel-get-bib-entry-from-citation (citation)
@@ -4029,7 +4025,7 @@ then close the *gptel-context* buffer and return to gptel menu."
     amsha/gptel-roam-ql-search-backlinks-and-add-to-context
     :transient t))
 
-(defun amsha/org-roam-ql-refresh-with-gptel-context (oldfn &rest rest)
+(define-advice org-roam-ql-refresh-buffer (:around (oldfn &rest rest) refresh-with-gptel-context)
   (let ((ovs (--filter (overlay-get it 'gptel-context)
                        (car (overlay-lists)))))
     (when ovs
@@ -4039,9 +4035,7 @@ then close the *gptel-context* buffer and return to gptel menu."
     (pcase (length ovs)
       ('0 nil) ;; nothing to do
       ('1 (gptel-context-add))
-      (_ (user-error "Multiple context overlays were found, removed all, added nothing.")))))
-
-(advice-add 'org-roam-ql-refresh-buffer :around #'amsha/org-roam-ql-refresh-with-gptel-context)
+      (_ (user-error "Multiple context overlays were found, removed all, added nothing")))))
 
 ;;; transform functions *******************************************************************
 
@@ -4177,14 +4171,13 @@ then close the *gptel-context* buffer and return to gptel menu."
                  (gptel--set-with-scope sym value t)))
    ("RET" "Done" transient-quit-one)])
 
-(defun amsha/gptel--with-menu (&rest args)
+(define-advice gptel (:after (&rest args) with-menu)
   "Advice function to `gptel' that invokes a light weight gptel menu."
   (when current-prefix-arg
     ;; FIXME: this let bind doesn't work?
     (let ((gptel--set-buffer-locally t))
       (amsha/gptel-menu-lite))))
 
-(advice-add 'gptel :after #'amsha/gptel--with-menu)
 ;;;; setup *********************************************************************************
 (bind-keys :package gptel
            ("C-c o q m" . gptel-menu)
@@ -4235,8 +4228,6 @@ then close the *gptel-context* buffer and return to gptel menu."
 (add-to-list 'yank-excluded-properties 'gptel)
 (add-hook 'gptel-mode-hook (lambda () (gptel-highlight-mode +1)))
 
-(advice-add 'gptel--display-tool-calls :before #'amsha/notify-tool-calls)
-
 ;; Add fsm-last to the request handlers
 (cl-pushnew 'gptel--fsm-last (alist-get 'DONE gptel-request--handlers))
 (cl-pushnew 'gptel--fsm-last (alist-get 'ERRS gptel-request--handlers))
@@ -4272,7 +4263,7 @@ then close the *gptel-context* buffer and return to gptel menu."
 (add-to-list 'gptel-agent-skill-dirs (expand-file-name "~/.emacs.d/agents/gptel-skills/"))
 (add-to-list 'gptel-agent-dirs "~/.emacs.d/agents/gptel-paper-agent/")
 
-(defun amsha/agent-post-update (&rest _)
+(define-advice gptel-agent--update-skills (:after (&rest _) post-update)
   ;; Make "paper-agent" a top-level preset
   (when-let* ((paper-agent-plist (assoc-default "paper-agent" gptel-agent--agents nil nil)))
     (apply #'gptel-make-preset 'paper-agent paper-agent-plist))
@@ -4292,8 +4283,6 @@ then close the *gptel-context* buffer and return to gptel menu."
                                "\n----\n"
                                (propertize "What should I do next?" 'gptel 'response))
                        t))))))
-
-(advice-add 'gptel-agent--update-skills :after #'amsha/agent-post-update)
 
 (gptel-agent-update)         ;Read files from agents directories
 (amsha/gptel-update-fabric-assets)

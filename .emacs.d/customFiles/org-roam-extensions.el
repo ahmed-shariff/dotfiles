@@ -240,11 +240,9 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
   (orb-roam-ref-format "org-ref-v3")
   (orb-insert-interface "generic")
   :config
-  (defun orb-inesert-consult-bibtex (&optional arg)
+  (define-advice orb-insert-generic (:override (&optional arg) use-consult-bibtex)
     "Overriding `ORB-INSERT-GENERIC' to use `consult-bibtex'."
-    (orb-insert-edit-note (consult-bibtex--read-entry)))
-
-  (advice-add 'orb-insert-generic :override #'orb-inesert-consult-bibtex))
+    (orb-insert-edit-note (consult-bibtex--read-entry))))
 
 (use-package org-roam-ql-ql
   :straight (org-roam-ql-ql :type git :host github :repo "ahmed-shariff/org-roam-ql"
