@@ -169,7 +169,7 @@ word count of the response."
   (define-key evedel-keymap (kbd "?") #'(lambda ()
                                                 (interactive)
                                                 (evedel-directive-undo t)))
-  (repeatize 'evedel-keymap)
+  (amsha/repeatize 'evedel-keymap)
   (define-key global-map (kbd "C-c o e") evedel-keymap))
 
 ;; (use-package gptel-openai-assistant

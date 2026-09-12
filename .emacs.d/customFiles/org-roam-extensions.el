@@ -825,7 +825,9 @@ If prefix arg used, search whole db."
 (org-roam-ql-add-saved-query 'dailies-yesterday "dailies yesterday" '(dailies-range "-2d" "-1d"))
 (org-roam-ql-add-saved-query 'dailies "all dailies" '(dailies-range))
 
-(with-eval-after-load 'org-ql
+(use-package org-ql
+  :after org-ql
+  :config
   (org-ql-defpred org-roam-backlink (&rest nodes) "Return if current node has bacnklink to any of NODES."
     :body
     (let* ((backlink-destinations (apply #'vector (-non-nil

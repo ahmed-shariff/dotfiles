@@ -20,7 +20,6 @@
 
 (require 'configurations)
 
-
 ;;straight.el setup*************************************************
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -34,6 +33,12 @@
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
+
+(when init-file-debug
+  (setq use-package-verbose t
+        use-package-expand-minimally nil
+        use-package-compute-statistics t
+        debug-on-error t))
 
 ;; for emacs >= 27
 (setq straight-use-package-by-default t
@@ -58,6 +63,11 @@
       split-height-threshold nil
       scroll-conservatively 0
       scroll-margin 0
+      backup-by-copying t               ; Use copies
+      version-control t                 ; Use version numbers on backups
+      delete-old-versions t             ; Automatically delete excess backups
+      kept-new-versions 10              ; Newest versions to keep
+      kept-old-versions 5               ; Old versions to keep
       ns-auto-hide-menu-bar t
       banner-text-list (string-split
                         (with-temp-buffer
@@ -205,10 +215,8 @@ E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
               obarray)
     (-uniq vals)))
 
-;; (setq use-package-compute-statistics t)
-
 ;; from https://karthinks.com/software/it-bears-repeating/
-(defun repeatize (keymap)
+(defun amsha/repeatize (keymap)
   "Add `repeat-mode' support to a KEYMAP."
   (map-keymap
    (lambda (_key cmd)
@@ -218,7 +226,7 @@ E.g.: (amsha/lookup-key-prefix (kbd \"C-c o o\"))"
 
 (defvar em-error nil "If non-nil the `em' macro will signal error")
 
-(defun toggle-em-error ()
+(defun amsha/toggle-em-error ()
   "Toggle `em-error'."
   (setf em-error (not em-error)))
 
@@ -544,14 +552,15 @@ advice, files on WSL can not be saved."
 
   (set-fontset-font t nil "FiraCode Nerd Font" nil 'prepend))
 
-(load "~/.emacs.d/customFiles/evil-setup.el")
+(use-package evil-setup
+  :straight nil)
 
-;; (setq use-package-compute-statistics t)
-;; (use-package benchmark-init
-;;   :ensure t
-;;   :config
-;;   ;; To disable collection of benchmark data after init is done.
-;;   (add-hook 'after-init-hook 'benchmark-init/deactivate))
+(use-package benchmark-init
+  :ensure t
+  :disabled
+  :config
+  ;; To disable collection of benchmark data after init is done.
+  (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
 ;;allout
 (use-package allout
@@ -839,14 +848,6 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
 (use-package hl-todo
   :hook prog-mode-hook)
 
-(use-package flycheck
-  :defer t
-  :config
-  (define-key flycheck-mode-map flycheck-keymap-prefix nil)
-  (setq flycheck-keymap-prefix (kbd "C-c e"))
-  (define-key flycheck-mode-map flycheck-keymap-prefix
-              flycheck-command-map))
-
 (use-package beacon
   :defer 2
   :custom
@@ -861,7 +862,7 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   :after evil
   :hook ((lisp-mode lisp-data-mode emacs-lisp-mode hy-mode) . symbol-overlay-mode)
   :config
-  (repeatize 'symbol-overlay-map)
+  (amsha/repeatize 'symbol-overlay-map)
 
   (evil-define-key 'normal 'global (kbd "g s") symbol-overlay-map))
 
@@ -891,7 +892,7 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   (diminish 'projectile-mode "P"))
 
 (use-package flycheck-package
-  :defer t)
+  :after flycheck)
 
 (use-package package-build
   :defer t)
@@ -2004,8 +2005,8 @@ targets."
        (cdr (ring-ref avy-ring 0))))
     t)
 
-  (setf (alist-get ?H avy-dispatch-alist) 'avy-action-helpful)
-  (setf (alist-get ?. avy-dispatch-alist) 'avy-action-embark))
+  (setf (alist-get ?H avy-dispatch-alist) 'avy-action-helpful
+        (alist-get ?  avy-dispatch-alist) 'avy-action-embark))
 
 (use-package ace-window
   :bind ("M-o" . ace-window)
@@ -2014,7 +2015,7 @@ targets."
 
 ;; pdf
 (use-package pdf-tools
-  :defer t
+  :magic ("%PDF" . pdf-view-mode)
   :straight (pdf-tools :type git :host github :repo "vedang/pdf-tools"
                        :fork (:host github :repo "ahmed-shariff/pdf-tools" :branch "windows-fix-308"))
   :config
@@ -2086,15 +2087,28 @@ See `pdf-annot-activate-created-annotations' for more details."
 
 ;; Flycheck: On the fly syntax checking
 (use-package flycheck
-  :defer t
+  :defer 3
   :hook (lsp-mode . flycheck-mode)
+  :init (global-flycheck-mode)
   :config
+  (define-key flycheck-mode-map flycheck-keymap-prefix nil)
+  (setq flycheck-keymap-prefix (kbd "C-c e"))
+  (define-key flycheck-mode-map flycheck-keymap-prefix
+              flycheck-command-map)
+
   ;; stronger error display
   (defface flycheck-error
     '((t (:foreground "red" :underline (:color "Red1" :style wave) :weight bold)))
     "Flycheck face for errors"
     :group "flycheck")
-  (setq flycheck-check-syntax-automatically '(mode-enabled new-line save)))
+
+  (setq flycheck-check-syntax-automatically '(mode-enabled new-line save)
+        flycheck-display-errors-delay 0.5)
+
+  (amsha/repeatize 'flycheck-command-map))
+
+(use-package flycheck-inline
+  :hook (flycheck-mode))
 
 (use-package all-the-icons)
 ;;flycheck

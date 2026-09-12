@@ -18,6 +18,10 @@
 (defvar amsha/org-agenda-org-roam-ql-cache-location "~/.emacs.d/org-agenda-org-roam-ql-cache")
 
 (add-to-list 'safe-local-variable-directories amsha/okm-base-directory)
+(add-to-list 'org-structure-template-alist '("no" . "notes"))
+(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+(add-to-list 'org-structure-template-alist '("sh" . "src sh"))
+(add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
 
 (use-package org-roam-extensions
   :straight nil
@@ -227,7 +231,7 @@
          "* %(amsha/okm-add-repository)"
          :jump-to-captured t)))
 
-(repeatize 'org-babel-map)
+(amsha/repeatize 'org-babel-map)
 
 ;; use package defs *************************************************************************
 (use-package org-roam-gocal
