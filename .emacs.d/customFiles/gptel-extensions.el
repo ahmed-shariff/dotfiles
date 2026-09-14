@@ -711,7 +711,9 @@ matching \"*gptel-buffer-N*\", where N starts at 1 and is limited to
                (-map
                 #'buffer-name
                 (--filter
-                 (buffer-local-value 'gptel-mode it)
+                 (and
+                  (not (s-starts-with-p " " (buffer-name it)))
+                  (buffer-local-value 'gptel-mode it))
                  (buffer-list)))
                :prompt        "Create or choose gptel buffer: "
                :category      'buffer
