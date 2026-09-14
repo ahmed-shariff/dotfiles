@@ -262,16 +262,20 @@ Code
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
 
 ;;; misc-functions ************************************************************************
-(defmacro amsha/gptel-append-prompt-transform-functions (prompt &optional prepend-p)
+(defmacro amsha/gptel-add-prompt-transform-functions (prompt &optional prepend-prompt prepend-transform-function)
   "Append PROMPT to the end of the GPTel prompt.
 To be used as for `:prompt-transform-functions' in presets."
-  `(list :append
+  `(list ,(if prepend-transform-function
+              :prepend
+            :append)
          (list
           (lambda (_)
             (goto-char (point-max))
-            ,(when prepend-p
+            ,(when prepend-prompt
                `(text-property-search-backward 'gptel nil t))
-            (insert ,prompt)))))
+            (insert ,(cl-typecase prompt
+                       (string prompt)
+                       (function `(funcall ,prompt))))))))
 
 (defun amsha/gptel-agent-read-system-from-file (file &optional templates)
   "Load the file with `gptel-agent-read-file' and get `:system'."
@@ -1216,7 +1220,7 @@ Note: LSP servers must be configured for the file type. If no server is availabl
 (gptel-make-preset 'compaction
   :description "Compaction system prompt"
   :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions
+  (amsha/gptel-add-prompt-transform-functions
    "
 
 Produce a concise, decision-oriented summary of the current conversation and context.
@@ -1234,7 +1238,7 @@ Write in the third person as the AI agent. Do not provide follow-up suggestions,
 (gptel-make-preset 'summarize
   :description "System prompt for detailed summarize of context."
   :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions
+  (amsha/gptel-add-prompt-transform-functions
    "
 
 Summarize the context thoroughly and comprehensively.
@@ -3087,14 +3091,14 @@ Writing patterns to follow:\n%s"
   :description "Used to generate a title for a conversation"
   :parents '(model-cheap)
   :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions
+  (amsha/gptel-add-prompt-transform-functions
    (concat
     (propertize "What should I do next?" 'gptel 'response) ;; making sure presets and such dont get triggered.
     "Generate a title for this conversation. Return plain text title only.")))
 
 ;; (gptel-make-preset 'amsha/--skill-updater-agent-prompt
 ;;   :prompt-transform-functions
-;;   (amsha/gptel-append-prompt-transform-functions
+;;   (amsha/gptel-add-prompt-transform-functions
 ;;    (format "
 
 ;; Also, you are reviewing the current conversation to determine skill-library changes.
@@ -3276,7 +3280,7 @@ The tool applies batch replacements atomically. On success, will show the summar
 ;; Current memories:" sys-prompt)
 ;;          (amsha/gptel-memory t)))))
 ;;   :prompt-transform-functions
-;;   (amsha/gptel-append-prompt-transform-functions "
+;;   (amsha/gptel-add-prompt-transform-functions "
 
 ;; Also, review the conversation above and consider saving to memory if appropriate.
 
@@ -3339,7 +3343,7 @@ Current memories:" sys-prompt)
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
   :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions
+  (amsha/gptel-add-prompt-transform-functions
    (amsha/gptel-agent-read-system-from-file
     "~/.emacs.d/customFiles/agents/--refine-self-prompt.md"
     (amsha/generate-agent-template-with-emacs-skills))))
@@ -3354,7 +3358,7 @@ Current memories:" sys-prompt)
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
   :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions
+  (amsha/gptel-add-prompt-transform-functions
    (amsha/gptel-agent-read-system-from-file
     "~/.emacs.d/customFiles/agents/--skill-curator-prompt.md"
     (amsha/generate-agent-template-with-emacs-skills))))
@@ -3369,7 +3373,7 @@ Current memories:" sys-prompt)
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
   :prompt-transform-functions
-  (amsha/gptel-append-prompt-transform-functions
+  (amsha/gptel-add-prompt-transform-functions
    (amsha/gptel-agent-read-system-from-file
     "~/.emacs.d/customFiles/agents/--skill-learn-prompt.md"
     (amsha/generate-agent-templates))
@@ -4273,7 +4277,7 @@ then close the *gptel-context* buffer and return to gptel menu."
            (intern (concat "skill-" name))
            (append skill-plist
                    `(:prompt-transform-functions
-                     ,(amsha/gptel-append-prompt-transform-functions
+                     ,(amsha/gptel-add-prompt-transform-functions
                        (concat "\n----"
                                "\nThe user had the following skill loaded:"
                                "\nSkill name: " name
