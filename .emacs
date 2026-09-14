@@ -1041,6 +1041,8 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
   :bind (("M-A" . marginalia-cycle)
          :map minibuffer-local-map
          ("M-A" . marginalia-cycle))
+  :custom
+  (marginalia-field-width 120)
 
   ;; The :init configuration is always executed (Not lazy!)
   :init
