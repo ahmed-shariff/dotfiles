@@ -382,6 +382,10 @@ that buffer before the new group is reported."
 ;;; misc-functions ************************************************************************
 (defmacro amsha/gptel-add-prompt-transform-functions (prompt &optional prepend-prompt prepend-transform-function)
   "Append PROMPT to the end of the GPTel prompt.
+
+When PREPEND-PROMPT the prompt is added to the begining of the text.
+When PREPEND-TRANSFORM-FUNCTION the transform function is prended.
+
 To be used as for `:prompt-transform-functions' in presets."
   `(list ,(if prepend-transform-function
               :prepend
@@ -391,9 +395,9 @@ To be used as for `:prompt-transform-functions' in presets."
             (goto-char (point-max))
             ,(when prepend-prompt
                `(text-property-search-backward 'gptel nil t))
-            (insert ,(cl-typecase prompt
-                       (string prompt)
-                       (function `(funcall ,prompt))))))))
+            (insert ,(if (functionp prompt)
+                         `(funcall ,prompt)
+                       prompt))))))
 
 (defun amsha/gptel-agent-read-system-from-file (file &optional templates)
   "Load the file with `gptel-agent-read-file' and get `:system'."
