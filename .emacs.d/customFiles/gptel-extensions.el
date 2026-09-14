@@ -271,6 +271,114 @@ Code
 (use-package gptel-autocomplete
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
 
+(use-package gptel-annotate
+  :disabled
+  :straight (:host github :repo "karthink/gptel-annotate")
+  :after gptel
+  :config
+  (require 'flycheck)
+
+  (defvar-local amsha/gptel-annotate--diagnostics nil
+    "Annotation groups received for the current buffer.
+
+The first group is the most recent response.  Each group is a vector
+of JSON annotation plists.")
+
+  (defconst amsha/gptel-annotate--checker 'amsha/gptel-annotate
+    "Flycheck checker used for conversational gptel annotations.")
+
+  (defun amsha/gptel-annotate--start-checker (_checker callback)
+    "Report the newest stored annotation group to Flycheck.
+
+CALLBACK is Flycheck's status callback."
+    (funcall callback
+             'finished
+             (save-excursion
+               (delq nil
+                     (mapcar
+                      (pcase-lambda ((map :start_line :text :diagnostic))
+                        (when (and (integerp start_line)
+                                   (stringp text)
+                                   (stringp diagnostic)
+                                   (not (string-empty-p diagnostic)))
+                          (goto-char (point-min))
+                          (forward-line (max 0 (1- start_line)))
+                          (when-let ((bounds (gptel-annotate--find-text-bounds text)))
+                            (flycheck-error-new-at-pos
+                             (car bounds)
+                             'info
+                             diagnostic
+                             :end-pos (cdr bounds)
+                             :checker amsha/gptel-annotate--checker
+                             :id 'gptel-annotate
+                             :group 'gptel-annotate
+                             :buffer (current-buffer)))))
+                      (or (car amsha/gptel-annotate--diagnostics) []))))))
+
+  (flycheck-define-generic-checker amsha/gptel-annotate
+    "Display conversational gptel annotations in the current buffer."
+    :start #'amsha/gptel-annotate--start-checker
+    :modes '(prog-mode text-mode)
+    :predicate (lambda () amsha/gptel-annotate--diagnostics))
+
+  (defun amsha/gptel-annotate--report-buffer (buffer annotations)
+    "Store ANNOTATIONS and make them active in BUFFER."
+    (with-current-buffer buffer
+      (push (vconcat annotations) amsha/gptel-annotate--diagnostics)
+
+      ;; Remove this layer's current errors and their overlays.
+      ;; Other Flycheck errors remain active in the buffer.
+      (setq flycheck-current-errors
+            (cl-delete-if
+             (lambda (error)
+               (eq (flycheck-error-checker error)
+                   amsha/gptel-annotate--checker))
+             flycheck-current-errors))
+      (dolist (overlay (flycheck-overlays-in (point-min) (point-max)))
+        (when-let ((error (overlay-get overlay 'flycheck-error)))
+          (when (eq (flycheck-error-checker error)
+                    amsha/gptel-annotate--checker)
+            (delete-overlay overlay))))
+      (flycheck-error-list-refresh)
+
+      (unless flycheck-mode
+        (flycheck-mode 1))
+      (when (flycheck-running-p)
+        (flycheck-stop))
+      (flycheck-start-current-syntax-check amsha/gptel-annotate--checker)))
+
+  (defun amsha/gptel-process-annotations (response)
+    "Process a JSON annotation RESPONSE and display it with Flycheck.
+
+Response items are grouped by their `:file_name'.  Each destination
+buffer gets a new group appended to its local annotation history.  The
+Flycheck errors from earlier calls to this function are removed from
+that buffer before the new group is reported."
+    (interactive "sJSON annotation response: ")
+    (let* ((json (if (stringp response)
+                     (gptel--json-read-string response)
+                   response))
+           (items (vconcat (or (plist-get json :items) [])))
+           (groups nil)
+           buffers)
+      (dotimes (index (length items))
+        (let* ((annotation (aref items index))
+               (source (plist-get annotation :file_name))
+               (buffer (or (and (bufferp source) (buffer-live-p source) source)
+                           (and (stringp source)
+                                (or (get-buffer source)
+                                    (find-buffer-visiting source)
+                                    (and (file-readable-p source)
+                                         (find-file-noselect source)))))))
+          (when buffer
+            (push buffer buffers)
+            (push annotation (alist-get buffer groups)))))
+      (dolist (entry groups)
+        (amsha/gptel-annotate--report-buffer
+         (car entry)
+         (nreverse (cdr entry))))
+      (delete-dups buffers))))
+
 ;;; misc-functions ************************************************************************
 (defmacro amsha/gptel-add-prompt-transform-functions (prompt &optional prepend-prompt prepend-transform-function)
   "Append PROMPT to the end of the GPTel prompt.
