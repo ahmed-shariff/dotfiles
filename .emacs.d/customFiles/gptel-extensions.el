@@ -143,6 +143,16 @@ word count of the response."
              (format "Is the sentence correct. Explain %d words or fewer." count))))
       (call-interactively #'gptel-quick))))
 
+(use-package gptel-inline
+  :straight (:host github :repo "karthink/gptel-inline")
+  :after gptel
+  :bind
+  (("C-c o q i" . gptel-inline)))
+
+(use-package gptel-preset-collection
+  :straight (:host github :repo "karthink/gptel-preset-collection")
+  :after gptel)
+
 (use-package evedel
   :after gptel
   :config
