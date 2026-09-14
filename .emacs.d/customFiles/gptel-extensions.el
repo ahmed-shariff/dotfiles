@@ -276,7 +276,6 @@ Code
   :straight (gptel-autocomplete :type git :host github :repo "JDNdeveloper/gptel-autocomplete"))
 
 (use-package gptel-annotate
-  :disabled
   :straight (:host github :repo "karthink/gptel-annotate")
   :after gptel
   :config
@@ -319,11 +318,29 @@ CALLBACK is Flycheck's status callback."
                              :buffer (current-buffer)))))
                       (or (car amsha/gptel-annotate--diagnostics) []))))))
 
-  (flycheck-define-generic-checker amsha/gptel-annotate
+  (flycheck-define-generic-checker 'amsha/gptel-annotate
     "Display conversational gptel annotations in the current buffer."
     :start #'amsha/gptel-annotate--start-checker
     :modes '(prog-mode text-mode)
-    :predicate (lambda () amsha/gptel-annotate--diagnostics))
+    :predicate (lambda () (em t (not (null amsha/gptel-annotate--diagnostics)))))
+
+  ;; copied from flycheck-hl-todo: https://emacs.stackexchange.com/questions/78342/how-to-create-a-flycheck-checker-that-could-be-enabled-in-every-mode
+  (dolist (mode (seq-uniq
+                 (mapcan (lambda (checker)
+                           (let* ((modes (flycheck-checker-get checker 'modes))
+                                  ;; Ensure modes is a list
+                                  (modes (if (listp modes)
+                                             modes
+                                           (list modes))))
+                             ;; Copy the list, to do not modify original list of checker
+                             (copy-sequence modes)))
+                         flycheck-checkers)))
+    (flycheck-add-mode amsha/gptel-annotate--checker mode))
+
+  (dolist (checker flycheck-checkers)
+    (unless (or
+             (eq checker amsha/gptel-annotate--checker))
+      (flycheck-add-next-checker checker amsha/gptel-annotate--checker t)))
 
   (defun amsha/gptel-annotate--report-buffer (buffer annotations)
     "Store ANNOTATIONS and make them active in BUFFER."
@@ -339,10 +356,11 @@ CALLBACK is Flycheck's status callback."
                    amsha/gptel-annotate--checker))
              flycheck-current-errors))
       (dolist (overlay (flycheck-overlays-in (point-min) (point-max)))
-        (when-let ((error (overlay-get overlay 'flycheck-error)))
+        (when-let* ((error (overlay-get overlay 'flycheck-error)))
           (when (eq (flycheck-error-checker error)
                     amsha/gptel-annotate--checker)
             (delete-overlay overlay))))
+
       (flycheck-error-list-refresh)
 
       (unless flycheck-mode
@@ -354,7 +372,7 @@ CALLBACK is Flycheck's status callback."
   (defun amsha/gptel-process-annotations (response)
     "Process a JSON annotation RESPONSE and display it with Flycheck.
 
-Response items are grouped by their `:file_name'.  Each destination
+Response items are grouped by their `:buffer_name'.  Each destination
 buffer gets a new group appended to its local annotation history.  The
 Flycheck errors from earlier calls to this function are removed from
 that buffer before the new group is reported."
@@ -367,7 +385,7 @@ that buffer before the new group is reported."
            buffers)
       (dotimes (index (length items))
         (let* ((annotation (aref items index))
-               (source (plist-get annotation :file_name))
+               (source (plist-get annotation :buffer_name))
                (buffer (or (and (bufferp source) (buffer-live-p source) source)
                            (and (stringp source)
                                 (or (get-buffer source)
