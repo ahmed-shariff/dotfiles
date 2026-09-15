@@ -2082,13 +2082,25 @@ See `pdf-annot-activate-created-annotations' for more details."
 ;; Flycheck: On the fly syntax checking
 (use-package flycheck
   :defer 3
-  ;; :hook (lsp-mode . flycheck-mode)
+  :hook ((lsp-mode prog-mode text-mode) . flycheck-mode)
   :init (global-flycheck-mode)
+  :bind ((:map flycheck-command-map
+         ("a" . flycheck-annotate-mode)))
   :config
   (define-key flycheck-mode-map flycheck-keymap-prefix nil)
   (setq flycheck-keymap-prefix (kbd "C-c e"))
   (define-key flycheck-mode-map flycheck-keymap-prefix
               flycheck-command-map)
+
+  (defun amsha/flycheck-error-format-message-and-id-with-symbol (err)
+    (concat
+     (pcase (flycheck-error-level err)
+       ;; FIXME: backround are overriden by `flycheck-annotate--make-below-overlay'?
+       ('info    (propertize "ⓘ " 'font-lock-face `(t :foreground "white" :background ,(face-foreground 'flycheck-annotate-info))))
+       ('error   (propertize "⌧ " 'font-lock-face `(t :foreground "white" :background ,(face-foreground 'flycheck-annotate-error))))
+       ('warning (propertize "△ " 'font-lock-face `(t :foreground "white" :background ,(face-foreground 'flycheck-annotate-warning))))
+       (_ (em "  " "ERROR unknow flycheck error type" (flycheck-error-level err))))
+     (flycheck-error-format-message-and-id err)))
 
   ;; stronger error display
   (defface flycheck-error
@@ -2097,12 +2109,14 @@ See `pdf-annot-activate-created-annotations' for more details."
     :group "flycheck")
 
   (setq flycheck-check-syntax-automatically '(mode-enabled new-line save)
-        flycheck-display-errors-delay 0.5)
+        flycheck-display-errors-delay 0.5
+        flycheck-annotate-background t
+        flycheck-annotate-format-function #'amsha/flycheck-error-format-message-and-id-with-symbol)
 
   (amsha/repeatize 'flycheck-command-map))
 
-(use-package flycheck-inline
-  :hook (flycheck-mode))
+;; (use-package flycheck-inline
+;;   :hook (flycheck-mode))
 
 (use-package all-the-icons)
 ;;flycheck
