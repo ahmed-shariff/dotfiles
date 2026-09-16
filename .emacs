@@ -2077,7 +2077,9 @@ See `pdf-annot-activate-created-annotations' for more details."
 (use-package vlf
   :defer 2
   :init
-  (require 'vlf-setup))
+  (require 'vlf-setup)
+  :custom
+  (large-file-warning-threshold 50000000))
 
 ;; Flycheck: On the fly syntax checking
 (use-package flycheck
