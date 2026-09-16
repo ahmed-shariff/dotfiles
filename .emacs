@@ -2097,10 +2097,10 @@ See `pdf-annot-activate-created-annotations' for more details."
   (defun amsha/flycheck-error-format-message-and-id-with-symbol (err)
     (concat
      (pcase (flycheck-error-level err)
-       ;; FIXME: backround are overriden by `flycheck-annotate--make-below-overlay'?
-       ('info    (propertize "ⓘ " 'font-lock-face `(t :foreground "white" :background ,(face-foreground 'flycheck-annotate-info))))
-       ('error   (propertize "⌧ " 'font-lock-face `(t :foreground "white" :background ,(face-foreground 'flycheck-annotate-error))))
-       ('warning (propertize "△ " 'font-lock-face `(t :foreground "white" :background ,(face-foreground 'flycheck-annotate-warning))))
+       ;; FIXME: overriden by `flycheck-annotate--make-below-overlay'?
+       ('info    (propertize "ⓘ " 'face `(t :foreground "white" :background ,(face-foreground 'flycheck-annotate-info nil t))))
+       ('error   (propertize "⌧ " 'face `(t :foreground "white" :background ,(face-foreground 'flycheck-annotate-error nil t))))
+       ('warning (propertize "△ " 'face `(t :foreground "white" :background ,(face-foreground 'flycheck-annotate-warning nil t))))
        (_ (em "  " "ERROR unknow flycheck error type" (flycheck-error-level err))))
      (flycheck-error-format-message-and-id err)))
 
@@ -2113,6 +2113,8 @@ See `pdf-annot-activate-created-annotations' for more details."
   (setq flycheck-check-syntax-automatically '(mode-enabled new-line save)
         flycheck-display-errors-delay 0.5
         flycheck-annotate-background t
+        flycheck-annotate-current-line-style 'below
+        flycheck-annotate-other-lines-style 'eol
         flycheck-annotate-format-function #'amsha/flycheck-error-format-message-and-id-with-symbol)
 
   (amsha/repeatize 'flycheck-command-map))
