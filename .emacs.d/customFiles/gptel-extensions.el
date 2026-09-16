@@ -3266,29 +3266,32 @@ Writing patterns to follow:\n%s"
              (setq user-region-start (point))
              (text-property-search-forward 'gptel nil t)
              ;; copied from `gptel--transform-apply-preset'
-             (while (re-search-backward "@\\([^[:space:]]+\\)\\_>" user-region-start t)
-               ;; The following convoluted check is because re-search is much faster if
-               ;; the search pattern begins with a non-whitespace char.
-               (when (or (= (match-beginning 0) (point-min))
-                         (memq (char-syntax (char-before (match-beginning 0))) '(32 62)))
-                 (when-let* ((name (match-string 1))
-                             (_ (not (string= name "amsha/prev")))
-                             (preset (or (gptel-get-preset (intern-soft name))
-                                         (gptel-get-preset name))))
-                   ;; Point must be after @foo when the preset is applied to allow for
-                   ;; more advanced transformations.
-                   (let (gptel-prompt-transform-functions) ;; Re-capturing the transform functions so we can re-run them
-                       (save-excursion
-                         (goto-char insert-point)
-                         (gptel--apply-preset preset
-                                              (lambda (sym val)
-                                                (set (make-local-variable sym) val)))
-                         ;; TODO: Handle async augmentors
-                         (--map (if (= (car (func-arity it)) 0)
-                                    (funcall it)
-                                  (funcall it fsm))
-                                gptel-prompt-transform-functions)))
-                   (setq found t)))))))))))
+             (let (has-prev)
+               (while (re-search-backward "@\\([^[:space:]]+\\)\\_>" user-region-start t)
+                 ;; The following convoluted check is because re-search is much faster if
+                 ;; the search pattern begins with a non-whitespace char.
+                 (when-let* ((_ (or (= (match-beginning 0) (point-min))
+                                    (memq (char-syntax (char-before (match-beginning 0))) '(32 62))))
+                             (name (match-string 1)))
+                   (if (string= name "amsha/prev")
+                       (setq has-prev t)
+                     (when-let* ((preset (or (gptel-get-preset (intern-soft name))
+                                             (gptel-get-preset name))))
+                       ;; Point must be after @foo when the preset is applied to allow for
+                       ;; more advanced transformations.
+                       (let (gptel-prompt-transform-functions) ;; Re-capturing the transform functions so we can re-run them
+                         (save-excursion
+                           (goto-char insert-point)
+                           (gptel--apply-preset preset
+                                                (lambda (sym val)
+                                                  (set (make-local-variable sym) val)))
+                           ;; TODO: Handle async augmentors
+                           (--map (if (= (car (func-arity it)) 0)
+                                      (funcall it)
+                                    (funcall it fsm))
+                                  gptel-prompt-transform-functions)))
+                       (setq found t)))))
+               (setq found (and found (not has-prev)))))))))))
 
 ;; (gptel-make-preset 'amsha/--skill-updater-agent-prompt
 ;;   :prompt-transform-functions
