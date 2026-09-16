@@ -148,7 +148,7 @@ word count of the response."
   :after gptel
   :bind
   (("C-c o q i" . gptel-inline))
-
+  :config
   (define-advice gptel-inline-switch-buffer (:around (old-fn buf) with-amsha/gptel-get-buffer)
     (interactive (list (amsha/gptel-get-buffer)))
     (funcall old-fn buf)))
