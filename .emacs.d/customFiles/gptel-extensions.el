@@ -306,7 +306,7 @@ CALLBACK is Flycheck's status callback."
                                    (not (string-empty-p diagnostic)))
                           (goto-char (point-min))
                           (forward-line (max 0 (1- start_line)))
-                          (when-let ((bounds (gptel-annotate--find-text-bounds text)))
+                          (when-let* ((bounds (gptel-annotate--find-text-bounds text)))
                             (flycheck-error-new-at-pos
                              (car bounds)
                              'info
