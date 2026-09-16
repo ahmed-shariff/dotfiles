@@ -147,7 +147,11 @@ word count of the response."
   :straight (:host github :repo "karthink/gptel-inline")
   :after gptel
   :bind
-  (("C-c o q i" . gptel-inline)))
+  (("C-c o q i" . gptel-inline))
+
+  (define-advice gptel-inline-switch-buffer (:around (old-fn buf) with-amsha/gptel-get-buffer)
+    (interactive (list (amsha/gptel-get-buffer)))
+    (funcall old-fn buf)))
 
 (use-package gptel-preset-collection
   :straight (:host github :repo "karthink/gptel-preset-collection")
@@ -695,11 +699,37 @@ Signals an error if a region is active, since region-based compaction is not imp
   (interactive)
   (gptel-agent okm-base-directory 'paper-agent))
 
+(defun amsha/gptel-get-buffer ()
+  "Prompt for an existing gptel buffer or generate a new buffer name.
+
+Existing buffers with `gptel-mode' enabled are presented for
+selection.  If no buffer is selected, return the first available name
+matching \"*gptel-buffer-N*\", where N starts at 1 and is limited to
+100."
+  (let* ((state-func (consult--buffer-preview))
+         (buf (consult--read
+               (-map
+                #'buffer-name
+                (--filter
+                 (buffer-local-value 'gptel-mode it)
+                 (buffer-list)))
+               :prompt        "Create or choose gptel buffer: "
+               :category      'buffer
+               :require-match nil
+               :async-wrap    nil
+               :state         state-func)))
+    (if (string-empty-p buf)
+        (cl-loop for i upfrom 1
+                 for buf = (format "*gptel-buffer-%s*" i)
+                 until (or (null (get-buffer buf)) (> i 100))
+                 finally return buf)
+      buf)))
+
 (defun amsha/gptel-buffer ()
   "Create or switch to a `gptel' session buffer.
 
-Prompts for an existing `gptel-mode' buffer or a new buffer name
-(defaulting to `*gptel-buffer-N*'). Unlike `gptel', this command does
+Prompts for an existing `gptel-mode' buffer or a new buffer name,
+defaulting to `*gptel-buffer-N*'.  Unlike `gptel', this command does
 not require choosing a backend first, making it convenient for opening
 a chat session quickly.
 
@@ -707,24 +737,7 @@ If the region is active, its text is inserted into the new session."
   (interactive)
   (lazy-require 'consult)
   (gptel
-   (let* ((state-func (consult--buffer-preview))
-          (buf (consult--read
-                (-map
-                 #'buffer-name
-                 (--filter
-                  (buffer-local-value 'gptel-mode it)
-                  (buffer-list)))
-                :prompt        "Create or choose gptel buffer: "
-                :category      'buffer
-                :require-match nil
-                :async-wrap    nil
-                :state         state-func)))
-     (if (string-empty-p buf)
-         (cl-loop for i upfrom 1
-                  for buf = (format "*gptel-buffer-%s*" i)
-                  until (or (null (get-buffer buf)) (> i 100))
-                  finally return buf)
-       buf))
+   (amsha/gptel-get-buffer)
    nil
    (and (use-region-p)
         (buffer-substring (region-beginning)
