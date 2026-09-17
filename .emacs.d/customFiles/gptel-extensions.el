@@ -1390,8 +1390,9 @@ Include only information that should persist:
 - Important decisions and their rationale
 - Key issues, constraints, and preferences
 - What remains to be done next
+- Any links or references that are important
 
-For iterative discussions, summarize the final position relative to the beginning rather than the full evolution - Provide what the initial position was and what it ended up being. Preserve essential distinctions, especially between competing approaches, their purposes, strengths, and limitations. Remove repetition, minor details, and unsupported interpretation. Sufficient context should be preserved to allow follow-ups, like important files to read and skills to use, etc.
+For iterative discussions, summarize the final position relative to the beginning rather than the full evolution - Provide what the initial position was and what it ended up being. Preserve essential distinctions, especially between competing approaches, their purposes, strengths, and limitations. Remove repetition, minor details, and unsupported interpretation. Sufficient context should be preserved to allow follow-ups, like important files to read and skills to use, etc. Avoid repetition and be as concise as possible without losing context or necessary information.
 
 Write in the third person as the AI agent. Do not provide follow-up suggestions, commentary, or questions."))
 
