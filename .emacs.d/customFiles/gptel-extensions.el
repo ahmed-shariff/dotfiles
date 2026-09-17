@@ -860,6 +860,12 @@ The return value is a plain-text report containing the matching results."
               (lambda (node)
                 (insert "\n------------\nResult " (number-to-string (incf result-id))
                         "\n- file: " (org-roam-node-file node)
+                        "\n- line: " (save-excursion
+                                       (org-roam-with-temp-buffer
+                                           (org-roam-node-file node)
+                                         (org-with-wide-buffer
+                                          (goto-char (org-roam-node-point node))
+                                          (number-to-string (line-number-at-pos)))))
                         "\n- title: " (org-roam-node-title node)
                         "\n- level: " (number-to-string (org-roam-node-level node))
                         "\n- state: " (if-let* ((state (org-roam-node-todo node)))
@@ -895,37 +901,57 @@ The return value is a plain-text report containing the matching results."
                         (source-id (org-roam-node-id source-node)))
                    (when (or (null filter-nodes)
                              (member source-id filter-ids))
-                     (let ((content
-                            (org-roam-fontify-like-in-org-mode
-                             (save-excursion
-                               (org-roam-with-temp-buffer
-                                   (org-roam-node-file source-node)
-                                 (org-with-wide-buffer
-                                  (goto-char (org-roam-backlink-point backlink))
-                                  (let ((preview
-                                         (funcall
-                                          org-roam-ql-preview-function
-                                          source-node
-                                          query)))
-                                    (dolist
-                                        (fn
-                                         org-roam-ql-preview-postprocess-functions)
-                                      (setq preview (funcall fn preview)))
-                                    preview)))))))
-                       ;; A file can contain several level-one headings
-                       ;; without those headings having node IDs.  Deduplicate
-                       ;; rendered previews rather than source node IDs.
-                       (let ((content-hash
-                              (secure-hash 'sha256 content)))
-                         (unless (gethash content-hash seen-content)
-                           (puthash content-hash t seen-content)
-                           (insert "\n------------\nResult " (number-to-string (incf result-id))
-                                   "\n- file: " (org-roam-node-file source-node)
-                                   "\n- title: " (org-roam-node-title source-node)
-                                   "\n- level: " (number-to-string (org-roam-node-level source-node))
-                                   "\n- state: " (if-let* ((state (org-roam-node-todo source-node)))
+                     (let* ((line-range)
+                            (content
+                             (org-roam-fontify-like-in-org-mode
+                              (save-excursion
+                                (org-roam-with-temp-buffer
+                                    (org-roam-node-file source-node)
+                                  (org-with-wide-buffer
+                                   (goto-char (org-roam-backlink-point backlink))
+                                   (save-excursion
+                                     ;; Copying from `org-roam-subtree-aware-preview-function'
+                                     (setq line-range
+                                           (format "full content: %s to %s"
+                                             (progn
+                                               (unless (org-at-heading-p)
+                                                 (org-previous-visible-heading 1))
+                                               (if (org-id-get)
+                                                   (org-roam-end-of-meta-data t)
+                                                 (org-beginning-of-line))
+                                               (line-number-at-pos))
+                                             (if (< (point) 5) ;; is full file
+                                                 (point-max)
+                                               (progn (when (org-id-get)
+                                                        (org-previous-visible-heading 1)
+                                                        (org-beginning-of-line))
+                                                      (org-end-of-subtree)
+                                                      (line-number-at-pos)))))
+                                   (let ((preview
+                                          (funcall
+                                           org-roam-ql-preview-function
+                                           source-node
+                                           query)))
+                                     (dolist
+                                         (fn
+                                          org-roam-ql-preview-postprocess-functions)
+                                       (setq preview (funcall fn preview)))
+                                     preview)))))))
+                            ;; A file can contain several level-one headings
+                            ;; without those headings having node IDs.  Deduplicate
+                            ;; rendered previews rather than source node IDs.
+                            (content-hash
+                             (secure-hash 'sha256 content)))
+                       (unless (gethash content-hash seen-content)
+                         (puthash content-hash t seen-content)
+                         (insert "\n------------\nResult " (number-to-string (incf result-id))
+                                 "\n- file: " (org-roam-node-file source-node)
+                                 "\n- line: " line-range
+                                 "\n- title: " (org-roam-node-title source-node)
+                                 "\n- level: " (number-to-string (org-roam-node-level source-node))
+                                 "\n- state: " (if-let* ((state (org-roam-node-todo source-node)))
                                                    state "nil")
-                                   "\n- content: \n" content))))))))))
+                                 "\n- content: \n" content)))))))))
           (insert "\n------------")
           (buffer-string)))
     (error (format "Failed to execulte - error %s" err))))
