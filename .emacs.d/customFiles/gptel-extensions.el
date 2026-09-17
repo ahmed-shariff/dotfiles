@@ -123,6 +123,10 @@ Now, write the commit message using this format:
   ;; Add gptcommit transient commands to `magit-commit'
   ;; Eval (transient-remove-suffix 'magit-commit '(1 -1)) to remove gptcommit transient commands
   (magit-gptcommit-status-buffer-setup)
+
+  (gptel-make-preset 'gptcommit
+    :prompt-transform-functions
+    (amsha/gptel-add-prompt-transform-functions magit-gptcommit-prompt))
   )
 
 (use-package gptel-quick
