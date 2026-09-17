@@ -833,7 +833,7 @@ QUERY and FILTER-QUERY are strings containing valid org-roam-ql query
 expressions.  FILTER-QUERY may be nil or an empty string. If QUERY is
 nil or an empty string it will load all nodes.
 
-The return value is a JSON string."
+The return value is a plain-text report containing the matching results."
   (lazy-require 'org-roam-ql)
   (unless (member type '("nodes" "notes"))
     (user-error "TYPE must be either \"nodes\" or \"notes\", got %S" type))
@@ -849,84 +849,85 @@ The return value is a JSON string."
                          (not (string-empty-p (string-trim filter-query))))
                 (org-roam-ql-nodes (read filter-query))))
              (filter-ids (mapcar #'org-roam-node-id filter-nodes))
-             (json-encoding-pretty-print t))
+             (result-id 0))
         (when (and (null query) (null filter-nodes))
           (error "QUERY and FILTER_NODES are both empty."))
-        (json-encode
-         `(("type" . ,type)
-           ("results" .
-            ,(pcase type
-               ("nodes"
-                (mapcar
-                 (lambda (node)
-                   `(("file" . ,(f-filename (org-roam-node-file node)))
-                     ("title" . ,(org-roam-node-title node))
-                     ("level" . ,(org-roam-node-level node))
-                     ("state" . ,(org-roam-node-todo node))))
-                 (if filter-nodes
-                     (seq-filter
-                      (lambda (node)
-                        (member (org-roam-node-id node) filter-ids))
-                      nodes)
-                   nodes)))
+        (with-temp-buffer
+          (insert "*Type:* " type)
+          (pcase type
+            ("nodes"
+             (mapcar
+              (lambda (node)
+                (insert "\n------------\nResult " (number-to-string (incf result-id))
+                        "\n- file: " (org-roam-node-file node)
+                        "\n- title: " (org-roam-node-title node)
+                        "\n- level: " (number-to-string (org-roam-node-level node))
+                        "\n- state: " (if-let* ((state (org-roam-node-todo node)))
+                                        state "nil")))
+              (if filter-nodes
+                  (seq-filter
+                   (lambda (node)
+                     (member (org-roam-node-id node) filter-ids))
+                   nodes)
+                nodes)))
 
-               ("notes"
-                (let ((seen-content (make-hash-table :test #'equal))
-                      results)
-                  (em query (length (org-roam-ql-backlinks-get query :unique nil)))
-                  (dolist (backlink
-                           (if query
-                               (org-roam-ql-backlinks-get query :unique nil)
-                             (cl-loop for b in (org-roam-db-query
-                                                [:select [source dest pos properties]
-                                                         :from links
-                                                         :where (in source $v1)
-                                                         :and (= type "id")]
-                                                (apply #'vector
-                                                       filter-ids))
-                                      collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) b))
-                                                (org-roam-populate
-                                                 (org-roam-backlink-create
-                                                  :source-node (org-roam-node-create :id source-id)
-                                                  :target-node (org-roam-node-create :id dest-id)
-                                                  :point pos
-                                                  :properties properties))))))
-                    (let* ((source-node (org-roam-backlink-source-node backlink))
-                           (source-id (org-roam-node-id source-node)))
-                      (when (or (null filter-nodes)
-                                (member source-id filter-ids))
-                        (let ((content
-                               (org-roam-fontify-like-in-org-mode
-                                (save-excursion
-                                  (org-roam-with-temp-buffer
-                                      (org-roam-node-file source-node)
-                                    (org-with-wide-buffer
-                                     (goto-char (org-roam-backlink-point backlink))
-                                     (let ((preview
-                                            (funcall
-                                             org-roam-ql-preview-function
-                                             source-node
-                                             query)))
-                                       (dolist
-                                           (fn
-                                            org-roam-ql-preview-postprocess-functions)
-                                         (setq preview (funcall fn preview)))
-                                       preview)))))))
-                          ;; A file can contain several level-one headings
-                          ;; without those headings having node IDs.  Deduplicate
-                          ;; rendered previews rather than source node IDs.
-                          (let ((content-hash
-                                 (secure-hash 'sha256 content)))
-                            (unless (gethash content-hash seen-content)
-                              (puthash content-hash t seen-content)
-                              (push
-                               `(("file" . ,(f-filename (org-roam-node-file source-node)))
-                                 ("title" . ,(org-roam-node-title source-node))
-                                 ("level" . ,(org-roam-node-level source-node))
-                                 ("state" . ,(org-roam-node-todo source-node))
-                                 ("content" . ,content))
-                               results)))))))
-                  (nreverse results))))))))
+            ("notes"
+             (let ((seen-content (make-hash-table :test #'equal))
+                   results)
+               (dolist (backlink
+                        (if query
+                            (org-roam-ql-backlinks-get query :unique nil)
+                          (cl-loop for b in (org-roam-db-query
+                                             [:select [source dest pos properties]
+                                                      :from links
+                                                      :where (in source $v1)
+                                                      :and (= type "id")]
+                                             (apply #'vector
+                                                    filter-ids))
+                                   collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) b))
+                                             (org-roam-populate
+                                              (org-roam-backlink-create
+                                               :source-node (org-roam-node-create :id source-id)
+                                               :target-node (org-roam-node-create :id dest-id)
+                                               :point pos
+                                               :properties properties))))))
+                 (let* ((source-node (org-roam-backlink-source-node backlink))
+                        (source-id (org-roam-node-id source-node)))
+                   (when (or (null filter-nodes)
+                             (member source-id filter-ids))
+                     (let ((content
+                            (org-roam-fontify-like-in-org-mode
+                             (save-excursion
+                               (org-roam-with-temp-buffer
+                                   (org-roam-node-file source-node)
+                                 (org-with-wide-buffer
+                                  (goto-char (org-roam-backlink-point backlink))
+                                  (let ((preview
+                                         (funcall
+                                          org-roam-ql-preview-function
+                                          source-node
+                                          query)))
+                                    (dolist
+                                        (fn
+                                         org-roam-ql-preview-postprocess-functions)
+                                      (setq preview (funcall fn preview)))
+                                    preview)))))))
+                       ;; A file can contain several level-one headings
+                       ;; without those headings having node IDs.  Deduplicate
+                       ;; rendered previews rather than source node IDs.
+                       (let ((content-hash
+                              (secure-hash 'sha256 content)))
+                         (unless (gethash content-hash seen-content)
+                           (puthash content-hash t seen-content)
+                           (insert "\n------------\nResult " (number-to-string (incf result-id))
+                                   "\n- file: " (org-roam-node-file source-node)
+                                   "\n- title: " (org-roam-node-title source-node)
+                                   "\n- level: " (number-to-string (org-roam-node-level source-node))
+                                   "\n- state: " (if-let* ((state (org-roam-node-todo source-node)))
+                                                   state "nil")
+                                   "\n- content: \n" content))))))))))
+          (insert "\n------------")
+          (buffer-string)))
     (error (format "Failed to execulte - error %s" err))))
 
 ;;; openai reponse related setup **********************************************************
@@ -3041,7 +3042,7 @@ Examples:
  \"\"
  \"(dailies-range \\\"-3w\\\")\")
 
-The return value is a JSON string."
+The return value is a plain-text report containing the matching results."
  :guideline "- Use `org-database` when you want to gather notes and previous chat sessions with user.\n- NEVER edit user's org-database under ANY circumstance. If there is somthing that needs change, bring it to the users attention."
  :snippet "Get notes and session info from users org-database."
  :args
