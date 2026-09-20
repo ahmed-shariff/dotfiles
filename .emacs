@@ -2086,8 +2086,22 @@ See `pdf-annot-activate-created-annotations' for more details."
   :defer 3
   :hook ((lsp-mode prog-mode text-mode) . flycheck-mode)
   :init (global-flycheck-mode)
-  :bind ((:map flycheck-command-map
-         ("a" . flycheck-annotate-mode)))
+  :bind (:map flycheck-command-map
+         ("a" . flycheck-annotate-mode)
+         :repeat-map flycheck-command-repeat-map
+         ("a" . flycheck-annotate-mode)
+         ("c" . flycheck-buffer)
+         ("e" . flycheck-explain-error-at-point)
+         ("f" . flycheck-fix-error-at-point)
+         ("h" . flycheck-display-error-at-point)
+         ("i" . flycheck-manual)
+         ("j" . flycheck-visit-related-location)
+         ("l" . flycheck-list-errors)
+         ("n" . flycheck-next-error)
+         ("p" . flycheck-previous-error)
+         ("s" . flycheck-select-checker)
+         ("v" . flycheck-verify-setup)
+         ("x" . flycheck-disable-checker))
   :config
   (define-key flycheck-mode-map flycheck-keymap-prefix nil)
   (setq flycheck-keymap-prefix (kbd "C-c e"))
@@ -2115,10 +2129,7 @@ See `pdf-annot-activate-created-annotations' for more details."
         flycheck-annotate-background t
         flycheck-annotate-current-line-style 'below
         flycheck-annotate-other-lines-style 'eol
-        flycheck-annotate-format-function #'amsha/flycheck-error-format-message-and-id-with-symbol)
-
-  (amsha/repeatize 'flycheck-command-map))
-
+        flycheck-annotate-format-function #'amsha/flycheck-error-format-message-and-id-with-symbol))
 ;; (use-package flycheck-inline
 ;;   :hook (flycheck-mode))
 
