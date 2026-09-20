@@ -303,7 +303,7 @@ CALLBACK is Flycheck's status callback."
              (save-excursion
                (delq nil
                      (mapcar
-                      (pcase-lambda ((map :start_line :text :diagnostic))
+                      (pcase-lambda ((map :start_line :text :diagnostic :replacement_text))
                         (when (and (integerp start_line)
                                    (stringp text)
                                    (stringp diagnostic)
@@ -313,7 +313,10 @@ CALLBACK is Flycheck's status callback."
                           (when-let* ((bounds (gptel-annotate--find-text-bounds text)))
                             (flycheck-error-new-at-pos
                              (car bounds)
-                             'info
+                             (if (and (stringp replacement_text)
+                                      (not (string-blank-p replacement_text)))
+                                 'warning
+                               'info)
                              diagnostic
                              :end-pos (cdr bounds)
                              :checker amsha/gptel-annotate--checker
@@ -325,8 +328,7 @@ CALLBACK is Flycheck's status callback."
   (flycheck-define-generic-checker 'amsha/gptel-annotate
     "Display conversational gptel annotations in the current buffer."
     :start #'amsha/gptel-annotate--start-checker
-    :modes '(prog-mode text-mode)
-    :predicate (lambda () (em t (not (null amsha/gptel-annotate--diagnostics)))))
+    :modes '(prog-mode text-mode fundamental-mode special-mode))
 
   ;; copied from flycheck-hl-todo: https://emacs.stackexchange.com/questions/78342/how-to-create-a-flycheck-checker-that-could-be-enabled-in-every-mode
   (dolist (mode (seq-uniq
@@ -373,13 +375,17 @@ CALLBACK is Flycheck's status callback."
         (flycheck-stop))
       (flycheck-start-current-syntax-check amsha/gptel-annotate--checker)))
 
-  (defun amsha/gptel-process-annotations (response)
+  (defun amsha/gptel-process-annotations (response &optional _info)
     "Process a JSON annotation RESPONSE and display it with Flycheck.
 
-Response items are grouped by their `:buffer_name'.  Each destination
-buffer gets a new group appended to its local annotation history.  The
-Flycheck errors from earlier calls to this function are removed from
-that buffer before the new group is reported."
+The optional INFO argument matches the callback signature used by
+`gptel-annotate--flymake-setup'.  Response items are grouped by their
+`:file_name'.  Each destination buffer gets a new group appended to
+its local annotation history.  The Flycheck errors from earlier calls
+to this function are removed from that buffer before the new group is
+reported.  Annotations with a non-empty `:replacement_text' are
+reported as warnings; other annotations are reported as informational
+messages."
     (interactive "sJSON annotation response: ")
     (let* ((json (if (stringp response)
                      (gptel--json-read-string response)
@@ -389,21 +395,29 @@ that buffer before the new group is reported."
            buffers)
       (dotimes (index (length items))
         (let* ((annotation (aref items index))
-               (source (plist-get annotation :buffer_name))
+               (source (plist-get annotation :file_name))
                (buffer (or (and (bufferp source) (buffer-live-p source) source)
                            (and (stringp source)
                                 (or (get-buffer source)
                                     (find-buffer-visiting source)
                                     (and (file-readable-p source)
                                          (find-file-noselect source)))))))
-          (when buffer
-            (push buffer buffers)
-            (push annotation (alist-get buffer groups)))))
-      (dolist (entry groups)
-        (amsha/gptel-annotate--report-buffer
-         (car entry)
-         (nreverse (cdr entry))))
-      (delete-dups buffers))))
+          (if buffer
+              (progn
+                (push buffer buffers)
+                (push annotation (alist-get buffer groups)))
+            (display-warning
+             'gptel-annotate
+             (format "Source buffer %s has been killed, aborting gptel annotation in this buffer" source))))
+        (dolist (entry groups)
+          (amsha/gptel-annotate--report-buffer
+           (car entry)
+           (nreverse (cdr entry))))
+        (delete-dups buffers))))
+
+  ;; Use Flycheck instead of the package's built-in Flymake backend.
+  (advice-add #'gptel-annotate--flymake-setup
+              :override #'amsha/gptel-process-annotations))
 
 ;;; misc-functions ************************************************************************
 (defmacro amsha/gptel-add-prompt-transform-functions (prompt &optional prepend-prompt prepend-transform-function)
