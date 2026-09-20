@@ -970,6 +970,17 @@ The return value is a plain-text report containing the matching results."
           (buffer-string)))
     (error (format "Failed to execulte - error %s" err))))
 
+(defun amsha/gptel-go-backward-section ()
+  "Move back section (user response or gptel response)."
+  (interactive)
+  (text-property-search-backward 'gptel nil t))
+
+(defun amsha/gptel-go-forward-section ()
+  "Move forward section (user response or gptel response)."
+  (interactive)
+  (forward-char)
+  (text-property-search-forward 'gptel nil t))
+
 ;;; openai reponse related setup **********************************************************
 (unless (featurep 'gptel-openai-responses-backend)
   (require 'gptel-openai-responses-backend))
@@ -4436,7 +4447,13 @@ then close the *gptel-context* buffer and return to gptel menu."
 
            :map gptel-mode-map
            ("C-c DEL" . amsha/erase-buffer-with-confirmation)
-           ("C-c i" . amsha/insert-buffer-file-name))
+           ("C-c i" . amsha/insert-buffer-file-name)
+           ("C-c o q j" . amsha/gptel-go-forward-section)
+           ("C-c o q k" . amsha/gptel-go-backward-section)
+
+           :repeat-map gptel-repeat-map
+           ("j" . amsha/gptel-go-forward-section)
+           ("k" . amsha/gptel-go-backward-section))
 
 (transient-insert-suffix 'gptel-menu '(-1 -1)
   '("B" "get/create gptel buffer"
