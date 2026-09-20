@@ -1553,10 +1553,14 @@ Summarize the context thoroughly and comprehensively.
   (condition-case err
       (setq gptel--mode-line-format
             (concat
-             (if (or
-                  (and (minibufferp)
-                       (buffer-file-name (window-buffer (minibuffer-selected-window))))
-                  (buffer-file-name (window-buffer)))
+             (if-let* ((buf (or
+                             (and (minibufferp)
+                                  (window-buffer (minibuffer-selected-window)))
+                             (window-buffer)))
+                       (_ (and
+                           (with-current-buffer buf
+                             (or (buffer-file-name)
+                                 (not gptel-mode))))))
                  "ﾠ "
                (propertize "ﾠ⦿" 'face `(:foreground
                                        ,(if amsha/gptel-archive-info
