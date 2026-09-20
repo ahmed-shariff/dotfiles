@@ -1552,36 +1552,47 @@ Summarize the context thoroughly and comprehensively.
   "Add modelines showing current model, status and context."
   (condition-case err
       (setq gptel--mode-line-format
-            (concat (propertize gptel--mode-line-status
-                                'face `(:inherit ,(or (get-text-property 0 'face gptel--mode-line-status)
-                                                      'default)
-                                                 :background "#000033"))
-                    (propertize (format "🧠 %s-%s "
-                                        (gptel-backend-name gptel-backend)
-                                        (gptel--model-name gptel-model))
-                                'face '(:foreground "gray80" :background "#000033"))
-                    (if (or gptel-context gptel-tools gptel-openai-responses-extended--tools)
-                        (let ((context-string
-                               (when gptel-context
-                                 (format "C:%s" (length gptel-context))))
-                              (tool-string
-                               (when (or gptel-tools gptel-openai-responses-extended--tools)
-                                 (format "T:%s"
-                                         (+ (if gptel-tools
-                                                (length gptel-tools)
-                                              0)
-                                            (if gptel-openai-responses-extended--tools
-                                                (length gptel-openai-responses-extended--tools)
-                                              0))))))
-                          (propertize (format "(%s) "
-                                              (cond
-                                               ((and context-string tool-string)
-                                                (concat context-string "/" tool-string))
-                                               ((or context-string tool-string)
-                                                (or context-string tool-string))
-                                               (t "huh")))
-                                      'face '(:foreground "red3" :background "#000033")))
-                      "")))
+            (concat
+             (if (or
+                  (and (minibufferp)
+                       (buffer-file-name (window-buffer (minibuffer-selected-window))))
+                  (buffer-file-name (window-buffer)))
+                 "ﾠ "
+               (propertize "ﾠ⦿" 'face `(:foreground
+                                       ,(if amsha/gptel-archive-info
+                                            "green4" "red4")
+                                       :background "#000033")))
+             (propertize gptel--mode-line-status
+                         'face `(:inherit ,(or (get-text-property 0 'face gptel--mode-line-status)
+                                               'default)
+                                          :background "#000033"))
+             (propertize (format "🧠 %s-%s "
+                                 (gptel-backend-name gptel-backend)
+                                 (gptel--model-name gptel-model))
+                         'face '(:foreground "gray80" :background "#000033"))
+
+             (if (or gptel-context gptel-tools gptel-openai-responses-extended--tools)
+                 (let ((context-string
+                        (when gptel-context
+                          (format "C:%s" (length gptel-context))))
+                       (tool-string
+                        (when (or gptel-tools gptel-openai-responses-extended--tools)
+                          (format "T:%s"
+                                  (+ (if gptel-tools
+                                         (length gptel-tools)
+                                       0)
+                                     (if gptel-openai-responses-extended--tools
+                                         (length gptel-openai-responses-extended--tools)
+                                       0))))))
+                   (propertize (format "(%s) "
+                                       (cond
+                                        ((and context-string tool-string)
+                                         (concat context-string "/" tool-string))
+                                        ((or context-string tool-string)
+                                         (or context-string tool-string))
+                                        (t "huh")))
+                               'face '(:foreground "red3" :background "#000033")))
+               "")))
     (error (em "Error in mode line: " err))))
 
 (run-with-idle-timer 5 t #'gptel--update-mode-line)
