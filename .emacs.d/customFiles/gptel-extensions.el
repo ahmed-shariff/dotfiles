@@ -1563,8 +1563,10 @@ Summarize the context thoroughly and comprehensively.
                                  (not gptel-mode))))))
                  "ﾠ "
                (propertize "ﾠ⦿" 'face `(:foreground
-                                       ,(if amsha/gptel-archive-info
-                                            "green4" "red4")
+                                        ,(cond
+                                          (amsha/gptel-archive-info "green4")
+                                          (amsha/gptel-buffer-title "gold")
+                                          (t "red4"))
                                        :background "#000033")))
              (propertize gptel--mode-line-status
                          'face `(:inherit ,(or (get-text-property 0 'face gptel--mode-line-status)
