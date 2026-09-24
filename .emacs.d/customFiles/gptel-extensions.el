@@ -508,7 +508,7 @@ Otherwise, add ELEM as the last element."
           :action
           (lambda (file)
             (insert
-             (concat "[[" (expand-file-name file (project-root (project-current)) "]]"))))
+             (concat "[[" (expand-file-name file (project-root (project-current))) "]]")))
           :items
           (lambda ()
             (projectile-project-files (projectile-acquire-root))))
