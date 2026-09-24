@@ -2141,7 +2141,10 @@ See `pdf-annot-activate-created-annotations' for more details."
 ;; for hunspell on windows: http://www.nextpoint.se/?p=656
 (use-package ispell
   :custom
-  (ispell-program-name "hunspell")
+  ;; pacman -S mingw-w64-x86_64-enchant mingw-w64-x86_64-hunspell mingw-w64-x86_64-hunspell-en mingw-w64-x86_64-aspell mingw-w64-x86_64-aspell-en
+  ;; hunspell -D
+  ;; enchant-lsmod-2 -list-dicts
+  (ispell-program-name "enchant-2")
   :config
   ;; downloaded from http://github.com/first20hours/google-10000-english/
   (if-let* ((dictionary-file (file-truename "~/.emacs.d/var/20k.txt"))
