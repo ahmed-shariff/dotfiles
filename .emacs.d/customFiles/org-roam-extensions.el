@@ -874,6 +874,26 @@ If prefix arg used, search whole db."
                                      nil nil)
                                     :prepend t
                                     :kill-buffer t)
+                                   ("r" "research_topic" entry "* ${title}%?
+  :PROPERTIES:
+  :ID:       %(org-id-new)
+  :END:"
+                                    :target
+                                    (file+head+olp
+                                    "~/Documents/org/brain/research topics.org"
+                                     nil nil)
+                                    :prepend t
+                                    :kill-buffer t)
+                                   ("p" "people" entry "* ${title}%?
+  :PROPERTIES:
+  :ID:       %(org-id-new)
+  :END:"
+                                    :target
+                                    (file+head+olp
+                                    "~/Documents/org/brain/People.org"
+                                     nil nil)
+                                    :prepend t
+                                    :kill-buffer t)
                                    ("t" "A thing i have to do(a wonderfull epiphany? 3:))->LIFE HAPPENS" entry "* TODO ${title}%?
   :PROPERTIES:
   :ID:       %(org-id-new)
