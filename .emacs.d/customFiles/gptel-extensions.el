@@ -3397,19 +3397,22 @@ Writing patterns to follow:\n%s"
                        (setq has-prev t)
                      (when-let* ((preset (or (gptel-get-preset (intern-soft name))
                                              (gptel-get-preset name))))
-                       ;; Point must be after @foo when the preset is applied to allow for
-                       ;; more advanced transformations.
                        (let (gptel-prompt-transform-functions) ;; Re-capturing the transform functions so we can re-run them
                          (save-excursion
-                           (goto-char insert-point)
+                           ;; Point must be after @foo when the preset is applied to allow for
+                           ;; more advanced transformations.
+                           (delete-region (match-beginning 0) (match-end 0))
                            (gptel--apply-preset preset
                                                 (lambda (sym val)
                                                   (set (make-local-variable sym) val)))
                            ;; TODO: Handle async augmentors
-                           (--map (if (= (car (func-arity it)) 0)
-                                      (funcall it)
-                                    (funcall it fsm))
-                                  gptel-prompt-transform-functions)))
+                           (mapcar
+                            (lambda (func)
+                              (goto-char (point-max))
+                              (if (= (car (func-arity func)) 0)
+                                  (funcall func)
+                                (funcall func fsm)))
+                            gptel-prompt-transform-functions)))
                        (setq found t)))))
                (setq found (and found (not has-prev)))))))))))
 
