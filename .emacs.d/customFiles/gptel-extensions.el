@@ -831,20 +831,20 @@ but also show links."
 
 (advice-add 'gptel-agent--read-url :override #'amsha/gptel-agent--read-url)
 
-(defun amsha/org-database-for-gptel (type query filter-query)
+(defun amsha/org-database-for-gptel (type query-str filter-query-str)
   "Query the user's org-roam database.
 
 TYPE must be either \"nodes\" or \"notes\".
 
-When TYPE is \"nodes\", return nodes matching QUERY.  Each result
+When TYPE is \"nodes\", return nodes matching QUERY-STR.  Each result
 contains the node's file, title, Org level, and TODO state.
 
 When TYPE is \"notes\", return previews for notes that reference nodes
-matching QUERY.  Each result contains the referring node's file, title,
+matching QUERY-STR.  Each result contains the referring node's file, title,
 Org level, TODO state, and preview content.
 
-QUERY and FILTER-QUERY are strings containing valid org-roam-ql query
-expressions.  FILTER-QUERY may be nil or an empty string. If QUERY is
+QUERY-STR and FILTER-QUERY-STR are strings containing valid org-roam-ql query
+expressions.  FILTER-QUERY-STR may be nil or an empty string. If QUERY-STR is
 nil or an empty string it will load all nodes.
 
 The return value is a plain-text report containing the matching results."
@@ -852,22 +852,24 @@ The return value is a plain-text report containing the matching results."
   (unless (member type '("nodes" "notes"))
     (user-error "TYPE must be either \"nodes\" or \"notes\", got %S" type))
   (condition-case err
-      (let* ((query (when (and query
-                               (not (string-empty-p (string-trim query))))
-                      (read query)))
+      (let* ((query (when (and query-str
+                               (not (string-empty-p (string-trim query-str))))
+                      (read query-str)))
              (nodes (if query
                         (org-roam-ql-nodes query)
                       (org-roam-ql--node-list)))
              (filter-nodes
-              (when (and filter-query
-                         (not (string-empty-p (string-trim filter-query))))
-                (org-roam-ql-nodes (read filter-query))))
+              (when (and filter-query-str
+                         (not (string-empty-p (string-trim filter-query-str))))
+                (org-roam-ql-nodes (read filter-query-str))))
              (filter-ids (mapcar #'org-roam-node-id filter-nodes))
              (result-id 0))
         (when (and (null query) (null filter-nodes))
           (error "QUERY and FILTER_NODES are both empty."))
         (with-temp-buffer
-          (insert "*Type:* " type)
+          (insert
+           "Results for query " query-str " with filter " (or filter-query-str "nil")
+           "\n*Type:* " type)
           (pcase type
             ("nodes"
              (mapcar
