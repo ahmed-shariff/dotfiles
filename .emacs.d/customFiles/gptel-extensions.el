@@ -1564,23 +1564,10 @@ Summarize the context thoroughly and comprehensively.
                                   #'amsha/okm-gptel-transform-add-pdf-txt
                                   #'gptel--transform-add-context)))
 
-(defvar-local amsha/--gptel-org-roam-ql-inline-results "")
-
 (gptel-make-preset 'org-roam-ql
   :description "Add org-roam-ql query results in last message."
-  :pre (lambda () (setq amsha/--gptel-org-roam-ql-inline-results nil))
-  :prompt-transform-functions
-  (append
-   `(:function
-     (lambda (fns)
-       (setq amsha/--gptel-org-roam-ql-inline-results
-             (concat
-              amsha/--gptel-org-roam-ql-inline-results
-              "\n\n"
-              ;; This needs to run when preset is being expanded
-              (amsha/gptel-org-roam-parse-query)))
-       fns))
-   (amsha/gptel-add-prompt-transform-functions amsha/--gptel-org-roam-ql-inline-results t)))
+  :pre (lambda ()
+         (amsha/gptel-transform-inline amsha/gptel-org-roam-parse-query append)))
 
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
