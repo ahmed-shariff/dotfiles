@@ -439,6 +439,29 @@ To be used as for `:prompt-transform-functions' in presets."
                          `(funcall (function ,prompt))
                        prompt))))))
 
+(cl-defmacro amsha/gptel-transform-inline (prompt &optional (type 'prepend))
+  "Insert PROMPT's content relative to the nearest `gptel' text property.
+
+PROMPT may be a string or a function.  If PROMPT is a function, it is
+called without arguments at runtime and its return value is inserted.
+
+TYPE determines the insertion location.  When TYPE is `prepend', search
+backward for the nearest `gptel' text property.  When TYPE is `append',
+search forward instead.  The default is `prepend'."
+  (let ((content-sym (gensym "content")))
+    `(let ((,content-sym
+            ,(if (functionp prompt)
+                 `(funcall (function ,prompt))
+               prompt)))
+       ;; TODO: should there be a speical form for "inplace"?
+       ;; Treating any other value to mean inplace now....
+       ,(pcase type
+          ('prepend
+           `(text-property-search-backward 'gptel nil t))
+          ('append
+           `(text-property-search-forward 'gptel nil t)))
+       (insert ,content-sym))))
+
 (defun amsha/gptel-agent-read-system-from-file (file &optional templates)
   "Load the file with `gptel-agent-read-file' and get `:system'."
   (plist-get (cdr (gptel-agent-read-file file templates))
