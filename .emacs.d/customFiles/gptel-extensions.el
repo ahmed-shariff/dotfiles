@@ -436,7 +436,7 @@ To be used as for `:prompt-transform-functions' in presets."
             ,(when prepend-prompt
                `(text-property-search-backward 'gptel nil t))
             (insert ,(if (functionp prompt)
-                         `(funcall ,prompt)
+                         `(funcall (function ,prompt))
                        prompt))))))
 
 (defun amsha/gptel-agent-read-system-from-file (file &optional templates)
@@ -917,40 +917,39 @@ The return value is a plain-text report containing the matching results."
                              (member source-id filter-ids))
                      (let* ((line-range)
                             (content
-                             (org-roam-fontify-like-in-org-mode
-                              (save-excursion
-                                (org-roam-with-temp-buffer
-                                    (org-roam-node-file source-node)
-                                  (org-with-wide-buffer
-                                   (goto-char (org-roam-backlink-point backlink))
-                                   (save-excursion
-                                     ;; Copying from `org-roam-subtree-aware-preview-function'
-                                     (setq line-range
-                                           (format "full content: %s to %s"
-                                             (progn
-                                               (unless (org-at-heading-p)
-                                                 (org-previous-visible-heading 1))
-                                               (if (org-id-get)
-                                                   (org-roam-end-of-meta-data t)
-                                                 (org-beginning-of-line))
-                                               (line-number-at-pos))
-                                             (if (< (point) 5) ;; is full file
-                                                 (point-max)
-                                               (progn (when (org-id-get)
-                                                        (org-previous-visible-heading 1)
-                                                        (org-beginning-of-line))
-                                                      (org-end-of-subtree)
-                                                      (line-number-at-pos)))))
-                                   (let ((preview
-                                          (funcall
-                                           org-roam-ql-preview-function
-                                           source-node
-                                           query)))
-                                     (dolist
-                                         (fn
-                                          org-roam-ql-preview-postprocess-functions)
-                                       (setq preview (funcall fn preview)))
-                                     preview)))))))
+                             (save-excursion
+                               (org-roam-with-temp-buffer
+                                   (org-roam-node-file source-node)
+                                 (org-with-wide-buffer
+                                  (goto-char (org-roam-backlink-point backlink))
+                                  (save-excursion
+                                    ;; Copying from `org-roam-subtree-aware-preview-function'
+                                    (setq line-range
+                                          (format "full content: %s to %s"
+                                                  (progn
+                                                    (unless (org-at-heading-p)
+                                                      (org-previous-visible-heading 1))
+                                                    (if (org-id-get)
+                                                        (org-roam-end-of-meta-data t)
+                                                      (org-beginning-of-line))
+                                                    (line-number-at-pos))
+                                                  (if (< (point) 5) ;; is full file
+                                                      (point-max)
+                                                    (progn (when (org-id-get)
+                                                             (org-previous-visible-heading 1)
+                                                             (org-beginning-of-line))
+                                                           (org-end-of-subtree)
+                                                           (line-number-at-pos)))))
+                                    (let ((preview
+                                           (funcall
+                                            org-roam-ql-preview-function
+                                            source-node
+                                            query)))
+                                      (dolist
+                                          (fn
+                                           org-roam-ql-preview-postprocess-functions)
+                                        (setq preview (funcall fn preview)))
+                                      preview))))))
                             ;; A file can contain several level-one headings
                             ;; without those headings having node IDs.  Deduplicate
                             ;; rendered previews rather than source node IDs.
@@ -969,6 +968,33 @@ The return value is a plain-text report containing the matching results."
           (insert "\n------------")
           (buffer-string)))
     (error (format "Failed to execulte - error %s" err))))
+
+;; Copied from `gptel-preset-collection--parse-line'
+(defun amsha/gptel-org-roam-parse-query ()
+  "Get the notes of the query after point."
+  (skip-syntax-forward " " (line-end-position))
+  (if-let ((_ (not (or (eolp) (eobp))))
+           (source-or-query (thing-at-point 'sexp)))
+      (progn
+        (forward-thing 'sexp)
+        (skip-syntax-forward " " (line-end-position))
+        (amsha/org-database-for-gptel
+         "notes"
+         source-or-query
+         (when (looking-at ":filter")
+           (goto-char (match-end 0))
+           (skip-syntax-forward " " (line-end-position))
+           (thing-at-point 'sexp nil))))
+    ""))
+
+(defun amsha/gptel-add-org-roam-ql-capf ()
+  "Add org-roam-ql capf hook.
+
+To be used as in gptel-mode-hook."
+  (lazy-require 'org-roam-ql)
+  (add-hook 'completion-at-point-functions #'org-roam-ql--completion-at-point nil t))
+
+(add-hook 'gptel-mode-hook #'amsha/gptel-add-org-roam-ql-capf)
 
 (defun amsha/gptel-go-backward-section ()
   "Move back section (user response or gptel response)."
@@ -1512,6 +1538,24 @@ Summarize the context thoroughly and comprehensively.
     (add-before-special-or-append gptel-prompt-transform-functions
                                   #'amsha/okm-gptel-transform-add-pdf-txt
                                   #'gptel--transform-add-context)))
+
+(defvar-local amsha/--gptel-org-roam-ql-inline-results "")
+
+(gptel-make-preset 'org-roam-ql
+  :description "Add org-roam-ql query results in last message."
+  :pre (lambda () (setq amsha/--gptel-org-roam-ql-inline-results nil))
+  :prompt-transform-functions
+  (append
+   `(:function
+     (lambda (fns)
+       (setq amsha/--gptel-org-roam-ql-inline-results
+             (concat
+              amsha/--gptel-org-roam-ql-inline-results
+              "\n\n"
+              ;; This needs to run when preset is being expanded
+              (amsha/gptel-org-roam-parse-query)))
+       fns))
+   (amsha/gptel-add-prompt-transform-functions amsha/--gptel-org-roam-ql-inline-results t)))
 
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
