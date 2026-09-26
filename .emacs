@@ -2154,7 +2154,11 @@ See `pdf-annot-activate-created-annotations' for more details."
     (setq ispell-alternate-dictionary nil
           text-mode-ispell-word-completion nil)))
 
-(use-package flyspell)
+(use-package flyspell
+  :demand 3
+  :bind (:map flyspell-mode-map
+         ;; FIXME: Where is this spurious bind come from?
+         ("C-M-i" . nil)))
 
 ;; On windows
 ;; 1. install https://packages.msys2.org/packages/mingw-w64-x86_64-enchant
