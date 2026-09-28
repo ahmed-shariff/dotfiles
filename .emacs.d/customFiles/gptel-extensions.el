@@ -999,8 +999,8 @@ The return value is a plain-text report containing the matching results."
 (defun amsha/gptel-org-roam-parse-query ()
   "Get the notes of the query after point."
   (skip-syntax-forward " " (line-end-position))
-  (if-let ((_ (not (or (eolp) (eobp))))
-           (source-or-query (thing-at-point 'sexp)))
+  (if-let* ((_ (not (or (eolp) (eobp))))
+            (source-or-query (thing-at-point 'sexp)))
       (progn
         (forward-thing 'sexp)
         (skip-syntax-forward " " (line-end-position))
