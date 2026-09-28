@@ -453,14 +453,15 @@ search forward instead.  The default is `prepend'."
             ,(if (functionp prompt)
                  `(funcall (function ,prompt))
                prompt)))
-       ;; TODO: should there be a speical form for "inplace"?
-       ;; Treating any other value to mean inplace now....
-       ,(pcase type
-          ('prepend
-           `(text-property-search-backward 'gptel nil t))
-          ('append
-           `(text-property-search-forward 'gptel nil t)))
-       (insert ,content-sym))))
+       (save-excursion
+         ;; TODO: should there be a speical form for "inplace"?
+         ;; Treating any other value to mean inplace now....
+         ,(pcase type
+            ('prepend
+             `(text-property-search-backward 'gptel nil t))
+            ('append
+             `(text-property-search-forward 'gptel nil t)))
+         (insert ,content-sym)))))
 
 (defun amsha/gptel-agent-read-system-from-file (file &optional templates)
   "Load the file with `gptel-agent-read-file' and get `:system'."
