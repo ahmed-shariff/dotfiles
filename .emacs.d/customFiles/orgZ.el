@@ -987,6 +987,49 @@ The screenshot tool is determined by `org-download-screenshot-method'."
       (when (file-exists-p file-name)
         (kill-new file-name)))))
 
+(use-package dslide
+ :straight (dslide :type git :host github
+                   :repo "positron-solutions/dslide")
+ :hook
+ (dslide-start-hook . amsha/present-start)
+ (dslide-stop-hook  . amsha/present-end)
+ :config
+ (evil-define-minor-mode-key 'normal 'dslide-mode
+   (kbd "<left>") 'dslide-deck-backward
+   (kbd "<right>") 'dslide-deck-forward
+   (kbd "<up>") 'dslide-deck-start
+   (kbd "C-<down>") 'dslide-deck-stop)
+
+ (use-package beacon
+   :straight nil
+   :hook
+   (beacon-dont-blink-predicates . (lambda ()
+                                     dslide-mode)))
+
+ (defvar amsha/dslide--backups nil) ;; (face-remapping-alist header-line-format)
+
+ (defun amsha/present-start ()
+   "On presentation start."
+   (setq amsha/dslide--backups (list face-remapping-alist header-line-format))
+   (setq-local face-remapping-alist '((default (:height 1.5) variable-pitch)
+                                      (header-line (:height 4.0) variable-pitch)
+                                      (org-document-title (:height 1.75) org-document-title)
+                                      (org-code (:height 1.55) org-code)
+                                      (org-verbatim (:height 1.55) org-verbatim)
+                                      (org-block (:height 1.25) org-block)
+                                      (org-block-begin-line (:height 0.7) org-block)))
+   (setq header-line-format " ")
+   (display-line-numbers-mode 0)
+   (dslide-cursor-hide))
+
+ (defun amsha/present-end ()
+   "On presentation end"
+   (setq-local face-remapping-alist (car amsha/dslide--backups))
+   (setq header-line-format (cadr amsha/dslide--backups)
+         amsha/dslide--backups nil)
+   (display-line-numbers-mode 1)
+   (dslide-cursor-restore)))
+
 ;; Functions ********************************************************************************
 
 ;; from https://emacs.stackexchange.com/questions/44664/apply-ansi-color-escape-sequences-for-org-babel-results
