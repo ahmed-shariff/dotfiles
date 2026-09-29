@@ -550,7 +550,11 @@ advice, files on WSL can not be saved."
                       :height 105
                       :weight 'normal)
 
-  (set-fontset-font t nil "FiraCode Nerd Font" nil 'prepend))
+  (set-fontset-font t nil "FiraCode Nerd Font" nil 'prepend)
+
+  (when (eq system-type 'windows-nt)
+    (set-fontset-font t 'emoji "Segoe UI Emoji" nil 'prepend)
+    (set-fontset-font t 'symbol "Segoe UI Symbol" nil 'prepend)))
 
 (use-package evil-setup
   :straight nil)
