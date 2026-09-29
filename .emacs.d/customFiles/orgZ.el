@@ -991,8 +991,11 @@ The screenshot tool is determined by `org-download-screenshot-method'."
  :straight (dslide :type git :host github
                    :repo "positron-solutions/dslide")
  :hook
- (dslide-start-hook . amsha/present-start)
- (dslide-stop-hook  . amsha/present-end)
+ (dslide-start   . amsha/present-start)
+ (dslide-present . amsha/present-start)
+ (dslide-stop    . amsha/present-end)
+ :custom
+ (dslide-header-fun #'amsha/dslide-header-with-number)
  :config
  (evil-define-minor-mode-key 'normal 'dslide-mode
    (kbd "<left>") 'dslide-deck-backward
@@ -1019,6 +1022,8 @@ The screenshot tool is determined by `org-download-screenshot-method'."
                                       (org-block (:height 1.25) org-block)
                                       (org-block-begin-line (:height 0.7) org-block)))
    (setq header-line-format " ")
+   ;; FIXME: The header/breadcrumb overlay and indent interfer
+   ;; (org-indent-mode 0)
    (display-line-numbers-mode 0)
    (dslide-cursor-hide))
 
@@ -1027,8 +1032,38 @@ The screenshot tool is determined by `org-download-screenshot-method'."
    (setq-local face-remapping-alist (car amsha/dslide--backups))
    (setq header-line-format (cadr amsha/dslide--backups)
          amsha/dslide--backups nil)
+   ;; (org-indent-mode 1)
    (display-line-numbers-mode 1)
-   (dslide-cursor-restore)))
+   (dslide-cursor-restore))
+
+ (defun amsha/dslide-header-with-number (cleanup &optional breadcrumbs)
+   "Header with number."
+   ;; Let dslide create its normal header first.
+   (dslide-make-header cleanup breadcrumbs)
+
+   (unless cleanup
+     (let* ((filter (dslide--filter-function dslide--deck))
+            (current (dslide--root-heading-at-point filter))
+            (current-begin (org-element-property :begin current))
+            (heading (dslide--document-first-heading filter))
+            (number 1)
+            (total 0))
+
+       ;; Find the current slide number.
+       (while heading
+         (when (= (org-element-property :begin heading) current-begin)
+           (setq number (1+ total)))
+         (setq total (1+ total)
+               heading (dslide--next-sibling heading filter)))
+
+       ;; Add the number above the normal dslide header.
+       (overlay-put
+        dslide--header-overlay
+        'before-string
+        (concat
+         (propertize (format "Slide %d / %d\n" number total)
+                     'face 'org-document-info)
+         (overlay-get dslide--header-overlay 'before-string)))))))
 
 ;; Functions ********************************************************************************
 
