@@ -885,6 +885,16 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
 (use-package golden-ratio
   :defer t)
 
+(use-package command-log-mode
+  :custom
+  (command-log-mode-key-binding-open-log nil)
+  :init
+  (global-command-log-mode)
+  :config
+  ;; hack to get the commands to start logging automatically
+  (setq clm/command-log-buffer
+        (get-buffer-create " *command-log*")))
+
 (use-package diminish
   :defer 1
   :config
