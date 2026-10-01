@@ -3555,47 +3555,60 @@ Writing patterns to follow:\n%s"
 
 (defvar amsha/gptel-memory-target-file-alist
   '(("AGENT_MEMORY" . "AGENT-MEMORY.md")
-    ("USER" . "USER.md"))
-  "Alist mapping memory targets to relative filenames.")
+    ("USER" . "USER.md")
+    ("PROJECT" . (lambda ()
+                   (when-let* ((project (project-current)))
+                     (concat "PROJECT_" (upcase (project-name project)) ".md")))))
+  "Alist mapping memory targets to relative filenames.
+Can be a string or a function that returns a string.")
 
 (defvar amsha/gptel-memory-target-limit-alist
   '(("AGENT_MEMORY" . 2200)
-    ("USER" . 1375))
+    ("USER" . 1375)
+    ("PROJECT" . 2500))
   "Alist mapping memory targets to character limits.")
 
 (defun amsha/gptel-memory (include-content)
-  "Provide the current summary of memory."
+  "Provide the current summary of memory.
+
+If INCLUDE-CONTENT, also include the content."
   (concat
    "\n====================
 Current memories:
 ---------------\n"
    (mapconcat
-    (lambda (target)
-      (when-let* ((rel (alist-get target amsha/gptel-memory-target-file-alist nil nil #'string-equal))
-                  (path (expand-file-name rel amsha/gptel-memory-root)))
-        (unless (file-exists-p path)
-          (with-temp-buffer
-            (write-file path)))
-        (let* ((limit (alist-get target amsha/gptel-memory-target-limit-alist nil nil #'string-equal))
-               (current (with-temp-buffer
-                          (insert-file-contents path)
-                          (buffer-size)))
-               (summary (format "%s [%d%% - %d/%d chars]"
-                                (upcase target)
-                                (min 100 (floor (* 100.0 (/ (float current) limit))))
-                                current
-                                limit)))
-          (apply #'string-join
-                 (if include-content
-                     (list
-                      (list
-                       summary
-                       (with-temp-buffer
-                         (insert-file-contents path)
-                         (buffer-string)))
-                      "\n")
-                   `((,summary)))))))
-    (mapcar #'car amsha/gptel-memory-target-file-alist)
+    (pcase-lambda (`(,target . ,path))
+      (unless (file-exists-p path)
+        (with-temp-file path
+          (insert "empty")))
+      (let* ((limit (alist-get target amsha/gptel-memory-target-limit-alist nil nil #'string-equal))
+             (current (with-temp-buffer
+                        (insert-file-contents path)
+                        (buffer-size)))
+             (summary (format "%s [%d%% - %d/%d chars]"
+                              (upcase target)
+                              (min 100 (floor (* 100.0 (/ (float current) limit))))
+                              current
+                              limit)))
+        (apply #'string-join
+               (if include-content
+                   (list
+                    (list
+                     summary
+                     (with-temp-buffer
+                       (insert-file-contents path)
+                       (buffer-string)))
+                    "\n")
+                 `((,summary))))))
+    (seq-filter
+     #'identity
+     (mapcar (pcase-lambda (`(,target . ,fname))
+               (when-let* ((fname-processed
+                            (cl-typecase fname
+                              (function (funcall fname))
+                              (string fname))))
+                 (cons target (expand-file-name fname-processed amsha/gptel-memory-root))))
+             amsha/gptel-memory-target-file-alist))
     "\n---------------\n")
     "\n====================\n"))
 
@@ -3603,35 +3616,47 @@ Current memories:
   "Apply memory OPERATIONS as batch replacements."
   (condition-case err
       (let ((projected-sizes
-             (mapcar (lambda (target-and-file-name)
-                       (let* ((target-name (car target-and-file-name))
-                              (path (expand-file-name
-                                     (cdr target-and-file-name)
-                                     amsha/gptel-memory-root)))
-                         (list target-name
-                               (with-temp-buffer
-                                 (insert-file-contents path)
-                                 (buffer-size))
-                               (alist-get target-name amsha/gptel-memory-target-limit-alist nil nil #'string-equal)
-                               path)))
-                     amsha/gptel-memory-target-file-alist)))
-        (amsha/gptel-agent--edit-files-batch
-         (vconcat
-          (mapcar
-           (lambda (op)
-             (pcase-let* ((target (plist-get op :target))
-                          (`(,current-size ,limit ,path) (alist-get target projected-sizes nil nil #'string-equal))
-                          (old (plist-get op :old_str))
-                          (new (plist-get op :new_str))
-                          (delta (- (length new) (length old))))
-               (when (> (+ current-size delta) limit)
-                 (error "Memory for %S would exceed limit (%d > %d chars). No memory was updated."
-                        target (+ current-size delta) limit))
-               (list :path path :old_str old :new_str new)))
-           operations)))
+             (seq-filter
+              #'identity
+              (mapcar
+               (pcase-lambda (`(,target . ,fname))
+                 (when-let* ((fname (cl-typecase fname
+                                      (function (funcall fname))
+                                      (string fname)))
+                             (path (expand-file-name fname amsha/gptel-memory-root)))
+                   (list target
+                         (with-temp-buffer
+                           (insert-file-contents path)
+                           (buffer-size))
+                         (alist-get target amsha/gptel-memory-target-limit-alist nil nil #'string-equal)
+                         path)))
+               amsha/gptel-memory-target-file-alist))))
+        (condition-case err
+            (amsha/gptel-agent--edit-files-batch
+             (vconcat
+              (mapcar
+               (lambda (op)
+                 (pcase-let* ((target (plist-get op :target))
+                              (`(,current-size ,limit ,path) (alist-get target projected-sizes nil nil #'string-equal))
+                              (old (plist-get op :old_str))
+                              (new (plist-get op :new_str))
+                              (delta (- (length new) (length old))))
+                   (when (> (+ current-size delta) limit)
+                     (error "Memory for %S would exceed limit (%d > %d chars)"
+                            target (+ current-size delta) limit))
+                   (list :path path :old_str old :new_str new)))
+               operations)))
+          (error
+           (cond
+            ((string-match "would exceed limit " (cadr err))
+             (signal (car err) (cadr err)))
+            ;; Preventing the agent from seeing the full path.
+            ;; This is the only possible case for this to fail... I think.
+            (t
+             (error "Could not write - Probably mismatch in string")))))
         (amsha/gptel-memory nil))
     (error
-     "Failed to update %s" err
+     (format "Failed to update %s. No memory was updated." err)
      )))
 
 (defun amsha/gptel-agent--memory-preview-setup (arg-values _info)
