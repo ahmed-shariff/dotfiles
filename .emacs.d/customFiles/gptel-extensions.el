@@ -2862,12 +2862,17 @@ The return value is a plain-text report containing the matching results."
            (thing-at-point 'sexp nil))))
     ""))
 
+(defun amsha/org-roam-ql-capf-anywhere ()
+  "Wrapper around `org-roam-ql--completion-at-point'."
+  (when-let* ((cap (org-roam-ql--completion-at-point)))
+    (append cap '(:exclusive no))))
+
 (defun amsha/gptel-add-org-roam-ql-capf ()
   "Add org-roam-ql capf hook.
 
 To be used as in gptel-mode-hook."
   (lazy-require 'org-roam-ql)
-  (add-hook 'completion-at-point-functions #'org-roam-ql--completion-at-point nil t))
+  (add-hook 'completion-at-point-functions #'amsha/org-roam-ql-capf-anywhere nil t))
 
 (add-hook 'gptel-mode-hook #'amsha/gptel-add-org-roam-ql-capf)
 
