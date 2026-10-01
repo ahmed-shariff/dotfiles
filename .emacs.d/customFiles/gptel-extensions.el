@@ -806,6 +806,15 @@ If the region is active, its text is inserted into the new session."
                           (region-end)))
    t))
 
+(defun amsha/gptel-update-default-directive ()
+  "Update the amsha/default directive."
+  (--> (concat
+        "You are a large language model living in Emacs and a helpful assistant. Respond concisely.\n\n"
+        (amsha/gptel-agent-read-system-from-file
+         "~/.emacs.d/customFiles/agents/--unslop.md"))
+       (prog1 it
+         (add-to-list 'gptel-directives (cons 'amsha/default it)))))
+
 (defun amsha/gptel-agent--read-url (tool-cb url)
   "Fetch URL text and call TOOL-CB with it,
 but also show links."
@@ -4542,13 +4551,9 @@ then close the *gptel-context* buffer and return to gptel menu."
       gptel-quick-backend gptel-openai-response-backend
       ;; the gpt 5 models are reasoning models and the max tokens set is too small with quick.
       ;; See https://github.com/openai/openai-python/issues/2546
-      gptel-quick-model 'gpt-4.1-mini
+      gptel-quick-model amsha/gptel-cheap-model
 
-      gptel-system-prompt
-      (concat
-       "You are a large language model living in Emacs and a helpful assistant. Respond concisely.\n\n"
-       (amsha/gptel-agent-read-system-from-file
-        "~/.emacs.d/customFiles/agents/--unslop.md")))
+      gptel-system-prompt (amsha/gptel-update-default-directive))
 
 (custom-set-faces
  '(gptel-response-highlight ((t (:background "#112233" :extend t)))))
