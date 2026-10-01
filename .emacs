@@ -317,6 +317,7 @@ When LOCAL-COUNTER is non-nil, make the generated counter buffer-local."
 (defun lazy-require (mode)
   "Lazy require MODE."
   (unless (featurep mode)
+    (em "required" mode)
     (require mode)))
 
 ;; from https://github.com/daviwil/dotfiles/blob/master/Emacs.org
