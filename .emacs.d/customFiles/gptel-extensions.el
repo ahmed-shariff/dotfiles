@@ -815,55 +815,6 @@ If the region is active, its text is inserted into the new session."
        (prog1 it
          (add-to-list 'gptel-directives (cons 'amsha/default it)))))
 
-(defun amsha/gptel-agent--read-url (tool-cb url)
-  "Fetch URL text and call TOOL-CB with it,
-but also show links."
-  (gptel-agent--fetch-with-timeout
-   url
-   (lambda (cb)
-     (goto-char (point-min))
-     (forward-paragraph)
-     (condition-case errdata
-         (let ((dom (libxml-parse-html-region (point) (point-max))))
-           (with-temp-buffer
-             (eww-score-readability dom)
-             (shr-insert-document (eww-highest-readability dom))
-
-             (let ((out ""))
-               (goto-char (point-min))
-               (while (< (point) (point-max))
-                 (let* ((next (or (next-single-property-change
-                                   (point) 'shr-url nil (point-max))
-                                  (point-max)))
-                        (text (buffer-substring (point) next))
-                        (url (get-text-property (point) 'shr-url)))
-                   (setq out
-                         (concat out
-                                 (if url
-                                     (format "[[%s][%s]]" url text)
-                                   text)))
-                   (goto-char next)))
-               (funcall cb (with-temp-buffer
-                             (insert out)
-                             (decode-coding-region (point-min) (point-max) 'utf-8)
-                             (buffer-string))))))
-       (error
-        (funcall cb
-                 (format "Error: Request failed with error data:\n%S"
-                         errdata)))))
-   tool-cb
-   (format "Fetch for \"%s\"" url)))
-
-(defun amsha/read-url-and-add-with-org-babel (url)
-  "Read a URL and insert the response as an Org Babel result in the current buffer."
-  (let* ((it (current-buffer))
-         (func `(lambda (response)
-                  (with-current-buffer ,it
-                    (org-babel-insert-result response '("org"))))))
-    (amsha/gptel-agent--read-url func url)))
-
-(advice-add 'gptel-agent--read-url :override #'amsha/gptel-agent--read-url)
-
 (defun amsha/org-database-for-gptel (type query-str filter-query-str)
   "Query the user's org-roam database.
 
@@ -2484,48 +2435,57 @@ STRATEGIES-DEST-DIR defaults to `amsha/fabric-strategies-dir'."
         (replace-match input t t))
       (buffer-string))))
 
-;;; composable agents *********************************************************************
+;;; update agent related functions ********************************************************
 
-(cl-defstruct (gptel-agent-tool (:constructor nil)
-                                (:constructor gptel--make-agent-tool-internal
-                                              (&key function name description snippet guideline
-                                                    args async category confirm include
-                                                    &allow-other-keys))
-                                (:copier gptel--copy-tool)
-                                (:include gptel-tool))
-  "Same as `gptel-tool', but haddles additional information like snippets and guidelines.
+(defun amsha/gptel-agent--read-url (tool-cb url)
+  "Fetch URL text and call TOOL-CB with it,
+but also show links."
+  (gptel-agent--fetch-with-timeout
+   url
+   (lambda (cb)
+     (goto-char (point-min))
+     (forward-paragraph)
+     (condition-case errdata
+         (let ((dom (libxml-parse-html-region (point) (point-max))))
+           (with-temp-buffer
+             (eww-score-readability dom)
+             (shr-insert-document (eww-highest-readability dom))
 
-When an agent executes with this tool, snippets will be added to the list of tools in the agent.
-Guidelines will be placed under guidelines in the system prompt."
-  (snippet nil :type string :documentation "The snippet added to the system prompt under list of tools.")
-  (guideline nil :type string :documentation "The guideline added to the system prompt under guidelines."))
+             (let ((out ""))
+               (goto-char (point-min))
+               (while (< (point) (point-max))
+                 (let* ((next (or (next-single-property-change
+                                   (point) 'shr-url nil (point-max))
+                                  (point-max)))
+                        (text (buffer-substring (point) next))
+                        (url (get-text-property (point) 'shr-url)))
+                   (setq out
+                         (concat out
+                                 (if url
+                                     (format "[[%s][%s]]" url text)
+                                   text)))
+                   (goto-char next)))
+               (funcall cb (with-temp-buffer
+                             (insert out)
+                             (decode-coding-region (point-min) (point-max) 'utf-8)
+                             (buffer-string))))))
+       (error
+        (funcall cb
+                 (format "Error: Request failed with error data:\n%S"
+                         errdata)))))
+   tool-cb
+   (format "Fetch for \"%s\"" url)))
 
-(defun gptel--make-agent-tool (&rest spec)
-  "Construct a gptel-tool according to SPEC."
-  (gptel--preprocess-tool-args (plist-get spec :args))
-  (apply #'gptel--make-agent-tool-internal spec))
+(defun amsha/read-url-and-add-with-org-babel (url)
+  "Read a URL and insert the response as an Org Babel result in the current buffer."
+  (let* ((it (current-buffer))
+         (func `(lambda (response)
+                  (with-current-buffer ,it
+                    (org-babel-insert-result response '("org"))))))
+    (amsha/gptel-agent--read-url func url)))
 
-(defun gptel-make-agent-tool (&rest slots)
-  "Same as `gptel-make-tool', creates the `gptel-agent-tool' instead."
-  (let* ((tool (apply #'gptel--make-agent-tool slots))
-         (category (or (gptel-tool-category tool) "misc")))
-    (setf (alist-get
-           (gptel-tool-name tool)
-           (alist-get category gptel--known-tools nil nil #'equal)
-           nil nil #'equal)
-          tool)))
+(advice-add 'gptel-agent--read-url :override #'amsha/gptel-agent--read-url)
 
-(defun amsha/generate-agent-templates ()
-  `(("GLOBAL_SKILL_LINE" . ,(format "Global skills are in %S" amsha/gptel-skill-base-dir))
-    ("ARCHIVE_LOCATION" . ,(format "%S" amsha/gptel-skill-archive-dir))
-    ("PROJECT_ROOT_LINE" . ,(if-let* ((cur-project (project-current))
-                                      (root (project-root cur-project))
-                                      (_ (not (equal (expand-file-name root)
-                                                     (expand-file-name "~/")))))
-                                (format "The current project root is: %S" root)
-                              "The agent is not in a project directory. You can ignore project-specific instructions."))))
-
-;; gptel-agent tools as gptel-agent-tool's
 (defun amsha/gptel-agent--edit-files-batch (edits)
   "Edit multiple files atomically.
 
@@ -2826,6 +2786,48 @@ ARG-VALUES is the list of arguments for the tool call."
                    nil nil #'string-equal)
       `(,#'amsha/gptel-agent--execute-powershell-preview-setup))
 
+;;; composable agents *********************************************************************
+
+(cl-defstruct (gptel-agent-tool (:constructor nil)
+                                (:constructor gptel--make-agent-tool-internal
+                                              (&key function name description snippet guideline
+                                                    args async category confirm include
+                                                    &allow-other-keys))
+                                (:copier gptel--copy-tool)
+                                (:include gptel-tool))
+  "Same as `gptel-tool', but haddles additional information like snippets and guidelines.
+
+When an agent executes with this tool, snippets will be added to the list of tools in the agent.
+Guidelines will be placed under guidelines in the system prompt."
+  (snippet nil :type string :documentation "The snippet added to the system prompt under list of tools.")
+  (guideline nil :type string :documentation "The guideline added to the system prompt under guidelines."))
+
+(defun gptel--make-agent-tool (&rest spec)
+  "Construct a gptel-tool according to SPEC."
+  (gptel--preprocess-tool-args (plist-get spec :args))
+  (apply #'gptel--make-agent-tool-internal spec))
+
+(defun gptel-make-agent-tool (&rest slots)
+  "Same as `gptel-make-tool', creates the `gptel-agent-tool' instead."
+  (let* ((tool (apply #'gptel--make-agent-tool slots))
+         (category (or (gptel-tool-category tool) "misc")))
+    (setf (alist-get
+           (gptel-tool-name tool)
+           (alist-get category gptel--known-tools nil nil #'equal)
+           nil nil #'equal)
+          tool)))
+
+(defun amsha/generate-agent-templates ()
+  `(("GLOBAL_SKILL_LINE" . ,(format "Global skills are in %S" amsha/gptel-skill-base-dir))
+    ("ARCHIVE_LOCATION" . ,(format "%S" amsha/gptel-skill-archive-dir))
+    ("PROJECT_ROOT_LINE" . ,(if-let* ((cur-project (project-current))
+                                      (root (project-root cur-project))
+                                      (_ (not (equal (expand-file-name root)
+                                                     (expand-file-name "~/")))))
+                                (format "The current project root is: %S" root)
+                              "The agent is not in a project directory. You can ignore project-specific instructions."))))
+
+;; gptel-agent tools as gptel-agent-tool's
 (gptel-make-agent-tool
  :name "Bash"
  :function #'gptel-agent--execute-bash
