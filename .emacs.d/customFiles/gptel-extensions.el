@@ -1196,7 +1196,7 @@ Note: LSP servers must be configured for the file type. If no server is availabl
   ;; :backend '(:eval amsha/gptel-default-backend)
   :backend gptel-openai-response-backend
   :model '(:eval amsha/gptel-default-model)
-  :system 'default
+  :system 'amsha/default
   :tools nil
   :openai-responses--tools nil
   :stream t
