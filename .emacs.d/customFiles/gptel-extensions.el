@@ -759,34 +759,6 @@ Signals an error if a region is active, since region-based compaction is not imp
   (interactive)
   (gptel-agent okm-base-directory 'paper-agent))
 
-(defun amsha/gptel-get-buffer ()
-  "Prompt for an existing gptel buffer or generate a new buffer name.
-
-Existing buffers with `gptel-mode' enabled are presented for
-selection.  If no buffer is selected, return the first available name
-matching \"*gptel-buffer-N*\", where N starts at 1 and is limited to
-100."
-  (let* ((state-func (consult--buffer-preview))
-         (buf (consult--read
-               (-map
-                #'buffer-name
-                (--filter
-                 (and
-                  (not (s-starts-with-p " " (buffer-name it)))
-                  (buffer-local-value 'gptel-mode it))
-                 (buffer-list)))
-               :prompt        "Create or choose gptel buffer: "
-               :category      'buffer
-               :require-match nil
-               :async-wrap    nil
-               :state         state-func)))
-    (if (string-empty-p buf)
-        (cl-loop for i upfrom 1
-                 for buf = (format "*gptel-buffer-%s*" i)
-                 until (or (null (get-buffer buf)) (> i 100))
-                 finally return buf)
-      buf)))
-
 (defun amsha/gptel-buffer ()
   "Create or switch to a `gptel' session buffer.
 
@@ -814,6 +786,118 @@ If the region is active, its text is inserted into the new session."
          "~/.emacs.d/customFiles/agents/--unslop.md"))
        (prog1 it
          (add-to-list 'gptel-directives (cons 'amsha/default it)))))
+
+(defun amsha/gptel-get-buffer ()
+  "Prompt for an existing gptel buffer or generate a new buffer name.
+
+Existing buffers with `gptel-mode' enabled are presented for
+selection.  If no buffer is selected, return the first available name
+matching `*gptel-buffer-N*', where N starts at 1 and is limited to
+100."
+  (let* ((state-func (consult--buffer-preview))
+         (buf (consult--read
+               (-map
+                #'buffer-name
+                (--filter
+                 (and
+                  (not (s-starts-with-p " " (buffer-name it)))
+                  (buffer-local-value 'gptel-mode it))
+                 (buffer-list)))
+               :prompt        "Create or choose gptel buffer: "
+               :category      'buffer
+               :require-match nil
+               :async-wrap    nil
+               :state         state-func)))
+    (if (string-empty-p buf)
+        (cl-loop for i upfrom 1
+                 for buf = (format "*gptel-buffer-%s*" i)
+                 until (or (null (get-buffer buf)) (> i 100))
+                 finally return buf)
+      buf)))
+
+;;; backup gptel buffers ******************************************************************
+
+(defun amsha/gptel-backup-buffer (&rest _)
+  "Save the current GPTel session in the local agent cache.
+
+The session is saved only for an unvisited buffer with
+`amsha/gptel-session-backup-mode' enabled.  This function is used in
+`gptel-post-response-functions' and during Emacs shutdown."
+  (when (and amsha/gptel-session-backup-mode
+             (not (buffer-file-name)))
+    (gptel-org--save-state)
+    (let ((file (expand-file-name
+                 (string-trim (buffer-name) "*" "*")
+                 "~/.emacs.d/agents/.cache/")))
+      (make-directory (file-name-directory file) t)
+      (let (message-log-max
+            (content (buffer-string)))
+        (with-temp-file file
+          (insert content))))))
+
+(defun amsha/gptel-backup-live-sessions ()
+  "Back up all live GPTel sessions before Emacs exits."
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (when amsha/gptel-session-backup-mode
+        (amsha/gptel-backup-buffer)
+        (remove-hook 'kill-buffer-hook #'amsha/gptel-delete-backup t)))))
+
+(add-hook 'kill-emacs-hook #'amsha/gptel-backup-live-sessions)
+
+(define-minor-mode amsha/gptel-session-backup-mode
+  "Back up this GPTel session after responses and before killing it.
+
+The backup is removed when the buffer is killed normally.  Sessions
+that are live when Emacs exits are backed up for restoration by
+`amsha/gptel-restore-sessions'."
+  :init-value nil
+  :lighter nil
+  (if amsha/gptel-session-backup-mode
+      (progn
+        (add-hook 'gptel-post-response-functions #'amsha/gptel-backup-buffer 90 t)
+        (add-hook 'kill-buffer-hook #'amsha/gptel-delete-backup nil t))
+    (remove-hook 'gptel-post-response-functions #'amsha/gptel-backup-buffer t)
+    (remove-hook 'kill-buffer-hook #'amsha/gptel-delete-backup t)))
+
+(defun amsha/gptel-enable-session-backup ()
+  "Enable session backups in a buffer when `gptel-mode' is enabled."
+  (when (and gptel-mode
+             (not (buffer-file-name)))
+    (amsha/gptel-session-backup-mode 1)))
+
+(add-hook 'gptel-mode-hook #'amsha/gptel-enable-session-backup)
+
+(defun amsha/gptel-delete-backup (&optional buffer-name)
+  "Delete the cached GPTel backup for BUFFER-NAME.
+
+If a backup file with the buffer name exists in
+`~/.emacs.d/agents/.cache/`, delete it."
+  (when (not buffer-file-name)
+    (when-let* ((file (expand-file-name
+                       (string-trim (or buffer-name (buffer-name)) "*" "*")
+                       "~/.emacs.d/agents/.cache/"))
+                (_ (file-exists-p file)))
+      (delete-file file))))
+
+(defun amsha/gptel-restore-sessions ()
+  "Restore cached GPTel sessions from the agents cache directory.
+
+For each file in `~/.emacs.d/agents/.cache/`, find the buffer whose name
+matches the file's base name, insert the file contents into that buffer,
+then enable `org-mode` and `gptel-mode`."
+  (when (file-exists-p "~/.emacs.d/agents/.cache/")
+    (dolist (file (directory-files "~/.emacs.d/agents/.cache/" t directory-files-no-dot-files-regexp))
+      (with-current-buffer
+          (get-buffer (em (format "*%s*" (file-name-base file))))
+        (insert-file-contents file)
+        (org-mode)
+        (gptel-mode)
+        ;; Need to do manullay because `gptel--restore-state' is for
+        ;; file buffers only.
+        (gptel-org--restore-state)
+        ;; Updating highlights.
+        (gptel-highlight--update (point-min) (point-max))))))
 
 ;;; openai reponse related setup **********************************************************
 (unless (featurep 'gptel-openai-responses-backend)
@@ -4624,6 +4708,7 @@ then close the *gptel-context* buffer and return to gptel menu."
 
 (gptel-agent-update)         ;Read files from agents directories
 (amsha/gptel-update-fabric-assets)
+(amsha/gptel-restore-sessions)
 
 (provide 'gptel-extensions)
 ;;; gptel-extensions.el ends here
