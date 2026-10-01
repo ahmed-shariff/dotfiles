@@ -815,173 +815,6 @@ If the region is active, its text is inserted into the new session."
        (prog1 it
          (add-to-list 'gptel-directives (cons 'amsha/default it)))))
 
-(defun amsha/org-database-for-gptel (type query-str filter-query-str)
-  "Query the user's org-roam database.
-
-TYPE must be either \"nodes\" or \"notes\".
-
-When TYPE is \"nodes\", return nodes matching QUERY-STR.  Each result
-contains the node's file, title, Org level, and TODO state.
-
-When TYPE is \"notes\", return previews for notes that reference nodes
-matching QUERY-STR.  Each result contains the referring node's file, title,
-Org level, TODO state, and preview content.
-
-QUERY-STR and FILTER-QUERY-STR are strings containing valid org-roam-ql query
-expressions.  FILTER-QUERY-STR may be nil or an empty string. If QUERY-STR is
-nil or an empty string it will load all nodes.
-
-The return value is a plain-text report containing the matching results."
-  (lazy-require 'org-roam-ql)
-  (unless (member type '("nodes" "notes"))
-    (user-error "TYPE must be either \"nodes\" or \"notes\", got %S" type))
-  (condition-case err
-      (let* ((query (when (and query-str
-                               (not (string-empty-p (string-trim query-str))))
-                      (read query-str)))
-             (nodes (if query
-                        (org-roam-ql-nodes query)
-                      (org-roam-ql--node-list)))
-             (filter-nodes
-              (when (and filter-query-str
-                         (not (string-empty-p (string-trim filter-query-str))))
-                (org-roam-ql-nodes (read filter-query-str))))
-             (filter-ids (mapcar #'org-roam-node-id filter-nodes))
-             (result-id 0))
-        (when (and (null query) (null filter-nodes))
-          (error "QUERY and FILTER_NODES are both empty."))
-        (with-temp-buffer
-          (insert
-           "Results for query " query-str " with filter " (or filter-query-str "nil")
-           "\n*Type:* " type)
-          (pcase type
-            ("nodes"
-             (mapcar
-              (lambda (node)
-                (insert "\n------------\nResult " (number-to-string (incf result-id))
-                        "\n- file: " (org-roam-node-file node)
-                        "\n- line: " (save-excursion
-                                       (org-roam-with-temp-buffer
-                                           (org-roam-node-file node)
-                                         (org-with-wide-buffer
-                                          (goto-char (org-roam-node-point node))
-                                          (number-to-string (line-number-at-pos)))))
-                        "\n- title: " (org-roam-node-title node)
-                        "\n- level: " (number-to-string (org-roam-node-level node))
-                        "\n- state: " (if-let* ((state (org-roam-node-todo node)))
-                                        state "nil")))
-              (if filter-nodes
-                  (seq-filter
-                   (lambda (node)
-                     (member (org-roam-node-id node) filter-ids))
-                   nodes)
-                nodes)))
-
-            ("notes"
-             (let ((seen-content (make-hash-table :test #'equal))
-                   results)
-               (dolist (backlink
-                        (if query
-                            (org-roam-ql-backlinks-get query :unique nil)
-                          (cl-loop for b in (org-roam-db-query
-                                             [:select [source dest pos properties]
-                                                      :from links
-                                                      :where (in source $v1)
-                                                      :and (= type "id")]
-                                             (apply #'vector
-                                                    filter-ids))
-                                   collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) b))
-                                             (org-roam-populate
-                                              (org-roam-backlink-create
-                                               :source-node (org-roam-node-create :id source-id)
-                                               :target-node (org-roam-node-create :id dest-id)
-                                               :point pos
-                                               :properties properties))))))
-                 (let* ((source-node (org-roam-backlink-source-node backlink))
-                        (source-id (org-roam-node-id source-node)))
-                   (when (or (null filter-nodes)
-                             (member source-id filter-ids))
-                     (let* ((line-range)
-                            (content
-                             (save-excursion
-                               (org-roam-with-temp-buffer
-                                   (org-roam-node-file source-node)
-                                 (org-with-wide-buffer
-                                  (goto-char (org-roam-backlink-point backlink))
-                                  (save-excursion
-                                    ;; Copying from `org-roam-subtree-aware-preview-function'
-                                    (setq line-range
-                                          (format "full content: %s to %s"
-                                                  (progn
-                                                    (unless (org-at-heading-p)
-                                                      (org-previous-visible-heading 1))
-                                                    (if (org-id-get)
-                                                        (org-roam-end-of-meta-data t)
-                                                      (org-beginning-of-line))
-                                                    (line-number-at-pos))
-                                                  (if (< (point) 5) ;; is full file
-                                                      (point-max)
-                                                    (progn (when (org-id-get)
-                                                             (org-previous-visible-heading 1)
-                                                             (org-beginning-of-line))
-                                                           (org-end-of-subtree)
-                                                           (line-number-at-pos)))))
-                                    (let ((preview
-                                           (funcall
-                                            org-roam-ql-preview-function
-                                            source-node
-                                            query)))
-                                      (dolist
-                                          (fn
-                                           org-roam-ql-preview-postprocess-functions)
-                                        (setq preview (funcall fn preview)))
-                                      preview))))))
-                            ;; A file can contain several level-one headings
-                            ;; without those headings having node IDs.  Deduplicate
-                            ;; rendered previews rather than source node IDs.
-                            (content-hash
-                             (secure-hash 'sha256 content)))
-                       (unless (gethash content-hash seen-content)
-                         (puthash content-hash t seen-content)
-                         (insert "\n------------\nResult " (number-to-string (incf result-id))
-                                 "\n- file: " (org-roam-node-file source-node)
-                                 "\n- line: " line-range
-                                 "\n- title: " (org-roam-node-title source-node)
-                                 "\n- level: " (number-to-string (org-roam-node-level source-node))
-                                 "\n- state: " (if-let* ((state (org-roam-node-todo source-node)))
-                                                   state "nil")
-                                 "\n- content: \n" content)))))))))
-          (insert "\n------------")
-          (buffer-string)))
-    (error (format "Failed to execulte - error %s" err))))
-
-;; Copied from `gptel-preset-collection--parse-line'
-(defun amsha/gptel-org-roam-parse-query ()
-  "Get the notes of the query after point."
-  (skip-syntax-forward " " (line-end-position))
-  (if-let* ((_ (not (or (eolp) (eobp))))
-            (source-or-query (thing-at-point 'sexp)))
-      (progn
-        (forward-thing 'sexp)
-        (skip-syntax-forward " " (line-end-position))
-        (amsha/org-database-for-gptel
-         "notes"
-         source-or-query
-         (when (looking-at ":filter")
-           (goto-char (match-end 0))
-           (skip-syntax-forward " " (line-end-position))
-           (thing-at-point 'sexp nil))))
-    ""))
-
-(defun amsha/gptel-add-org-roam-ql-capf ()
-  "Add org-roam-ql capf hook.
-
-To be used as in gptel-mode-hook."
-  (lazy-require 'org-roam-ql)
-  (add-hook 'completion-at-point-functions #'org-roam-ql--completion-at-point nil t))
-
-(add-hook 'gptel-mode-hook #'amsha/gptel-add-org-roam-ql-capf)
-
 ;;; openai reponse related setup **********************************************************
 (unless (featurep 'gptel-openai-responses-backend)
   (require 'gptel-openai-responses-backend))
@@ -2785,6 +2618,174 @@ ARG-VALUES is the list of arguments for the tool call."
 (setf (alist-get "PowerShell" gptel--tool-preview-alist
                    nil nil #'string-equal)
       `(,#'amsha/gptel-agent--execute-powershell-preview-setup))
+
+;;; org-database tools and support ********************************************************
+(defun amsha/org-database-for-gptel (type query-str filter-query-str)
+  "Query the user's org-roam database.
+
+TYPE must be either \"nodes\" or \"notes\".
+
+When TYPE is \"nodes\", return nodes matching QUERY-STR.  Each result
+contains the node's file, title, Org level, and TODO state.
+
+When TYPE is \"notes\", return previews for notes that reference nodes
+matching QUERY-STR.  Each result contains the referring node's file, title,
+Org level, TODO state, and preview content.
+
+QUERY-STR and FILTER-QUERY-STR are strings containing valid org-roam-ql query
+expressions.  FILTER-QUERY-STR may be nil or an empty string. If QUERY-STR is
+nil or an empty string it will load all nodes.
+
+The return value is a plain-text report containing the matching results."
+  (lazy-require 'org-roam-ql)
+  (unless (member type '("nodes" "notes"))
+    (user-error "TYPE must be either \"nodes\" or \"notes\", got %S" type))
+  (condition-case err
+      (let* ((query (when (and query-str
+                               (not (string-empty-p (string-trim query-str))))
+                      (read query-str)))
+             (nodes (if query
+                        (org-roam-ql-nodes query)
+                      (org-roam-ql--node-list)))
+             (filter-nodes
+              (when (and filter-query-str
+                         (not (string-empty-p (string-trim filter-query-str))))
+                (org-roam-ql-nodes (read filter-query-str))))
+             (filter-ids (mapcar #'org-roam-node-id filter-nodes))
+             (result-id 0))
+        (when (and (null query) (null filter-nodes))
+          (error "QUERY and FILTER_NODES are both empty."))
+        (with-temp-buffer
+          (insert
+           "Results for query " query-str " with filter " (or filter-query-str "nil")
+           "\n*Type:* " type)
+          (pcase type
+            ("nodes"
+             (mapcar
+              (lambda (node)
+                (insert "\n------------\nResult " (number-to-string (incf result-id))
+                        "\n- file: " (org-roam-node-file node)
+                        "\n- line: " (save-excursion
+                                       (org-roam-with-temp-buffer
+                                           (org-roam-node-file node)
+                                         (org-with-wide-buffer
+                                          (goto-char (org-roam-node-point node))
+                                          (number-to-string (line-number-at-pos)))))
+                        "\n- title: " (org-roam-node-title node)
+                        "\n- level: " (number-to-string (org-roam-node-level node))
+                        "\n- state: " (if-let* ((state (org-roam-node-todo node)))
+                                        state "nil")))
+              (if filter-nodes
+                  (seq-filter
+                   (lambda (node)
+                     (member (org-roam-node-id node) filter-ids))
+                   nodes)
+                nodes)))
+
+            ("notes"
+             (let ((seen-content (make-hash-table :test #'equal))
+                   results)
+               (dolist (backlink
+                        (if query
+                            (org-roam-ql-backlinks-get query :unique nil)
+                          (cl-loop for b in (org-roam-db-query
+                                             [:select [source dest pos properties]
+                                                      :from links
+                                                      :where (in source $v1)
+                                                      :and (= type "id")]
+                                             (apply #'vector
+                                                    filter-ids))
+                                   collect (pcase-let ((`(,source-id ,dest-id ,pos ,properties) b))
+                                             (org-roam-populate
+                                              (org-roam-backlink-create
+                                               :source-node (org-roam-node-create :id source-id)
+                                               :target-node (org-roam-node-create :id dest-id)
+                                               :point pos
+                                               :properties properties))))))
+                 (let* ((source-node (org-roam-backlink-source-node backlink))
+                        (source-id (org-roam-node-id source-node)))
+                   (when (or (null filter-nodes)
+                             (member source-id filter-ids))
+                     (let* ((line-range)
+                            (content
+                             (save-excursion
+                               (org-roam-with-temp-buffer
+                                   (org-roam-node-file source-node)
+                                 (org-with-wide-buffer
+                                  (goto-char (org-roam-backlink-point backlink))
+                                  (save-excursion
+                                    ;; Copying from `org-roam-subtree-aware-preview-function'
+                                    (setq line-range
+                                          (format "full content: %s to %s"
+                                                  (progn
+                                                    (unless (org-at-heading-p)
+                                                      (org-previous-visible-heading 1))
+                                                    (if (org-id-get)
+                                                        (org-roam-end-of-meta-data t)
+                                                      (org-beginning-of-line))
+                                                    (line-number-at-pos))
+                                                  (if (< (point) 5) ;; is full file
+                                                      (point-max)
+                                                    (progn (when (org-id-get)
+                                                             (org-previous-visible-heading 1)
+                                                             (org-beginning-of-line))
+                                                           (org-end-of-subtree)
+                                                           (line-number-at-pos)))))
+                                    (let ((preview
+                                           (funcall
+                                            org-roam-ql-preview-function
+                                            source-node
+                                            query)))
+                                      (dolist
+                                          (fn
+                                           org-roam-ql-preview-postprocess-functions)
+                                        (setq preview (funcall fn preview)))
+                                      preview))))))
+                            ;; A file can contain several level-one headings
+                            ;; without those headings having node IDs.  Deduplicate
+                            ;; rendered previews rather than source node IDs.
+                            (content-hash
+                             (secure-hash 'sha256 content)))
+                       (unless (gethash content-hash seen-content)
+                         (puthash content-hash t seen-content)
+                         (insert "\n------------\nResult " (number-to-string (incf result-id))
+                                 "\n- file: " (org-roam-node-file source-node)
+                                 "\n- line: " line-range
+                                 "\n- title: " (org-roam-node-title source-node)
+                                 "\n- level: " (number-to-string (org-roam-node-level source-node))
+                                 "\n- state: " (if-let* ((state (org-roam-node-todo source-node)))
+                                                   state "nil")
+                                 "\n- content: \n" content)))))))))
+          (insert "\n------------")
+          (buffer-string)))
+    (error (format "Failed to execulte - error %s" err))))
+
+;; Copied from `gptel-preset-collection--parse-line'
+(defun amsha/gptel-org-roam-parse-query ()
+  "Get the notes of the query after point."
+  (skip-syntax-forward " " (line-end-position))
+  (if-let* ((_ (not (or (eolp) (eobp))))
+            (source-or-query (thing-at-point 'sexp)))
+      (progn
+        (forward-thing 'sexp)
+        (skip-syntax-forward " " (line-end-position))
+        (amsha/org-database-for-gptel
+         "notes"
+         source-or-query
+         (when (looking-at ":filter")
+           (goto-char (match-end 0))
+           (skip-syntax-forward " " (line-end-position))
+           (thing-at-point 'sexp nil))))
+    ""))
+
+(defun amsha/gptel-add-org-roam-ql-capf ()
+  "Add org-roam-ql capf hook.
+
+To be used as in gptel-mode-hook."
+  (lazy-require 'org-roam-ql)
+  (add-hook 'completion-at-point-functions #'org-roam-ql--completion-at-point nil t))
+
+(add-hook 'gptel-mode-hook #'amsha/gptel-add-org-roam-ql-capf)
 
 ;;; composable agents *********************************************************************
 
