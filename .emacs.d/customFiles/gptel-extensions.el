@@ -152,6 +152,10 @@ word count of the response."
   :after gptel
   :bind
   (("C-c o q i" . gptel-inline))
+  :custom
+  (gptel-inline-find-chat-buffer-functions
+   (list #'gptel-inline-previous-buffer
+         #'amsha/gptel-get-buffer))
   :config
   (define-advice gptel-inline-switch-buffer (:around (old-fn buf) with-amsha/gptel-get-buffer)
     (interactive (list (amsha/gptel-get-buffer)))
@@ -787,33 +791,38 @@ If the region is active, its text is inserted into the new session."
        (prog1 it
          (add-to-list 'gptel-directives (cons 'amsha/default it)))))
 
-(defun amsha/gptel-get-buffer ()
+(defun amsha/gptel-get-buffer (&optional buffer)
   "Prompt for an existing gptel buffer or generate a new buffer name.
 
 Existing buffers with `gptel-mode' enabled are presented for
 selection.  If no buffer is selected, return the first available name
 matching `*gptel-buffer-N*', where N starts at 1 and is limited to
 100."
-  (let* ((state-func (consult--buffer-preview))
-         (buf (consult--read
-               (-map
-                #'buffer-name
-                (--filter
-                 (and
-                  (not (s-starts-with-p " " (buffer-name it)))
-                  (buffer-local-value 'gptel-mode it))
-                 (buffer-list)))
-               :prompt        "Create or choose gptel buffer: "
-               :category      'buffer
-               :require-match nil
-               :async-wrap    nil
-               :state         state-func)))
-    (if (string-empty-p buf)
-        (cl-loop for i upfrom 1
-                 for buf = (format "*gptel-buffer-%s*" i)
-                 until (or (null (get-buffer buf)) (> i 100))
-                 finally return buf)
-      buf)))
+  (with-current-buffer (or buffer (current-buffer))
+    (let* ((state-func (consult--buffer-preview))
+           (buf (consult--read
+                 (-map
+                  #'buffer-name
+                  (--filter
+                   (and
+                    (not (s-starts-with-p " " (buffer-name it)))
+                    (buffer-local-value 'gptel-mode it))
+                   (buffer-list)))
+                 :prompt        "Create or choose gptel buffer: "
+                 :category      'buffer
+                 :require-match nil
+                 :async-wrap    nil
+                 :state         state-func)))
+      (if (string-empty-p buf)
+          (let* ((project (project-current))
+                 (project-suffix (or (and project
+                                          (concat "-" (project-name project)))
+                                     "")))
+            (cl-loop for i upfrom 1
+                     for buf = (format "*gptel-buffer%s-%s*" project-suffix i)
+                     until (or (null (get-buffer buf)) (> i 100))
+                     finally return buf))
+        buf))))
 
 ;;; backup gptel buffers ******************************************************************
 
