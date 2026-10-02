@@ -4565,9 +4565,9 @@ then close the *gptel-context* buffer and return to gptel menu."
 (defun amsha/gptel-set-region-as-user ()
   "Set the selected region as a user text (add text prop)."
   (interactive)
-  (put-text-property
+  (remove-text-properties
    (region-beginning) (region-end)
-   'gptel nil))
+   '(gptel nil)))
 
 (defun amsha/gptel--replace-file-id-with-cite (start end)
   "Updating annotations strings, preserving text properties of replaced text."
