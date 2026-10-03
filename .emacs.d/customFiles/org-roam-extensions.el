@@ -914,7 +914,7 @@ If prefix arg used, search whole db."
                                    #'org-roam-reflinks-section-with-ql-filter)
       )
 
-(org-roam-db-autosync-mode)
+(org-roam-db-autosync-mode +1)
 
 (provide 'org-roam-extensions)
 ;;; org-roam-extensions.el ends here
