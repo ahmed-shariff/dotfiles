@@ -43,9 +43,9 @@
   (prog-mode . smerge-mode))
 
 (use-package magit-gptcommit
+  :defer 1
   :straight (:type git :host github :repo "douo/magit-gptcommit" :branch "gptel"
                    :fork (:host github :repo "ahmed-shariff/magit-gptcommit" :branch "add-custom-backend"))
-  :demand t
   :after (magit)
   :bind (:map git-commit-mode-map
               ("C-c C-g" . magit-gptcommit-commit-accept))
@@ -898,7 +898,7 @@ then enable `org-mode` and `gptel-mode`."
   (when (file-exists-p "~/.emacs.d/agents/.cache/")
     (dolist (file (directory-files "~/.emacs.d/agents/.cache/" t directory-files-no-dot-files-regexp))
       (with-current-buffer
-          (get-buffer (em (format "*%s*" (file-name-base file))))
+          (get-buffer-create (format "*%s*" (file-name-base file)))
         (insert-file-contents file)
         (org-mode)
         (gptel-mode)
@@ -2880,8 +2880,12 @@ The return value is a plain-text report containing the matching results."
   "Add org-roam-ql capf hook.
 
 To be used as in gptel-mode-hook."
-  (lazy-require 'org-roam-ql)
-  (add-hook 'completion-at-point-functions #'amsha/org-roam-ql-capf-anywhere nil t))
+  ;; not lazy-require because this gets called at startup.
+  (let ((buf (current-buffer)))
+    (with-eval-after-load 'org-roam-ql
+      (when (buffer-live-p buf)
+        (with-current-buffer buf
+          (add-hook 'completion-at-point-functions #'amsha/org-roam-ql-capf-anywhere nil t))))))
 
 (add-hook 'gptel-mode-hook #'amsha/gptel-add-org-roam-ql-capf)
 
