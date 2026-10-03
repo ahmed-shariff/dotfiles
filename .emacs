@@ -527,6 +527,7 @@ advice, files on WSL can not be saved."
   (put 'upcase-region 'disabled nil)
   (put 'narrow-to-region 'disabled nil)
   (put 'downcase-region 'disabled nil)
+  (put 'erase-buffer 'disabled nil)
 
   (setq use-default-font-for-symbols nil)
 
@@ -3736,4 +3737,3 @@ WIDGET-PARAMS are passed to the \"widget-create\" function."
 ;;yasnippets company conflict resolution
 ;(provide .emacs)
 ;;; .emacs ends here
-(put 'erase-buffer 'disabled nil)
