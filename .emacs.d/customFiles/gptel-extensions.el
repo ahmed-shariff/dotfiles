@@ -729,35 +729,6 @@ Signals an error if a region is active, since region-based compaction is not imp
         (org-end-of-subtree t t)
         (amsha/add-compact-summary nil t)))))
 
-(defvar-local amsha/gptel-buffer-title nil)
-
-(defun amsha/generate-title-for-gptel-buffer (&optional _beg _end)
-  "Generate a title on a gptel buffer and store it in `amsha/gptel-buffer-title'."
-  (interactive)
-  (let ((buf (current-buffer)))
-    (when (or
-           (null _beg) ;; if this is nil, then its being called interactively
-           ;; MAYBE: Consider file buffers as well?
-           (and
-            (null amsha/gptel-buffer-title)
-            (null (buffer-file-name buf)))) ;; in a gptel buffer
-      (gptel-with-preset 'amsha/generate-title
-        (gptel-request nil
-          ;; Can't use just with-preset 'amsha/generate-title because how gptel-request handles `gptel-prompt-transform-function'
-          :transforms gptel-prompt-transform-functions
-          :callback
-          (lambda (response _info)
-            (when (stringp response)
-              (with-current-buffer buf
-                (message "Generated title for buffer (%s): %S" (buffer-name buf) response)
-                ;; NOTE: if something else has set this, respect that?
-                (when (or (null list-buffers-directory)
-                          (string-equal list-buffers-directory amsha/gptel-buffer-title))
-                  (setq list-buffers-directory response))
-                (setq amsha/gptel-buffer-title response)))))))))
-
-(add-to-list 'gptel-post-response-functions #'amsha/generate-title-for-gptel-buffer)
-
 (defun amsha/gptel-paper-agent ()
   "Paper agent."
   (interactive)
@@ -832,6 +803,74 @@ matching `*gptel-buffer-N*', where N starts at 1 and is limited to
                       finally return buf)))
         buf)))
 
+;;; Update gptel buffer title *************************************************************
+
+(defvar-local amsha/gptel-buffer-title nil
+  "Title generated for the current gptel buffer.")
+
+(defun amsha/generate-title-for-gptel-buffer (&optional _beg _end)
+  "Generate a title for the current gptel buffer.
+Store the generated title in `amsha/gptel-buffer-title'.  When called
+from `gptel-post-response-functions', generate a title only for buffers
+that do not already have one and are not associated with a file.  When
+called interactively, generate a title regardless of those conditions."
+  (interactive)
+  (let ((buf (current-buffer)))
+    (when (or
+           (null _beg) ;; if this is nil, then its being called interactively
+           ;; MAYBE: Consider file buffers as well?
+           (and
+            (null amsha/gptel-buffer-title)
+            (null (buffer-file-name buf)))) ;; in a gptel buffer
+      (gptel-with-preset 'amsha/generate-title
+        (gptel-request nil
+          ;; Can't use just with-preset 'amsha/generate-title because how gptel-request handles `gptel-prompt-transform-function'
+          :transforms gptel-prompt-transform-functions
+          :callback
+          (lambda (response _info)
+            (when (stringp response)
+              (with-current-buffer buf
+                (message "Generated title for buffer (%s): %S" (buffer-name buf) response)
+                ;; NOTE: if something else has set this, respect that?
+                (when (or (null list-buffers-directory)
+                          (string-equal list-buffers-directory amsha/gptel-buffer-title))
+                  (setq list-buffers-directory response))
+                (setq amsha/gptel-buffer-title response)))))))))
+
+(defun amsha/gptel-store-title ()
+  "Store the generated gptel buffer title in the current org entry.
+This function is intended for use in `gptel-save-state-hook'."
+  (when amsha/gptel-buffer-title
+    (org-with-wide-buffer
+     (goto-char (point-min))
+     (when (org-at-heading-p)
+       (org-open-line 1))
+     (org-entry-put (point-min) "GPTEL_BUFFER_TITLE" amsha/gptel-buffer-title))))
+
+(define-minor-mode amsha/gptel-title-generation
+  "Automatically generate and save titles for gptel buffers.
+When enabled, generate a title after a gptel response for an untitled
+buffer that is not associated with a file.  Save the generated title in
+the buffer's org state when gptel saves its state."
+  :init-value nil
+  :lighter nil
+  (if amsha/gptel-title-generation-mode
+      (progn
+        (add-hook 'gptel-post-response-functions #'amsha/generate-title-for-gptel-buffer nil t)
+        (add-hook 'gptel-save-state-hook #'amsha/gptel-store-title nil t))
+    (remove-hook 'gptel-post-response-functions #'amsha/generate-title-for-gptel-buffer t)
+    (remove-hook 'gptel-save-state-hook #'amsha/gptel-store-title t)))
+
+(defun amsha/gptel-enable-title-generation ()
+  "Enable title generation in an unsaved buffer using `gptel-mode'.
+Do nothing in buffers that are not in `gptel-mode' or are associated
+with a file."
+  (when (and gptel-mode
+             (not (buffer-file-name)))
+    (amsha/gptel-title-generation-mode 1)))
+
+(add-hook 'gptel-mode-hook #'amsha/gptel-enable-title-generation)
+
 ;;; backup gptel buffers ******************************************************************
 
 (defun amsha/gptel-backup-buffer (&rest _)
@@ -842,6 +881,7 @@ The session is saved only for an unvisited buffer with
 `gptel-post-response-functions' and during Emacs shutdown."
   (when (and amsha/gptel-session-backup-mode
              (not (buffer-file-name)))
+    (run-hooks 'gptel-save-state-hook)
     (gptel-org--save-state)
     (let ((file (expand-file-name
                  (string-trim (buffer-name) "*" "*")
