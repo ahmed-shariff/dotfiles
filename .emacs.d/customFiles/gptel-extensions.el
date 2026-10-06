@@ -847,7 +847,7 @@ This function is intended for use in `gptel-save-state-hook'."
        (org-open-line 1))
      (org-entry-put (point-min) "GPTEL_BUFFER_TITLE" amsha/gptel-buffer-title))))
 
-(define-minor-mode amsha/gptel-title-generation
+(define-minor-mode amsha/gptel-title-generation-mode
   "Automatically generate and save titles for gptel buffers.
 When enabled, generate a title after a gptel response for an untitled
 buffer that is not associated with a file.  Save the generated title in
@@ -4812,6 +4812,7 @@ then close the *gptel-context* buffer and return to gptel menu."
 (gptel-agent-update)         ;Read files from agents directories
 (amsha/gptel-update-fabric-assets)
 (amsha/gptel-restore-sessions)
+(gptel-preset 'default)
 
 (provide 'gptel-extensions)
 ;;; gptel-extensions.el ends here
