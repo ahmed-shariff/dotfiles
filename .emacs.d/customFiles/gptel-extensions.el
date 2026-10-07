@@ -798,7 +798,6 @@ Existing buffers with `gptel-mode' enabled are presented for
 selection.  If no buffer is selected, return the first available name
 matching `*gptel-buffer-N*', where N starts at 1 and is limited to
 100."
-  (with-current-buffer (or buffer (current-buffer))
     (let* ((state-func (consult--buffer-preview))
            (buf (consult--read
                  (-map
@@ -814,15 +813,24 @@ matching `*gptel-buffer-N*', where N starts at 1 and is limited to
                  :async-wrap    nil
                  :state         state-func)))
       (if (string-empty-p buf)
-          (let* ((project (project-current))
+          (let* ((default-directory
+                  (or (and current-prefix-arg
+                           (let ()
+                             (if-let* ((projects (projectile-relevant-known-projects)))
+                                 (projectile-completing-read
+                                  "Select project: " projects)
+                               (user-error "There are no known projects"))))
+                      (buffer-local-value 'default-directory (or buffer (current-buffer)))))
+                 (project (project-current nil default-directory))
                  (project-suffix (or (and project
                                           (concat "-" (project-name project)))
                                      "")))
-            (cl-loop for i upfrom 1
-                     for buf = (format "*gptel-buffer%s-%s*" project-suffix i)
-                     until (or (null (get-buffer buf)) (> i 100))
-                     finally return buf))
-        buf))))
+            (get-buffer-create
+             (cl-loop for i upfrom 1
+                      for buf = (format "*gptel-buffer%s-%s*" project-suffix i)
+                      until (or (null (get-buffer buf)) (> i 100))
+                      finally return buf)))
+        buf)))
 
 ;;; backup gptel buffers ******************************************************************
 
@@ -4617,29 +4625,29 @@ then close the *gptel-context* buffer and return to gptel menu."
 ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
 (add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
 
-(transient-define-prefix amsha/gptel-menu-lite ()
-  "gptel menue when creating buffer."
-  [
-   ;; TODO: make preset use buffer local...
-   ;; (gptel--preset
-   ;;  :key "@" :format "%d"
-   ;;  :description
-   ;;  (lambda ()
-   ;;    (concat (propertize "Request Parameters" 'face 'transient-heading)
-   ;;            (gptel--format-preset-string))))
-   (gptel--infix-provider
-    ;; Always be buffer local
-    :set-value (lambda (sym value &optional _ignore)
-                 (em sym value)
-                 (gptel--set-with-scope sym value t)))
-   ("RET" "Done" transient-quit-one)])
+;; (transient-define-prefix amsha/gptel-menu-lite ()
+;;   "gptel menue when creating buffer."
+;;   [
+;;    ;; TODO: make preset use buffer local...
+;;    ;; (gptel--preset
+;;    ;;  :key "@" :format "%d"
+;;    ;;  :description
+;;    ;;  (lambda ()
+;;    ;;    (concat (propertize "Request Parameters" 'face 'transient-heading)
+;;    ;;            (gptel--format-preset-string))))
+;;    (gptel--infix-provider
+;;     ;; Always be buffer local
+;;     :set-value (lambda (sym value &optional _ignore)
+;;                  (em sym value)
+;;                  (gptel--set-with-scope sym value t)))
+;;    ("RET" "Done" transient-quit-one)])
 
-(define-advice gptel (:after (&rest args) with-menu)
-  "Advice function to `gptel' that invokes a light weight gptel menu."
-  (when current-prefix-arg
-    ;; FIXME: this let bind doesn't work?
-    (let ((gptel--set-buffer-locally t))
-      (amsha/gptel-menu-lite))))
+;; (define-advice gptel (:after (&rest args) with-menu)
+;;   "Advice function to `gptel' that invokes a light weight gptel menu."
+;;   (when current-prefix-arg
+;;     ;; FIXME: this let bind doesn't work?
+;;     (let ((gptel--set-buffer-locally t))
+;;       (amsha/gptel-menu-lite))))
 
 ;;;; setup *********************************************************************************
 (bind-keys :package gptel
