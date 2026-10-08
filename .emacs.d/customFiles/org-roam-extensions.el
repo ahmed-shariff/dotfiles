@@ -452,6 +452,11 @@ see also `org-roam-backlinks-section-with-ql-filter'.
           (kill-buffer-hook nil))
      (org-roam-with-file ,file ,keep-buf-p ,@body)))
 
+(define-advice org-roam-node-insert (:around (old-fn &rest rest) as-string)
+  (if (looking-back "[[:space:]]+(title\\_>[[:space:]]*" (line-beginning-position))
+      (insert (format "%S" (org-roam-node-title (org-roam-node-read nil nil nil t "Select node: "))))
+    (apply old-fn rest)))
+
 ;; org-roam-ql functions ***********************************************************
 
 ;; taken from `org-roam-ql--expand-link'
