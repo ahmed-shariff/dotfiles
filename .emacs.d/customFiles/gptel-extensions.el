@@ -1579,7 +1579,7 @@ Summarize the context thoroughly and comprehensively.
 
 ;;; okm tools for tool use ****************************************************************
 (defun amsha/gptel-get-bib-entry-from-citation (citation)
-  "Function to take in a citation and turn that into a bib entry."
+  "Function to take in a CITATION and turn that into a bib entry."
   (interactive "sCitation: ")
   (let ((buf
          (get-buffer-create (format "*gptel-cite-%s*" (gensym))))
@@ -1587,22 +1587,26 @@ Summarize the context thoroughly and comprehensively.
         author-check title-check)
     (switch-to-buffer buf)
     (with-current-buffer buf
-      (markdown-mode)
+      (org-mode)
       (gptel-mode)
-      (insert citation "\n\n")
-      (gptel-request (format "Extract the bib entry from the following citation:\n%s" citation)
-        :callback (lambda (response info)
-                    (goto-char (point-max))
-                    (insert response)
-                    (goto-char (point-min))
-                    (search-forward-regexp "author *= *{\\(.*\\)}" nil t)
-                    (setq author-check (--all-p (string-match it citation) (s-split " and " (match-string 1))))
-                    (search-forward-regexp "title *= *{\\(.*\\)}" nil t)
-                    (setq title-check (not (null (string-match (match-string 1) citation))))
-                    (goto-char (point-max))
-                    (insert (format "\n\n---------------\nauthor-check: %s\ntitle-check: %s" author-check title-check)))))))
+      (insert (format "Extract the bib entry from the following citation:\n%s\n\n" citation))
+      (gptel-request nil
+        :callback
+        (lambda (response info)
+          (pcase response
+            ((pred stringp)
+             (goto-char (point-max))
+             (insert response)
+             (goto-char (point-min))
+             (search-forward-regexp "author *= *{\\(.*\\)}" nil t)
+             (setq author-check (--all-p (string-match it citation) (s-split " and " (match-string 1))))
+             (search-forward-regexp "title *= *{\\(.*\\)}" nil t)
+             (setq title-check (not (null (string-match (match-string 1) citation))))
+             (goto-char (point-max))
+             (insert (format "\n\n---------------\nauthor-check: %s\ntitle-check: %s" author-check title-check)))
+            (_ nil)))))))
 
-(defvar amsha/explain-grammarly--explanations-cache "~/.emacs.d/.cache/amsha-explain-grammarly--explanations")
+(defvar amsha/explain-grammarly--explanations-cache "~/.emacs.d/agents/.cache/amsha-explain-grammarly--explanations")
 
 ;;;###autoload
 (defun amsha/explain-grammarly (sentence explanation)
