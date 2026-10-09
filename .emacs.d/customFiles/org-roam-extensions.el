@@ -10,6 +10,7 @@
                                     :files (:defaults (:exclude "org-roam-ql-ql.el"))))
 (require 'org-roam)
 (require 'org-roam-ql)
+(require 'transient)
 
 (use-package consult-org-roam
   :ensure t
@@ -251,7 +252,7 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
   :config
   (org-roam-ql-ql-init))
 
-;; org-roam functions **************************************************************
+;;; org-roam functions **************************************************************
 ;;;###autoload
 (defun amsha/org-roam-db-sync ()
   (interactive)
@@ -457,7 +458,7 @@ see also `org-roam-backlinks-section-with-ql-filter'.
       (insert (format "%S" (org-roam-node-title (org-roam-node-read nil nil nil t "Select node: "))))
     (apply old-fn rest)))
 
-;; org-roam-ql functions ***********************************************************
+;;; org-roam-ql functions ***********************************************************
 
 ;; taken from `org-roam-ql--expand-link'
 (cl-defun org-roam-ql--expand-recursive-link (source-or-query is-backlink type inlcude-refs)
@@ -667,7 +668,59 @@ If prefix arg used, search whole db."
                             ;; Assuming I have a note in the last 100 days!
                             '(dailies-range "-100")
                             "title-reverse"))))
-;; org-roam-ql expansions and stuff ************************************************
+
+(defun amsha/org-roam-ql-copy-query-for-gptel ()
+  "Copy the query and filter to use in gptel buffers."
+  (interactive)
+  (when (derived-mode-p 'org-roam-mode)
+    (kill-new
+     (if org-roam-ql-buffer-query
+         (concat (prin1-to-string org-roam-ql-buffer-query)
+                 (when org-roam-ql-buffer-filter
+                   (format " :filter %S"
+                           org-roam-ql-buffer-filter)))
+       (format "%S" (org-roam-ql--get-query-for-roam-buffer))))))
+
+(transient-append-suffix 'org-roam-ql-buffer-dispatch '(1)
+  ["Custom"
+   ("Y" "Copy query/filter for gptel" amsha/org-roam-ql-copy-query-for-gptel :transient nil)])
+
+(define-advice org-roam-ql-search-backlinks (:around (oldfn &rest rest) with-gptel-region)
+  "Use an org-roam-ql query and optional filter from the active region."
+  (interactive (list :-is-interactive))
+  (if (not (use-region-p))
+      (if (eq (car rest) :-is-interactive)
+          (call-interactively oldfn 'record-flag)
+        (apply oldfn rest))
+    (let ((query-and-filter
+           (save-excursion
+             (save-restriction
+               (narrow-to-region (region-beginning) (region-end))
+               (goto-char (point-min))
+               (skip-syntax-forward " " (line-end-position))
+               (when-let* ((source-or-query (thing-at-point 'sexp t)))
+                 (forward-thing 'sexp)
+                 (skip-syntax-forward " " (line-end-position))
+                 (list
+                  source-or-query
+                  (when (looking-at ":filter")
+                    (goto-char (match-end 0))
+                    (skip-syntax-forward " " (line-end-position))
+                    (thing-at-point 'sexp t))))))))
+      (if (and query-and-filter
+               (y-or-n-p (format "Use query: %S and filter: %S ?" (car query-and-filter) (cadr query-and-filter))))
+          (apply oldfn
+                 (read (car query-and-filter))
+                 (or (nth 1 rest) (concat "from" (buffer-name)))   ; title
+                 (when-let* ((filter (cadr query-and-filter)))     ; filter
+                   (read filter))
+                 (nth 3 rest)                                      ; sort-fn
+                 (nth 4 rest))
+        (if (eq (car rest) :-is-interactive)
+            (call-interactively oldfn 'record-flag)
+          (apply oldfn rest))))))
+
+;;; org-roam-ql expansions and stuff ************************************************
 (org-roam-ql-defexpansion 'backlink-to-recursive
   "Recursive backlinks (heading, backlink & refs)"
   #'org-roam-ql-recursive-backlink-to)
@@ -844,7 +897,7 @@ If prefix arg used, search whole db."
            (id (org-id-get)))
       (org-roam-db-query [:select * :from links :where (in dest $v1) :and (= source $s2)] backlink-destinations id))))
 
-;; setup ***************************************************************************
+;;; setup ***************************************************************************
 
 
 (add-hook 'kill-emacs-hook #'amsha/backup-org-roam-db)
