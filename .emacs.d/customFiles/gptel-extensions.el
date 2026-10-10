@@ -2522,7 +2522,7 @@ EDITS is an vector of (:path PATH :old_str OLD-STR :new_str NEW-STR) triples."
     (gptel-agent--confirm-overlay from (point) t)))
 
 (defvar-local amsha/gptel-agent--edit-files-batch-always-allow nil
-  "Files that may be edited without confirmation.")
+  "Files and directories that may be edited without confirmation.")
 
 (defun amsha/gptel-agent--edit-files-batch-confirm (edits)
   "Return nil if every file in EDITS is allowed."
@@ -2532,35 +2532,43 @@ EDITS is an vector of (:path PATH :old_str OLD-STR :new_str NEW-STR) triples."
                       amsha/gptel-agent--edit-files-batch-always-allow)))
          (cl-loop
           for edit across edits
-          for path = (plist-get edit :path)
+          for path = (and (plist-get edit :path)
+                          (expand-file-name (plist-get edit :path)))
           thereis
           (not (and path
-                    (member (expand-file-name path) allowed)))))))
+                    (cl-some
+                     (lambda (allowed-path)
+                       (or (equal path allowed-path)
+                           (and (file-directory-p allowed-path)
+                                (file-in-directory-p path allowed-path))))
+                     allowed)))))))
 
-(defun amsha/gptel-agent-add-allowed-files-to-edit ()
-  "Add a file selected from the current perspective to the allow list."
-  (interactive)
-  (lazy-require 'consult)
-  (let* ((state-func (consult--buffer-preview))
-         (buf (consult--read
-               (funcall
-                (plist-get consult--source-perspective :items))
-               :prompt "File to allow: "
-               :category 'buffer
-               :require-match t
-               :async-wrap nil
-               :state state-func))
-         (buffer (get-buffer buf))
-         (file (and buffer (buffer-file-name buffer))))
-    (unless file
-      (user-error "Selected buffer is not visiting a file"))
+(defun amsha/gptel-agent-add-allowed-files-to-edit (&optional directory)
+  "Add a file, or with a prefix argument a DIRECTORY, to the allow list."
+  (interactive "P")
+  (let* ((path
+          (if directory
+              (read-directory-name "Directory to allow: " nil nil t)
+            (lazy-require 'consult)
+            (let* ((state-func (consult--buffer-preview))
+                   (buf (consult--read
+                         (funcall
+                          (plist-get consult--source-perspective :items))
+                         :prompt "File to allow: "
+                         :category 'buffer
+                         :require-match t
+                         :async-wrap nil
+                         :state state-func))
+                   (buffer (get-buffer buf)))
+              (or (and buffer (buffer-file-name buffer))
+                  (user-error "Selected buffer is not visiting a file")))))
+         (path (expand-file-name path)))
     (setq-local
      amsha/gptel-agent--edit-files-batch-always-allow
-     (cons (expand-file-name file)
-           (delete
-            (expand-file-name file)
-            amsha/gptel-agent--edit-files-batch-always-allow)))
-    (message "Added %s to the edit allow list" file)))
+     (cons path
+           (delete path
+                   amsha/gptel-agent--edit-files-batch-always-allow)))
+    (message "Added %s to the edit allow list" path)))
 
 (defun gptel-agent--execute-pwsh (callback command)
   "Execute COMMAND asynchronously in pwsh and call CALLBACK with output.
