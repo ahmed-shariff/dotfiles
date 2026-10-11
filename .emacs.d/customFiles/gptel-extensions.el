@@ -454,8 +454,9 @@ backward for the nearest `gptel' text property.  When TYPE is `append',
 search forward instead.  The default is `prepend'."
   (let ((content-sym (gensym "content")))
     `(let ((,content-sym
-            ,(if (functionp prompt)
-                 `(funcall (function ,prompt))
+            ,(if (and (consp prompt)
+                      (eq (car prompt) 'function))
+                 `(funcall ,prompt)
                prompt)))
        (save-excursion
          ;; TODO: should there be a speical form for "inplace"?
@@ -1491,7 +1492,7 @@ Summarize the context thoroughly and comprehensively.
 (gptel-make-preset 'org-roam-ql
   :description "Add org-roam-ql query results in last message."
   :pre (lambda ()
-         (amsha/gptel-transform-inline amsha/gptel-org-roam-parse-query append)))
+         (amsha/gptel-transform-inline #'amsha/gptel-org-roam-parse-query append)))
 
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
