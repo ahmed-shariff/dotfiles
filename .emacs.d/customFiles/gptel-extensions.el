@@ -857,6 +857,10 @@ the buffer's org state when gptel saves its state."
   :lighter nil
   (if amsha/gptel-title-generation-mode
       (progn
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (when-let* ((title (org-entry-get (point) "GPTEL_BUFFER_TITLE")))
+           (setq amsha/gptel-buffer-title title)))
         (add-hook 'gptel-post-response-functions #'amsha/generate-title-for-gptel-buffer nil t)
         (add-hook 'gptel-save-state-hook #'amsha/gptel-store-title nil t))
     (remove-hook 'gptel-post-response-functions #'amsha/generate-title-for-gptel-buffer t)
@@ -948,6 +952,7 @@ then enable `org-mode` and `gptel-mode`."
     (dolist (file (directory-files "~/.emacs.d/agents/.cache/" t directory-files-no-dot-files-regexp))
       (with-current-buffer
           (get-buffer-create (format "*%s*" (file-name-base file)))
+        (erase-buffer)
         (insert-file-contents file)
         (org-mode)
         (gptel-mode)
