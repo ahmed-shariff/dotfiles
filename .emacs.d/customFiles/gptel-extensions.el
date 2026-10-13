@@ -617,7 +617,6 @@ Signals an error if a region is active, since region-based compaction is not imp
       (when (use-region-p)
         (user-error "That is not entirely implemented/tested"))
       (goto-char (pos-eol))
-      (setq heading-mark (point-marker))
       (if-let* ((pos (gptel-org--get-topic-start)))
           (goto-char pos)
         (while (org-up-heading-safe) nil))
@@ -629,7 +628,8 @@ Signals an error if a region is active, since region-based compaction is not imp
       ;; point that gptel uses, resulting in an empty request.
       ;; Hence using this:
       (let ((element (org-element-at-point)))
-        (push-mark (1- (org-element-end element)) t t)
+        (setq heading-mark (copy-marker (1- (org-element-end element))))
+        (push-mark heading-mark t t)
         (goto-char (org-element-begin element)))
 
       (setq hook-fn
@@ -726,7 +726,12 @@ Signals an error if a region is active, since region-based compaction is not imp
         (insert-buffer-substring source start end)
         (save-excursion
           (with-current-buffer source
-            (setq-local amsha/gptel-archive-info archive-info)))
+            (setq-local amsha/gptel-archive-info archive-info)
+            (org-with-wide-buffer
+             (goto-char (point-min))
+             (when (org-at-heading-p)
+               (org-open-line 1))
+             (org-entry-put (point-min) "ARCHIVE_INFO" amsha/gptel-archive-info))))
         (org-end-of-subtree t t)
         (amsha/add-compact-summary nil t)))))
 
