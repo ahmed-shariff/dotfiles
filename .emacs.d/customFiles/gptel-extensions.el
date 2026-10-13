@@ -731,7 +731,7 @@ Signals an error if a region is active, since region-based compaction is not imp
              (goto-char (point-min))
              (when (org-at-heading-p)
                (org-open-line 1))
-             (org-entry-put (point-min) "ARCHIVE_INFO" amsha/gptel-archive-info))))
+             (org-entry-put (point-min) "ARCHIVE_INFO" (format "%S" amsha/gptel-archive-info)))))
         (org-end-of-subtree t t)
         (amsha/add-compact-summary nil t)))))
 
