@@ -3637,6 +3637,9 @@ Writing patterns to follow:\n%s"
 (defvar amsha/gptel-memory-root (expand-file-name "~/.emacs.d/agents/gptel-memory/")
   "Base directory for memory files.")
 
+;; TODO:
+;; - Convert this to a struct.
+;; - Include intent here.
 (defvar amsha/gptel-memory-target-file-alist
   '(("AGENT_MEMORY" . "AGENT-MEMORY.md")
     ("USER" . "USER.md")
@@ -3769,7 +3772,7 @@ For each operation provide:
 - `old_str` and `new_str` for replacement. Provide sufficient
   context for old_str such that there's no ambiguity.
 
-Strings should not use Unicode's.
+Strings should not use Unicode's. Note that this will error if the resulting text exceeds the memory size.
 
 The tool applies batch replacements atomically. On success, will show the summary state of the memories."
  :function #'amsha/gptel-memory-tool
