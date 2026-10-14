@@ -598,143 +598,6 @@ Otherwise, add ELEM as the last element."
                                                 (org-entry-get nil "ITEM"))))
                                              50)))))
 
-(defun amsha/add-compact-summary (arg &optional no-confirm)
-  "Compact the current Org subtree using gptel.
-
-Insert a \"Compaction results\" heading tagged :compaction: after the
-current heading.  With ARG, pass the prefix argument to `gptel-send`.
-When NO-CONFIRM is non-nil, send without asking for confirmation.
-
-Signals an error if a region is active, since region-based compaction is not implemented."
-  (interactive "P")
-  (when (derived-mode-p 'org-mode)
-    (let ((gptel-context nil)
-          (gptel-tools nil)
-          (gptel-openai-responses-extended--tools nil)
-          (gptel-org-branching-context nil)
-          heading-mark
-          heading-level)
-      (when (use-region-p)
-        (user-error "That is not entirely implemented/tested"))
-      (goto-char (pos-eol))
-      (if-let* ((pos (gptel-org--get-topic-start)))
-          (goto-char pos)
-        (while (org-up-heading-safe) nil))
-      (setq heading-level (org-current-level))
-
-      ;; KLUDGE: `org-mark-subtree' sets the end point on the begining
-      ;; of the next heading. gptel reads the topic based on the end
-      ;; of the region. If the next heading had a topic, thats the
-      ;; point that gptel uses, resulting in an empty request.
-      ;; Hence using this:
-      (let ((element (org-element-at-point)))
-        (setq heading-mark (copy-marker (1- (org-element-end element))))
-        (push-mark heading-mark t t)
-        (goto-char (org-element-begin element)))
-
-      (setq hook-fn
-            (let ((lvl heading-level))
-              (lambda (start end)
-                (remove-hook 'gptel-post-response-functions hook-fn t)
-                (goto-char (marker-position heading-mark))
-                (org-insert-heading nil nil (1+ heading-level))
-                (insert "Compaction results")
-                (goto-char (pos-eol))
-                (org-set-tags "compaction"))))
-      (add-hook 'gptel-post-response-functions hook-fn 99 t)
-      (when (or no-confirm (y-or-n-p "Send?"))
-        (gptel-with-preset 'compaction
-          (gptel-send arg))))))
-
-(defvar-local amsha/gptel-archive-info nil) ;;(buffer-file-name . ts-string to search)
-
-(defun amsha/gptel-archive-conversation ()
-  "Archive or update the current gptel conversation in today's work daily."
-  (interactive)
-  (unless gptel-mode
-    (user-error "This command must be run in a gptel buffer"))
-  (let* ((source (current-buffer))
-         (context-line (if-let* ((cur-project (project-current))
-                                 (root (project-root cur-project))
-                                 (_ (not (equal (expand-file-name root)
-                                                (expand-file-name "~/")))))
-                           (format "- Conversation happened under project %S in directory %S on pc: %S\n\n"
-                                   root default-directory
-                                   (gethash 'system-name configurations "Check system-name in configurations.el"))
-                         (format "- Conversation happened in directory %S that didn't belong to a project on pc: %S\n\n"
-                                 default-directory
-                                 (gethash 'system-name configurations "Check system-name in configurations.el"))))
-         (title amsha/gptel-buffer-title)
-         (start (save-excursion
-                  (goto-char (point-min))
-                  (skip-chars-forward "\n\t ")
-                  (org-roam-end-of-meta-data t)
-                  (point)))
-         (end (point-max))
-         (conversation (buffer-substring start end)))
-    (if-let* ((source-buffer (car-safe amsha/gptel-archive-info))
-              (source-search-string (cdr-safe amsha/gptel-archive-info))
-              (_ (and (find-file-noselect source-buffer)
-                      (or (with-current-buffer (find-file-noselect source-buffer)
-                            (re-search-forward
-                             (format "^\\*[ \t]*\\[%s\\]" source-search-string)
-                             nil t))
-                          (prog1 nil
-                            (message "[ERROR] Missing ts string for archive replacement '%s'" source-search-string))))))
-        (with-current-buffer (find-file-noselect source-buffer)
-          (goto-char (point-min))
-          (re-search-forward (format "^\\*[ \t]*\\[%s\\]" source-search-string))
-          (org-back-to-heading t)
-          (forward-line)
-          (beginning-of-line)
-          (save-excursion
-            (delete-region
-             (point)
-             (save-excursion (org-end-of-subtree t t) (point))))
-          (insert context-line)
-          (insert-buffer-substring source start end)
-          (org-end-of-subtree t t)
-          (amsha/add-compact-summary nil t)
-          (display-buffer (current-buffer)))
-      (let ((org-roam-dailies-capture-templates
-             (list (append
-                    (copy-tree (assoc "d" org-roam-dailies-capture-templates))
-                    '(:immediate-finish t)))))
-        (org-roam-dailies-capture-today nil "d"))
-      (org-capture-goto-last-stored)
-      (gptel-mode +1)
-      (org-back-to-heading t)
-      (let ((archive-info (cons (buffer-file-name)
-                                (save-excursion
-                                  (beginning-of-line)
-                                  (when (re-search-forward
-                                         "\\[\\([0-9][0-9]:[0-9][0-9] [AP]M\\)\\]"
-                                         (line-end-position) t)
-                                    (match-string-no-properties 1))))))
-        (goto-char (line-end-position))
-        (insert " ")
-        (catch 'amsha/gptel-break-node-loop
-          (while t
-            (minibuffer-with-setup-hook
-                (lambda ()
-                  (define-key minibuffer-local-map (kbd "C-<return>")
-                              (lambda () (interactive)
-                                (throw 'amsha/gptel-break-node-loop nil))))
-              (org-roam-node-insert))))
-        (insert " " title "\n"
-                context-line)
-        (insert-buffer-substring source start end)
-        (save-excursion
-          (with-current-buffer source
-            (setq-local amsha/gptel-archive-info archive-info)
-            (org-with-wide-buffer
-             (goto-char (point-min))
-             (when (org-at-heading-p)
-               (org-open-line 1))
-             (org-entry-put (point-min) "ARCHIVE_INFO" (format "%S" amsha/gptel-archive-info)))))
-        (org-end-of-subtree t t)
-        (amsha/add-compact-summary nil t)))))
-
 (defun amsha/gptel-paper-agent ()
   "Paper agent."
   (interactive)
@@ -808,6 +671,159 @@ matching `*gptel-buffer-N*', where N starts at 1 and is limited to
                       until (or (null (get-buffer buf)) (> i 100))
                       finally return buf)))
         buf)))
+
+
+;;; Archive and compact *******************************************************************
+
+(defun amsha/add-compact-summary-inplace (arg &optional no-confirm)
+  "Compact the current Org subtree using gptel.
+
+Insert a \"Compaction results\" heading tagged :compaction: after the
+current heading.  With ARG, pass the prefix argument to `gptel-send`.
+When NO-CONFIRM is non-nil, send without asking for confirmation.
+
+Signals an error if a region is active, since region-based compaction is not implemented."
+  (interactive "P")
+  (when (derived-mode-p 'org-mode)
+    (let ((gptel-context nil)
+          (gptel-tools nil)
+          (gptel-openai-responses-extended--tools nil)
+          (gptel-org-branching-context nil)
+          heading-mark
+          heading-level)
+      (when (use-region-p)
+        (user-error "That is not entirely implemented/tested"))
+      (goto-char (pos-eol))
+      (if-let* ((pos (gptel-org--get-topic-start)))
+          (goto-char pos)
+        (while (org-up-heading-safe) nil))
+      (setq heading-level (org-current-level))
+
+      ;; KLUDGE: `org-mark-subtree' sets the end point on the begining
+      ;; of the next heading. gptel reads the topic based on the end
+      ;; of the region. If the next heading had a topic, thats the
+      ;; point that gptel uses, resulting in an empty request.
+      ;; Hence using this:
+      (let ((element (org-element-at-point)))
+        (setq heading-mark (copy-marker (1- (org-element-end element))))
+        (push-mark heading-mark t t)
+        (goto-char (org-element-begin element)))
+
+      (setq hook-fn
+            (let ((lvl heading-level))
+              (lambda (start end)
+                (remove-hook 'gptel-post-response-functions hook-fn t)
+                (goto-char (marker-position heading-mark))
+                (org-insert-heading nil nil (1+ heading-level))
+                (insert "Compaction results")
+                (goto-char (pos-eol))
+                (org-set-tags "compaction"))))
+      (add-hook 'gptel-post-response-functions hook-fn 99 t)
+      (when (or no-confirm (y-or-n-p "Send?"))
+        (gptel-with-preset 'compaction
+          (gptel-send arg))))))
+
+(defun amsha/gptel-archive-conversation-in-dailies ()
+  "Archive or update the current gptel conversation in today's work daily."
+  (interactive)
+  (unless gptel-mode
+    (user-error "This command must be run in a gptel buffer"))
+  (let* ((source (current-buffer))
+         (context-line (if-let* ((cur-project (project-current))
+                                 (root (project-root cur-project))
+                                 (_ (not (equal (expand-file-name root)
+                                                (expand-file-name "~/")))))
+                           (format "- Conversation happened under project %S in directory %S on pc: %S\n\n"
+                                   root default-directory
+                                   (gethash 'system-name configurations "Check system-name in configurations.el"))
+                         (format "- Conversation happened in directory %S that didn't belong to a project on pc: %S\n\n"
+                                 default-directory
+                                 (gethash 'system-name configurations "Check system-name in configurations.el"))))
+         (title amsha/gptel-buffer-title)
+         (start (save-excursion
+                  (goto-char (point-min))
+                  (skip-chars-forward "\n\t ")
+                  (org-roam-end-of-meta-data t)
+                  (point)))
+         (end (point-max))
+         (conversation (buffer-substring start end))
+
+         (props (org-with-wide-buffer (org-entry-properties (point-min))))
+         (id-str (alist-get "ARCHIVE_ID" props nil nil #'string-equal))
+         (source-buffer (and id-str
+                             (find-file-noselect
+                              (org-roam-node-file
+                               (org-roam-node-from-id
+                                (s-replace "id:" "" id-str))))))
+         (source-ts (alist-get "ARCHIVE_TS" props nil nil #'string-equal))
+         (source-type (alist-get "ARCHIVE_TYPE" props nil nil #'string-equal)))
+    (when (and source-type
+               (not (string-equal "FULL" source-type)))
+      (user-error "Already archived COMPACT conversation"))
+    (if (and source-buffer
+             source-ts
+             (or
+              (with-current-buffer source-buffer
+                (re-search-forward
+                 (format "^\\*[ \t]*\\[%s\\]" source-ts)
+                 nil t))
+              (prog1 nil
+                (message "[ERROR] Missing ts string for archive replacement '%s'" source-ts))))
+        (with-current-buffer source-buffer
+          (goto-char (point-min))
+          (re-search-forward (format "^\\*[ \t]*\\[%s\\]" source-ts))
+          (org-back-to-heading t)
+          (forward-line)
+          (beginning-of-line)
+          (save-excursion
+            (delete-region
+             (point)
+             (save-excursion (org-end-of-subtree t t) (point))))
+          (insert context-line)
+          (insert-buffer-substring source start end)
+          (org-end-of-subtree t t)
+          (amsha/add-compact-summary-inplace nil t)
+          (display-buffer (current-buffer)))
+      (let ((org-roam-dailies-capture-templates
+             (list (append
+                    (copy-tree (assoc "d" org-roam-dailies-capture-templates))
+                    '(:immediate-finish t)))))
+        (org-roam-dailies-capture-today nil "d"))
+      (org-capture-goto-last-stored)
+      (gptel-mode +1)
+      (org-back-to-heading t)
+      (let ((archive-info (cons (org-with-wide-buffer
+                                 (concat "id:" (org-id-get (point-min))))
+                                (save-excursion
+                                  (beginning-of-line)
+                                  (when (re-search-forward
+                                         "\\[\\([0-9][0-9]:[0-9][0-9] [AP]M\\)\\]"
+                                         (line-end-position) t)
+                                    (match-string-no-properties 1))))))
+        (goto-char (line-end-position))
+        (insert " ")
+        (catch 'amsha/gptel-break-node-loop
+          (while t
+            (minibuffer-with-setup-hook
+                (lambda ()
+                  (define-key minibuffer-local-map (kbd "C-<return>")
+                              (lambda () (interactive)
+                                (throw 'amsha/gptel-break-node-loop nil))))
+              (org-roam-node-insert))))
+        (insert " " title "\n"
+                context-line)
+        (insert-buffer-substring source start end)
+        (save-excursion
+          (with-current-buffer source
+            (org-with-wide-buffer
+             (goto-char (point-min))
+             (when (org-at-heading-p)
+               (org-open-line 1))
+             (org-entry-put (point-min) "ARCHIVE_ID" (car archive-info))
+             (org-entry-put (point-min) "ARCHIVE_TS" (cdr archive-info))
+             (org-entry-put (point-min) "ARCHIVE_TYPE" "FULL"))))
+        (org-end-of-subtree t t)
+        (amsha/add-compact-summary-inplace nil t)))))
 
 ;;; Update gptel buffer title *************************************************************
 
@@ -1553,12 +1569,14 @@ Summarize the context thoroughly and comprehensively.
                              (or (buffer-file-name)
                                  (not gptel-mode))))))
                  "ﾠ "
-               (propertize "ﾠ⦿" 'face `(:foreground
-                                        ,(cond
-                                          (amsha/gptel-archive-info "green4")
-                                          (amsha/gptel-buffer-title "gold")
-                                          (t "red4"))
-                                       :background "#000033")))
+               (with-current-buffer buf
+                 (org-with-wide-buffer
+                  (propertize "ﾠ⦿" 'face `(:foreground
+                                           ,(cond
+                                             ((org-entry-get (point-min) "ARCHIVE_ID") "green4")
+                                             ((org-entry-get (point-min) "GPTEL_BUFFER_TITLE") "gold")
+                                             (t "red4"))
+                                           :background "#000033")))))
              (propertize gptel--mode-line-status
                          'face `(:inherit ,(or (get-text-property 0 'face gptel--mode-line-status)
                                                'default)
@@ -4722,7 +4740,7 @@ then close the *gptel-context* buffer and return to gptel menu."
            ("C-c o q Q" . gptel-send)
            ("C-c o q n" . gptel-context-add)
            ("C-c o q y" . amsha/gptel-yank)
-           ("C-c o q a" . amsha/gptel-archive-conversation)
+           ("C-c o q A" . amsha/gptel-archive-conversation-in-dailies)
 
            :map gptel-mode-map
            ("C-c DEL" . amsha/erase-buffer-with-confirmation)
