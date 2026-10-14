@@ -2370,6 +2370,30 @@ To use add something like this in the org buffer:
      (-non-nil it)
      (string-join it "\n"))))
 
+(defun amsha/org-edit-quote-block ()
+  "Edit the quote block at point in a dedicated Org buffer."
+  (interactive nil org-mode)
+  (let ((element (org-element-at-point)))
+    (unless (and (org-element-type-p element 'quote-block)
+                 (org-src--on-datum-p element))
+      (user-error "Not in a quote block"))
+    (org-src--edit-element
+     element
+     (org-src--construct-edit-buffer-name (buffer-name) "org")
+     'org-mode
+     (lambda () (org-escape-code-in-region (point-min) (point-max)))
+     (org-element-property :value element))
+    t))
+
+(define-advice org-edit-special (:around (orig-fun &optional arg) with-quote-edit-special)
+  "Edit quote blocks through `org-edit-special'."
+  (if (and (derived-mode-p 'org-mode)
+           ;; KLUDGE: Doesn't work while inside the quote block. Have
+           ;; to be in block header.
+           (eq (org-element-type (org-element-at-point)) 'quote-block))
+      (amsha/org-edit-quote-block)
+    (funcall orig-fun arg)))
+
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
 
 (define-key global-map "\C-cl" 'org-store-link)
