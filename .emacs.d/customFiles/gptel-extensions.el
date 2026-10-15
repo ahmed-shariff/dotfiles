@@ -899,7 +899,7 @@ position."
     (if (and daily-buffer daily-ts)
         (amsha/gptel-archive--clear-old-archive daily-buffer daily-ts context-line)
       (amsha/gptel-archive--setup-buffers source title context-line "COMPACT"))
-    (insert "file:" archive-link "\n")
+    (insert "file:" archive-link "\n\nCompact summary:\n")
 
     ;; At this point the current buffer is the daily buffer and point is
     ;; where the compaction should be inserted.  Let gptel-request create
@@ -917,6 +917,8 @@ position."
                 ;; Keep later streamed chunks after earlier chunks.
                 (set-marker-insertion-type position t)
                 (goto-char position)
+                (add-text-properties
+                 0 (length response) '(gptel response front-sticky (gptel)) response)
                 (insert response)))))))
     (display-buffer (current-buffer))))
 
