@@ -4886,6 +4886,7 @@ then close the *gptel-context* buffer and return to gptel menu."
            ("C-c o q n" . gptel-context-add)
            ("C-c o q y" . amsha/gptel-yank)
            ("C-c o q A" . amsha/gptel-archive-conversation-in-dailies)
+           ("C-c o q a" . amsha/gptel-archive-compacted-conversation-in-dailies)
 
            :map gptel-mode-map
            ("C-c DEL" . amsha/erase-buffer-with-confirmation)
