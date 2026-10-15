@@ -996,6 +996,41 @@ with a file."
 
 ;;; backup gptel buffers ******************************************************************
 
+(require 'filenotify)
+
+(defconst amsha/gptel-backup-directory (expand-file-name "~/.emacs.d/agents/.cache/backups"))
+
+(defvar amsha/gptel-backup-watch nil)
+
+(defun amsha/gptel-backup-file-notify-callback (event)
+  "Synchronize an active GPTel session with a backup file EVENT."
+  (pcase-let ((`(,descriptor ,action ,file) event))
+    (when (and (equal descriptor amsha/gptel-backup-watch)
+               (memq action '(created changed deleted))
+               (file-name-directory file)
+               (equal (file-name-as-directory (file-name-directory file))
+                      (file-name-as-directory amsha/gptel-backup-directory)))
+      (when-let ((buffer (get-buffer (format "*%s*" (file-name-base file)))))
+        (with-current-buffer buffer
+          (when amsha/gptel-session-backup-mode
+            (pcase action
+              ((or 'created 'changed)
+               (when (file-regular-p file)
+                 (let ((contents
+                        (with-temp-buffer
+                          (insert-file-contents file)
+                          (buffer-string))))
+                   (unless (string= contents (buffer-string))
+                     (message "gptel-backup-watch: updating %s" (buffer-name buffer))
+                     (let ((inhibit-read-only t))
+                       (erase-buffer)
+                       (insert contents)
+                       (gptel-org--restore-state)
+                       (gptel-highlight--update (point-min) (point-max)))))))
+              ('deleted
+               (message "gptel-backup-watch: deleting %s" (buffer-name buffer))
+               (kill-buffer buffer)))))))))
+
 (defun amsha/gptel-backup-buffer (&rest _)
   "Save the current GPTel session in the local agent cache.
 
@@ -1008,7 +1043,7 @@ The session is saved only for an unvisited buffer with
     (gptel-org--save-state)
     (let ((file (expand-file-name
                  (string-trim (buffer-name) "*" "*")
-                 "~/.emacs.d/agents/.cache/")))
+                 amsha/gptel-backup-directory)))
       (make-directory (file-name-directory file) t)
       (let (message-log-max
             (content (buffer-string)))
@@ -1035,10 +1070,23 @@ that are live when Emacs exits are backed up for restoration by
   :lighter nil
   (if amsha/gptel-session-backup-mode
       (progn
+        (unless amsha/gptel-backup-watch
+          (make-directory amsha/gptel-backup-directory t)
+          (setq amsha/gptel-backup-watch
+                (file-notify-add-watch
+                 amsha/gptel-backup-directory '(change)
+                 #'amsha/gptel-backup-file-notify-callback)))
         (add-hook 'gptel-post-response-functions #'amsha/gptel-backup-buffer 90 t)
         (add-hook 'kill-buffer-hook #'amsha/gptel-delete-backup nil t))
     (remove-hook 'gptel-post-response-functions #'amsha/gptel-backup-buffer t)
-    (remove-hook 'kill-buffer-hook #'amsha/gptel-delete-backup t)))
+    (remove-hook 'kill-buffer-hook #'amsha/gptel-delete-backup t)
+    (unless (cl-some (lambda (buffer)
+                       (buffer-local-value
+                        'amsha/gptel-session-backup-mode buffer))
+                     (buffer-list))
+      (when amsha/gptel-backup-watch
+        (file-notify-rm-watch amsha/gptel-backup-watch)
+        (setq amsha/gptel-backup-watch nil)))))
 
 (defun amsha/gptel-enable-session-backup ()
   "Enable session backups in a buffer when `gptel-mode' is enabled."
@@ -1052,22 +1100,22 @@ that are live when Emacs exits are backed up for restoration by
   "Delete the cached GPTel backup for BUFFER-NAME.
 
 If a backup file with the buffer name exists in
-`~/.emacs.d/agents/.cache/`, delete it."
+`amsha/gptel-backup-directory', delete it."
   (when (not buffer-file-name)
     (when-let* ((file (expand-file-name
                        (string-trim (or buffer-name (buffer-name)) "*" "*")
-                       "~/.emacs.d/agents/.cache/"))
+                       amsha/gptel-backup-directory))
                 (_ (file-exists-p file)))
       (delete-file file))))
 
 (defun amsha/gptel-restore-sessions ()
   "Restore cached GPTel sessions from the agents cache directory.
 
-For each file in `~/.emacs.d/agents/.cache/`, find the buffer whose name
+For each file in `amsha/gptel-backup-directory', find the buffer whose name
 matches the file's base name, insert the file contents into that buffer,
 then enable `org-mode` and `gptel-mode`."
-  (when (file-exists-p "~/.emacs.d/agents/.cache/")
-    (dolist (file (directory-files "~/.emacs.d/agents/.cache/" t directory-files-no-dot-files-regexp))
+  (when (file-exists-p amsha/gptel-backup-directory)
+    (dolist (file (directory-files amsha/gptel-backup-directory t directory-files-no-dot-files-regexp))
       (with-current-buffer
           (get-buffer-create (format "*%s*" (file-name-base file)))
         (erase-buffer)
