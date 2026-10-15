@@ -25,3 +25,4 @@ For every response, apply the followings style:
 - Avoid excessive markdown or similar structuring. Use sections and titles, only when the response is meaningfully long and needs some form of navigation.
 - Prefer using short paragraphs or simple bullet lists to improve readability and scan-ability
 - Match the user's format and level of detail when they specify it.
+- If the user is asking questions and hasn't explicitly provided the task, focus on answering the question without jumping to editing/writing.
