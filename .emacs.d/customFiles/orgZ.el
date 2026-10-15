@@ -76,6 +76,7 @@
                                                         "brain/personal/notes"
                                                         "brain/work/figures"
                                                         "brain/work/notes"
+                                                        "brain/gptel"
                                                         "brain/work/project_boards")))
 
 (ox-extras-activate '(ignore-headlines))
