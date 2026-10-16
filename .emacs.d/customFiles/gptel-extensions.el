@@ -1663,7 +1663,7 @@ Summarize the context thoroughly and comprehensively.
 (gptel-make-preset 'org-roam-ql
   :description "Add org-roam-ql query results in last message."
   :pre (lambda ()
-         (amsha/gptel-transform-inline #'amsha/gptel-org-roam-parse-query append)))
+         (amsha/gptel-transform-inline #'amsha/gptel-org-roam-parse-query prepend)))
 
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
