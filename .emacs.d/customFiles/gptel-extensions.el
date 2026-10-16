@@ -1824,7 +1824,7 @@ Summarize the context thoroughly and comprehensively.
 
 ;;;###autoload
 (defun amsha/explain-grammarly (sentence explanation)
-  "Function to take in grammarly error and provide explanation."
+  "Explain the grammarly EXPLANATION on SENTENCE."
   (interactive (list (read-from-minibuffer "Sentence: ")
                      (completing-read "Explanation: "
                                       (when (f-exists-p amsha/explain-grammarly--explanations-cache)
@@ -2036,7 +2036,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
     (funcall start-next)))
 
 (defun amsha/okm-paper-get-notes (paper_id)
-  "Returns the notes from paper represented by paper_id."
+  "Returns the notes from paper represented by PAPER_ID."
   (lazy-require 'org-roam-ql)
   (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id)))))
     (if node
@@ -2050,7 +2050,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
       (format "paper_id %s is not found." paper_id))))
 
 (defun amsha/okm-papers-get-notes (paper-ids)
-  "Returns the notes from paper represented by paper-ids."
+  "Returns the notes from paper represented by PAPER-IDS."
   (with-temp-buffer
     (mapcar (lambda (paper-id)
               (insert paper-id "\n================\n"
@@ -2064,7 +2064,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
   (-map #'org-roam-node-title (org-roam-ql-nodes '(and rt lvl1))))
 
 (defun amsha/okm-gptel-paper-ids-for-keyword (keyword)
-  "Return the list of paper-ids for a given keyword."
+  "Return the list of paper-ids for a given KEYWORD."
   (lazy-require 'org-roam-ql)
   (--map (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'string-equal)
          (org-roam-ql-nodes `(and (backlink-to (and (title ,keyword t)
@@ -2073,9 +2073,9 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
                                   (file "research_papers")))))
 
 (defun amsha/okm-gptel-get-paper-details (paper-id)
-  "Given the paper-id, get the details of a paper.
+  "Given the PAPER-ID, get the details of a paper.
 Meant to be used for LLMs.
-The tool-callback should take one value, the result. "
+The tool-callback should take one value, the result."
   (let* ((bibtex-completion-bibliography (org-ref-find-bibliography))
          (bib-entry (bibtex-completion-get-entry paper-id)))
          ;; (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
@@ -2087,7 +2087,7 @@ The tool-callback should take one value, the result. "
       (format "Details for id %s not found" paper-id))))
 
 (defun amsha/okm-gptel-get-papers-details (paper-ids)
-  "Given a list of paper-ids, return the paper details as a single string."
+  "Given a list of PAPER-IDS, return the paper details as a single string."
   (with-temp-buffer
     (mapcar (lambda (paper-id)
               (insert paper-id "\n================\n"
@@ -2101,7 +2101,7 @@ The tool-callback should take one value, the result. "
   "Write CONTENT in RELATIVE-PATH relative to the current session director.
 session directory is '~/.emacs.d/.cache/gptel-agent/<session-id>/'.
 Session-id is taken from the buffer local variable
-`gptel-agent-session-id'. If `gptel-get-paper-details' is not defined,
+`gptel-agent-session-id'.  If `gptel-get-paper-details' is not defined,
 then it will be set here."
   (unless gptel-agent-session-id
     (setq-local gptel-agent-session-id (concat (format-time-string "%Y-%m-%d_%H%M_" (current-time))
@@ -2125,6 +2125,7 @@ then it will be set here."
         file-path))))
 
 (defun amsha/okm-open-session-notes ()
+  "Open session notes."
   (interactive)
   (if gptel-agent-session-id
       (dired (expand-file-name gptel-agent-session-id "~/.emacs.d/.cache/gptel-agent"))
