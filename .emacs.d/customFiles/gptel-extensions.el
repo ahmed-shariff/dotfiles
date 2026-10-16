@@ -1863,63 +1863,65 @@ Summarize the context thoroughly and comprehensively.
       (gptel-send))))
 
 (defun amsha/okm-oai-query-file-search (callback query)
-  "Given a query, get resutls from oai vector store and summary from oai."
+  "Given a QUERY, call CALLBACK with resutls from oai vector store and summary from oai."
   (let* ((gptel-backend gptel-openai-response-backend)
-         (gptel-model 'gpt-5-nano)
+         (gptel-model amsha/gptel-cheap-model)
          (gptel-tools nil)
-         (gptel-openai-responses-extended--tools `((:type "file_search"
-                                                :vector_store_ids ,(vconcat (list (gethash 'openai-org-vector-store configurations))))))
-         (gptel-context nil)
-         ;; (fsm (copy-tree gptel-request--handlers))
-         ;; (fsm-done (lambda (fsm)
-         ;;             (pcase (plist-get (gptel-fsm-info fsm) :context)
-         ;;               ('file-search )
-         ;;              ))))
-         )
+         (gptel-openai-responses-extended--tools
+          `((:type "file_search"
+                   :vector_store_ids ,(vconcat (list (gethash 'openai-org-vector-store configurations))))))
+         (gptel-context nil))
     (gptel-request query
       :callback
       (lambda (response info)
-        ;; (plist-put info :post (cons (lambda (info)
-        ;;                               (em "killing the buffer" buffer)
-        ;;                               (kill-buffer buffer))
-        ;;                             (plist-get info :post)))
-        (if (stringp response)
-            (let ((gptel-backend gptel-openai-response-backend)
-                  (gptel-model amsha/gptel-default-model)
-                  (gptel-tools nil)
-                  (gptel-openai-responses-extended--tools nil)
-                  (gptel-context nil)
-                  cite-list)
-              (gptel-request (with-temp-buffer
-                               (insert "Summarize the following. The summary should be in the form of a bullet "
-                                       "list with appropriate citations in the form cite:<paper_id>:\n\n"
-                                       response "\n")
-                               (amsha/gptel-oai-response-insert-file-search-query-and-results info)
-                               (amsha/gptel--replace-file-id-with-cite (point-min) (point-max))
-                               (em "Recieved oai-file-search result")
-                               (let ((ret-string (buffer-string)))
-                                 (setf cite-list (-uniq
-                                                  (append
-                                                   (-flatten (s-match-strings-all "cite:[a-z0-9_\\-&]*" ret-string))
-                                                   (when-let* ((results (plist-get info :file-search-call-results)))
-                                                         (--map (concat "cite:" (string-replace ".txt" "" (plist-get it :filename)))
-                                                                results)))))
-                                 ret-string))
-                :context cite-list
-                :callback
-                (lambda (response info)
-                  (funcall callback
-                           (if (stringp response)
-                               (concat response
-                                       "\n\nPapers queried:\n- "
-                                       (string-join (plist-get info :context) "\n- "))
-                             (format "gptel-request<2> failed with message: %s"
-                                     (plist-get info :status)))))))
-          (funcall callback (format "gptel-request<1> failed with message: %s"
-                   (plist-get info :status))))))))
+        (pcase response
+          ((pred stringp)
+           (let ((gptel-backend gptel-openai-response-backend)
+                 (gptel-model amsha/gptel-default-model)
+                 (gptel-tools nil)
+                 (gptel-openai-responses-extended--tools nil)
+                 (gptel-context nil)
+                 cite-list)
+             (gptel-request (with-temp-buffer
+                              (insert "Summarize the following. The summary should be in the form of a bullet "
+                                      "list with appropriate citations in the form cite:<paper_id>:\n\n"
+                                      response "\n")
+                              (amsha/gptel-oai-response-insert-file-search-query-and-results info)
+                              (amsha/gptel--replace-file-id-with-cite (point-min) (point-max))
+                              (em "Recieved oai-file-search result")
+                              (let ((ret-string (buffer-string)))
+                                (setf cite-list (-uniq
+                                                 (append
+                                                  (-flatten (s-match-strings-all "cite:[a-z0-9_\\-&]*" ret-string))
+                                                  (when-let* ((results (plist-get info :file-search-call-results)))
+                                                    (--map (concat "cite:" (string-replace ".txt" "" (plist-get it :filename)))
+                                                           results)))))
+                                ret-string))
+               :context cite-list
+               :callback
+               (lambda (response info)
+                 (pcase response
+                   ((pred stringp)
+                    (funcall callback
+                             (concat response
+                                     "\n\nPapers queried:\n- "
+                                     (string-join (plist-get info :context) "\n- "))))
+                   ((or `(reasoning . ,rest)
+                        `(tool-call . ,rest)
+                        `(tool-result . ,rest))
+                    nil) ;; We should ignore these?
+                   (_ (funcall callback
+                       (format "gptel-request<2> failed with message: %s"
+                               (plist-get info :status)))))))))
+          ((or `(reasoning . ,rest)
+               `(tool-call . ,rest)
+               `(tool-result . ,rest))
+           nil) ;; We should ignore these?
+          (_ (funcall callback (format "gptel-request<1> failed with message: %s"
+                   (plist-get info :status)))))))))
 
 (defun amsha/okm-pdf-question (callback paper_id questions)
-  "Returns the answer to the question from paper represented by paper_id."
+  "Call CALLBACK with answer to the QUESTIONS from paper represented by PAPER_ID."
   (interactive (list
                 (lambda (str)
                   (em "Answer: " str))
