@@ -599,6 +599,37 @@ Otherwise, add ELEM as the last element."
                                                 (org-entry-get nil "ITEM"))))
                                              50)))))
 
+(defvar amsha/gptel-tool-result-max-bytes 30000
+  "Maximum number of bytes sent directly as a gptel tool result.")
+
+(define-advice gptel--process-tool-call (:around (original fsm tool-spec tool-call result) with-byte-limit)
+  "Offload oversized gptel tool results to temporary files."
+  (let* ((text (gptel--to-string result))
+         (size (string-bytes text)))
+    (funcall
+     original fsm tool-spec tool-call
+     (if (<= size amsha/gptel-tool-result-max-bytes)
+         result
+       (let* ((file (make-temp-file "gptel-tool-result-" nil ".txt"))
+              (lines (split-string text "\n" nil))
+              (preview-line
+               (lambda (line)
+                 (substring line 0 (min 200 (length line))))))
+         (let ((coding-system-for-write 'utf-8-unix))
+           (write-region text nil file nil 'silent))
+         (format
+          (concat
+           "The tool result was too large to include directly "
+           "(%d bytes). The complete result was saved to:\n%s\n\n"
+           "First lines:\n```\n%s\n```\n\n"
+           "Last lines:\n```\n%s\n```\n\n"
+           "Read that file to inspect the complete result, or rethink "
+           "the tool call if the full result is not needed.")
+          size
+          (expand-file-name file)
+          (mapconcat preview-line (take 10 lines) "\n")
+          (mapconcat preview-line (last lines 10) "\n")))))))
+
 (defun amsha/gptel-paper-agent ()
   "Paper agent."
   (interactive)
