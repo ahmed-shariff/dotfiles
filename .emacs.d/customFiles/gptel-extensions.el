@@ -787,7 +787,7 @@ heading in the daily buffer."
      (or (alist-get "ARCHIVE_CONTEXT" props nil nil #'string-equal)
          (amsha/gptel-archive--conversation-context-summary)))))
 
-(defun amsha/gptel-archive--clear-old-archive (daily-buffer daily-ts context-line)
+(defun amsha/gptel-archive--reset-old-archive (daily-buffer daily-ts context-line)
   "Replace the archived conversation under DAILY-TS in DAILY-BUFFER.
 Remove the existing subtree contents after its heading and insert the new
 CONTEXT-LINE, leaving the heading and its properties intact.  Display the
@@ -804,6 +804,35 @@ daily buffer in the selected window before making the replacement."
      (save-excursion (org-end-of-subtree t t) (point))))
   (insert " - " context-line "\n\n"))
 
+(defun amsha/gptel-archive--clear-old-archive (source-buffer)
+  "Remove the archived entry associated with SOURCE-BUFFER.
+
+Delete the corresponding entry from its daily archive buffer and remove
+the archive metadata properties from SOURCE-BUFFER."
+  (let* ((props (with-current-buffer source-buffer
+                  (org-with-wide-buffer (org-entry-properties (point-min)))))
+         (id-str (alist-get "ARCHIVE_ID" props nil nil #'string-equal))
+         (daily-buffer (and id-str
+                            (find-file-noselect
+                             (org-roam-node-file
+                              (org-roam-node-from-id
+                               (s-replace "id:" "" id-str))))))
+         (daily-ts (alist-get "ARCHIVE_TS" props nil nil #'string-equal)))
+    (when (and daily-buffer daily-ts)
+      (with-current-buffer daily-buffer
+        (goto-char (point-min))
+        (re-search-forward (format "^\\*[ \t]*\\[%s\\]" daily-ts))
+        (org-back-to-heading t)
+        (delete-region
+         (point)
+         (save-excursion (org-end-of-subtree t t) (point))))
+
+      (with-current-buffer source-buffer
+        (org-entry-delete (point-min) "ARCHIVE_ID")
+        (org-entry-delete (point-min) "ARCHIVE_TS")
+        (org-entry-delete (point-min) "ARCHIVE_TYPE")
+        (org-entry-delete (point-min) "ARCHIVE_CONTEXT")))))
+
 (defun amsha/gptel-archive--setup-buffers (source-buffer title context-line archive-type)
   "Create and initialize the daily archive entry for a conversation.
 Create today's Org-roam daily entry, record its ID and timestamp, and enable
@@ -819,6 +848,7 @@ ARCHIVE-TYPE as properties on SOURCE-BUFFER's Org entry."
   (org-capture-goto-last-stored)
   (gptel-mode +1)
   (org-back-to-heading t)
+
   (setq daily-id (org-with-wide-buffer
                   (concat "id:" (org-id-get (point-min))))
         daily-ts (save-excursion
@@ -827,6 +857,18 @@ ARCHIVE-TYPE as properties on SOURCE-BUFFER's Org entry."
                           "\\[\\([0-9][0-9]:[0-9][0-9] [AP]M\\)\\]"
                           (line-end-position) t)
                      (match-string-no-properties 1))))
+
+  (save-excursion
+    (with-current-buffer source-buffer
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (when (org-at-heading-p)
+         (org-open-line 1))
+       (org-entry-put (point-min) "ARCHIVE_ID" daily-id)
+       (org-entry-put (point-min) "ARCHIVE_TS" daily-ts)
+       (org-entry-put (point-min) "ARCHIVE_TYPE" archive-type)
+       (org-entry-put (point-min) "ARCHIVE_CONTEXT" context-line))))
+
   (goto-char (line-end-position))
   (insert " ")
   (catch 'amsha/gptel-break-node-loop
@@ -838,47 +880,55 @@ ARCHIVE-TYPE as properties on SOURCE-BUFFER's Org entry."
                           (throw 'amsha/gptel-break-node-loop nil))))
         (org-roam-node-insert))))
   (insert " " title "\n  - "
-          context-line "\n\n")
-  (with-current-buffer source-buffer
-    (org-with-wide-buffer
-     (goto-char (point-min))
-     (when (org-at-heading-p)
-       (org-open-line 1))
-     (org-entry-put (point-min) "ARCHIVE_ID" daily-id)
-     (org-entry-put (point-min) "ARCHIVE_TS" daily-ts)
-     (org-entry-put (point-min) "ARCHIVE_TYPE" archive-type)
-     (org-entry-put (point-min) "ARCHIVE_CONTEXT" context-line))))
+          context-line "\n\n"))
 
-(defun amsha/gptel-archive-conversation-in-dailies ()
+(defun amsha/gptel-archive-conversation-in-dailies (arg)
   "Archive the complete GPTel conversation in today's Org-roam daily.
 Require GPTel mode, create or reuse the conversation's daily entry, insert
-the complete conversation, and add an in-place compact summary."
-  (interactive)
+the complete conversation, and add an in-place compact summary.
+
+When called with prefix ARG, add compaction without asking."
+  (interactive "P")
   (unless gptel-mode
     (user-error "This command must be run in a gptel buffer"))
   (pcase-let* ((source (current-buffer))
                (`(,title ,conversation ,daily-buffer ,daily-ts ,context-line) (amsha/gptel-archive--props "FULL")))
-    (if (and daily-buffer daily-ts)
-        (amsha/gptel-archive--clear-old-archive daily-buffer daily-ts context-line)
-      (amsha/gptel-archive--setup-buffers source title context-line "FULL"))
-    (insert conversation)
-    (amsha/add-compact-summary-inplace nil t)
-    (display-buffer (current-buffer))))
+    (condition-case err
+        (progn
+          (if (and daily-buffer daily-ts)
+              (amsha/gptel-archive--reset-old-archive daily-buffer daily-ts context-line)
+            (amsha/gptel-archive--setup-buffers source title context-line "FULL"))
+          (insert conversation)
+          (when (or arg
+                    (y-or-n-p "Add compaction?"))
+            (amsha/add-compact-summary-inplace nil t))
+          (display-buffer (current-buffer)))
+      ((error quit)
+       (unless (and daily-buffer daily-ts)
+         (amsha/gptel-archive--clear-old-archive source))
+       (with-current-buffer source
+         (setq amsha/gptel-buffer-title title))
+       (display-buffer source)
+       (signal (car err) (cdr err))))))
 
-(defun amsha/gptel-archive-compacted-conversation-in-dailies ()
+(defun amsha/gptel-archive-compacted-conversation-in-dailies (arg)
   "Archive a compacted GPTel conversation in today's Org-roam daily.
 Save the complete conversation to its existing file or a generated archive
 file, make the source buffer visit that file, and insert a file link in a
 new or existing daily entry.  Request a compact summary with the
 `compaction' preset and insert the streamed response at the archive
-position."
-  (interactive)
+position.
+
+When called with prefix ARG, add compaction without asking."
+  (interactive "P")
   (unless gptel-mode
     (user-error "This command must be run in a gptel buffer"))
   (pcase-let* ((source (current-buffer))
+               (source-name (buffer-name source))
                (`(,title ,conversation ,daily-buffer ,daily-ts ,context-line) (amsha/gptel-archive--props "COMPACT"))
+               (source-file-name (buffer-file-name source))
                (archive-file
-                (or (buffer-file-name source)
+                (or source-file-name
                     (expand-file-name
                      (concat (format-time-string "%Y%m%d%H%2S-")
                              (replace-regexp-in-string
@@ -890,37 +940,55 @@ position."
                              ".org")
                      amsha/gptel-conversation-archive)))
                (archive-link (abbreviate-file-name archive-file)))
-    ;; Save the complete conversation and make SOURCE visit that file.
-    (make-directory (file-name-directory archive-file) t)
-    (write-region (point-min) (point-max) archive-file nil 'silent)
-    (set-visited-file-name archive-file t)
-    (set-buffer-modified-p nil)
+    (condition-case err
+        (progn
+          ;; Save the complete conversation and make SOURCE visit that file.
+          (make-directory (file-name-directory archive-file) t)
+          (write-region (point-min) (point-max) archive-file nil 'silent)
+          (set-visited-file-name archive-file t)
+          (set-buffer-modified-p nil)
 
-    (if (and daily-buffer daily-ts)
-        (amsha/gptel-archive--clear-old-archive daily-buffer daily-ts context-line)
-      (amsha/gptel-archive--setup-buffers source title context-line "COMPACT"))
-    (insert "file:" archive-link "\n\nCompact summary:\n")
+          (if (and daily-buffer daily-ts)
+              (amsha/gptel-archive--reset-old-archive daily-buffer daily-ts context-line)
+            (amsha/gptel-archive--setup-buffers source title context-line "COMPACT"))
+          (insert "file:" archive-link "\n\nCompact summary:\n")
 
-    ;; At this point the current buffer is the daily buffer and point is
-    ;; where the compaction should be inserted.  Let gptel-request create
-    ;; its own buffer and position markers.
-    (gptel-with-preset 'compaction
-      (gptel-request
-          conversation
-        :stream gptel-stream
-        :transforms gptel-prompt-transform-functions
-        :callback
-        (lambda (response info)
-          (when (stringp response)
-            (with-current-buffer (plist-get info :buffer)
-              (let ((position (plist-get info :position)))
-                ;; Keep later streamed chunks after earlier chunks.
-                (set-marker-insertion-type position t)
-                (goto-char position)
-                (add-text-properties
-                 0 (length response) '(gptel response front-sticky (gptel)) response)
-                (insert response)))))))
-    (display-buffer (current-buffer))))
+          (when (or arg
+                    (y-or-n-p "Add compaction?"))
+            ;; At this point the current buffer is the daily buffer and point is
+            ;; where the compaction should be inserted.  Let gptel-request create
+            ;; its own buffer and position markers.
+            (gptel-with-preset 'compaction
+              (gptel-request
+                  conversation
+                :stream gptel-stream
+                :transforms gptel-prompt-transform-functions
+                :callback
+                (lambda (response info)
+                  (when (stringp response)
+                    (with-current-buffer (plist-get info :buffer)
+                      (let ((position (plist-get info :position)))
+                        ;; Keep later streamed chunks after earlier chunks.
+                        (set-marker-insertion-type position t)
+                        (goto-char position)
+                        (add-text-properties
+                         0 (length response) '(gptel response front-sticky (gptel)) response)
+                        (insert response))))))))
+
+          (display-buffer (current-buffer)))
+      ((error quit)
+       (unless source-file-name
+         (with-current-buffer source
+           (set-visited-file-name nil t)
+           (rename-buffer source-name)
+           (org-mode)
+           (gptel-mode)
+           (setq amsha/gptel-buffer-title title))
+         (delete-file archive-file))
+       (unless (and daily-buffer daily-ts)
+         (amsha/gptel-archive--clear-old-archive source))
+       (display-buffer source)
+       (signal (car err) (cdr err))))))
 
 ;;; Update gptel buffer title *************************************************************
 
