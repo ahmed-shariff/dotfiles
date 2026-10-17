@@ -4873,7 +4873,7 @@ then close the *gptel-context* buffer and return to gptel menu."
         (skip-chars-backward " \t\r")
         (insert-and-inherit "*")))))
 
-(add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-*)
+(add-hook 'gptel-post-response-functions #'amsha/gptel--replace-*)
 
 ;;;; * Function to restore gptel states
 (defun amsha/gptel-set-region-as-response ()
@@ -4923,7 +4923,7 @@ then close the *gptel-context* buffer and return to gptel menu."
         (search-failed nil)))))
 
 ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
-(add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
+(add-hook 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
 
 ;; (transient-define-prefix amsha/gptel-menu-lite ()
 ;;   "gptel menue when creating buffer."
