@@ -818,7 +818,7 @@ heading in the daily buffer."
      (or (alist-get "ARCHIVE_CONTEXT" props nil nil #'string-equal)
          (amsha/gptel-archive--conversation-context-summary)))))
 
-(defun amsha/gptel-archive--clear-old-archive (daily-buffer daily-ts context-line)
+(defun amsha/gptel-archive--reset-old-archive (daily-buffer daily-ts context-line)
   "Replace the archived conversation under DAILY-TS in DAILY-BUFFER.
 Remove the existing subtree contents after its heading and insert the new
 CONTEXT-LINE, leaving the heading and its properties intact.  Display the
@@ -835,6 +835,35 @@ daily buffer in the selected window before making the replacement."
      (save-excursion (org-end-of-subtree t t) (point))))
   (insert " - " context-line "\n\n"))
 
+(defun amsha/gptel-archive--clear-old-archive (source-buffer)
+  "Remove the archived entry associated with SOURCE-BUFFER.
+
+Delete the corresponding entry from its daily archive buffer and remove
+the archive metadata properties from SOURCE-BUFFER."
+  (let* ((props (with-current-buffer source-buffer
+                  (org-with-wide-buffer (org-entry-properties (point-min)))))
+         (id-str (alist-get "ARCHIVE_ID" props nil nil #'string-equal))
+         (daily-buffer (and id-str
+                            (find-file-noselect
+                             (org-roam-node-file
+                              (org-roam-node-from-id
+                               (s-replace "id:" "" id-str))))))
+         (daily-ts (alist-get "ARCHIVE_TS" props nil nil #'string-equal)))
+    (when (and daily-buffer daily-ts)
+      (with-current-buffer daily-buffer
+        (goto-char (point-min))
+        (re-search-forward (format "^\\*[ \t]*\\[%s\\]" daily-ts))
+        (org-back-to-heading t)
+        (delete-region
+         (point)
+         (save-excursion (org-end-of-subtree t t) (point))))
+
+      (with-current-buffer source-buffer
+        (org-entry-delete (point-min) "ARCHIVE_ID")
+        (org-entry-delete (point-min) "ARCHIVE_TS")
+        (org-entry-delete (point-min) "ARCHIVE_TYPE")
+        (org-entry-delete (point-min) "ARCHIVE_CONTEXT")))))
+
 (defun amsha/gptel-archive--setup-buffers (source-buffer title context-line archive-type)
   "Create and initialize the daily archive entry for a conversation.
 Create today's Org-roam daily entry, record its ID and timestamp, and enable
@@ -850,6 +879,7 @@ ARCHIVE-TYPE as properties on SOURCE-BUFFER's Org entry."
   (org-capture-goto-last-stored)
   (gptel-mode +1)
   (org-back-to-heading t)
+
   (setq daily-id (org-with-wide-buffer
                   (concat "id:" (org-id-get (point-min))))
         daily-ts (save-excursion
@@ -858,6 +888,18 @@ ARCHIVE-TYPE as properties on SOURCE-BUFFER's Org entry."
                           "\\[\\([0-9][0-9]:[0-9][0-9] [AP]M\\)\\]"
                           (line-end-position) t)
                      (match-string-no-properties 1))))
+
+  (save-excursion
+    (with-current-buffer source-buffer
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (when (org-at-heading-p)
+         (org-open-line 1))
+       (org-entry-put (point-min) "ARCHIVE_ID" daily-id)
+       (org-entry-put (point-min) "ARCHIVE_TS" daily-ts)
+       (org-entry-put (point-min) "ARCHIVE_TYPE" archive-type)
+       (org-entry-put (point-min) "ARCHIVE_CONTEXT" context-line))))
+
   (goto-char (line-end-position))
   (insert " ")
   (catch 'amsha/gptel-break-node-loop
@@ -869,47 +911,55 @@ ARCHIVE-TYPE as properties on SOURCE-BUFFER's Org entry."
                           (throw 'amsha/gptel-break-node-loop nil))))
         (org-roam-node-insert))))
   (insert " " title "\n  - "
-          context-line "\n\n")
-  (with-current-buffer source-buffer
-    (org-with-wide-buffer
-     (goto-char (point-min))
-     (when (org-at-heading-p)
-       (org-open-line 1))
-     (org-entry-put (point-min) "ARCHIVE_ID" daily-id)
-     (org-entry-put (point-min) "ARCHIVE_TS" daily-ts)
-     (org-entry-put (point-min) "ARCHIVE_TYPE" archive-type)
-     (org-entry-put (point-min) "ARCHIVE_CONTEXT" context-line))))
+          context-line "\n\n"))
 
-(defun amsha/gptel-archive-conversation-in-dailies ()
+(defun amsha/gptel-archive-conversation-in-dailies (arg)
   "Archive the complete GPTel conversation in today's Org-roam daily.
 Require GPTel mode, create or reuse the conversation's daily entry, insert
-the complete conversation, and add an in-place compact summary."
-  (interactive)
+the complete conversation, and add an in-place compact summary.
+
+When called with prefix ARG, add compaction without asking."
+  (interactive "P")
   (unless gptel-mode
     (user-error "This command must be run in a gptel buffer"))
   (pcase-let* ((source (current-buffer))
                (`(,title ,conversation ,daily-buffer ,daily-ts ,context-line) (amsha/gptel-archive--props "FULL")))
-    (if (and daily-buffer daily-ts)
-        (amsha/gptel-archive--clear-old-archive daily-buffer daily-ts context-line)
-      (amsha/gptel-archive--setup-buffers source title context-line "FULL"))
-    (insert conversation)
-    (amsha/add-compact-summary-inplace nil t)
-    (display-buffer (current-buffer))))
+    (condition-case err
+        (progn
+          (if (and daily-buffer daily-ts)
+              (amsha/gptel-archive--reset-old-archive daily-buffer daily-ts context-line)
+            (amsha/gptel-archive--setup-buffers source title context-line "FULL"))
+          (insert conversation)
+          (when (or arg
+                    (y-or-n-p "Add compaction?"))
+            (amsha/add-compact-summary-inplace nil t))
+          (display-buffer (current-buffer)))
+      ((error quit)
+       (unless (and daily-buffer daily-ts)
+         (amsha/gptel-archive--clear-old-archive source))
+       (with-current-buffer source
+         (setq amsha/gptel-buffer-title title))
+       (display-buffer source)
+       (signal (car err) (cdr err))))))
 
-(defun amsha/gptel-archive-compacted-conversation-in-dailies ()
+(defun amsha/gptel-archive-compacted-conversation-in-dailies (arg)
   "Archive a compacted GPTel conversation in today's Org-roam daily.
 Save the complete conversation to its existing file or a generated archive
 file, make the source buffer visit that file, and insert a file link in a
 new or existing daily entry.  Request a compact summary with the
 `compaction' preset and insert the streamed response at the archive
-position."
-  (interactive)
+position.
+
+When called with prefix ARG, add compaction without asking."
+  (interactive "P")
   (unless gptel-mode
     (user-error "This command must be run in a gptel buffer"))
   (pcase-let* ((source (current-buffer))
+               (source-name (buffer-name source))
                (`(,title ,conversation ,daily-buffer ,daily-ts ,context-line) (amsha/gptel-archive--props "COMPACT"))
+               (source-file-name (buffer-file-name source))
                (archive-file
-                (or (buffer-file-name source)
+                (or source-file-name
                     (expand-file-name
                      (concat (format-time-string "%Y%m%d%H%2S-")
                              (replace-regexp-in-string
@@ -921,37 +971,55 @@ position."
                              ".org")
                      amsha/gptel-conversation-archive)))
                (archive-link (abbreviate-file-name archive-file)))
-    ;; Save the complete conversation and make SOURCE visit that file.
-    (make-directory (file-name-directory archive-file) t)
-    (write-region (point-min) (point-max) archive-file nil 'silent)
-    (set-visited-file-name archive-file t)
-    (set-buffer-modified-p nil)
+    (condition-case err
+        (progn
+          ;; Save the complete conversation and make SOURCE visit that file.
+          (make-directory (file-name-directory archive-file) t)
+          (write-region (point-min) (point-max) archive-file nil 'silent)
+          (set-visited-file-name archive-file t)
+          (set-buffer-modified-p nil)
 
-    (if (and daily-buffer daily-ts)
-        (amsha/gptel-archive--clear-old-archive daily-buffer daily-ts context-line)
-      (amsha/gptel-archive--setup-buffers source title context-line "COMPACT"))
-    (insert "file:" archive-link "\n\nCompact summary:\n")
+          (if (and daily-buffer daily-ts)
+              (amsha/gptel-archive--reset-old-archive daily-buffer daily-ts context-line)
+            (amsha/gptel-archive--setup-buffers source title context-line "COMPACT"))
+          (insert "file:" archive-link "\n\nCompact summary:\n")
 
-    ;; At this point the current buffer is the daily buffer and point is
-    ;; where the compaction should be inserted.  Let gptel-request create
-    ;; its own buffer and position markers.
-    (gptel-with-preset 'compaction
-      (gptel-request
-          conversation
-        :stream gptel-stream
-        :transforms gptel-prompt-transform-functions
-        :callback
-        (lambda (response info)
-          (when (stringp response)
-            (with-current-buffer (plist-get info :buffer)
-              (let ((position (plist-get info :position)))
-                ;; Keep later streamed chunks after earlier chunks.
-                (set-marker-insertion-type position t)
-                (goto-char position)
-                (add-text-properties
-                 0 (length response) '(gptel response front-sticky (gptel)) response)
-                (insert response)))))))
-    (display-buffer (current-buffer))))
+          (when (or arg
+                    (y-or-n-p "Add compaction?"))
+            ;; At this point the current buffer is the daily buffer and point is
+            ;; where the compaction should be inserted.  Let gptel-request create
+            ;; its own buffer and position markers.
+            (gptel-with-preset 'compaction
+              (gptel-request
+                  conversation
+                :stream gptel-stream
+                :transforms gptel-prompt-transform-functions
+                :callback
+                (lambda (response info)
+                  (when (stringp response)
+                    (with-current-buffer (plist-get info :buffer)
+                      (let ((position (plist-get info :position)))
+                        ;; Keep later streamed chunks after earlier chunks.
+                        (set-marker-insertion-type position t)
+                        (goto-char position)
+                        (add-text-properties
+                         0 (length response) '(gptel response front-sticky (gptel)) response)
+                        (insert response))))))))
+
+          (display-buffer (current-buffer)))
+      ((error quit)
+       (unless source-file-name
+         (with-current-buffer source
+           (set-visited-file-name nil t)
+           (rename-buffer source-name)
+           (org-mode)
+           (gptel-mode)
+           (setq amsha/gptel-buffer-title title))
+         (delete-file archive-file))
+       (unless (and daily-buffer daily-ts)
+         (amsha/gptel-archive--clear-old-archive source))
+       (display-buffer source)
+       (signal (car err) (cdr err))))))
 
 ;;; Update gptel buffer title *************************************************************
 
@@ -1855,7 +1923,7 @@ Summarize the context thoroughly and comprehensively.
 
 ;;;###autoload
 (defun amsha/explain-grammarly (sentence explanation)
-  "Function to take in grammarly error and provide explanation."
+  "Explain the grammarly EXPLANATION on SENTENCE."
   (interactive (list (read-from-minibuffer "Sentence: ")
                      (completing-read "Explanation: "
                                       (when (f-exists-p amsha/explain-grammarly--explanations-cache)
@@ -1894,63 +1962,65 @@ Summarize the context thoroughly and comprehensively.
       (gptel-send))))
 
 (defun amsha/okm-oai-query-file-search (callback query)
-  "Given a query, get resutls from oai vector store and summary from oai."
+  "Given a QUERY, call CALLBACK with resutls from oai vector store and summary from oai."
   (let* ((gptel-backend gptel-openai-response-backend)
-         (gptel-model 'gpt-5-nano)
+         (gptel-model amsha/gptel-cheap-model)
          (gptel-tools nil)
-         (gptel-openai-responses-extended--tools `((:type "file_search"
-                                                :vector_store_ids ,(vconcat (list (gethash 'openai-org-vector-store configurations))))))
-         (gptel-context nil)
-         ;; (fsm (copy-tree gptel-request--handlers))
-         ;; (fsm-done (lambda (fsm)
-         ;;             (pcase (plist-get (gptel-fsm-info fsm) :context)
-         ;;               ('file-search )
-         ;;              ))))
-         )
+         (gptel-openai-responses-extended--tools
+          `((:type "file_search"
+                   :vector_store_ids ,(vconcat (list (gethash 'openai-org-vector-store configurations))))))
+         (gptel-context nil))
     (gptel-request query
       :callback
       (lambda (response info)
-        ;; (plist-put info :post (cons (lambda (info)
-        ;;                               (em "killing the buffer" buffer)
-        ;;                               (kill-buffer buffer))
-        ;;                             (plist-get info :post)))
-        (if (stringp response)
-            (let ((gptel-backend gptel-openai-response-backend)
-                  (gptel-model amsha/gptel-default-model)
-                  (gptel-tools nil)
-                  (gptel-openai-responses-extended--tools nil)
-                  (gptel-context nil)
-                  cite-list)
-              (gptel-request (with-temp-buffer
-                               (insert "Summarize the following. The summary should be in the form of a bullet "
-                                       "list with appropriate citations in the form cite:<paper_id>:\n\n"
-                                       response "\n")
-                               (amsha/gptel-oai-response-insert-file-search-query-and-results info)
-                               (amsha/gptel--replace-file-id-with-cite (point-min) (point-max))
-                               (em "Recieved oai-file-search result")
-                               (let ((ret-string (buffer-string)))
-                                 (setf cite-list (-uniq
-                                                  (append
-                                                   (-flatten (s-match-strings-all "cite:[a-z0-9_\\-&]*" ret-string))
-                                                   (when-let* ((results (plist-get info :file-search-call-results)))
-                                                         (--map (concat "cite:" (string-replace ".txt" "" (plist-get it :filename)))
-                                                                results)))))
-                                 ret-string))
-                :context cite-list
-                :callback
-                (lambda (response info)
-                  (funcall callback
-                           (if (stringp response)
-                               (concat response
-                                       "\n\nPapers queried:\n- "
-                                       (string-join (plist-get info :context) "\n- "))
-                             (format "gptel-request<2> failed with message: %s"
-                                     (plist-get info :status)))))))
-          (funcall callback (format "gptel-request<1> failed with message: %s"
-                   (plist-get info :status))))))))
+        (pcase response
+          ((pred stringp)
+           (let ((gptel-backend gptel-openai-response-backend)
+                 (gptel-model amsha/gptel-default-model)
+                 (gptel-tools nil)
+                 (gptel-openai-responses-extended--tools nil)
+                 (gptel-context nil)
+                 cite-list)
+             (gptel-request (with-temp-buffer
+                              (insert "Summarize the following. The summary should be in the form of a bullet "
+                                      "list with appropriate citations in the form cite:<paper_id>:\n\n"
+                                      response "\n")
+                              (amsha/gptel-oai-response-insert-file-search-query-and-results info)
+                              (amsha/gptel--replace-file-id-with-cite (point-min) (point-max))
+                              (em "Recieved oai-file-search result")
+                              (let ((ret-string (buffer-string)))
+                                (setf cite-list (-uniq
+                                                 (append
+                                                  (-flatten (s-match-strings-all "cite:[a-z0-9_\\-&]*" ret-string))
+                                                  (when-let* ((results (plist-get info :file-search-call-results)))
+                                                    (--map (concat "cite:" (string-replace ".txt" "" (plist-get it :filename)))
+                                                           results)))))
+                                ret-string))
+               :context cite-list
+               :callback
+               (lambda (response info)
+                 (pcase response
+                   ((pred stringp)
+                    (funcall callback
+                             (concat response
+                                     "\n\nPapers queried:\n- "
+                                     (string-join (plist-get info :context) "\n- "))))
+                   ((or `(reasoning . ,rest)
+                        `(tool-call . ,rest)
+                        `(tool-result . ,rest))
+                    nil) ;; We should ignore these?
+                   (_ (funcall callback
+                       (format "gptel-request<2> failed with message: %s"
+                               (plist-get info :status)))))))))
+          ((or `(reasoning . ,rest)
+               `(tool-call . ,rest)
+               `(tool-result . ,rest))
+           nil) ;; We should ignore these?
+          (_ (funcall callback (format "gptel-request<1> failed with message: %s"
+                   (plist-get info :status)))))))))
 
 (defun amsha/okm-pdf-question (callback paper_id questions)
-  "Returns the answer to the question from paper represented by paper_id."
+  "Call CALLBACK with answer to the QUESTIONS from paper represented by PAPER_ID."
   (interactive (list
                 (lambda (str)
                   (em "Answer: " str))
@@ -2065,7 +2135,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
     (funcall start-next)))
 
 (defun amsha/okm-paper-get-notes (paper_id)
-  "Returns the notes from paper represented by paper_id."
+  "Returns the notes from paper represented by PAPER_ID."
   (lazy-require 'org-roam-ql)
   (let ((node (car (org-roam-ql-nodes `(properties "Custom_ID" ,paper_id)))))
     (if node
@@ -2079,7 +2149,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
       (format "paper_id %s is not found." paper_id))))
 
 (defun amsha/okm-papers-get-notes (paper-ids)
-  "Returns the notes from paper represented by paper-ids."
+  "Returns the notes from paper represented by PAPER-IDS."
   (with-temp-buffer
     (mapcar (lambda (paper-id)
               (insert paper-id "\n================\n"
@@ -2093,7 +2163,7 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
   (-map #'org-roam-node-title (org-roam-ql-nodes '(and rt lvl1))))
 
 (defun amsha/okm-gptel-paper-ids-for-keyword (keyword)
-  "Return the list of paper-ids for a given keyword."
+  "Return the list of paper-ids for a given KEYWORD."
   (lazy-require 'org-roam-ql)
   (--map (alist-get "CUSTOM_ID" (org-roam-node-properties it) nil nil #'string-equal)
          (org-roam-ql-nodes `(and (backlink-to (and (title ,keyword t)
@@ -2102,9 +2172,9 @@ Run at most MAX-CONCURRENCY jobs in parallel (default 4)."
                                   (file "research_papers")))))
 
 (defun amsha/okm-gptel-get-paper-details (paper-id)
-  "Given the paper-id, get the details of a paper.
+  "Given the PAPER-ID, get the details of a paper.
 Meant to be used for LLMs.
-The tool-callback should take one value, the result. "
+The tool-callback should take one value, the result."
   (let* ((bibtex-completion-bibliography (org-ref-find-bibliography))
          (bib-entry (bibtex-completion-get-entry paper-id)))
          ;; (kill-new (format "%s , %s" (bibtex-completion-apa-get-value "author-abbrev" entry) (bibtex-completion-get-value "year" entry)))))
@@ -2116,7 +2186,7 @@ The tool-callback should take one value, the result. "
       (format "Details for id %s not found" paper-id))))
 
 (defun amsha/okm-gptel-get-papers-details (paper-ids)
-  "Given a list of paper-ids, return the paper details as a single string."
+  "Given a list of PAPER-IDS, return the paper details as a single string."
   (with-temp-buffer
     (mapcar (lambda (paper-id)
               (insert paper-id "\n================\n"
@@ -2130,7 +2200,7 @@ The tool-callback should take one value, the result. "
   "Write CONTENT in RELATIVE-PATH relative to the current session director.
 session directory is '~/.emacs.d/.cache/gptel-agent/<session-id>/'.
 Session-id is taken from the buffer local variable
-`gptel-agent-session-id'. If `gptel-get-paper-details' is not defined,
+`gptel-agent-session-id'.  If `gptel-get-paper-details' is not defined,
 then it will be set here."
   (unless gptel-agent-session-id
     (setq-local gptel-agent-session-id (concat (format-time-string "%Y-%m-%d_%H%M_" (current-time))
@@ -2154,6 +2224,7 @@ then it will be set here."
         file-path))))
 
 (defun amsha/okm-open-session-notes ()
+  "Open session notes."
   (interactive)
   (if gptel-agent-session-id
       (dired (expand-file-name gptel-agent-session-id "~/.emacs.d/.cache/gptel-agent"))
@@ -4833,7 +4904,7 @@ then close the *gptel-context* buffer and return to gptel menu."
         (skip-chars-backward " \t\r")
         (insert-and-inherit "*")))))
 
-(add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-*)
+(add-hook 'gptel-post-response-functions #'amsha/gptel--replace-*)
 
 ;;;; * Function to restore gptel states
 (defun amsha/gptel-set-region-as-response ()
@@ -4883,7 +4954,7 @@ then close the *gptel-context* buffer and return to gptel menu."
         (search-failed nil)))))
 
 ;; (add-to-list 'gptel-post-response-functions #'gptel-openai-assistant-replace-annotations-with-filename)
-(add-to-list 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
+(add-hook 'gptel-post-response-functions #'amsha/gptel--replace-file-id-with-cite)
 
 ;; (transient-define-prefix amsha/gptel-menu-lite ()
 ;;   "gptel menue when creating buffer."
