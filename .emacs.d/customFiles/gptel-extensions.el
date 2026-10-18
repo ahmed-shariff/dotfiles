@@ -602,21 +602,24 @@ Otherwise, add ELEM as the last element."
 (defvar amsha/gptel-tool-result-max-bytes 30000
   "Maximum number of bytes sent directly as a gptel tool result.")
 
-(define-advice gptel--process-tool-call (:around (original fsm tool-spec tool-call result) with-byte-limit)
-  "Offload oversized gptel tool results to temporary files."
-  (let* ((text (gptel--to-string result))
-         (size (string-bytes text)))
-    (funcall
-     original fsm tool-spec tool-call
-     (if (<= size amsha/gptel-tool-result-max-bytes)
-         result
-       (let* ((file (make-temp-file "gptel-tool-result-" nil ".txt"))
-              (lines (split-string text "\n" nil))
-              (preview-line
-               (lambda (line)
-                 (substring line 0 (min 200 (length line))))))
-         (let ((coding-system-for-write 'utf-8-unix))
-           (write-region text nil file nil 'silent))
+(defun amsha/gptel--offload-large-tres-to-file (args)
+  "Offload oversized gptel tool results to temporary files.
+
+Meant to be used for `gptel-post-tool-call-functions'.
+For ARGS see `gptel-post-tool-call-functions'."
+  (let* ((result (plist-get args :result))
+         (size (string-bytes result)))
+    (if (<= size amsha/gptel-tool-result-max-bytes)
+        nil ;; nothing to do.
+      (let* ((file (make-temp-file "gptel-tool-result-" nil ".txt"))
+             (lines (split-string result "\n" nil))
+             (preview-line
+              (lambda (line)
+                (substring line 0 (min 200 (length line))))))
+        (let ((coding-system-for-write 'utf-8-unix))
+          (write-region result nil file nil 'silent))
+        (list
+         :result
          (format
           (concat
            "The tool result was too large to include directly "
@@ -3748,7 +3751,8 @@ Writing patterns to follow:\n%s"
                         "PowerShell"
                       "Bash")
                    "Read" "EditBatch" "Write"
-                   "Grep" "Glob" "Eval")))
+                   "Grep" "Glob" "Eval"))
+  :post-tool-call-functions `(:append ,#'amsha/gptel--offload-large-tres-to-file))
 
 (gptel-make-preset 'amsha/web-tools
   :description "WebFetch, WebSearch"
