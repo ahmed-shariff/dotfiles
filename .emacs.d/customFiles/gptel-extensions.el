@@ -636,7 +636,11 @@ For ARGS see `gptel-post-tool-call-functions'."
              (lines (split-string result "\n" nil))
              (preview-line
               (lambda (line)
-                (substring line 0 (min 200 (length line))))))
+                (if (length> line 200)
+                    (concat
+                     (substring line 0 200)
+                     "...")
+                  line))))
         (let ((coding-system-for-write 'utf-8-unix))
           (write-region result nil file nil 'silent))
         (list
