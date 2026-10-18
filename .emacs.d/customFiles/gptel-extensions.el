@@ -474,33 +474,54 @@ search forward instead.  The default is `prepend'."
   (plist-get (cdr (gptel-agent-read-file file templates))
              :system))
 
-;; TODO Handle suffix returning lists
 (defmacro amsha/gptel-preset-system-append (suffix)
-  `(list
-    :function
-    (lambda (sys)
-      (lambda ()
-        (let ((res (gptel--parse-directive sys 'raw)))
-          (setf (car res)
-                (concat
-                 (car res)
-                 "\n\n"
-                 (cond
-                  ((stringp ,suffix) ,suffix)
-                  ((functionp ,suffix) (funcall ,suffix))
-                  (t (error "Unsupported suffix: %S" ,suffix)))))
-          res)))))
+  "Create a gptel preset directive that appends SUFFIX to the system prompt.
 
-;; TODO Handle suffix returning lists
-(defmacro amsha/gptel-preset-system-transform (suffix)
-  `(list
-    :function
-    (lambda (sys)
-      (lambda ()
-        (let ((res (gptel--parse-directive sys 'raw)))
-          (setf (car res)
-                (funcall ,suffix (car res)))
-          res)))))
+SUFFIX may be a string, a list of messages, or a function returning either.
+A string is appended to the system prompt after two newlines.  A list is
+combined with the system prompt by concatenating its first element with the
+existing system prompt, then appending the remaining elements.  If SUFFIX is
+a function, it is called without arguments when the directive is evaluated."
+  (let ((sys (gensym "sys-"))
+        (res (gensym "res-"))
+        (suffix-value (gensym "suffix-")))
+    `(list
+      :function
+      (lambda (,sys)
+        (lambda ()
+          (let* ((,res (gptel--parse-directive ,sys 'raw))
+                 (,suffix-value ,suffix)
+                 (,suffix-value
+                  (if (functionp ,suffix-value)
+                      (funcall ,suffix-value)
+                    ,suffix-value)))
+            (cond
+             ((stringp ,suffix-value)
+              (setf (car ,res)
+                    (concat (car ,res) "\n\n" ,suffix-value))
+              ,res)
+             ((consp ,suffix-value)
+              (append
+               (list (concat (car ,res) (car ,suffix-value)))
+               (cdr ,suffix-value)
+               (cdr ,res)))
+             (t
+              (error "Unsupported suffix: %S" ,suffix-value)))))))))
+
+(cl-defmacro amsha/gptel-preset-system-transform ((sys) &body body)
+  "Create a gptel preset that transforms its parsed system directive.
+
+SYS is bound to the directive parsed with `gptel--parse-directive' in `raw'
+format.  BODY must return the replacement directive list."
+  (declare (indent 1)
+           (debug ((symbolp) body)))
+  (let ((directive (gensym "directive-")))
+    `(list
+      :function
+      (lambda (,directive)
+        (lambda ()
+          (let ((,sys (gptel--parse-directive ,directive 'raw)))
+            ,@body))))))
 
 (defun add-before-special-or-append (lst elem special)
   "If last element of LST is SPECIAL, add ELEM before it.
@@ -3676,8 +3697,8 @@ Writing patterns to follow:\n%s"
    (lambda ()
      (with-temp-buffer
        (when-let* ((file (expand-file-name
-                         "AGENTS.md"
-                         (locate-dominating-file default-directory "AGENTS.md")))
+                          "AGENTS.md"
+                          (locate-dominating-file default-directory "AGENTS.md")))
                    (_ (file-exists-p file)))
          (gptel--insert-file-string file))
        (buffer-string)))))
@@ -3686,61 +3707,64 @@ Writing patterns to follow:\n%s"
   :description "Replace {{SKILL}} with skills."
   :tools '(:append ("Skill"))
   :system
-  (amsha/gptel-preset-system-transform
-   (lambda (sys-prompt)
-     (lazy-require 'gptel-agent)
-     (if (string-match "{{SKILLS}}" sys-prompt)
+  (amsha/gptel-preset-system-transform (sys)
+    (lazy-require 'gptel-agent)
+    (if (string-match "{{SKILLS}}" (car sys))
+        (cons
          (with-temp-buffer
-           (insert sys-prompt)
+           (insert (car sys))
            (gptel-agent--expand-templates
             (point-min)
             `(("SKILLS" . ,(if-let* ((skills (gptel-agent--update-skills)))
                                (gptel-agent--skills-system-message skills)
                              ""))))
            (buffer-string))
-       sys-prompt))))
+         (cdr sys))
+      sys)))
 
 (gptel-make-preset 'amsha/agent-add-tools-info
   :description "Fill {{TOOLSLIST}} and {{GUIDELINES}} in sys prompt."
   :system
-  (amsha/gptel-preset-system-transform
-   (lambda (sys-prompt)
-     (lazy-require 'gptel-agent)
-     (let (snippets guidelines)
-       (cl-loop for tool in gptel-tools
-                when (gptel-agent-tool-p tool)
-                do (let ((snippet (gptel-agent-tool-snippet tool))
-                         (guideline (gptel-agent-tool-guideline tool)))
-                     (when snippet
-                       (push (format "- %s: %s" (gptel-agent-tool-name tool) snippet) snippets))
-                     (when guideline
-                       (push guideline guidelines))))
-       (if (or snippets guidelines)
+  (amsha/gptel-preset-system-transform (sys)
+    (lazy-require 'gptel-agent)
+    (let (snippets guidelines)
+      (cl-loop for tool in gptel-tools
+               when (gptel-agent-tool-p tool)
+               do (let ((snippet (gptel-agent-tool-snippet tool))
+                        (guideline (gptel-agent-tool-guideline tool)))
+                    (when snippet
+                      (push (format "- %s: %s" (gptel-agent-tool-name tool) snippet) snippets))
+                    (when guideline
+                      (push guideline guidelines))))
+      (if (or snippets guidelines)
+          (cons
            (with-temp-buffer
-             (insert sys-prompt)
+             (insert (car sys))
              (gptel-agent--expand-templates
               (point-min)
               `(("TOOLSLIST" .
                  ,(if snippets
-                      (string-join (nreverse snippets) "\n")
+                      (string-join (nreverse snippets) "\\\\n")
                     "None"))
                 ("GUIDELINES" .
                  ,(if guidelines
-                      (string-join (nreverse guidelines) "\n")
+                      (string-join (nreverse guidelines) "\\\\n")
                     "None"))))
              (buffer-string))
-         sys-prompt)))))
+           (cdr sys))
+        sys))))
 
 (gptel-make-preset 'amsha/cleanup-variables
   :description "Cleanup {{VAR}} in sys prompt."
   :system
-  (amsha/gptel-preset-system-transform
-   (lambda (sys-prompt)
+  (amsha/gptel-preset-system-transform (sys)
+    (cons
      (with-temp-buffer
-       (insert sys-prompt)
+       (insert (car sys))
        (goto-char (point-min))
        (replace-regexp "{{.?*}}" "")
-       (buffer-string)))))
+       (buffer-string))
+     (cdr sys))))
 
 (gptel-make-preset 'amsha/base-tools
   :description (if (eq system-type 'windows-nt)
@@ -3765,17 +3789,18 @@ Writing patterns to follow:\n%s"
                    "PowerShell, Read, Grep, Glob"
                  "Bash, Read, Grep, Glob")
   :system
-  (amsha/gptel-preset-system-transform
-   (lambda (sys-prompt)
-     (lazy-require 'gptel-agent)
-     (if (string-match "{{EXTRA_INSTRUCTIONS}}" sys-prompt)
+  (amsha/gptel-preset-system-transform (sys)
+    (lazy-require 'gptel-agent)
+    (if (string-match "{{EXTRA_INSTRUCTIONS}}" (car sys))
+        (cons
          (with-temp-buffer
-           (insert sys-prompt)
+           (insert (car sys))
            (gptel-agent--expand-templates
             (point-min)
             `(("EXTRA_INSTRUCTIONS" . "Your main objective is to read files, access information and apply reason to answer the users query. DO NOT execute any commands that can alter state or edit files under any circumstance.")))
            (buffer-string))
-       sys-prompt)))
+         (cdr sys))
+      sys))
   :tools (mapcar (lambda (el) (list "amsha/gptel-agent" el))
                  `(,(if (eq system-type 'windows-nt)
                         "PowerShell"
@@ -4102,13 +4127,14 @@ The tool applies batch replacements atomically. On success, will show the summar
 (gptel-make-preset 'amsha/gptel-memory
   :description "gptel memory entry"
   :system
-  (amsha/gptel-preset-system-transform
-   (lambda (sys-prompt)
+  (amsha/gptel-preset-system-transform (sys)
+    (cons
      (concat
-      sys-prompt
+      (car sys)
       (unless (string-match "====================
-Current memories:" sys-prompt)
-        (amsha/gptel-memory t))))))
+Current memories:" (car sys))
+        (amsha/gptel-memory t)))
+     (cdr sys))))
 
 (gptel-make-preset 'amsha/--memory-tool
   :tools '(:append
