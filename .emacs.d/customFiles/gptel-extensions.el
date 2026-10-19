@@ -3780,7 +3780,7 @@ Writing patterns to follow:\n%s"
                       "Bash")
                    "Read" "EditBatch" "Write"
                    "Grep" "Glob" "Eval"))
-  :post-tool-call-functions `(:append ,#'amsha/gptel--offload-large-tres-to-file))
+  :post-tool-call-functions `(:append (,#'amsha/gptel--offload-large-tres-to-file)))
 
 (gptel-make-preset 'amsha/web-tools
   :description "WebFetch, WebSearch"
