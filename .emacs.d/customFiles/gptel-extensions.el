@@ -732,41 +732,110 @@ matching `*gptel-buffer-N*', where N starts at 1 and is limited to
                       finally return buf)))
         buf)))
 
-;;; Auto udpate default-directory *********************************************************
+;;; Resolve GPTel's project directory ****************************************************
 
-(defun amsha/gptel-set-default-dir-from-source-dir ()
-  "Set the `default-directory' to the SOURCE_DIR prop in `org-mode'."
-  (when (derived-mode-p 'org-mode)
-    (org-with-wide-buffer
-     (when-let* ((source-dir (org-entry-get (point-min) "SOURCE_DIR")))
-       (setq default-directory source-dir)))))
+(defvar-local amsha/gptel-project-directory-unresolved nil
+  "Non-nil when the GPTel project's local directory could not be found.")
 
-(defun amsha/gptel-set-source-dir-from-default-dir ()
-  "Set the Org entry's SOURCE_DIR property to `default-directory'."
-  (when (derived-mode-p 'org-mode)
-    (org-with-wide-buffer
-     (org-entry-put (point-min) "SOURCE_DIR" default-directory))))
+(defun amsha/gptel-set-default-dir-from-project (&optional force-prompt)
+  "Resolve the Org entry's project and set `default-directory'.
+Project roots are resolved through Projectile's known projects.  When the
+saved project is unavailable, invoke this command interactively to choose
+its local root.  FORCE-PROMPT is intended for interactive use."
+  (interactive (list 'force-prompt))
+  (unless (derived-mode-p 'org-mode)
+    (user-error "This command must be run in an Org buffer"))
+  (let* ((properties
+          (org-with-wide-buffer
+           (list (org-entry-get (point-min) "GPTEL_PROJECT")
+                 (org-entry-get (point-min) "GPTEL_PROJECT_DIR"))))
+         (project-name (nth 0 properties))
+         (relative-directory (or (nth 1 properties) ""))
+         (root
+          (or
+           ;; A saved project is resolved against Projectile's local registry.
+           (when project-name
+             (let ((projects
+                    (seq-filter
+                     (lambda (directory)
+                       (and (file-directory-p directory)
+                            (string-equal
+                             project-name
+                             (let ((default-directory directory))
+                               (projectile-project-name)))))
+                     (projectile-relevant-known-projects))))
+               (pcase projects
+                 (`(,project) project)
+                 ((pred consp)
+                  (projectile-completing-read
+                   (format "Select local %s project: " project-name)
+                   projects
+                   :category 'file)))))
+           ;; A new entry can inherit the project containing its current dir.
+           (and (not project-name)
+                (projectile-project-root default-directory)))))
+    (when (and (not root)
+               force-prompt)
+      (setq root
+            (read-directory-name
+             (if project-name
+                 (format "Directory for project %s: " project-name)
+               "Project directory: ")
+             default-directory nil t)))
+    (unless root
+      (user-error "Project %s is not available on this computer"
+                  (or project-name "for this buffer")))
+    (setq root (file-name-as-directory (expand-file-name root)))
+    (unless (file-directory-p root)
+      (user-error "Project directory does not exist: %s" root))
+    (let* ((directory (expand-file-name relative-directory root))
+           (project-name
+            (or project-name
+                (let ((default-directory root))
+                  (projectile-project-name))))
+           (relative-directory
+            (file-relative-name (file-name-as-directory directory) root)))
+      (unless (file-directory-p directory)
+        (user-error "Project subdirectory does not exist: %s" directory))
+      (setq default-directory (file-name-as-directory directory)
+            amsha/gptel-project-directory-unresolved nil)
+      (org-with-wide-buffer
+       (org-entry-put (point-min) "GPTEL_PROJECT" project-name)
+       (org-entry-put (point-min) "GPTEL_PROJECT_DIR" relative-directory))
+      default-directory))))
 
-(define-minor-mode amsha/gptel-source-dir-mode
-  "Set `default-directory' from and save it to the Org SOURCE_DIR property.
-This mode is intended for Org buffers with GPTel enabled."
+(defun amsha/gptel-save-project-directory ()
+  "Save the current Projectile project and relative directory in Org."
+  (when (and (derived-mode-p 'org-mode)
+             gptel-mode
+             (projectile-project-root default-directory))
+    (amsha/gptel-set-default-dir-from-project)))
+
+(define-minor-mode amsha/gptel-project-dir-mode
+  "Resolve GPTel's `default-directory' from Org project metadata.
+The project name and a path relative to its root are stored in the Org
+entry, while Projectile resolves the root separately on each computer."
   :init-value nil
   :lighter nil
-  (if amsha/gptel-source-dir-mode
+  (if amsha/gptel-project-dir-mode
       (progn
-        (amsha/gptel-set-default-dir-from-source-dir)
-        (amsha/gptel-set-source-dir-from-default-dir)
+        (setq amsha/gptel-project-directory-unresolved nil)
+        (condition-case nil
+            (amsha/gptel-set-default-dir-from-project)
+          (user-error
+           (setq amsha/gptel-project-directory-unresolved t)))
         (add-hook 'gptel-save-state-hook
-                  #'amsha/gptel-set-source-dir-from-default-dir nil t))
+                  #'amsha/gptel-save-project-directory nil t))
     (remove-hook 'gptel-save-state-hook
-                 #'amsha/gptel-set-source-dir-from-default-dir t)))
+                 #'amsha/gptel-save-project-directory t)
+    (setq amsha/gptel-project-directory-unresolved nil)))
 
-(defun amsha/gptel-enable-source-dir-mode ()
-  "Enable SOURCE_DIR handling in Org buffers with GPTel enabled."
+(defun amsha/gptel-enable-project-dir-mode ()
+  "Enable project directory handling in Org buffers with GPTel enabled."
   (when (derived-mode-p 'org-mode)
-    (amsha/gptel-source-dir-mode 1)))
+    (amsha/gptel-project-dir-mode 1)))
 
-(add-hook 'gptel-mode-hook #'amsha/gptel-enable-source-dir-mode)
+(add-hook 'gptel-mode-hook #'amsha/gptel-enable-project-dir-mode)
 
 ;;; Archive and compact *******************************************************************
 
