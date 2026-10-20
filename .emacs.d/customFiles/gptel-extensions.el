@@ -732,6 +732,41 @@ matching `*gptel-buffer-N*', where N starts at 1 and is limited to
                       finally return buf)))
         buf)))
 
+;;; Auto udpate default-directory *********************************************************
+
+(defun amsha/gptel-set-default-dir-from-source-dir ()
+  "Set the `default-directory' to the SOURCE_DIR prop in `org-mode'."
+  (when (derived-mode-p 'org-mode)
+    (org-with-wide-buffer
+     (when-let* ((source-dir (org-entry-get (point-min) "SOURCE_DIR")))
+       (setq default-directory source-dir)))))
+
+(defun amsha/gptel-set-source-dir-from-default-dir ()
+  "Set the Org entry's SOURCE_DIR property to `default-directory'."
+  (when (derived-mode-p 'org-mode)
+    (org-with-wide-buffer
+     (org-entry-put (point-min) "SOURCE_DIR" default-directory))))
+
+(define-minor-mode amsha/gptel-source-dir-mode
+  "Set `default-directory' from and save it to the Org SOURCE_DIR property.
+This mode is intended for Org buffers with GPTel enabled."
+  :init-value nil
+  :lighter nil
+  (if amsha/gptel-source-dir-mode
+      (progn
+        (amsha/gptel-set-default-dir-from-source-dir)
+        (amsha/gptel-set-source-dir-from-default-dir)
+        (add-hook 'gptel-save-state-hook
+                  #'amsha/gptel-set-source-dir-from-default-dir nil t))
+    (remove-hook 'gptel-save-state-hook
+                 #'amsha/gptel-set-source-dir-from-default-dir t)))
+
+(defun amsha/gptel-enable-source-dir-mode ()
+  "Enable SOURCE_DIR handling in Org buffers with GPTel enabled."
+  (when (derived-mode-p 'org-mode)
+    (amsha/gptel-source-dir-mode 1)))
+
+(add-hook 'gptel-mode-hook #'amsha/gptel-enable-source-dir-mode)
 
 ;;; Archive and compact *******************************************************************
 
