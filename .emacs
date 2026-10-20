@@ -2648,19 +2648,33 @@ This is a fix for pet-mode running on edits in org-mode."
          ("C-c p" . projectile-command-map))
   :custom
   (projectile-indexing-method 'alien)
+  (projectile-git-command "git ls-files --recurse-submodules --exclude-standard -zc")
+  (projectile-cleanup-known-projects nil)
+  (projectile-project-root-functions '(projectile-root-local
+                                       projectile-root-marked
+                                       amsha/get-project-root-overlooking-submodules
+                                       projectile-root-bottom-up
+                                       projectile-root-top-down
+                                       projectile-root-top-down-recurring))
+  (projectile-current-project-on-switch 'move-to-end)
+  (projectile-ignored-project-function #'amsha/projectile-ignore-projects-resolving-to-root)
+  ;; Handle straigt org being confused with orgz.
+  (projectile-ignored-project-regexps `(,(rx-to-string '(seq "straight/" (or "repos" "builds") "/org" (zero-or-one "/")))))
   :config
   (projectile-mode +1)
-  (setq projectile-git-command "git ls-files --recurse-submodules --exclude-standard -zc"
-        projectile-cleanup-known-projects nil
-        projectile-project-root-functions '(projectile-root-local
-                                            projectile-root-marked
-                                            amsha/get-project-root-overlooking-submodules
-                                            projectile-root-bottom-up
-                                            projectile-root-top-down
-                                            projectile-root-top-down-recurring)
-        projectile-current-project-on-switch 'move-to-end)
 ;; (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
 ;; (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+
+  (setq amsha/--home-dir-project-name
+        (let ((default-directory "~/"))
+          (projectile-project-name)))
+  (defun amsha/projectile-ignore-projects-resolving-to-root (file)
+    (string-equal
+     amsha/--home-dir-project-name
+     (let ((default-directory (if (file-directory-p file)
+                                  file
+                                (file-name-directory file))))
+       (projectile-project-name))))
 
   (defun projectile-set-buffer-directory (&optional arg)
     "Set the default directory to the root of a project if the current buffer is not a file buffer.
