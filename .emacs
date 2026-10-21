@@ -2669,12 +2669,14 @@ This is a fix for pet-mode running on edits in org-mode."
         (let ((default-directory "~/"))
           (projectile-project-name)))
   (defun amsha/projectile-ignore-projects-resolving-to-root (file)
-    (string-equal
-     amsha/--home-dir-project-name
-     (let ((default-directory (if (file-directory-p file)
-                                  file
-                                (file-name-directory file))))
-       (projectile-project-name))))
+    (if (file-equal-p file (file-truename "~/"))
+        nil
+      (string-equal
+       amsha/--home-dir-project-name
+       (let ((default-directory (if (file-directory-p file)
+                                    file
+                                  (file-name-directory file))))
+         (projectile-project-name)))))
 
   (defun projectile-set-buffer-directory (&optional arg)
     "Set the default directory to the root of a project if the current buffer is not a file buffer.
