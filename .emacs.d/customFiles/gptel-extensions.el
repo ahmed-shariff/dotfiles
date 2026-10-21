@@ -750,6 +750,10 @@ its local root.  FORCE-PROMPT is intended for interactive use."
            (list (org-entry-get (point-min) "GPTEL_PROJECT")
                  (org-entry-get (point-min) "GPTEL_PROJECT_DIR"))))
          (project-name (nth 0 properties))
+         (project-name (if (string-equal project-name "~/")
+                           (let ((default-directory "~/"))
+                             (projectile-project-name))
+                         project-name))
          (relative-directory (nth 1 properties))
          (root
           (or
@@ -808,7 +812,14 @@ its local root.  FORCE-PROMPT is intended for interactive use."
       (setq default-directory (file-name-as-directory directory)
             amsha/gptel-project-directory-unresolved nil)
       (org-with-wide-buffer
-       (org-entry-put (point-min) "GPTEL_PROJECT" project-name)
+       (org-entry-put (point-min)
+                      "GPTEL_PROJECT"
+                      (if (string-equal
+                           project-name
+                           (let ((default-directory "~/"))
+                             (projectile-project-name)))
+                          "~/"
+                        project-name))
        (org-entry-put (point-min) "GPTEL_PROJECT_DIR" relative-directory))
       default-directory)))
 
