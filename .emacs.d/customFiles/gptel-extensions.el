@@ -3789,6 +3789,27 @@ The returned nodes or referring notes must also match this query."))
  :category "okm"
  :include t)
 
+(gptel-make-agent-tool
+ :name "Agent"
+ :description "Launch a specialized agent to handle complex, multi-step tasks autonomously.  \
+Agents run independently and return results in one message.  \
+Use for open-ended searches, complex research, or when uncertain about finding results in first few tries."
+ :guideline "- When a task would require multiple searches and/or checks use the Agent tool. This would include researching and introspecting tasks. The agent is called with the same capabilities as you."
+ :snippet "Launch a specialized agent to handle complex, multi-step tasks."
+ :function (lambda (main-cb description prompt)
+             (gptel-agent--task main-cb "subagent" description prompt))
+ :args '(( :name "description"
+           :type string
+           :description "A short (3-5 word) description of the task")
+         ( :name "prompt"
+           :type "string"
+           :description "The detailed task for the agent to perform autonomously.  \
+Should include exactly what information the agent should return."))
+ :category "amsha/gptel-agent"
+ :async t
+ :confirm t
+ :include t)
+
 ;; This can come from an md/org file
 (gptel-make-preset 'amsha/--agent-base-message
   :system
@@ -3807,6 +3828,8 @@ Guidelines:
 {{GUIDELINES}}
 
 {{SKILLS}}
+
+{{AGENTS}}
 
 Writing patterns to follow:\n%s"
           (pcase system-type
@@ -3943,12 +3966,33 @@ Writing patterns to follow:\n%s"
                       "Bash")
                    "Read" "Grep" "Glob")))
 
+(gptel-make-preset 'amsha/agent-add-subagent
+  :description "Add subagent info" ;; TODO: Anything to add to {{AGENT}} ?
+  :tools `(:append ("amsha/gptel-agent" "Agent"))
+  :agent-preset 'amsha/--subagent
+  ;; gptel-agent--agents is expected to be the resolved preset - so
+  ;; abusing the gptel-agent-preset above.
+  :agent--agents '(("subagent")))
+
+(gptel-make-preset 'amsha/--subagent
+  :description "Subagent configuration"
+  :parents `(amsha/--agent-base-message
+             amsha/base-tools
+             amsha/web-tools
+             amsha/org-database-tool
+             amsha/agentmd-ctx
+             amsha/agent-add-skills
+             amsha/agent-add-tools-info
+             amsha/cleanup-variables
+             amsha/gptel-memory))
+
 (gptel-make-preset 'amsha/agent
   :description "Agent with skills, tool descs, and ctx."
   :parents `(amsha/--agent-base-message
              amsha/base-tools
              amsha/web-tools
              amsha/org-database-tool
+             amsha/agent-add-subagent
              amsha/agentmd-ctx
              amsha/agent-add-skills
              amsha/agent-add-tools-info
