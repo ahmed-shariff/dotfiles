@@ -750,7 +750,7 @@ its local root.  FORCE-PROMPT is intended for interactive use."
            (list (org-entry-get (point-min) "GPTEL_PROJECT")
                  (org-entry-get (point-min) "GPTEL_PROJECT_DIR"))))
          (project-name (nth 0 properties))
-         (relative-directory (or (nth 1 properties) ""))
+         (relative-directory (nth 1 properties))
          (root
           (or
            ;; A saved project is resolved against Projectile's local registry.
@@ -788,7 +788,15 @@ its local root.  FORCE-PROMPT is intended for interactive use."
     (setq root (file-name-as-directory (expand-file-name root)))
     (unless (file-directory-p root)
       (user-error "Project directory does not exist: %s" root))
-    (let* ((directory (expand-file-name relative-directory root))
+    (let* ((directory
+            (if (and (or (null relative-directory)
+                         (string-equal relative-directory "./"))
+                     (file-in-directory-p
+                      (file-name-as-directory
+                       (expand-file-name default-directory))
+                      root))
+                default-directory
+              (expand-file-name (or relative-directory "") root)))
            (project-name
             (or project-name
                 (let ((default-directory root))
@@ -802,7 +810,7 @@ its local root.  FORCE-PROMPT is intended for interactive use."
       (org-with-wide-buffer
        (org-entry-put (point-min) "GPTEL_PROJECT" project-name)
        (org-entry-put (point-min) "GPTEL_PROJECT_DIR" relative-directory))
-      default-directory))))
+      default-directory)))
 
 (defun amsha/gptel-save-project-directory ()
   "Save the current Projectile project and relative directory in Org."
