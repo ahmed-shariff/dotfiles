@@ -1113,19 +1113,25 @@ When called with prefix ARG, add compaction without asking."
                (archive-link (abbreviate-file-name archive-file)))
     (condition-case err
         (progn
-          ;; Save the complete conversation and make SOURCE visit that file.
-          (make-directory (file-name-directory archive-file) t)
-          (write-region (point-min) (point-max) archive-file nil 'silent)
-          (set-visited-file-name archive-file t)
-          (set-buffer-modified-p nil)
-
           (if (and daily-buffer daily-ts)
               (amsha/gptel-archive--reset-old-archive daily-buffer daily-ts context-line)
             (amsha/gptel-archive--setup-buffers source title context-line "COMPACT"))
           (insert "file:" archive-link "\n\nCompact summary:\n")
 
-          (when (or arg
-                    (y-or-n-p "Add compaction?"))
+          ;; Create the archive buffer and copy SOURCE after its file hooks
+          ;; have run.  The original session remains available until all
+          ;; archive work, including compaction, is complete.
+          (unless source-file-name
+            (make-directory (file-name-directory archive-file) t)
+
+            (with-temp-file archive-file
+              (insert
+               (with-current-buffer source
+                 (org-with-wide-buffer
+                  (gptel--save-state)
+                  (buffer-string))))))
+
+          (when (or arg (y-or-n-p "Add compaction?"))
             ;; At this point the current buffer is the daily buffer and point is
             ;; where the compaction should be inserted.  Let gptel-request create
             ;; its own buffer and position markers.
@@ -1146,19 +1152,16 @@ When called with prefix ARG, add compaction without asking."
                          0 (length response) '(gptel response front-sticky (gptel)) response)
                         (insert response))))))))
 
-          (display-buffer (current-buffer)))
+          (display-buffer (current-buffer))
+          ;; Kill the original session only after all archive work is done.
+          (unless source-file-name
+            (kill-buffer source)))
       ((error quit)
-       (unless source-file-name
-         (with-current-buffer source
-           (set-visited-file-name nil t)
-           (rename-buffer source-name)
-           (org-mode)
-           (gptel-mode)
-           (setq amsha/gptel-buffer-title title))
-         (delete-file archive-file))
        (unless (and daily-buffer daily-ts)
          (amsha/gptel-archive--clear-old-archive source))
        (display-buffer source)
+       (unless source-file-name
+         (delete-file archive-file))
        (signal (car err) (cdr err))))))
 
 ;;; Update gptel buffer title *************************************************************
