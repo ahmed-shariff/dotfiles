@@ -1155,7 +1155,7 @@ When called with prefix ARG, add compaction without asking."
             (gptel-with-preset 'compaction
               (gptel-request
                   conversation
-                :stream gptel-stream
+                :stream t
                 :transforms gptel-prompt-transform-functions
                 :callback
                 (lambda (response info)
@@ -1167,7 +1167,9 @@ When called with prefix ARG, add compaction without asking."
                         (goto-char position)
                         (add-text-properties
                          0 (length response) '(gptel response front-sticky (gptel)) response)
-                        (insert response))))))))
+                        (insert response))))
+                  (when (eq response t)
+                    (message "Compaction request complete"))))))
 
           (display-buffer (current-buffer))
           ;; Kill the original session only after all archive work is done.
@@ -1204,16 +1206,23 @@ called interactively, generate a title regardless of those conditions."
         (gptel-request nil
           ;; Can't use just with-preset 'amsha/generate-title because how gptel-request handles `gptel-prompt-transform-function'
           :transforms gptel-prompt-transform-functions
+          :stream t
           :callback
-          (lambda (response _info)
-            (when (stringp response)
-              (with-current-buffer buf
-                (message "Generated title for buffer (%s): %S" (buffer-name buf) response)
-                ;; NOTE: if something else has set this, respect that?
-                (when (or (null list-buffers-directory)
-                          (string-equal list-buffers-directory amsha/gptel-buffer-title))
-                  (setq list-buffers-directory response))
-                (setq amsha/gptel-buffer-title response)))))))))
+          (lambda (response info)
+            (cond
+             ((stringp response)
+              (plist-put info :streamed-response
+                         (concat (plist-get info :streamed-response) response)))
+             ((eq response t)
+              (let ((title (plist-get info :streamed-response)))
+                (when (and title (not (string-empty-p title)))
+                  (with-current-buffer buf
+                    (message "Generated title for buffer (%s): %S" (buffer-name buf) title)
+                    ;; NOTE: if something else has set this, respect that?
+                    (when (or (null list-buffers-directory)
+                              (string-equal list-buffers-directory amsha/gptel-buffer-title))
+                      (setq list-buffers-directory title))
+                    (setq amsha/gptel-buffer-title title))))))))))))
 
 (defun amsha/gptel-store-title ()
   "Store the generated gptel buffer title in the current org entry.
@@ -1413,7 +1422,7 @@ then enable `org-mode` and `gptel-mode`."
                                                 :description
                                                 "The unit of temperature, either 'celsius' or 'fahrenheit'"
                                                 :optional t))))))
-    (gptel-request "What is the temperature in kelowna" :callback (lambda (r i) (message "%S\n----\n%S" r i)))))
+    (gptel-request "What is the temperature in kelowna" :stream t :callback (lambda (r i) (message "%S\n----\n%S" r i)))))
 
 ;; (cl-defmethod gptel--parse-tools :around (backend tools)
 ;;   "Remove tools not of type `gptel-tool'"
@@ -2064,20 +2073,23 @@ Summarize the context thoroughly and comprehensively.
       (gptel-mode)
       (insert (format "Extract the bib entry from the following citation:\n%s\n\n" citation))
       (gptel-request nil
+        :stream t
         :callback
         (lambda (response info)
-          (pcase response
-            ((pred stringp)
-             (goto-char (point-max))
-             (insert response)
-             (goto-char (point-min))
-             (search-forward-regexp "author *= *{\\(.*\\)}" nil t)
-             (setq author-check (--all-p (string-match it citation) (s-split " and " (match-string 1))))
-             (search-forward-regexp "title *= *{\\(.*\\)}" nil t)
-             (setq title-check (not (null (string-match (match-string 1) citation))))
-             (goto-char (point-max))
-             (insert (format "\n\n---------------\nauthor-check: %s\ntitle-check: %s" author-check title-check)))
-            (_ nil)))))))
+          (cond
+           ((stringp response)
+            (plist-put info :streamed-response
+                       (concat (plist-get info :streamed-response) response))
+            (goto-char (point-max))
+            (insert response))
+           ((eq response t)
+            (goto-char (point-min))
+            (search-forward-regexp "author *= *{\\(.*\\)}" nil t)
+            (setq author-check (--all-p (string-match it citation) (s-split " and " (match-string 1))))
+            (search-forward-regexp "title *= *{\\(.*\\)}" nil t)
+            (setq title-check (not (null (string-match (match-string 1) citation))))
+            (goto-char (point-max))
+            (insert (format "\n\n---------------\nauthor-check: %s\ntitle-check: %s" author-check title-check)))))))))
 
 (defvar amsha/explain-grammarly--explanations-cache "~/.emacs.d/agents/.cache/amsha-explain-grammarly--explanations")
 
@@ -2131,53 +2143,58 @@ Summarize the context thoroughly and comprehensively.
                    :vector_store_ids ,(vconcat (list (gethash 'openai-org-vector-store configurations))))))
          (gptel-context nil))
     (gptel-request query
+      :stream t
       :callback
       (lambda (response info)
-        (pcase response
-          ((pred stringp)
-           (let ((gptel-backend gptel-openai-response-backend)
-                 (gptel-model amsha/gptel-default-model)
-                 (gptel-tools nil)
-                 (gptel-openai-responses-extended--tools nil)
-                 (gptel-context nil)
-                 cite-list)
-             (gptel-request (with-temp-buffer
-                              (insert "Summarize the following. The summary should be in the form of a bullet "
-                                      "list with appropriate citations in the form cite:<paper_id>:\n\n"
-                                      response "\n")
-                              (amsha/gptel-oai-response-insert-file-search-query-and-results info)
-                              (amsha/gptel--replace-file-id-with-cite (point-min) (point-max))
-                              (em "Recieved oai-file-search result")
-                              (let ((ret-string (buffer-string)))
-                                (setf cite-list (-uniq
-                                                 (append
-                                                  (-flatten (s-match-strings-all "cite:[a-z0-9_\\-&]*" ret-string))
-                                                  (when-let* ((results (plist-get info :file-search-call-results)))
-                                                    (--map (concat "cite:" (string-replace ".txt" "" (plist-get it :filename)))
-                                                           results)))))
-                                ret-string))
-               :context cite-list
-               :callback
-               (lambda (response info)
-                 (pcase response
-                   ((pred stringp)
-                    (funcall callback
-                             (concat response
-                                     "\n\nPapers queried:\n- "
-                                     (string-join (plist-get info :context) "\n- "))))
-                   ((or `(reasoning . ,rest)
-                        `(tool-call . ,rest)
-                        `(tool-result . ,rest))
-                    nil) ;; We should ignore these?
-                   (_ (funcall callback
-                       (format "gptel-request<2> failed with message: %s"
-                               (plist-get info :status)))))))))
-          ((or `(reasoning . ,rest)
-               `(tool-call . ,rest)
-               `(tool-result . ,rest))
-           nil) ;; We should ignore these?
-          (_ (funcall callback (format "gptel-request<1> failed with message: %s"
-                   (plist-get info :status)))))))))
+        (cond
+         ((stringp response)
+          (plist-put info :streamed-response
+                     (concat (plist-get info :streamed-response) response)))
+         ((eq response t)
+          (let ((response (plist-get info :streamed-response)))
+            (if response
+              (let ((gptel-backend gptel-openai-response-backend)
+                    (gptel-model amsha/gptel-default-model)
+                    (gptel-tools nil)
+                    (gptel-openai-responses-extended--tools nil)
+                    (gptel-context nil)
+                    cite-list)
+                (gptel-request (with-temp-buffer
+                                 (insert "Summarize the following. The summary should be in the form of a bullet "
+                                         "list with appropriate citations in the form cite:<paper_id>:\n\n"
+                                         response "\n")
+                                 (amsha/gptel-oai-response-insert-file-search-query-and-results info)
+                                 (amsha/gptel--replace-file-id-with-cite (point-min) (point-max))
+                                 (em "Recieved oai-file-search result")
+                                 (let ((ret-string (buffer-string)))
+                                   (setf cite-list (-uniq
+                                                    (append
+                                                     (-flatten (s-match-strings-all "cite:[a-z0-9_\\-&]*" ret-string))
+                                                     (when-let* ((results (plist-get info :file-search-call-results)))
+                                                       (--map (concat "cite:" (string-replace ".txt" "" (plist-get it :filename)))
+                                                              results)))))
+                                   ret-string))
+                  :stream t
+                  :context cite-list
+                  :callback
+                  (lambda (response info)
+                    (cond
+                     ((stringp response)
+                      (plist-put info :streamed-response
+                                 (concat (plist-get info :streamed-response) response)))
+                     ((eq response t)
+                      (funcall callback
+                               (concat (plist-get info :streamed-response)
+                                       "\n\nPapers queried:\n- "
+                                       (string-join (plist-get info :context) "\n- "))))
+                     ((null response)
+                      (funcall callback
+                               (format "gptel-request<2> failed with message: %s"
+                                       (plist-get info :status))))))))
+              (funcall callback (format "gptel-request<1> failed empty response")))))
+         ((null response)
+          (funcall callback (format "gptel-request<1> failed with message: %s"
+                                    (plist-get info :status)))))))))
 
 (defun amsha/okm-pdf-question (callback paper_id questions)
   "Call CALLBACK with answer to the QUESTIONS from paper represented by PAPER_ID."
@@ -2208,26 +2225,33 @@ Summarize the context thoroughly and comprehensively.
                                  "\n-------------------------\n The text from the pdf ends here.\n\n"
                                  "Based on this paper, answer the following. Be concise!:\n"
                                  questions))
+          :stream t
           :context (cons questions (org-roam-node-id node))
           :callback
           (lambda (response info)
-            (funcall callback
-                     (if (stringp response)
-                           (pcase-let ((`(,questions . ,node-id) (plist-get info :context)))
-                             (save-excursion
-                               (org-roam-with-file (org-roam-node-file (org-roam-node-from-id node-id)) nil
-                                 (org-with-wide-buffer
-                                  (goto-char (point-min))
-                                  (org-next-visible-heading 1)
-                                  (insert "\n\n** ")
-                                  (org-timestamp-inactive '(16))
-                                  (insert " [[id:54066713-c3ba-464b-870f-6aa0be6604d7][gpt query]] "
-                                          (string-replace "\n" " " questions)
-                                          "\n" response "\n"))))
-                             response)
+            (cond
+             ((stringp response)
+              (plist-put info :streamed-response
+                         (concat (plist-get info :streamed-response) response)))
+             ((eq response t)
+              (let ((response (plist-get info :streamed-response)))
+                (pcase-let ((`(,questions . ,node-id) (plist-get info :context)))
+                  (save-excursion
+                    (org-roam-with-file (org-roam-node-file (org-roam-node-from-id node-id)) nil
+                      (org-with-wide-buffer
+                       (goto-char (point-min))
+                       (org-next-visible-heading 1)
+                       (insert "\n\n** ")
+                       (org-timestamp-inactive '(16))
+                       (insert " [[id:54066713-c3ba-464b-870f-6aa0be6604d7][gpt query]] "
+                               (string-replace "\n" " " questions)
+                               "\n" response "\n"))))
+                (funcall callback response))))
+             ((null response)
+              (funcall callback
                        (format "gptel-request failed with message: %s"
                                (plist-get info :status))))))
-      (funcall callback (format "paper_id %s is not found." paper_id)))))
+      (funcall callback (format "paper_id %s is not found." paper_id))))))
 
 (defun amsha/okm-gptel-get-papers-abstract-summary
     (tool-callback paper-ids &optional max-concurrency max-errors)
@@ -3903,11 +3927,11 @@ Writing patterns to follow:\n%s"
               (point-min)
               `(("TOOLSLIST" .
                  ,(if snippets
-                      (string-join (nreverse snippets) "\\\\n")
+                      (string-join (nreverse snippets) "\\\n")
                     "None"))
                 ("GUIDELINES" .
                  ,(if guidelines
-                      (string-join (nreverse guidelines) "\\\\n")
+                      (string-join (nreverse guidelines) "\\\n")
                     "None"))))
              (buffer-string))
            (cdr sys))
@@ -3969,6 +3993,7 @@ Writing patterns to follow:\n%s"
 (gptel-make-preset 'amsha/agent-add-subagent
   :description "Add subagent info" ;; TODO: Anything to add to {{AGENT}} ?
   :tools `(:append ("amsha/gptel-agent" "Agent"))
+  :stream t
   :agent-preset 'amsha/--subagent
   ;; gptel-agent--agents is expected to be the resolved preset - so
   ;; abusing the gptel-agent-preset above.
