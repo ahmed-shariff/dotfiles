@@ -22,9 +22,9 @@
 
 ;;; Some top level defaults*****************************************************************
 (defvar amsha/gptel-default-prompt-transform-functions gptel-prompt-transform-functions)
-(defvar amsha/gptel-default-model 'gpt-5.6-luna)
-(defvar amsha/gptel-high-model 'gpt-5.6-terra)
-(defvar amsha/gptel-cheap-model 'gpt-5.4-nano)
+(defvar amsha/gptel-default-model 'gpt-6-luna)
+(defvar amsha/gptel-high-model 'gpt-6.1-sol)
+(defvar amsha/gptel-cheap-model 'gpt-6-luna)
 (defvar amsha/gptel-conversation-archive "~/Documents/org/brain/gptel/")
 (defvar amsha/gptel-skill-base-dir "~/.emacs.d/agents/gptel-skills/")
 (defvar amsha/gptel-skill-archive-dir "~/.emacs.d/agents/gptel-skills-archive/")
@@ -1402,7 +1402,20 @@ then enable `org-mode` and `gptel-mode`."
 
 (gptel-openai-responses-extended-setup-builtin-transient)
 
-(setq gptel-openai-response-backend (gptel-make-openai-responses-extended "ChatGPT-response" :key gptel-api-key :models gptel--openai-models :stream t))
+(gptel-make-openai-responses-extended "ChatGPT-response" :key gptel-api-key :models gptel--openai-models :stream t)
+
+;; HACK: overriding oauth to use extended backend
+(cl-defstruct (gptel-openai-oauth (:constructor gptel--make-openai-oauth)
+                                  (:copier nil)
+                                  (:include gptel-openai-responses-extended))
+  token)
+
+(setq gptel-openai-response-backend
+      (gptel-make-openai-oauth "Codex"
+        :header #'gptel--openai-oauth-header
+        :models '( gpt-5.5 gpt-5.6-sol gpt-5.6-terra gpt-5.6-luna gpt-6-astra
+                   gpt-6-sol gpt-6-luna gpt-6.1-sol)
+        :stream t))
 
 (defun test-response ()
   (let ((gptel-backend gptel-openai-response-backend)
