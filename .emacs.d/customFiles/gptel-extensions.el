@@ -46,7 +46,7 @@
 (use-package magit-gptcommit
   :defer 1
   :straight (:type git :host github :repo "douo/magit-gptcommit" :branch "gptel"
-                   :fork (:host github :repo "ahmed-shariff/magit-gptcommit" :branch "gptel"))
+                   :fork (:host github :repo "ahmed-shariff/magit-gptcommit" :branch "gptel-personal"))
   :after (magit)
   :bind (:map git-commit-mode-map
               ("C-c C-g" . magit-gptcommit-commit-accept))
