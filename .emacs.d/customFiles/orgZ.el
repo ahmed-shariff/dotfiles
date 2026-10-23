@@ -2197,32 +2197,46 @@ The format of the response should be as follows:
 <summary text>"
                                             pdf-text)
                        :context ret-string
+                       :stream t
                        :callback (lambda (response info)
                                    (setq-local amsha/okm-gptel-get-paper-abstract-summary--request nil)
-                                   (cond
-                                    ((null response)
-                                     (em "ERROR" info)
-                                     (if tool-callback
-                                         (funcall tool-callback (format "Error %s" info))))
-                                    ((stringp response)
-                                     (let* ((res (s-split "* summary" response))
-                                            (abstract (s-trim (s-replace "* abstract" "" (car res))))
-                                            (summary (s-trim (cadr res)))
-                                            (process-data
-                                             (lambda ()
-                                               (goto-char (point-min))
-                                               (org-entry-put (point) "ABSTRACT" (s-replace "\n" " " abstract))
-                                               (org-entry-put (point) "SUMMARY" (s-replace "\n" " " summary))
-                                               (save-buffer)
-                                               (em "for" custom-id "added abstract and summary" abstract summary))))
-                                       (save-excursion
-                                         (if node
-                                             (amsha/org-roam-with-file (org-roam-node-file node) nil
-                                               (funcall process-data))
-                                           (with-current-buffer buf
-                                             (funcall process-data))))
-                                       (if tool-callback
-                                           (funcall tool-callback (format (plist-get info :context) abstract summary))))))))))
+                                   (pcase response
+                                     ('nil
+                                      (em "ERROR" info)
+                                      (if tool-callback
+                                          (funcall tool-callback (format "Error %s" info))))
+                                     ((and (let stream (plist-get info :stream))
+                                           (or
+                                            (and (guard stream)
+                                                 (pred (eq t))
+                                                 done)
+                                            (and (pred stringp)
+                                                 str-response
+                                                 (or (guard stream)
+                                                     done))))
+                                      (when str-response
+                                        (plist-put info :streamed-response (concat (plist-get info :streamed-response) str-response)))
+                                      (when done
+                                        (let* ((response (plist-get info :streamed-response))
+                                               (res (s-split "* summary" response))
+                                               (abstract (s-trim (s-replace "* abstract" "" (car res))))
+                                               (summary (s-trim (cadr res)))
+                                               (process-data
+                                                (lambda ()
+                                                  (goto-char (point-min))
+                                                  (org-entry-put (point) "ABSTRACT" (s-replace "\n" " " abstract))
+                                                  (org-entry-put (point) "SUMMARY" (s-replace "\n" " " summary))
+                                                  (save-buffer)
+                                                  (em "for" custom-id "added abstract and summary" abstract summary))))
+                                          (save-excursion
+                                            (if node
+                                                (amsha/org-roam-with-file (org-roam-node-file node) nil
+                                                                          (funcall process-data))
+                                              (with-current-buffer buf
+                                                (funcall process-data))))
+                                          (if tool-callback
+                                              (funcall tool-callback (format (plist-get info :context) abstract summary))))))
+                                     (_ nil)))))))
                 (t
                  (progn
                    (setq-local amsha/okm-gptel-get-paper-abstract-summary--request nil)
