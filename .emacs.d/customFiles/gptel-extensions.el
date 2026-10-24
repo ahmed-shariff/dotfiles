@@ -105,30 +105,28 @@ Now, write the commit message using this format:
 
 [detailed summary]]"
              ;; copied from `magit-generate-changelog'.
-             ;; Using magit-process-environments to allow this to work
-             ;; in bare repos.
-             (let ((process-environment (magit-process-environment))
-                   (original (symbol-function 'vc-git--env-vars)))
-               (cl-letf (((symbol-function 'vc-git--env-vars)
-                          (lambda (subcommand)
-                            (remove "GIT_DIR" (funcall original subcommand)))))
-                 (with-temp-buffer
-                   (require 'diff-mode)
-                   (require 'vc-git)
-                   (require 'add-log)
-                   (setq default-directory (magit-toplevel))
-                   (let ((rev1 "HEAD")
-                         (rev2 nil))
-                     ;; Magit may have updated the files without notifying VC.
-                     (mapc #'vc-file-clearprops (magit-staged-files))
-                     (change-log-insert-entries
-                      (with-temp-buffer
-                        (insert diff)
-                        (defvar diff-vc-revisions)
-                        (setq-local diff-vc-revisions (list rev1 rev2))
-                        (setq-local diff-vc-backend 'Git)
-                        (diff-add-log-current-defuns)))
-                     (buffer-string)))))
+             (with-temp-buffer
+               (require 'diff-mode)
+               (require 'vc-git)
+               (require 'add-log)
+               (setq default-directory (magit-toplevel))
+               (let ((rev1 "HEAD")
+                     (rev2 nil))
+                 ;; Magit may have updated the files without notifying VC.
+                 (mapc #'vc-file-clearprops (magit-staged-files))
+                 (change-log-insert-entries
+                  (with-temp-buffer
+                    (insert diff)
+                    ;; copied from `git-commit-insert-changelog-gnu'
+                    ;; using this instead of `diff-add-log-current-defuns' as
+                    ;; it doesn't play well with bare repos.
+                    (pcase-dolist (`(,file . ,defuns) (git-commit--modified-defuns))
+                      (if (not defuns)
+                          (insert "* " file ":\n")
+                        (insert "* " file " ")
+                        (dolist (def defuns)
+                          (insert "(" def "):\n"))))))
+                 (buffer-string)))
              diff)))
   ;; (magit-gptcommit-gptel-backend amsha/gptel--openrouter)
   ;; (magit-gptcommit-gptel-model 'deepseek/deepseek-r1-distill-llama-70b:free)
