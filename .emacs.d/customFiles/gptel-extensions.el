@@ -52,7 +52,9 @@
               ("C-c C-g" . magit-gptcommit-commit-accept))
   :custom
   (magit-gptcommit-backend 'gptel)
-  (magit-gptcommit-prompt "You are an expert programmer writing a Git commit message.
+  (magit-gptcommit-prompt
+   (lambda (diff)
+     (format "You are an expert programmer writing a Git commit message.
 You have carefully reviewed every file diff included in this commit.
 
 First, write a high-level one-line summary of the commit.
@@ -82,19 +84,9 @@ modified   gptel-openai.el
 The one-line summary of the above diff would look like:
 \"gptel--request-data get reasoning capability from prop\"
 
-Here's an example of the detailed summary that may follow the above one-line summary that include file level details and high level information:
-\"* (em/st/re/gp/gptel-request.el): Fixed the reasoning capability
-strings.
-* (em/st/re/gp/gptel-openai.el, em/st/re/gp/gptel-anthropic.el): Update the
-reasoning capability prop
+For the detailed summary stricktly use the GNU Changelog format:
 
-Now the reasoning capability is uniform across the backends.
-\"
-
-- Try and group files as much as possible when generating summary
-- Each file or file list should be in paranthesis
-- Keep it concise
-- Full path should not be included as is: If including full paths (relative to root), the MUST use shortened style - where the first two letters of each directory is used, like `ex/hp/sr/ex/exp.hy` for `experiment/hpui/src/experiment/exp.hy`
+%s
 
 If there are parts in the detailed summary that I need to provide more details for, include them as follows
 \"[TODO: provide reason for X]\", where X is the part that needs more clarification.
@@ -111,7 +103,33 @@ THE FILE DIFFS:
 Now, write the commit message using this format:
 [summary]
 
-[detailed summary]]")
+[detailed summary]]"
+             ;; copied from `magit-generate-changelog'.
+             ;; Using magit-process-environments to allow this to work
+             ;; in bare repos.
+             (let ((process-environment (magit-process-environment))
+                   (original (symbol-function 'vc-git--env-vars)))
+               (cl-letf (((symbol-function 'vc-git--env-vars)
+                          (lambda (subcommand)
+                            (remove "GIT_DIR" (funcall original subcommand)))))
+                 (with-temp-buffer
+                   (require 'diff-mode)
+                   (require 'vc-git)
+                   (require 'add-log)
+                   (setq default-directory (magit-toplevel))
+                   (let ((rev1 "HEAD")
+                         (rev2 nil))
+                     ;; Magit may have updated the files without notifying VC.
+                     (mapc #'vc-file-clearprops (magit-staged-files))
+                     (change-log-insert-entries
+                      (with-temp-buffer
+                        (insert diff)
+                        (defvar diff-vc-revisions)
+                        (setq-local diff-vc-revisions (list rev1 rev2))
+                        (setq-local diff-vc-backend 'Git)
+                        (diff-add-log-current-defuns)))
+                     (buffer-string)))))
+             diff)))
   ;; (magit-gptcommit-gptel-backend amsha/gptel--openrouter)
   ;; (magit-gptcommit-gptel-model 'deepseek/deepseek-r1-distill-llama-70b:free)
   :config
