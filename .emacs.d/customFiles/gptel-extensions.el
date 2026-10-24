@@ -85,8 +85,11 @@ The one-line summary of the above diff would look like:
 \"gptel--request-data get reasoning capability from prop\"
 
 For the detailed summary stricktly use the GNU Changelog format:
-
+```
 %s
+
+[additonal information]
+```
 
 If there are parts in the detailed summary that I need to provide more details for, include them as follows
 \"[TODO: provide reason for X]\", where X is the part that needs more clarification.
@@ -106,27 +109,25 @@ Now, write the commit message using this format:
 [detailed summary]]"
              ;; copied from `magit-generate-changelog'.
              (with-temp-buffer
-               (require 'diff-mode)
                (require 'vc-git)
                (require 'add-log)
                (setq default-directory (magit-toplevel))
                (let ((rev1 "HEAD")
-                     (rev2 nil))
+                     (rev2 nil)
+                     (output))
                  ;; Magit may have updated the files without notifying VC.
                  (mapc #'vc-file-clearprops (magit-staged-files))
-                 (change-log-insert-entries
-                  (with-temp-buffer
-                    (insert diff)
-                    ;; copied from `git-commit-insert-changelog-gnu'
-                    ;; using this instead of `diff-add-log-current-defuns' as
-                    ;; it doesn't play well with bare repos.
-                    (pcase-dolist (`(,file . ,defuns) (git-commit--modified-defuns))
-                      (if (not defuns)
-                          (insert "* " file ":\n")
-                        (insert "* " file " ")
-                        (dolist (def defuns)
-                          (insert "(" def "):\n"))))))
-                 (buffer-string)))
+                 (insert (magit-gptcommit--staged-diff))
+                 ;; copied from `git-commit-insert-changelog-gnu'
+                 ;; using this instead of `diff-add-log-current-defuns' as
+                 ;; it doesn't play well with bare repos.
+                 (pcase-dolist (`(,file . ,defuns) (git-commit--modified-defuns))
+                   (if (not defuns)
+                       (setq output (concat output "* " file ":\n"))
+                     (setq output (concat output "* " file " "))
+                     (dolist (def defuns)
+                       (setq output (concat output "(" def "):\n")))))
+                 output))
              diff)))
   ;; (magit-gptcommit-gptel-backend amsha/gptel--openrouter)
   ;; (magit-gptcommit-gptel-model 'deepseek/deepseek-r1-distill-llama-70b:free)
@@ -141,6 +142,11 @@ Now, write the commit message using this format:
   ;; Eval (transient-remove-suffix 'magit-commit '(1 -1)) to remove gptcommit transient commands
   (magit-gptcommit-status-buffer-setup)
   (magit-gptcommit-mode)
+
+  (define-advice magit-gptcommit--status-insert-gptcommit (:around (oldfn) not-in-org)
+    (unless (file-in-directory-p (file-truename (expand-file-name default-directory))
+                             (file-truename (expand-file-name  "~/Documents/org")))
+      (funcall oldfn)))
 
   (gptel-make-preset 'gptcommit
     :prompt-transform-functions
