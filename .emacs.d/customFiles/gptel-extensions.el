@@ -84,7 +84,7 @@ modified   gptel-openai.el
 The one-line summary of the above diff would look like:
 \"gptel--request-data get reasoning capability from prop\"
 
-For the detailed summary stricktly use the GNU Changelog format:
+For the detailed summary stricktly use the GNU Changelog format for file specific details:
 ```
 %s
 
@@ -107,17 +107,9 @@ Now, write the commit message using this format:
 [summary]
 
 [detailed summary]]"
-             ;; copied from `magit-generate-changelog'.
              (with-temp-buffer
-               (require 'vc-git)
-               (require 'add-log)
-               (setq default-directory (magit-toplevel))
-               (let ((rev1 "HEAD")
-                     (rev2 nil)
-                     (output))
-                 ;; Magit may have updated the files without notifying VC.
-                 (mapc #'vc-file-clearprops (magit-staged-files))
-                 (insert (magit-gptcommit--staged-diff))
+               (let (output)
+                 (insert diff)
                  ;; copied from `git-commit-insert-changelog-gnu'
                  ;; using this instead of `diff-add-log-current-defuns' as
                  ;; it doesn't play well with bare repos.
