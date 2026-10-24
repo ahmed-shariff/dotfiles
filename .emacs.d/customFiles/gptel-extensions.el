@@ -1174,21 +1174,10 @@ When called with prefix ARG, add compaction without asking."
             (gptel-with-preset 'compaction
               (gptel-request
                   conversation
-                :stream t
+                :stream gptel-stream
                 :transforms gptel-prompt-transform-functions
-                :callback
-                (lambda (response info)
-                  (when (stringp response)
-                    (with-current-buffer (plist-get info :buffer)
-                      (let ((position (plist-get info :position)))
-                        ;; Keep later streamed chunks after earlier chunks.
-                        (set-marker-insertion-type position t)
-                        (goto-char position)
-                        (add-text-properties
-                         0 (length response) '(gptel response front-sticky (gptel)) response)
-                        (insert response))))
-                  (when (eq response t)
-                    (message "Compaction request complete"))))))
+                ;; callback gets added by `gptel--handle-wait'
+                )))
 
           (display-buffer (current-buffer))
           ;; Kill the original session only after all archive work is done.
