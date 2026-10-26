@@ -2236,7 +2236,7 @@ The format of the response should be as follows:
                                                 (funcall process-data))))
                                           (if tool-callback
                                               (funcall tool-callback (format (plist-get info :context) abstract summary))))))
-                                     (_ nil)))))))
+                                     (_ nil))))))
                 (t
                  (progn
                    (setq-local amsha/okm-gptel-get-paper-abstract-summary--request nil)
