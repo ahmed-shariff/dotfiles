@@ -244,6 +244,7 @@
 (use-package org-protocol
   :ensure nil
   :straight nil
+  :hook (emacs-startup . amsha/check-org-protocol-registry)
   :config
   (add-to-list 'org-protocol-protocol-alist
                '("add doi link"
@@ -252,6 +253,40 @@
                  :kill-client t))
 
   (defvar previous-add-doi-and-pdf-data nil)
+
+  (defun amsha/check-org-protocol-registry ()
+    "Check if org-protocol is setup correctly on windows."
+    (when (eq system-type 'windows-nt)
+      (let ((buffer (generate-new-buffer " *org-protocol-registry*")))
+        (unwind-protect
+            (progn
+              (unless (and (integerp
+                            (call-process
+                             "reg.exe" nil buffer nil
+                             "query"
+                             "HKCR\\org-protocol\\shell\\open\\command"
+                             "/ve"))
+                           (with-current-buffer buffer
+                             (goto-char (point-min))
+                             (re-search-forward
+                              "REG_EXPAND_SZ[ \t]+\\(.*\\)$" nil t)))
+                (error "Could not read Org Protocol registry command"))
+
+              (let* ((command
+                      (string-replace "%EMACS_HOME%" (or (getenv "EMACS_HOME") "")
+                                      (string-trim
+                                       (with-current-buffer buffer
+                                         (match-string 1))))))
+                (unless (string-match
+                         "\\`\"\\([^\"]+\\)\"[ \t]+\"%1\"\\'"
+                         command)
+                  (error "Unexpected Org Protocol command: %s" command))
+                (let ((path (expand-file-name (match-string 1 command))))
+                  (unless (file-exists-p path)
+                    (error "Org Protocol client does not exist: %s" path))
+                  (unless (file-equal-p path (expand-file-name "emacsclientw.exe" invocation-directory))
+                    (message "WARNING: Org Protocol uses a different Emacs installation: %s" path)))))
+          (kill-buffer buffer)))))
 
   (defun amsha/okm-retry-last-add-doi-and-pdf (args)
     (interactive "p")
