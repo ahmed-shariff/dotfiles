@@ -1784,7 +1784,7 @@ Note: LSP servers must be configured for the file type. If no server is availabl
         '(:name "character"
           :type integer
           :description "1-based character offset from the start of the line (first character is 1)."))
- :category "gptel-agent"
+ :category "amsha/gptel-agent"
  :include t)
 
 ;;; Presets *******************************************************************************
@@ -1949,6 +1949,10 @@ Summarize the context thoroughly and comprehensively.
   :description "Add org-roam-ql query results in last message."
   :pre (lambda ()
          (amsha/gptel-transform-inline #'amsha/gptel-org-roam-parse-query prepend)))
+
+(gptel-make-preset 'lsp-tool
+  :description "The LSP tool"
+  :tools '(:append (("amsha/gptel-agent" "lsp"))))
 
 ;;; mode line *****************************************************************************
 ;; from karthink https://github.com/karthink/gptel/issues/858
