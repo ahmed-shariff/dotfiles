@@ -492,11 +492,17 @@ search forward instead.  The default is `prepend'."
 (defmacro amsha/gptel-preset-system-append (suffix)
   "Create a gptel preset directive that appends SUFFIX to the system prompt.
 
-SUFFIX may be a string, a list of messages, or a function returning either.
+SUFFIX may be nil, a string, a literal list of messages, a function,
+or a variable or expression yielding any of these.  Resolution is deferred
+until the directive is evaluated.  A supplied function, including one
+obtained from a variable or expression, is called once without arguments
+and must return nil, a string, or a list of messages.
+
 A string is appended to the system prompt after two newlines.  A list is
 combined with the system prompt by concatenating its first element with the
-existing system prompt, then appending the remaining elements.  If SUFFIX is
-a function, it is called without arguments when the directive is evaluated."
+existing system prompt, then inserting its remaining elements before the
+existing conversation template.  The first element may be nil.  A nil
+SUFFIX leaves the parsed directive unchanged."
   (let ((sys (gensym "sys-"))
         (res (gensym "res-"))
         (suffix-value (gensym "suffix-")))
@@ -505,23 +511,36 @@ a function, it is called without arguments when the directive is evaluated."
       (lambda (,sys)
         (lambda ()
           (let* ((,res (gptel--parse-directive ,sys 'raw))
-                 (,suffix-value ,suffix)
                  (,suffix-value
-                  (if (functionp ,suffix-value)
-                      (funcall ,suffix-value)
-                    ,suffix-value)))
-            (cond
-             ((stringp ,suffix-value)
-              (setf (car ,res)
-                    (concat (car ,res) "\n\n" ,suffix-value))
-              ,res)
-             ((consp ,suffix-value)
-              (append
-               (list (concat (car ,res) (car ,suffix-value)))
-               (cdr ,suffix-value)
-               (cdr ,res)))
-             (t
-              (error "Unsupported suffix: %S" ,suffix-value)))))))))
+                  ;; Inspect the source form now; defer generated calls
+                  ;; and expression evaluation until the directive runs.
+                  ,(pcase suffix
+                     ;; Function symbols and literal lambdas need quoting.
+                     ((pred functionp) `(funcall ',suffix))
+                     ;; Function-quoted forms already evaluate to functions.
+                     (`(function ,_) `(funcall ,suffix))
+                     ((pred stringp) suffix)
+                     ;; Literal message lists are data, not function calls.
+                     (`(,(or (pred stringp) 'nil) . ,_) `',suffix)
+                     ;; Evaluate variables and other expressions once.
+                     ;; Call a function value once, but never call its result.
+                     (_ `(let ((,suffix-value ,suffix))
+                           (if (functionp ,suffix-value)
+                               (funcall ,suffix-value)
+                             ,suffix-value))))))
+            ;; Append the resolved value without further evaluation.
+            (pcase ,suffix-value
+              ('nil ,res)
+              ((pred stringp)
+               (cons (concat (car ,res) "\n\n" ,suffix-value)
+                     (cdr ,res)))
+              (`(,(or (pred stringp) 'nil) . ,_)
+               (append
+                (list (concat (car ,res) "\n\n" (car ,suffix-value)))
+                (cdr ,suffix-value)
+                (cdr ,res)))
+              (_
+               (error "Unsupported suffix: %S" ,suffix-value)))))))))
 
 (cl-defmacro amsha/gptel-preset-system-transform ((sys) &body body)
   "Create a gptel preset that transforms its parsed system directive.
