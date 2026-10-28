@@ -1956,10 +1956,15 @@ Summarize the context thoroughly and comprehensively.
                                   #'amsha/okm-gptel-transform-add-pdf-txt
                                   #'gptel--transform-add-context)))
 
-(gptel-make-preset 'org-roam-ql
+(gptel-make-preset 'org-roam-ql-inline
   :description "Add org-roam-ql query results in last message."
   :pre (lambda ()
          (amsha/gptel-transform-inline #'amsha/gptel-org-roam-parse-query prepend)))
+
+(gptel-make-preset 'org-roam-ql-c
+  :description "Add org-roam-ql query results in context."
+  :system
+  (amsha/gptel-preset-system-append (amsha/gptel-org-roam-parse-query)))
 
 (gptel-make-preset 'lsp-tool
   :description "The LSP tool"
@@ -3412,6 +3417,7 @@ The return value is a plain-text report containing the matching results."
   (if-let* ((_ (not (or (eolp) (eobp))))
             (source-or-query (thing-at-point 'sexp)))
       (progn
+        (em "processing" source-or-query "at"  (point))
         (forward-thing 'sexp)
         (skip-syntax-forward " " (line-end-position))
         (amsha/org-database-for-gptel
