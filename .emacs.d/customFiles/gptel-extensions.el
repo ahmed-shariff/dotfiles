@@ -763,6 +763,45 @@ matching `*gptel-buffer-N*', where N starts at 1 and is limited to
                       finally return buf)))
         buf)))
 
+
+(defun amsha/gptel-buffer-append-file-links ()
+  "Open a gptel buffer and prepend source blocks for this Org buffer's file links."
+  (interactive)
+  (let* ((source (current-buffer)))
+    (with-current-buffer (amsha/gptel-buffer)
+      (goto-char (point-max))
+      (insert
+       (mapconcat
+        (lambda (file)
+          (unless (file-readable-p file)
+            (user-error "Cannot read linked file: %s" file))
+          (with-temp-buffer
+            (insert-file-contents file)
+            (let* ((filename (buffer-file-name))
+                   (content (buffer-substring-no-properties
+                             (point-min) (point-max)))
+                   (lines (count-lines (point-min) (point-max))))
+              (with-temp-buffer
+                (org-mode)
+                (concat
+                 (format "\n\nIn buffer \"%s\" (file \"%s\"), lines 1 - %d:\n"
+                         (file-name-nondirectory file)
+                         (abbreviate-file-name file)
+                         (max 1 lines))
+                 "#+begin_src org\n"
+                 (org-escape-code-in-string content)
+                 "\n#+end_src\n\n")))))
+        (with-current-buffer source
+          (save-excursion
+            (goto-char (point-min))
+            (let (paths)
+              (while (re-search-forward "^file:\\(.+\\)$" nil t)
+                (push (expand-file-name
+                       (string-trim (match-string-no-properties 1)))
+                      paths))
+              (nreverse paths))))
+        "\n")))))
+
 ;;; Resolve GPTel's project directory ****************************************************
 
 (defvar-local amsha/gptel-project-directory-unresolved nil
