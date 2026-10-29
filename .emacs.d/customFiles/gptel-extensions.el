@@ -3859,7 +3859,9 @@ Use for open-ended searches, complex research, or when uncertain about finding r
  :guideline "- When a task would require multiple searches and/or checks use the Agent tool. This would include researching and introspecting tasks. The agent is called with the same capabilities as you."
  :snippet "Launch a specialized agent to handle complex, multi-step tasks."
  :function (lambda (main-cb description prompt)
-             (gptel-agent--task main-cb "subagent" description prompt))
+             (let ((gptel-agent-preset 'amsha/--subagent)
+                   (gptel-agent--agents '(("subagent"))))
+               (gptel-agent--task main-cb "subagent" description prompt)))
  :args '(( :name "description"
            :type string
            :description "A short (3-5 word) description of the task")
@@ -4031,11 +4033,7 @@ Writing patterns to follow:\n%s"
 (gptel-make-preset 'amsha/agent-add-subagent
   :description "Add subagent info" ;; TODO: Anything to add to {{AGENT}} ?
   :tools `(:append ("amsha/gptel-agent" "Agent"))
-  :stream t
-  :agent-preset 'amsha/--subagent
-  ;; gptel-agent--agents is expected to be the resolved preset - so
-  ;; abusing the gptel-agent-preset above.
-  :agent--agents '(("subagent")))
+  :stream t)
 
 (gptel-make-preset 'amsha/--subagent
   :description "Subagent configuration"
