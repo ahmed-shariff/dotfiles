@@ -44,8 +44,8 @@
          ("C-c n r" . consult-org-roam-search)
          ("C-c n v" . consult-notes-visit-relation)
          :map org-roam-mode-map
-         ("j" . magit-section-forward)
-         ("k" . magit-section-backward)
+         ;; ("j" . magit-section-forward)
+         ;; ("k" . magit-section-backward)
          ("v" . org-roam-ql-buffer-dispatch)
          :map org-roam-node-map
          ("C-c o s" . org-roam-node-view-topics)
