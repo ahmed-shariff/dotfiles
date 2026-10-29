@@ -572,43 +572,48 @@ Otherwise, add ELEM as the last element."
   "Insert a buffer of file name from either project or persp at point."
   (interactive)
   (lazy-require 'consult)
-  (consult--multi
-   (list
-    ;; copied from `consult-projectile--source-projectile-file'
-    (list :name     "Project File"
-          :narrow   '(?f . "File")
-          :category 'file
-          :face     'consult-file
-          :history  'file-name-history
-          :state    #'consult--file-preview
-          :enabled  #'projectile-project-root
-          :action
-          (lambda (file)
-            (insert
-             (concat "[[" (expand-file-name file (project-root (project-current))) "]]")))
-          :items
-          (lambda ()
-            (projectile-project-files (projectile-acquire-root))))
+  (let* ((has-include (looking-back "@include "))
+         (output-format (if has-include "\"%s\"" "[[%s]]")))
+    (consult--multi
+     (list
+      ;; copied from `consult-projectile--source-projectile-file'
+      (list :name     "Project File"
+            :narrow   '(?f . "File")
+            :category 'file
+            :face     'consult-file
+            :history  'file-name-history
+            :state    #'consult--file-preview
+            :enabled  #'projectile-project-root
+            :action
+            (lambda (file)
+              (insert
+               (format output-format (expand-file-name file (project-root (project-current))))))
+            :items
+            (lambda ()
+              (projectile-project-files (projectile-acquire-root))))
 
-    ;; copied from `consult--source-perspective'
-    (list :name     "Perspective"
-          :narrow   '(?p . "Perspective")
-          :category 'buffer
-          :state    #'consult--buffer-preview
-          :action
-          (lambda (buf)
-            (insert
-             (if-let* ((file (buffer-file-name (get-buffer buf))))
-                 (concat "[[" file "]]")
-               (concat "buffer:" buf))))
-          :items
-          (lambda ()
-            (let ((current-persp-buffers (persp-get-buffer-names)))
-              (consult--buffer-query :sort 'visibility
-                                     :as #'buffer-name
-                                     :predicate
-                                     (lambda (it)
-                                       (member (buffer-name it) current-persp-buffers)))))))))
+      ;; copied from `consult--source-perspective'
+      (list :name     "Perspective"
+            :narrow   '(?p . "Perspective")
+            :category 'buffer
+            :state    #'consult--buffer-preview
+            :action
+            (lambda (buf)
+              (insert
+               (let ((file (buffer-file-name (get-buffer buf))))
+                 (if has-include
+                     (format output-format (or file buffer))
+                   (if file
+                       (concat "[[" file "]]")
+                     (concat "buffer:" buf))))))
+            :items
+            (lambda ()
+              (let ((current-persp-buffers (persp-get-buffer-names)))
+                (consult--buffer-query :sort 'visibility
+                                       :as #'buffer-name
+                                       :predicate
+                                       (lambda (it)
+                                         (member (buffer-name it) current-persp-buffers))))))))))
 
 ;;;###autoload
 (defun amsha/org-gptel-mode-hook ()
