@@ -113,12 +113,16 @@ Now, write the commit message using this format:
                  ;; copied from `git-commit-insert-changelog-gnu'
                  ;; using this instead of `diff-add-log-current-defuns' as
                  ;; it doesn't play well with bare repos.
-                 (pcase-dolist (`(,file . ,defuns) (git-commit--modified-defuns))
-                   (if (not defuns)
-                       (setq output (concat output "* " file ":\n"))
-                     (setq output (concat output "* " file " "))
-                     (dolist (def defuns)
-                       (setq output (concat output "(" def "):\n")))))
+                 (condition-case err
+                     (pcase-dolist (`(,file . ,defuns) (git-commit--modified-defuns))
+                       (if (not defuns)
+                           (setq output (concat output "* " file ":\n"))
+                         (setq output (concat output "* " file " "))
+                         (dolist (def defuns)
+                           (setq output (concat output "(" def "):\n")))))
+                   (error
+                    (setq output "Failed to extract files and function signature. Extract it yourself.")
+                    (em "git-commit--modified-defuns failed" err)))
                  output))
              diff)))
   ;; (magit-gptcommit-gptel-backend amsha/gptel--openrouter)
