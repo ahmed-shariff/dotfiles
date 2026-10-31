@@ -813,9 +813,9 @@ matching `*gptel-buffer-N*', where N starts at 1 and is limited to
 
 (defun amsha/gptel-set-default-dir-from-project (&optional force-prompt)
   "Resolve the Org entry's project and set `default-directory'.
-Project roots are resolved through Projectile's known projects.  When the
-saved project is unavailable, invoke this command interactively to choose
-its local root.  FORCE-PROMPT is intended for interactive use."
+Project roots are resolved through `project.el'.  When the saved project
+is unavailable, invoke this command interactively to choose its local root.
+FORCE-PROMPT is intended for interactive use."
   (interactive (list 'force-prompt))
   (unless (derived-mode-p 'org-mode)
     (user-error "This command must be run in an Org buffer"))
@@ -825,33 +825,34 @@ its local root.  FORCE-PROMPT is intended for interactive use."
                  (org-entry-get (point-min) "GPTEL_PROJECT_DIR"))))
          (project-name (nth 0 properties))
          (project-name (if (string-equal project-name "~/")
-                           (let ((default-directory "~/"))
-                             (projectile-project-name))
+                           (when-let* ((project (project-current nil "~/")))
+                             (project-name project))
                          project-name))
          (relative-directory (nth 1 properties))
          (root
           (or
-           ;; A saved project is resolved against Projectile's local registry.
+           ;; A saved project is resolved against project.el's known roots.
            (when project-name
              (let ((projects
                     (seq-filter
                      (lambda (directory)
-                       (let ((default-directory directory))
-                         (and (file-directory-p directory)
-                              (string-equal project-name (projectile-project-name))
-                              (string-equal (file-truename (expand-file-name directory))
-                                            (file-truename (expand-file-name (projectile-project-root directory)))))))
-                     (projectile-relevant-known-projects))))
+                       (and (file-directory-p directory)
+                            (when-let* ((project (project-current nil directory)))
+                              (and (string-equal project-name (project-name project))
+                                   (string-equal
+                                    (file-truename directory)
+                                    (file-truename (project-root project)))))))
+                     (project-known-project-roots))))
                (pcase projects
                  (`(,project) project)
                  ((pred consp)
-                  (projectile-completing-read
+                  (completing-read
                    (format "Select local %s project: " project-name)
-                   projects
-                   :category 'file)))))
+                   projects nil t)))))
            ;; A new entry can inherit the project containing its current dir.
            (and (not project-name)
-                (projectile-project-root default-directory)))))
+                (when-let* ((project (project-current nil default-directory)))
+                  (project-root project))))))
     (when (and (not root)
                force-prompt)
       (setq root
@@ -877,13 +878,12 @@ its local root.  FORCE-PROMPT is intended for interactive use."
               (expand-file-name (or relative-directory "") root)))
            (project-name
             (or project-name
-                (let ((default-directory root))
-                  (projectile-project-name))))
+                (when-let* ((project (project-current nil root)))
+                  (project-name project))))
            (project-property
-            (if (string-equal
-                 project-name
-                 (let ((default-directory "~/"))
-                   (projectile-project-name)))
+            (if (equal project-name
+                       (when-let* ((project (project-current nil "~/")))
+                         (project-name project)))
                 "~/"
               project-name))
            (relative-directory
@@ -907,13 +907,14 @@ its local root.  FORCE-PROMPT is intended for interactive use."
   "Save the current Projectile project and relative directory in Org."
   (when (and (derived-mode-p 'org-mode)
              gptel-mode
-             (projectile-project-root default-directory))
+             (when-let* ((project (project-current nil default-directory)))
+               (project-root project)))
     (amsha/gptel-set-default-dir-from-project)))
 
 (define-minor-mode amsha/gptel-project-dir-mode
   "Resolve GPTel's `default-directory' from Org project metadata.
 The project name and a path relative to its root are stored in the Org
-entry, while Projectile resolves the root separately on each computer."
+entry, while project.el resolves the root separately on each computer."
   :init-value nil
   :lighter nil
   (if amsha/gptel-project-dir-mode
