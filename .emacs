@@ -2679,6 +2679,8 @@ This is a fix for pet-mode running on edits in org-mode."
                                   (file-name-directory file))))
          (projectile-project-name)))))
 
+  (advice-add 'project-known-project-roots :override #'projectile-known-projects)
+
   (defun projectile-set-buffer-directory (&optional arg)
     "Set the default directory to the root of a project if the current buffer is not a file buffer.
 Used with atomic-chrome."
