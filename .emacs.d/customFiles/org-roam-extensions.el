@@ -219,7 +219,7 @@ FILTER-FN takes a node and return non-nil if it should be previewed."
           :initial (if initial-input initial-input ";")
           :keymap overriden-keymap
           :category 'org-roam-node
-          :sort nil ;; TODO
+          ;; :sort nil ;; TODO
           :require-match require-match
           :async-wrap nil
           :state (amsha/consult-org-roam--node-preview
