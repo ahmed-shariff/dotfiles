@@ -993,6 +993,7 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
                      :files (:defaults "extensions/*.el"))
   :init
   (vertico-mode)
+  (vertico-multiform-mode)
 
   ;; Different scroll margin
   ;; (setq vertico-scroll-margin 0)
