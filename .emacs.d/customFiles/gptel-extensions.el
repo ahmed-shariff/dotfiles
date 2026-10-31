@@ -836,11 +836,11 @@ its local root.  FORCE-PROMPT is intended for interactive use."
              (let ((projects
                     (seq-filter
                      (lambda (directory)
-                       (and (file-directory-p directory)
-                            (string-equal
-                             project-name
-                             (let ((default-directory directory))
-                               (projectile-project-name)))))
+                       (let ((default-directory directory))
+                         (and (file-directory-p directory)
+                              (string-equal project-name (projectile-project-name))
+                              (string-equal (file-truename (expand-file-name directory))
+                                            (file-truename (expand-file-name (projectile-project-root directory)))))))
                      (projectile-relevant-known-projects))))
                (pcase projects
                  (`(,project) project)
