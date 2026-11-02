@@ -4081,7 +4081,7 @@ Writing patterns to follow:\n%s"
 
 (gptel-make-preset 'amsha/agent-add-subagent
   :description "Add subagent info" ;; TODO: Anything to add to {{AGENT}} ?
-  :tools `(:append ("amsha/gptel-agent" "Agent"))
+  :tools `(:append (("amsha/gptel-agent" "Agent")))
   :stream t)
 
 (gptel-make-preset 'amsha/--subagent
