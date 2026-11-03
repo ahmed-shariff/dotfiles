@@ -2157,18 +2157,19 @@ Summarize the context thoroughly and comprehensively.
     (with-current-buffer buf
       (org-mode)
       (gptel-mode)
+      (goto-char (point-max))
       (insert (format "Extract the bib entry from the following citation:\n%s\n\n" citation))
       (gptel-request nil
         :stream t
         :callback
         (lambda (response info)
+          (em response)
           (cond
            ((stringp response)
             (plist-put info :streamed-response
-                       (concat (plist-get info :streamed-response) response))
-            (goto-char (point-max))
-            (insert response))
+                       (concat (plist-get info :streamed-response) response)))
            ((eq response t)
+            (insert (plist-get info :streamed-response))
             (goto-char (point-min))
             (search-forward-regexp "author *= *{\\(.*\\)}" nil t)
             (setq author-check (--all-p (string-match it citation) (s-split " and " (match-string 1))))
