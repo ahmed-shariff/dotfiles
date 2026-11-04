@@ -3108,15 +3108,15 @@ EDITS is an vector of (:path PATH :old_str OLD-STR :new_str NEW-STR) triples."
        "\n"))
     (gptel-agent--confirm-overlay from (point) t)))
 
-(defvar-local amsha/gptel-agent--edit-files-batch-always-allow nil
+(defvar-local amsha/gptel-agent--file-dir-sources-always-allowed-to-edit nil
   "Files and directories that may be edited without confirmation.")
 
-(defun amsha/gptel-agent--edit-files-batch-confirm (edits)
+(defun amsha/gptel-agent--file-dir-edit-confirm (edits)
   "Return nil if every file in EDITS is allowed."
   (and edits
        (let ((allowed
               (mapcar #'expand-file-name
-                      amsha/gptel-agent--edit-files-batch-always-allow)))
+                      amsha/gptel-agent--file-dir-sources-always-allowed-to-edit)))
          (cl-loop
           for edit across edits
           for path = (and (plist-get edit :path)
@@ -3151,10 +3151,10 @@ EDITS is an vector of (:path PATH :old_str OLD-STR :new_str NEW-STR) triples."
                   (user-error "Selected buffer is not visiting a file")))))
          (path (expand-file-name path)))
     (setq-local
-     amsha/gptel-agent--edit-files-batch-always-allow
+     amsha/gptel-agent--file-dir-sources-always-allowed-to-edit
      (cons path
            (delete path
-                   amsha/gptel-agent--edit-files-batch-always-allow)))
+                   amsha/gptel-agent--file-dir-sources-always-allowed-to-edit)))
     (message "Added %s to the edit allow list" path)))
 
 (defun gptel-agent--execute-pwsh (callback command)
@@ -3662,7 +3662,7 @@ replacement counts."
                     (:type string
                      :description "Replacement string")))))
  :category "amsha/gptel-agent"
- :confirm #'amsha/gptel-agent--edit-files-batch-confirm
+ :confirm #'amsha/gptel-agent--file-dir-edit-confirm
  :include t)
 
 (gptel-make-agent-tool
@@ -3681,7 +3681,9 @@ replacement counts."
                 :type "string"
                 :description "The content to write to the file"))
  :category "amsha/gptel-agent"
- :confirm t)
+ :confirm (lambda (path filename _content)
+            (amsha/gptel-agent--file-dir-edit-confirm
+             (vector (list :path (expand-file-name filename path))))))
 
 (gptel-make-agent-tool
  :name "Read"
