@@ -2163,7 +2163,6 @@ Summarize the context thoroughly and comprehensively.
         :stream t
         :callback
         (lambda (response info)
-          (em response)
           (cond
            ((stringp response)
             (plist-put info :streamed-response
