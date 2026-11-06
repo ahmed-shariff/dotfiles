@@ -333,74 +333,118 @@ see also `org-roam-backlinks-section-with-ql-filter'.
            :properties (org-roam-backlink-properties backlink)))
         (insert ?\n)))))
 
+(defvar-local amsha/org-roam-preview-filter-source-or-query nil
+  "Filter for preview generation.
+
+This source-or-query is used by
+`org-roam-subtree-aware-preview-function' to filter previews.  If
+there's an intersection between any nodes in the preview region and
+the nodes this resolves to the preview will return the text.  If not
+return nil.")
+
+(defvar-local amsha/org-roam-preview-filter-preview-set nil)
+
+(put 'amsha/org-roam-preview-filter-source-or-query 'permanent-local t)
+
+(defvar-local amsha/org-roam-preview-filter-node-ids-cache nil)
+
+;; TODO properly integrate this
+
 (defun org-roam-subtree-aware-preview-function (&optional node query)
-  "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes."
-  (if (--> (or node (org-roam-node-at-point))
-           (org-roam-node-file it)
-           (or (s-matches-p "brain/work/notes" it)
-               (s-matches-p "brain/personal/notes" it)
-               (s-matches-p "brain/roam-notes" it)
-               (s-matches-p "brain/research_papers" it)
-               (f-ancestor-of-p bibtex-completion-notes-path it)))
-      (let* ((full-file (< (point) 5)) ;; means we are trying to display the whole file, I think!
-             ;; Even when displaying full file, we skip the initial meta data
-             (beg (progn
+  "Same as `org-roam-preview-default-function', but gets entire subtree in research_papers or notes.
+
+See `org-roam-ql-preview-function' for NODE QUERY."
+  (let* ((use-subtree-preview
+          (--> (or node (org-roam-node-at-point))
+               (org-roam-node-file it)
+               (or (s-matches-p "brain/work/notes" it)
+                   (s-matches-p "brain/personal/notes" it)
+                   (s-matches-p "brain/roam-notes" it)
+                   (s-matches-p "brain/research_papers" it)
+                   (f-ancestor-of-p bibtex-completion-notes-path it))))
+         (full-file (< (point) 5)) ;; means we are trying to display the whole file, I think!
+         ;; Even when displaying full file, we skip the initial meta data
+         (beg (if use-subtree-preview
+                  (progn
                     (unless (org-at-heading-p)
-                        (org-previous-visible-heading 1))
+                      (org-previous-visible-heading 1))
                     (if (org-id-get)
                         (org-roam-end-of-meta-data t)
                       (org-beginning-of-line))
-                    (point)))
-             (end (if full-file
+                    (point))
+                ;; what `org-roam-preview-default-function' does
+                (save-excursion
+                  (org-roam-end-of-meta-data t)
+                  (point))))
+         (end (if use-subtree-preview
+                  (if full-file
                       (point-max)
                     (progn (when (org-id-get)
                              (org-previous-visible-heading 1)
                              (org-beginning-of-line))
                            (org-end-of-subtree)
-                           (point)))))
-        (-reduce 
-         (lambda (str el)
-           ;; remove properties not interested. If prop drawer is empty at the end, remove drawer itself
-           (s-replace-regexp (format "\n *:%s:.*$" el) "" str))
-         (list
-          ;; remove links
-          (amsha/org-repalce-link-in-string
-                (string-trim
-                 ;; if compaction results are there, use that
-                 ;; TODO: have some sort of a toggle for this?
-                 (or
-                  (when-let* ((org-map-scope (if (org-before-first-heading-p) 'file 'tree))
-                              (content (save-excursion
-                                         (goto-char beg)
-                                         (org-map-entries
-                                          (lambda ()
-                                            (buffer-substring-no-properties
-                                             (progn (org-beginning-of-line)
-                                                    (point))
-                                             (progn (org-end-of-subtree)
-                                                    (point))))
-                                          "+compaction" org-map-scope))))
-                    (format "%s\n%s\n%s"
-                            (save-excursion
-                              (goto-char beg)
-                              (org-get-heading t t t t))
-                            (save-excursion
-                              (goto-char beg)
-                              (string-join
-                               (-non-nil
-                                (org-map-entries
-                                 (lambda ()
-                                   (when (--none-p (plist-get (text-properties-at 0 it) 'inherited) org-scanner-tags)
+                           (point)))
+                ;; what `org-roam-preview-default-function' does
+                (save-excursion
+                  (org-next-visible-heading 1)
+                  (point)))))
+    (when (or (not amsha/org-roam-preview-filter-source-or-query)
+              (and-let* ((boo (em "boo"))
+                         (node-ids-in-region
+                          (org-element-map (org-element-parse-secondary-string (buffer-substring beg end) '(link)) 'link
+                            (lambda (el)
+                              (when (equal (org-element-property :type el) "id")
+                                (org-element-property :path el))))))
+                (or
+                 (not node-ids-in-region)
+                 (-intersection
+                  node-ids-in-region
+                  (or amsha/org-roam-preview-filter-node-ids-cache
+                      (setq amsha/org-roam-preview-filter-node-ids-cache
+                            (-map #'org-roam-node-id
+                                  (org-roam-ql-nodes amsha/org-roam-preview-filter-source-or-query))))))))
+      (-reduce
+       (lambda (str el)
+         ;; remove properties not interested. If prop drawer is empty at the end, remove drawer itself
+         (s-replace-regexp (format "\n *:%s:.*$" el) "" str))
+       (list
+        ;; remove links
+        (amsha/org-repalce-link-in-string
+         (string-trim
+          ;; if compaction results are there, use that
+          ;; TODO: have some sort of a toggle for this?
+          (or
+           (when-let* ((org-map-scope (if (org-before-first-heading-p) 'file 'tree))
+                       (content (save-excursion
+                                  (goto-char beg)
+                                  (org-map-entries
+                                   (lambda ()
                                      (buffer-substring-no-properties
                                       (progn (org-beginning-of-line)
                                              (point))
-                                      (progn (org-next-visible-heading 1)
-                                             (point)))))
-                                 "+notebody" org-map-scope))))
-                            (string-join content "\n\n")))
-                  (buffer-substring-no-properties beg end))))
-               "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "HIGHLIGHT" amsha/okm-parent-property-name "PROPERTIES:\n *:END")))
-    (org-roam-preview-default-function)))
+                                      (progn (org-end-of-subtree)
+                                             (point))))
+                                   "+compaction" org-map-scope))))
+             (format "%s\n%s\n%s"
+                     (save-excursion
+                       (goto-char beg)
+                       (org-get-heading t t t t))
+                     (save-excursion
+                       (goto-char beg)
+                       (string-join
+                        (-non-nil
+                         (org-map-entries
+                          (lambda ()
+                            (when (--none-p (plist-get (text-properties-at 0 it) 'inherited) org-scanner-tags)
+                              (buffer-substring-no-properties
+                               (progn (org-beginning-of-line)
+                                      (point))
+                               (progn (org-next-visible-heading 1)
+                                      (point)))))
+                          "+notebody" org-map-scope))))
+                     (string-join content "\n\n")))
+           (buffer-substring-no-properties beg end))))
+        "INTERLEAVE_PAGE_NOTE" "BRAIN_CHILDREN" "HIGHLIGHT" amsha/okm-parent-property-name "PROPERTIES:\n *:END")))))
 
 ;; (org-roam-node-action org-roam-node-ref-hydra
 ;;   (org-ref-citation-hydra/body))
