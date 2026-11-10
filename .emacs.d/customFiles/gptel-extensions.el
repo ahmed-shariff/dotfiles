@@ -3936,7 +3936,7 @@ Examples:
  \"(dailies-range \\\"-3w\\\")\")
 
 The return value is a plain-text report containing the matching results."
- :guideline "- Use `org-database` when you want to gather notes and previous chat sessions with user.\n- NEVER edit user's org-database under ANY circumstance. If there is somthing that needs change, bring it to the users attention."
+ :guideline "- Use `org-database` when you want to gather notes and previous chat sessions with user.\n- NEVER edit user's org-database under ANY circumstance. If there is somthing that needs change, bring it to the users attention. The only exception to this if the user explicitly asks to edit a file inside the org-database."
  :snippet "Get notes and session info from users org-database."
  :args
  '((:name "type"
