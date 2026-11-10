@@ -735,53 +735,63 @@ If the region is active, its text is inserted into the new session."
 Existing buffers with `gptel-mode' enabled are presented for
 selection.  If no buffer is selected, return the first available name
 matching `*gptel-buffer-N*', where N starts at 1 and is limited to
-100."
-  (let* ((buf (consult--multi
-               (list
-                (list
-                 :name     "Top level gptel buffers"
-                 :narrow   '(?a . "All")
-                 :category 'buffer
-                 :state    #'consult--buffer-preview
-                 :items
-                 (lambda ()
-                   (-map
-                    #'buffer-name
-                    (--filter
-                     (and
-                      (not (s-starts-with-p " " (buffer-name it)))
-                      (buffer-local-value 'gptel-mode it))
-                     (buffer-list)))))
-                (list
-                 :name     "Subagents"
-                 :category 'buffer
-                 :state    #'consult--buffer-preview
-                 :narrow   '(?s . "Subagents")
-                 :items
-                 (lambda ()
-                   gptel-agent--task-buffers)))
-               :require-match nil
-               :prompt        "Create or choose gptel buffer: ")))
-    (if (string-empty-p buf)
-        (let* ((default-directory
-                (or (and current-prefix-arg
-                         (let ()
-                           (if-let* ((projects (projectile-relevant-known-projects)))
-                               (projectile-completing-read
-                                "Select project: " projects)
-                             (user-error "There are no known projects"))))
-                    (buffer-local-value 'default-directory (or buffer (current-buffer)))))
-               (project (project-current nil default-directory))
-               (project-suffix (or (and project
-                                        (concat "-" (project-name project)))
-                                   "")))
-          (get-buffer-create
-           (cl-loop for i upfrom 1
-                    for buf = (format "*gptel-buffer%s-%s*" project-suffix i)
-                    until (or (null (get-buffer buf)) (> i 100))
-                    finally return buf)))
-      buf)))
+100.
 
+`detault-directory' is set to the `default-directory' of BUFFER or the
+current buffer."
+  (let ((selected
+         (consult--multi
+          (list
+           ;; Working around consult not treating empty input as new
+           (list
+            :name "New gptel buffer"
+            :narrow   '(?n . "new")
+            :default t ;; this forces nil to be selected as the default value
+            :items nil)
+           (list
+            :name     "Top level gptel buffers"
+            :narrow   '(?a . "All")
+            :category 'buffer
+            :state    #'consult--buffer-preview
+            :require-match nil
+            :items
+            (lambda ()
+              (-map
+               #'buffer-name
+               (--filter
+                (and
+                 (not (s-starts-with-p " " (buffer-name it)))
+                 (buffer-local-value 'gptel-mode it))
+                (buffer-list)))))
+           (list
+            :name     "Subagents"
+            :category 'buffer
+            :state    #'consult--buffer-preview
+            :narrow   '(?s . "Subagents")
+            :require-match nil
+            :items (lambda ()
+                     (with-current-buffer (or buffer (current-buffer))
+                       gptel-agent--task-buffers))))
+           :require-match nil
+           :prompt        "Create or choose gptel buffer: ")))
+    (if (plist-get (cdr selected) :match)
+        (get-buffer (car selected))
+      (let* ((default-directory
+              (or (and current-prefix-arg
+                       (if-let* ((projects (projectile-relevant-known-projects)))
+                           (projectile-completing-read
+                            "Select project: " projects)
+                         (user-error "There are no known projects")))
+                  (buffer-local-value 'default-directory (or buffer (current-buffer)))))
+             (project (project-current nil default-directory))
+             (project-suffix (or (and project
+                                      (concat "-" (project-name project)))
+                                 "")))
+        (get-buffer-create
+         (cl-loop for i upfrom 1
+                  for buf = (format "*gptel-buffer%s-%s*" project-suffix i)
+                  until (or (null (get-buffer buf)) (> i 100))
+                  finally return buf))))))
 
 (defun amsha/gptel-buffer-append-file-links ()
   "Open a gptel buffer and prepend source blocks for this Org buffer's file links."
