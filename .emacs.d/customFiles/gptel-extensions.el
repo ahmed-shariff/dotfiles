@@ -3201,7 +3201,7 @@ COMMAND is the psh command string to execute."
 
 (defvar gptel-agent--shell-command-rules
   '(;; Shared commands
-    ("git" "git[ \t]+\\(?:diff\\|log\\|status\\|show\\|grep\\|check-ignore\\|rev-parse\\|ls-files\\)")
+    ("git" "git[ \t]+\\(?:-C[ \t]+\\(?:'[^']*'\\|\"[^\"]*\"\\|[^ \t]+\\)[ \t]+\\)?\\(?:diff\\|log\\|status\\|show\\|grep\\|check-ignore\\|rev-parse\\|ls-files\\)")
     ("dotnet" "dotnet[ \t]+--version[ \t\r\n]*\\>")
     ("python" "python\\(?:3\\)?[ \t]+-m[ \t]+py_compile")
     ("poetry" "poetry[ \t]+\\(list\\)")
