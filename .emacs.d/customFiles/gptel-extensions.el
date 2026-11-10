@@ -3369,11 +3369,7 @@ when it is killed."
                   (when (buffer-live-p buffer)
                     (kill-buffer buffer))))
               nil t))
-  (gptel (generate-new-buffer-name
-          (format " *%s-subagent-%s*"
-                  (string-trim (buffer-name parent-buffer) "*" "*")
-                  (1+ (length (buffer-local-value
-                               'gptel-agent--task-buffers parent-buffer)))))))
+  (gptel-agent-task-buffer parent-buffer))
 
 (setq gptel-agent-task-buffer-function #'amsha/gptel-agent-task-buffer-function)
 
