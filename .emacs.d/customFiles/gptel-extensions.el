@@ -3318,6 +3318,33 @@ ARG-VALUES is the list of arguments for the tool call."
                    nil nil #'string-equal)
       `(,#'amsha/gptel-agent--execute-powershell-preview-setup))
 
+(defun amsha/gptel-agent-task-complete-hook ()
+  "Display a subagent completion overlay at point."
+  (let ((overlay (make-overlay (point) (point))))
+    (overlay-put overlay 'after-string
+                 (propertize "\\nSubagent complete\\n" 'face 'shadow))))
+
+(add-hook 'gptel-agent-task-complete-hook #'amsha/gptel-agent-task-complete-hook)
+
+(defun amsha/gptel-agent-task-buffer-function (parent-buffer)
+  "Create a subagent buffer for PARENT-BUFFER.
+Register a local hook on PARENT-BUFFER to kill its live subagent buffers
+when it is killed."
+  (with-current-buffer parent-buffer
+    (add-hook 'kill-buffer-hook
+              (lambda ()
+                (dolist (buffer gptel-agent--task-buffers)
+                  (when (buffer-live-p buffer)
+                    (kill-buffer buffer))))
+              nil t))
+  (gptel (generate-new-buffer-name
+          (format " *%s-subagent-%s*"
+                  (string-trim (buffer-name parent-buffer) "*" "*")
+                  (1+ (length (buffer-local-value
+                               'gptel-agent--task-buffers parent-buffer)))))))
+
+(setq gptel-agent-task-buffer-function #'amsha/gptel-agent-task-buffer-function)
+
 ;;; org-database tools and support ********************************************************
 (defun amsha/org-database-for-gptel (type query-str filter-query-str)
   "Query the user's org-roam database.
