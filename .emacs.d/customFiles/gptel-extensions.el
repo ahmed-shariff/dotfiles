@@ -739,39 +739,44 @@ matching `*gptel-buffer-N*', where N starts at 1 and is limited to
 
 `detault-directory' is set to the `default-directory' of BUFFER or the
 current buffer."
-  (let ((selected
-         (consult--multi
-          (list
-           ;; Working around consult not treating empty input as new
+  (let* ((curr-buffer (or buffer (current-buffer)))
+         (selected
+          (consult--multi
            (list
-            :name "New gptel buffer"
-            :narrow   '(?n . "new")
-            :default t ;; this forces nil to be selected as the default value
-            :items nil)
-           (list
-            :name     "Top level gptel buffers"
-            :narrow   '(?a . "All")
-            :category 'buffer
-            :state    #'consult--buffer-preview
-            :require-match nil
-            :items
-            (lambda ()
-              (-map
-               #'buffer-name
-               (--filter
-                (and
-                 (not (s-starts-with-p " " (buffer-name it)))
-                 (buffer-local-value 'gptel-mode it))
-                (buffer-list)))))
-           (list
-            :name     "Subagents"
-            :category 'buffer
-            :state    #'consult--buffer-preview
-            :narrow   '(?s . "Subagents")
-            :require-match nil
-            :items (lambda ()
-                     (with-current-buffer (or buffer (current-buffer))
-                       gptel-agent--task-buffers))))
+            ;; Working around consult not treating empty input as new
+            (list
+             :name "New gptel buffer"
+             :narrow   '(?n . "new")
+             :default t ;; this forces nil to be selected as the default value
+             :items nil)
+            (list
+             :name     "Top level gptel buffers"
+             :narrow   '(?a . "All")
+             :category 'buffer
+             :state    #'consult--buffer-preview
+             :require-match nil
+             :items
+             (lambda ()
+               (-map
+                #'buffer-name
+                (--filter
+                 (and
+                  (not (s-starts-with-p " " (buffer-name it)))
+                  (buffer-local-value 'gptel-mode it))
+                 (buffer-list)))))
+            (list
+             :name     "Subagents"
+             :category 'buffer
+             :state    #'consult--buffer-preview
+             :narrow   '(?s . "Subagents")
+             :require-match nil
+             :items (lambda ()
+                      (with-current-buffer curr-buffer
+                        (-non-nil
+                         (--map
+                          (when (buffer-live-p it)
+                            (buffer-name it))
+                          gptel-agent--task-buffers))))))
            :require-match nil
            :prompt        "Create or choose gptel buffer: ")))
     (if (plist-get (cdr selected) :match)
@@ -782,7 +787,7 @@ current buffer."
                            (projectile-completing-read
                             "Select project: " projects)
                          (user-error "There are no known projects")))
-                  (buffer-local-value 'default-directory (or buffer (current-buffer)))))
+                  (buffer-local-value 'default-directory curr-buffer)))
              (project (project-current nil default-directory))
              (project-suffix (or (and project
                                       (concat "-" (project-name project)))
