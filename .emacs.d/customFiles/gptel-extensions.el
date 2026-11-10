@@ -587,7 +587,10 @@ Otherwise, add ELEM as the last element."
             :face     'consult-file
             :history  'file-name-history
             :state    #'consult--file-preview
-            :enabled  #'projectile-project-root
+            :enabled  (lambda ()
+                        (and-let* ((root (projectile-project-root))
+                                   (not (equal (file-truename root)
+                                               (file-truename "~/"))))))
             :action
             (lambda (file)
               (insert
@@ -733,39 +736,51 @@ Existing buffers with `gptel-mode' enabled are presented for
 selection.  If no buffer is selected, return the first available name
 matching `*gptel-buffer-N*', where N starts at 1 and is limited to
 100."
-    (let* ((state-func (consult--buffer-preview))
-           (buf (consult--read
-                 (-map
-                  #'buffer-name
-                  (--filter
-                   (and
-                    (not (s-starts-with-p " " (buffer-name it)))
-                    (buffer-local-value 'gptel-mode it))
-                   (buffer-list)))
-                 :prompt        "Create or choose gptel buffer: "
-                 :category      'buffer
-                 :require-match nil
-                 :async-wrap    nil
-                 :state         state-func)))
-      (if (string-empty-p buf)
-          (let* ((default-directory
-                  (or (and current-prefix-arg
-                           (let ()
-                             (if-let* ((projects (projectile-relevant-known-projects)))
-                                 (projectile-completing-read
-                                  "Select project: " projects)
-                               (user-error "There are no known projects"))))
-                      (buffer-local-value 'default-directory (or buffer (current-buffer)))))
-                 (project (project-current nil default-directory))
-                 (project-suffix (or (and project
-                                          (concat "-" (project-name project)))
-                                     "")))
-            (get-buffer-create
-             (cl-loop for i upfrom 1
-                      for buf = (format "*gptel-buffer%s-%s*" project-suffix i)
-                      until (or (null (get-buffer buf)) (> i 100))
-                      finally return buf)))
-        buf)))
+  (let* ((buf (consult--multi
+               (list
+                (list
+                 :name     "Top level gptel buffers"
+                 :narrow   '(?a . "All")
+                 :category 'buffer
+                 :state    #'consult--buffer-preview
+                 :items
+                 (lambda ()
+                   (-map
+                    #'buffer-name
+                    (--filter
+                     (and
+                      (not (s-starts-with-p " " (buffer-name it)))
+                      (buffer-local-value 'gptel-mode it))
+                     (buffer-list)))))
+                (list
+                 :name     "Subagents"
+                 :category 'buffer
+                 :state    #'consult--buffer-preview
+                 :narrow   '(?s . "Subagents")
+                 :items
+                 (lambda ()
+                   gptel-agent--task-buffers)))
+               :require-match nil
+               :prompt        "Create or choose gptel buffer: ")))
+    (if (string-empty-p buf)
+        (let* ((default-directory
+                (or (and current-prefix-arg
+                         (let ()
+                           (if-let* ((projects (projectile-relevant-known-projects)))
+                               (projectile-completing-read
+                                "Select project: " projects)
+                             (user-error "There are no known projects"))))
+                    (buffer-local-value 'default-directory (or buffer (current-buffer)))))
+               (project (project-current nil default-directory))
+               (project-suffix (or (and project
+                                        (concat "-" (project-name project)))
+                                   "")))
+          (get-buffer-create
+           (cl-loop for i upfrom 1
+                    for buf = (format "*gptel-buffer%s-%s*" project-suffix i)
+                    until (or (null (get-buffer buf)) (> i 100))
+                    finally return buf)))
+      buf)))
 
 
 (defun amsha/gptel-buffer-append-file-links ()
