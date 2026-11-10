@@ -1384,18 +1384,20 @@ with a file."
 The session is saved only for an unvisited buffer with
 `amsha/gptel-session-backup-mode' enabled.  This function is used in
 `gptel-post-response-functions' and during Emacs shutdown."
-  (when (and amsha/gptel-session-backup-mode
-             (not (buffer-file-name)))
-    (run-hooks 'gptel-save-state-hook)
-    (gptel-org--save-state)
-    (let ((file (expand-file-name
-                 (string-trim (buffer-name) "*" "*")
-                 amsha/gptel-backup-directory)))
-      (make-directory (file-name-directory file) t)
-      (let (message-log-max
-            (content (buffer-string)))
-        (with-temp-file file
-          (insert content))))))
+  (condition-case err
+      (when (and amsha/gptel-session-backup-mode
+                 (not (buffer-file-name)))
+        (run-hooks 'gptel-save-state-hook)
+        (gptel-org--save-state)
+        (let ((file (expand-file-name
+                     (string-trim (buffer-name) "*" "*")
+                     amsha/gptel-backup-directory)))
+          (make-directory (file-name-directory file) t)
+          (let (message-log-max
+                (content (buffer-string)))
+            (with-temp-file file
+              (insert content)))))
+    (error (message "FAILED backup: %s" err))))
 
 (defun amsha/gptel-backup-live-sessions ()
   "Back up all live GPTel sessions before Emacs exits."
