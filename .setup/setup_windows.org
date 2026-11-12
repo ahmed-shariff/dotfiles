@@ -20,3 +20,9 @@
 - install python
 - copy and rename python.exe to python311.exe
 ~winget install -e --id JohnMacFarlane.Pandoc~
+- install Wezterm and utils - make sure latest powershell (7.7+ is installed):
+  ~winget install wez.wezterm~
+  ~winget install ajeetdsouza.zoxide~
+  ~winget install fzf~
+  ~Install-Module -Name PSFzf -Scope CurrentUser~
+  ~Install-Module -Name Terminal-Icons -Repository PSGallery~
