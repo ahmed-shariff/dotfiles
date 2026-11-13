@@ -368,6 +368,9 @@ See `org-roam-ql-preview-function' for NODE QUERY."
                   (progn
                     (unless (org-at-heading-p)
                       (org-previous-visible-heading 1))
+                    (while (and (org-current-level)
+                                (> (org-current-level) 1))
+                      (org-up-heading-safe))
                     (if (org-id-get)
                         (org-roam-end-of-meta-data t)
                       (org-beginning-of-line))
