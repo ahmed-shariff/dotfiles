@@ -2158,7 +2158,7 @@ See `pdf-annot-activate-created-annotations' for more details."
 ;; for hunspell on windows: http://www.nextpoint.se/?p=656
 (use-package ispell
   :custom
-  ;; pacman -S mingw-w64-x86_64-enchant mingw-w64-x86_64-hunspell mingw-w64-x86_64-hunspell-en mingw-w64-x86_64-aspell mingw-w64-x86_64-aspell-en
+  ;; pacman -Sy mingw-w64-ucrt-x86_64-enchant mingw-w64-ucrt-x86_64-hunspell mingw-w64-ucrt-x86_64-hunspell-en mingw-w64-ucrt-x86_64-aspell mingw-w64-ucrt-x86_64-aspell-en
   ;; hunspell -D
   ;; enchant-lsmod-2 -list-dicts
   (ispell-program-name "enchant-2")
