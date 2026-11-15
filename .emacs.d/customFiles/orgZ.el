@@ -1104,6 +1104,28 @@ The screenshot tool is determined by `org-download-screenshot-method'."
 
 ;; Functions ********************************************************************************
 
+(defun amsha/org-heading-link-type-complete (&optional _)
+  "Complete a current buffer heading and return its CUSTOM_ID link."
+  (let ((heading
+         (consult--read
+          (or (consult-org--headings nil "CUSTOM_ID<>\"\"" nil)
+              (user-error "No headings with a CUSTOM_ID"))
+          :prompt "Heading: "
+          :category 'org-heading
+          :require-match t
+          :state (consult--jump-preview)
+          :lookup (apply-partially #'consult--lookup-prop 'org-marker)
+          :annotate
+          (lambda (cand)
+            (concat
+             (consult-org--annotate cand)
+             (org-with-point-at (get-text-property 0 'org-marker cand)
+               (concat "  #" (org-entry-get nil "CUSTOM_ID"))))))))
+    (org-with-point-at heading
+      (concat "#" (org-entry-get nil "CUSTOM_ID")))))
+
+(org-link-set-parameters "#" :complete #'amsha/org-heading-link-type-complete)
+
 ;; from https://emacs.stackexchange.com/questions/44664/apply-ansi-color-escape-sequences-for-org-babel-results
 (defun org-babel-ansi-color-result ()
   (when-let* ((beg (org-babel-where-is-src-block-result nil nil)))
