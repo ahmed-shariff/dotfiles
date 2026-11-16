@@ -3362,7 +3362,11 @@ ARG-VALUES is the list of arguments for the tool call."
   "Display a subagent completion overlay at point."
   (let ((overlay (make-overlay (point) (point))))
     (overlay-put overlay 'after-string
-                 (propertize "\\nSubagent complete\\n" 'face 'shadow))))
+                 (propertize "
+----------------------------------------------------
+----------------- Subagent complete ----------------
+----------------------------------------------------
+" 'face 'shadow))))
 
 (add-hook 'gptel-agent-task-complete-hook #'amsha/gptel-agent-task-complete-hook)
 
@@ -3377,7 +3381,11 @@ when it is killed."
                   (when (buffer-live-p buffer)
                     (kill-buffer buffer))))
               nil t))
-  (gptel-agent-task-buffer parent-buffer))
+  (with-current-buffer (gptel-agent-task-buffer parent-buffer)
+    (setq-local amsha/gptel-agent--file-dir-sources-always-allowed-to-edit
+                (buffer-local-value 'amsha/gptel-agent--file-dir-sources-always-allowed-to-edit
+                                    parent-buffer))
+    (current-buffer)))
 
 (setq gptel-agent-task-buffer-function #'amsha/gptel-agent-task-buffer-function)
 
