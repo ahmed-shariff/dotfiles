@@ -740,6 +740,28 @@ matching `*gptel-buffer-N*', where N starts at 1 and is limited to
 `detault-directory' is set to the `default-directory' of BUFFER or the
 current buffer."
   (let* ((curr-buffer (or buffer (current-buffer)))
+         ;; First pass
+         (agent-buffers
+          (-map
+           #'buffer-name
+           (--filter
+            (and
+             (not (s-starts-with-p " " (buffer-name it)))
+             (buffer-local-value 'gptel-mode it))
+            (buffer-list))))
+         current-subagent-buffers
+         ;; Second pass and set current-subagent-buffers
+         (agent-buffers
+          (-difference
+           agent-buffers
+           (--mapcat
+            (let ((task-buffers
+                   (-map #'buffer-name
+                         (buffer-local-value 'gptel-agent--task-buffers (get-buffer it)))))
+              (when (equal (get-buffer it) (get-buffer curr-buffer))
+                (setq current-subagent-buffers task-buffers))
+              task-buffers)
+            agent-buffers)))
          (selected
           (consult--multi
            (list
@@ -750,33 +772,19 @@ current buffer."
              :default t ;; this forces nil to be selected as the default value
              :items nil)
             (list
-             :name     "Top level gptel buffers"
-             :narrow   '(?a . "All")
-             :category 'buffer
-             :state    #'consult--buffer-preview
+             :name          "Top level gptel buffers"
+             :narrow        '(?a . "All")
+             :category      'buffer
+             :state         #'consult--buffer-preview
              :require-match nil
-             :items
-             (lambda ()
-               (-map
-                #'buffer-name
-                (--filter
-                 (and
-                  (not (s-starts-with-p " " (buffer-name it)))
-                  (buffer-local-value 'gptel-mode it))
-                 (buffer-list)))))
+             :items         agent-buffers)
             (list
-             :name     "Subagents"
-             :category 'buffer
-             :state    #'consult--buffer-preview
-             :narrow   '(?s . "Subagents")
+             :name          "Subagents"
+             :category      'buffer
+             :state         #'consult--buffer-preview
+             :narrow        '(?s . "Subagents")
              :require-match nil
-             :items (lambda ()
-                      (with-current-buffer curr-buffer
-                        (-non-nil
-                         (--map
-                          (when (buffer-live-p it)
-                            (buffer-name it))
-                          gptel-agent--task-buffers))))))
+             :items         current-subagent-buffers))
            :require-match nil
            :prompt        "Create or choose gptel buffer: ")))
     (if (plist-get (cdr selected) :match)
