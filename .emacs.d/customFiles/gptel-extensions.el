@@ -772,12 +772,19 @@ current buffer."
              :default t ;; this forces nil to be selected as the default value
              :items nil)
             (list
-             :name          "Top level gptel buffers"
-             :narrow        '(?a . "All")
+             :name          "Conversation buffers"
+             :narrow        '(?c . "conv")
              :category      'buffer
              :state         #'consult--buffer-preview
              :require-match nil
-             :items         agent-buffers)
+             :items         (--filter (not (buffer-file-name (get-buffer it))) agent-buffers))
+            (list
+             :name          "Files"
+             :narrow        '(?f . "file")
+             :category      'buffer
+             :state         #'consult--buffer-preview
+             :require-match nil
+             :items         (--filter (buffer-file-name (get-buffer it)) agent-buffers))
             (list
              :name          "Subagents"
              :category      'buffer
