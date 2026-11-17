@@ -1513,20 +1513,9 @@ then enable `org-mode` and `gptel-mode`."
 
 (gptel-openai-responses-extended-setup-builtin-transient)
 
-(gptel-make-openai-responses-extended "ChatGPT-response" :key gptel-api-key :models gptel--openai-models :stream t)
+(gptel-make-openai-responses "ChatGPT-response" :key gptel-api-key :models gptel--openai-models :stream t)
 
-;; HACK: overriding oauth to use extended backend
-(cl-defstruct (gptel-openai-oauth (:constructor gptel--make-openai-oauth)
-                                  (:copier nil)
-                                  (:include gptel-openai-responses-extended))
-  token)
-
-(setq gptel-openai-response-backend
-      (gptel-make-openai-oauth "Codex"
-        :header #'gptel--openai-oauth-header
-        :models '( gpt-5.5 gpt-5.6-sol gpt-5.6-terra gpt-5.6-luna gpt-6-astra
-                   gpt-6-sol gpt-6-luna gpt-6.1-sol)
-        :stream t))
+(setq gptel-openai-response-backend (gptel-make-openai-oauth "Codex"))
 
 (defun test-response ()
   (let ((gptel-backend gptel-openai-response-backend)
