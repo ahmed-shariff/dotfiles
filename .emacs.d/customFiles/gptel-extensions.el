@@ -2555,21 +2555,95 @@ then it will be set here."
                                        #'string-equal)
                              " @"))))
 
+(defun amsha/gptel-prev-preset-names (position)
+  "Return inherited preset names for @amsha/prev at POSITION.
+Preserve application order and duplicates without applying presets."
+  (save-excursion
+    (save-match-data
+      (goto-char position)
+      (let ((min-point (point-min)) names found)
+        (text-property-search-backward 'gptel nil t)
+        (while (and (> (point) min-point) (not found))
+          (text-property-search-backward 'gptel nil t)
+          (save-excursion
+            (let ((user-region-start (point)) has-prev)
+              (text-property-search-forward 'gptel nil t)
+              (while (re-search-backward
+                      "@\\([^[:space:]]+\\)\\_>" user-region-start t)
+                (when-let* ((_ (or (= (match-beginning 0) (point-min))
+                                  (memq (char-syntax
+                                         (char-before (match-beginning 0)))
+                                        '(32 62))))
+                            (name (match-string-no-properties 1)))
+                  (if (string= name "amsha/prev")
+                      (setq has-prev t)
+                    (when (or (gptel-get-preset (intern-soft name))
+                              (gptel-get-preset name))
+                      (push name names)
+                      (setq found t)))))
+              (setq found (and found (not has-prev))))))
+        (nreverse names)))))
+
+(defun amsha/gptel-prev-preview (start end)
+  "Create or update the inherited-preset overlay between START and END."
+  (save-match-data
+    (let* ((names (amsha/gptel-prev-preset-names end))
+           (overlay
+            (or (seq-find
+                 (lambda (ov)
+                   (and (overlay-get ov 'amsha/gptel-prev-preview)
+                        (= (overlay-start ov) start)
+                        (= (overlay-end ov) end)))
+                 (overlays-in start end))
+                (make-overlay start end))))
+      (overlay-put overlay 'amsha/gptel-prev-preview t)
+      (overlay-put overlay 'evaporate t)
+      ;; Invalidate immediately when the token itself is edited.
+      (let ((hooks (list (lambda (ov &rest _) (delete-overlay ov)))))
+        (overlay-put overlay 'modification-hooks hooks)
+        (overlay-put overlay 'insert-in-front-hooks hooks)
+        (overlay-put overlay 'insert-behind-hooks hooks))
+      (overlay-put overlay 'after-string
+                   (propertize
+                    (if names
+                        (concat " → "
+                                (mapconcat (lambda (name) (concat "@" name))
+                                           (nreverse names) " "))
+                      " → n/a")
+                    'face 'shadow)))))
+
+(defun amsha/gptel-prev-preview-refresh ()
+  "Refresh preset highlighting and inherited-preset previews in this buffer.
+Use after editing earlier conversation turns."
+  (interactive)
+  (save-restriction
+    (widen)
+    (remove-overlays (point-min) (point-max) 'amsha/gptel-prev-preview t)
+    (font-lock-flush (point-min) (point-max))
+    (font-lock-ensure (point-min) (point-max))))
+
 (define-minor-mode amsha/gptel-highlight-preset-mode
-  "Highlight presets in any buffer"
+  "Highlight presets and preview the presets inherited by @amsha/prev."
   :group 'amsha/gptel
   :keymap amsha/gptel-highlight-preset-mode-map
   (let ((keywords '(("\\(@\\([^[:blank:]\n]+\\)\\)"
                            1 (when-let* ((comps (all-completions (match-string 2)
                                                                  gptel--known-presets))
                                          ((member (match-string 2) comps)))
+                               (when (and (string= (match-string-no-properties 2)
+                                                   "amsha/prev")
+                                          (not (get-text-property
+                                                (match-beginning 1) 'gptel)))
+                                 (amsha/gptel-prev-preview
+                                  (match-beginning 1) (match-end 1)))
                                '(:box -1 :inherit secondary-selection))
                            prepend))))
     (cond
      (amsha/gptel-highlight-preset-mode
       (font-lock-add-keywords nil keywords t))
      (t
-      (font-lock-remove-keywords nil keywords)))))
+      (font-lock-remove-keywords nil keywords)))
+    (amsha/gptel-prev-preview-refresh)))
 
 ;; (define-global-minor-mode amsha/global-gptel-highlight-preset-mode
 ;;   amsha/gptel-highlight-preset-mode
