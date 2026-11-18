@@ -362,6 +362,8 @@
                                                          (:kernel . "python3")
                                                          (:tangle . "jupyter-python/tangled.py")
                                                          (:exports . "both")))
+    ;; So org-lint won't complain
+    (add-to-list 'org-babel-header-args:jupyter '(display . :any))
     (define-key jupyter-org-interaction-mode-map (kbd "C-c h") nil)
 
     (cl-defmethod jupyter-handle-execute-reply :around ((_client jupyter-org-client) (req jupyter-org-request) msg)
@@ -394,7 +396,34 @@ This prevents 'wrong-type-argument wholenump nil' errors in newer Org versions."
        (em "Setting up jupyter envs:
   poetry run python -m ipykernel install --user --name hpui-system-sensing-analysis
 
-  Then run: (jupyter-available-kernelspecs 'refresh)"))))
+  Then run: (jupyter-available-kernelspecs 'refresh)")))
+
+    ;; copied from https://github.com/emacs-jupyter/jupyter/issues/538#issuecomment-4243834467
+    (defun amsha/jupyter-org-remove-overlay ()
+      "Remove read-only src block overlay jupyter sometimes leaves after execution."
+      (interactive)
+      (let (begin end)
+        (if (region-active-p)
+            (setq begin (region-beginning)
+                  end (region-end))
+          (let ((el (org-element-at-point)))
+            (setq begin (org-element-property :begin el)
+                  end (org-element-property :end el))))
+        (remove-overlays begin end 'jupyter t)))
+
+    (defun amsha/jupyter-org-abort-block ()
+      "Abort running jupyter block."
+      (interactive)
+      (jupyter-org-abort (jupyter-org-request-at-point)))
+
+    (defun amsha/jupyter-org-abort-block-all ()
+      (interactive)
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (while (org-babel-next-src-block)
+         (ignore-errors
+           (amsha/jupyter-org-abort-block)
+           (amsha/jupyter-org-remove-overlay))))))
 
   (use-package ox-ipynb
     :straight (ox-ipynb :type git :host github :repo "jkitchin/ox-ipynb")))
