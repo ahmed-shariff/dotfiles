@@ -5540,17 +5540,18 @@ then close the *gptel-context* buffer and return to gptel menu."
     (apply #'gptel-make-preset
            (intern (concat "skill-" name))
            (append skill-plist
-                   `(:prompt-transform-functions
-                     ,(amsha/gptel-add-prompt-transform-functions
-                       (concat "\n----"
-                               "\nThe user had the following skill loaded:"
-                               "\nSkill name: " name
-                               "\nSkill base dir: " dir
-                               "\n----\n"
-                               (gptel-agent--get-skill name)
-                               "\n----\n"
-                               (propertize "What should I do next?" 'gptel 'response))
-                       t))))))
+                   `(:pre
+                     (lambda ()
+                       (amsha/gptel-transform-inline
+                        ,(concat "\n----"
+                                "\nThe user had the following skill loaded:"
+                                "\nSkill name: " name
+                                "\nSkill base dir: " dir
+                                "\n----\n"
+                                (gptel-agent--get-skill name)
+                                "\n----\n"
+                                (propertize "What should I do next?" 'gptel 'response))
+                        t)))))))
 
 (gptel-agent-update)         ;Read files from agents directories
 (amsha/gptel-update-fabric-assets)
