@@ -347,6 +347,10 @@
     nil))
 
 (when (gethash 'use-jupyter configurations t)
+  (use-package emacs-zmq
+    :straight (zmq :type git :files (:defaults "Makefile" "src" "zmq-pkg.el") :host github :repo "nnicandro/emacs-zmq"
+                   :fork (:host github :repo "ahmed-shariff/emacs-zmq")))
+
   (use-package jupyter
     :straight (jupyter :includes (jupyter-org-client)
                        :files (:defaults "*.el"))
