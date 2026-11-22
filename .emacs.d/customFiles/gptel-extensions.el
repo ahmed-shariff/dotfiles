@@ -5529,6 +5529,28 @@ then close the *gptel-context* buffer and return to gptel menu."
     (apply #'gptel-make-preset 'paper-agent paper-agent-plist))
   ;; Make skills presets
   (pcase-dolist (`(,name ,dir . ,skill-plist) gptel-agent--skills)
+    (dolist (ref-file (cl-remove-if (lambda (f) (string-equal "SKILL" (f-base f))) (directory-files-recursively dir "\\.md$")))
+      (apply #'gptel-make-preset
+             (intern (concat "skill-" name "/" (f-relative ref-file dir)))
+             (append
+              (plist-put (copy-sequence skill-plist)
+                         :description
+                         (format "Reference %s for skill %s."
+                                 (f-relative ref-file dir) name))
+              `(:pre
+               (lambda ()
+                 (amsha/gptel-transform-inline
+                  ,(concat "\n----"
+                           "\nThe user had the following reference file loaded:"
+                           "\nRelated skill name: " name
+                           "\nReference file: " ref-file
+                           "\n----\n"
+                           (plist-get
+                            (cdr (gptel-agent-read-file ref-file))
+                            :system)
+                           "\n----\n"
+                           (propertize "What should I do next?" 'gptel 'response))
+                  t))))))
     (apply #'gptel-make-preset
            (intern (concat "skill-" name))
            (append skill-plist
