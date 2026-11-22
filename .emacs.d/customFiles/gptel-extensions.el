@@ -3349,22 +3349,23 @@ COMMAND is the psh command string to execute."
     ("Start-Process" nil t)
 
     ;; Shell syntax that should remain conservative
-    (nil "[<>$()]\\|::\\|Invoke-\\|ForEach-Object[ \t]*{" t))
+    (nil nil "[<>$()]\\|::\\|Invoke-\\|ForEach-Object[ \t]*{"))
   "PowerShell confirmation rules.
 
 Each rule is (COMMAND-NAME ALLOWED-REGEXP DISALLOWED-REGEXP).  A one-element
 rule allows the command with any arguments.  A two-element rule allows only
 matching arguments.  DISALLOWED-REGEXP may be t to reject every invocation.
-A nil COMMAND-NAME rule applies to every command segment.  An allowed rule
-for a command takes precedence over its disallowed catch-all rule.")
+A nil COMMAND-NAME rule applies restrictions to every command segment but
+never grants permission.  A matching restriction takes precedence over an
+allowed rule; unknown commands require confirmation.")
 
 (defun gptel-agent--shell-command-read-only-p (command)
-  "Return nil when every segment of COMMAND is obviously read-only.
+  "Return non-nil when COMMAND requires confirmation.
 
-This heuristic skips confirmation only for configured rules.  Unknown commands
-and disallowed commands return nil.  COMMAND is inspected in Elisp and is not
-executed."
-  (let ((unsafe nil))
+Return nil only when every segment has an explicit command allow match and
+no matching restriction.  Unknown commands, disallowed commands, and empty
+input require confirmation.  COMMAND is inspected in Elisp and not executed."
+  (let ((unsafe (string-empty-p (string-trim command "[;|& \\t\\n\\r]+"))))
     (dolist (segment (split-string command "[;|&\n\r]+" t))
       (let* ((segment (string-trim segment))
              (name (car (split-string segment "[ \t\r\n]+" t)))
@@ -3376,8 +3377,9 @@ executed."
              (allowed (cl-some
                        (lambda (rule)
                          (let ((regexp (nth 1 rule)))
-                           (or (and (null regexp) (null (nth 2 rule)))
-                               (and regexp (string-match-p regexp segment)))))
+                           (and (car rule)
+                                (or (and (null regexp) (null (nth 2 rule)))
+                                    (and regexp (string-match-p regexp segment))))))
                        rules))
              (disallowed (cl-some
                           (lambda (rule)
@@ -3386,17 +3388,7 @@ executed."
                                   (and regexp
                                        (string-match-p regexp segment)))))
                           rules)))
-        (--map (em (list
-                          segment
-                          name
-                          it
-                          (and (nth 1 it) (string-match-p (nth 1 it) segment))
-                          (and (nth 2 it) (or
-                                           (eq (nth 2 it) t)
-                                           (string-match-p (nth 2 it) segment)))))
-                     rules)
-        (unless (or allowed
-                    (and rules (not disallowed)))
+        (unless (and allowed (not disallowed))
           (setq unsafe t))))
     unsafe))
 
