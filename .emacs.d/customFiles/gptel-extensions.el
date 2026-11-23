@@ -183,7 +183,18 @@ word count of the response."
 
 (use-package gptel-preset-collection
   :straight (:host github :repo "karthink/gptel-preset-collection")
-  :after gptel)
+  :after gptel
+
+  :custom
+  (gptel-preset-collection-capf-identifier-regexp (rx (seq "@" (or "include" "gptel-annotate" "include-inline"))))
+  :config
+  (defun gptel-preset-collection--parse-line-inline ()
+    "To be used as :pre for preset."
+    (amsha/gptel-transform-inline (gptel-context--string (gptel-preset-collection--parse-line nil))))
+
+  (gptel-make-preset 'include-inline
+    :description "INLINE: Include file or buffer names following @include"
+    :pre #'gptel-preset-collection--parse-line-inline))
 
 (use-package evedel
   :after gptel
