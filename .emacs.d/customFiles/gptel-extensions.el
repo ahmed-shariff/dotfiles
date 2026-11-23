@@ -493,10 +493,11 @@ search forward instead.  The default is `prepend'."
          ;; TODO: should there be a speical form for "inplace"?
          ;; Treating any other value to mean inplace now....
          ,(pcase type
-            ('prepend
+            ((or 'prepend ''prepend)
              `(text-property-search-backward 'gptel nil t))
-            ('append
-             `(text-property-search-forward 'gptel nil t)))
+            ((or 'append ''append)
+             `(text-property-search-forward 'gptel nil t))
+            (_ (message "amsha/gptel-transform-inline: unknown type %S" type)))
          (insert ,content-sym)))))
 
 (defun amsha/gptel-agent-read-system-from-file (file &optional templates)
