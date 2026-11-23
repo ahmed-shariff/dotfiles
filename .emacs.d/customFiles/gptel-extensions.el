@@ -4607,11 +4607,13 @@ Current memories:" (car sys))
              amsha/agent-add-skills
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
-  :prompt-transform-functions
-  (amsha/gptel-add-prompt-transform-functions
-   (amsha/gptel-agent-read-system-from-file
-    "~/.emacs.d/customFiles/agents/--refine-self-prompt.md"
-    (amsha/generate-agent-template-with-emacs-skills))))
+  :pre
+  (lambda ()
+    (amsha/gptel-transform-inline
+     (amsha/gptel-agent-read-system-from-file
+      "~/.emacs.d/customFiles/agents/--refine-self-prompt.md"
+      (amsha/generate-agent-template-with-emacs-skills))
+     append)))
 
 (gptel-make-preset 'amsha/curate-skills-agent
   :description "Curate skills"
@@ -4622,11 +4624,13 @@ Current memories:" (car sys))
              amsha/agent-add-skills
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
-  :prompt-transform-functions
-  (amsha/gptel-add-prompt-transform-functions
-   (amsha/gptel-agent-read-system-from-file
-    "~/.emacs.d/customFiles/agents/--skill-curator-prompt.md"
-    (amsha/generate-agent-template-with-emacs-skills))))
+  :pre
+  (lambda ()
+    (amsha/gptel-transform-inline
+     (amsha/gptel-agent-read-system-from-file
+      "~/.emacs.d/customFiles/agents/--skill-curator-prompt.md"
+      (amsha/generate-agent-template-with-emacs-skills))
+     append)))
 
 (gptel-make-preset 'amsha/learn-agent
   :description "Learn a new skill."
@@ -4637,12 +4641,13 @@ Current memories:" (car sys))
              amsha/agent-add-skills
              amsha/agent-add-tools-info
              amsha/cleanup-variables)
-  :prompt-transform-functions
-  (amsha/gptel-add-prompt-transform-functions
-   (amsha/gptel-agent-read-system-from-file
-    "~/.emacs.d/customFiles/agents/--skill-learn-prompt.md"
-    (amsha/generate-agent-templates))
-   'prepend))
+  :pre
+  (lambda ()
+    (amsha/gptel-transform-inline
+     (amsha/gptel-agent-read-system-from-file
+      "~/.emacs.d/customFiles/agents/--skill-learn-prompt.md"
+      (amsha/generate-agent-templates))
+     prepend)))
 
 ;;; code introspection tools **************************************************************
 (defun gptel--get-file-relative-to-root (file)
