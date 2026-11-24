@@ -890,9 +890,8 @@ either (LOCATOR . KEYSTRING) or (LOCATOR KEYSTRING)."
 (use-package command-log-mode
   :custom
   (command-log-mode-key-binding-open-log nil)
-  :init
-  (global-command-log-mode)
   :config
+  (global-command-log-mode)
   ;; hack to get the commands to start logging automatically
   (setq clm/command-log-buffer
         (get-buffer-create " *command-log*")))
@@ -2165,7 +2164,7 @@ See `pdf-annot-activate-created-annotations' for more details."
   :config
   ;; downloaded from http://github.com/first20hours/google-10000-english/
   (if-let* ((dictionary-file (file-truename "~/.emacs.d/var/20k.txt"))
-            (_ (f-exists-p dictionary-file)))
+            (_ (file-exists-p dictionary-file)))
       (setq ispell-alternate-dictionary dictionary-file
             text-mode-ispell-word-completion t)
     (setq ispell-alternate-dictionary nil
