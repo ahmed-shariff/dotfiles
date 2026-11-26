@@ -365,28 +365,30 @@ See `org-roam-ql-preview-function' for NODE QUERY."
          (full-file (< (point) 5)) ;; means we are trying to display the whole file, I think!
          ;; Even when displaying full file, we skip the initial meta data
          (beg (if use-subtree-preview
-                  (progn
-                    (unless (org-at-heading-p)
-                      (org-previous-visible-heading 1))
-                    (while (and (org-current-level)
-                                (> (org-current-level) 1))
-                      (org-up-heading-safe))
-                    (if (org-id-get)
-                        (org-roam-end-of-meta-data t)
-                      (org-beginning-of-line))
-                    (point))
+                  (save-excursion
+                    (progn
+                      (unless (org-at-heading-p)
+                        (org-previous-visible-heading 1))
+                      (while (and (org-current-level)
+                                  (> (org-current-level) 1))
+                        (org-up-heading-safe))
+                      (if (org-id-get)
+                          (org-roam-end-of-meta-data t)
+                        (org-beginning-of-line))
+                      (point)))
                 ;; what `org-roam-preview-default-function' does
                 (save-excursion
                   (org-roam-end-of-meta-data t)
                   (point))))
          (end (if use-subtree-preview
-                  (if full-file
-                      (point-max)
-                    (progn (when (org-id-get)
-                             (org-previous-visible-heading 1)
-                             (org-beginning-of-line))
-                           (org-end-of-subtree)
-                           (point)))
+                  (save-excursion
+                    (if full-file
+                        (point-max)
+                      (progn (when (org-id-get)
+                               (org-previous-visible-heading 1)
+                               (org-beginning-of-line))
+                             (org-end-of-subtree)
+                             (point))))
                 ;; what `org-roam-preview-default-function' does
                 (save-excursion
                   (org-next-visible-heading 1)
