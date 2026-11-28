@@ -863,25 +863,53 @@ current buffer."
               (nreverse paths))))
         "\n")))))
 
-(defun amsha/gptel-ask-jev (prompt schema callback)
-  "Send PROMPT to the Jev GPT model using SCHEMA.
+(defun amsha/gptel-ask-jev (prompt schema &optional timeout)
+  "Return Jev's decisions for PROMPT using SCHEMA synchronously.
 
 See `gptel-systemone's `gptel--parse-schema' for what SCHEMA can be.
 
-Call CALLBACK with the returned decisions when the response contains them.
-Otherwise, log the unexpected response and status with `em', then call
-CALLBACK with nil."
+Wait up to TIMEOUT seconds, defaulting to 10.  Return nil on timeout or
+request failure.  Log unexpected responses and status with `em'.
+Process events while waiting, but wait only for this request's callback.
+Abort an unfinished request on timeout or quit without affecting requests
+in other buffers."
+  (unless (and (numberp (or timeout 10)) (> (or timeout 10) 0))
+    (error "TIMEOUT must be a positive number"))
   (let ((gptel-backend amsha/gptel-jev)
-        (gptel-model "jev-latest"))
-    (gptel-request prompt
-      :schema schema
-      :callback (lambda (response info &rest _)
-                  (pcase response
-                    (`(decisions . ,answers)
-                     (funcall callback answers))
-                    (_
-                     (em "Got" response (plist-get info :status))
-                     (funcall callback nil)))))))
+        (gptel-model "jev-latest")
+        (gptel-use-tools nil)
+        (gptel-tools nil)
+        (gptel-use-context nil)
+        (deadline (+ (float-time) (or timeout 10)))
+        done answers)
+    (with-temp-buffer
+      (unwind-protect
+          (condition-case err
+              (progn
+                (gptel-request prompt
+                  :buffer (current-buffer)
+                  :schema schema
+                  :stream nil
+                  :system nil
+                  :transforms nil
+                  :callback
+                  (lambda (response info &rest _)
+                    (unless done
+                      (setq done t)
+                      (pcase response
+                        (`(decisions . ,result)
+                         (setq answers result))
+                        (_
+                         (em "Got" response (plist-get info :status)))))))
+                (while (and (not done) (< (float-time) deadline))
+                  (accept-process-output
+                   nil (min 0.05 (max 0.0 (- deadline (float-time)))))))
+            (error (em "Got" err :request-error)))
+        (unless done
+          (setq done t)
+          (em "Got" nil (if (< (float-time) deadline) :interrupted :timeout))
+          (gptel-abort (current-buffer)))))
+    answers))
 
 ;;; Resolve GPTel's project directory ****************************************************
 
