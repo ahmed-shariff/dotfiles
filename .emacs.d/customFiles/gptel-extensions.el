@@ -5666,7 +5666,7 @@ then close the *gptel-context* buffer and return to gptel menu."
   :key (gethash 'anthropic-api configurations)))
 
 (defvar amsha/gptel-jev
-  (gptel-make-systemone 'jev
+  (gptel-make-systemone "jev"
     :key (gethash 'typesafe-api configurations)
     :models '(jev-latest)))
 
