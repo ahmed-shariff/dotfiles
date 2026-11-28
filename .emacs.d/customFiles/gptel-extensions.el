@@ -3417,7 +3417,26 @@ rule allows the command with any arguments.  A two-element rule allows only
 matching arguments.  DISALLOWED-REGEXP may be t to reject every invocation.
 A nil COMMAND-NAME rule applies restrictions to every command segment but
 never grants permission.  A matching restriction takes precedence over an
-allowed rule; unknown commands require confirmation.")
+allowed rule; unknown commands require confirmation.
+
+Rules in `gptel-agent--shell-command-extra-rules' extend this list in the
+current buffer without replacing these shared rules.  Restrictions from
+either list take precedence over allowances.")
+
+(defvar-local gptel-agent--shell-command-extra-rules nil
+  "Additional buffer-local shell command confirmation rules.
+Uses the same format as `gptel-agent--shell-command-rules'.  Matching
+restrictions from either list take precedence over allowances.
+
+Set this variable in a trusted project's .dir-locals.el, for example:
+  ((nil . ((gptel-agent--shell-command-extra-rules
+            . ((\"poetry\" \"\\\\`poetry run pytest -ra\\\\'\"))))))
+
+These rules grant permission to skip confirmation, not a guarantee that
+commands are read-only.  Approve directory-local values only for trusted
+projects.  Non-file agent buffers must also load the project's directory
+locals, using `hack-dir-local-variables-non-file-buffer' with the project's
+`default-directory', before checking commands.")
 
 (defun gptel-agent--shell-command-read-only-p (command)
   "Return non-nil when COMMAND requires confirmation.
@@ -3433,7 +3452,8 @@ input require confirmation.  COMMAND is inspected in Elisp and not executed."
                      (lambda (rule)
                        (or (null (car rule))
                            (string-equal name (car rule))))
-                     gptel-agent--shell-command-rules))
+                     (append gptel-agent--shell-command-rules
+                             gptel-agent--shell-command-extra-rules)))
              (allowed (cl-some
                        (lambda (rule)
                          (let ((regexp (nth 1 rule)))
