@@ -863,6 +863,26 @@ current buffer."
               (nreverse paths))))
         "\n")))))
 
+(defun amsha/gptel-ask-jev (prompt schema callback)
+  "Send PROMPT to the Jev GPT model using SCHEMA.
+
+See `gptel-systemone's `gptel--parse-schema' for what SCHEMA can be.
+
+Call CALLBACK with the returned decisions when the response contains them.
+Otherwise, log the unexpected response and status with `em', then call
+CALLBACK with nil."
+  (let ((gptel-backend amsha/gptel-jev)
+        (gptel-model "jev-latest"))
+    (gptel-request prompt
+      :schema schema
+      :callback (lambda (response info &rest _)
+                  (pcase response
+                    (`(decisions . ,answers)
+                     (funcall callback answers))
+                    (_
+                     (em "Got" response (plist-get info :status))
+                     (funcall callback nil)))))))
+
 ;;; Resolve GPTel's project directory ****************************************************
 
 (defvar-local amsha/gptel-project-directory-unresolved nil
@@ -5529,6 +5549,11 @@ then close the *gptel-context* buffer and return to gptel menu."
  (gptel-make-anthropic "Claude"          ;Any name you want
   :stream t                             ;Streaming responses
   :key (gethash 'anthropic-api configurations)))
+
+(defvar amsha/gptel-jev
+  (gptel-make-systemone 'jev
+    :key (gethash 'typesafe-api configurations)
+    :models '(jev-latest)))
 
 ;; (condition-case err
 ;;     (setf (gptel-backend-models gptel--openai) (append (gptel-backend-models gptel--openai)
