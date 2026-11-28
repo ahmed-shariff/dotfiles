@@ -875,14 +875,14 @@ Abort an unfinished request on timeout or quit without affecting requests
 in other buffers."
   (unless (and (numberp (or timeout 10)) (> (or timeout 10) 0))
     (error "TIMEOUT must be a positive number"))
-  (let ((gptel-backend amsha/gptel-jev)
-        (gptel-model "jev-latest")
-        (gptel-use-tools nil)
-        (gptel-tools nil)
-        (gptel-use-context nil)
-        (deadline (+ (float-time) (or timeout 10)))
-        done answers)
-    (with-temp-buffer
+  (with-temp-buffer
+    (let ((gptel-backend amsha/gptel-jev)
+          (gptel-model "jev-latest")
+          (gptel-use-tools nil)
+          (gptel-tools nil)
+          (gptel-use-context nil)
+          (deadline (+ (float-time) (or timeout 10)))
+          done answers)
       (unwind-protect
           (condition-case err
               (progn
@@ -900,16 +900,16 @@ in other buffers."
                         (`(decisions . ,result)
                          (setq answers result))
                         (_
-                         (em "Got" response (plist-get info :status)))))))
+                         (message "ERROR: unexpected jev response: %S status: %S" response (plist-get info :status)))))))
                 (while (and (not done) (< (float-time) deadline))
                   (accept-process-output
                    nil (min 0.05 (max 0.0 (- deadline (float-time)))))))
-            (error (em "Got" err :request-error)))
+            (error (message "ERROR: %s %s" err :request-error)))
         (unless done
           (setq done t)
-          (em "Got" nil (if (< (float-time) deadline) :interrupted :timeout))
-          (gptel-abort (current-buffer)))))
-    answers))
+          (message "ERROR: Jev stopped because %s" (if (< (float-time) deadline) :interrupted :timeout))
+          (gptel-abort (current-buffer))))
+      answers)))
 
 ;;; Resolve GPTel's project directory ****************************************************
 
